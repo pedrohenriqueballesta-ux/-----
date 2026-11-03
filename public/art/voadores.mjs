@@ -6,12 +6,13 @@ import { art, loaded } from './assets.mjs';
 import { spriteFacing, strikeColumn } from '../render/camera.mjs';
 import { PASSARO_VOO } from './passaro-voo.mjs';
 import { PASSARO_ATAQUE } from './passaro-ataque.mjs';
+import { INSETO_VOO } from './inseto-voo.mjs';
 
 // Folhas definitivas (5 direções × 4 quadros, lado esquerdo espelhado): voo com a batida de asa de verdade
 // e, quando houver, ataque (o quadro de impacto, coluna 3, cai no instante do dano, como nos outros mobs).
 // Sem folha de ataque, no golpe as asas batem mais rápido e o bicho avança. As duas folhas usam a escala
 // do voo, para o bicho não mudar de tamanho ao atacar.
-const FOLHAS = { passaro: { voo: PASSARO_VOO, ataque: PASSARO_ATAQUE } };
+const FOLHAS = { passaro: { voo: PASSARO_VOO, ataque: PASSARO_ATAQUE }, inseto: { voo: INSETO_VOO } };
 // Direção do jogo (S, SW, W, NW, N, NE, E, SE) → linha da folha (S, SE, E, NE, N) e se espelha.
 const LINHA_DA_FOLHA = [[0, false], [1, true], [2, true], [3, true], [4, false], [3, false], [2, false], [1, false]];
 const BATIDAS_POR_SEGUNDO = 2.5;
@@ -45,7 +46,7 @@ export const VOADORES = {
 // Quanto o voador fica acima do chão (a sombra fica no chão, no ponto do mob).
 export const ALTURA_DE_VOO = 16;
 
-// Folha provisória (Inseto, e reserva do Pássaro): um desenho fixo por direção (linha "voando"; no golpe, "atacando"). Alternar com o "parado" fazia o
+// Folha provisória (reserva, se a folha definitiva não carregar): um desenho fixo por direção (linha "voando"; no golpe, "atacando"). Alternar com o "parado" fazia o
 // bicho parecer girar de um lado para o outro, porque os dois desenhos da folha estão em ângulos
 // diferentes. Até a folha com 4 quadros de asa chegar, o voo é um pulsar leve (encolhe e estica na
 // vertical, 3 vezes por segundo) mais a flutuação.

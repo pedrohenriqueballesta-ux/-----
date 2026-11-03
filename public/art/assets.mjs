@@ -35,6 +35,7 @@ export const art = {
   passaroVoo: loadImage('/assets/mobs/passaro-voo.png'),
   passaroAtaque: loadImage('/assets/mobs/passaro-ataque.png'),
   inseto: loadImage('/assets/mobs/inseto.png'),
+  insetoVoo: loadImage('/assets/mobs/inseto-voo.png'),
   namekSolo: loadImage('/assets/namek/solo.webp'),
   namekCasas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/casas/casa_' + (i + 1) + '.png')),
   namekRuinas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/ruinas/ruina_' + (i + 1) + '.png')),
