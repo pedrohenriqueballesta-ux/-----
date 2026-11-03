@@ -85,19 +85,30 @@ function gradeBusca(planet, area, raio = 15) {
   const g = { cols, rows, cw, ch, livre };
   cacheGrade.set(chave, g); return g;
 }
-function celulaLivreMaisProxima(g, cx, cy) {
+// Célula livre mais próxima de (cx, cy). Com `alcanca`, só vale a que dá para alcançar andando em linha
+// reta a partir do ponto real: sem isso, quem está numa fresta sem saída recebia uma célula do outro lado
+// da parede e ficava empurrando a parede (trava da caça automática, 03/11).
+function celulaLivreMaisProxima(g, cx, cy, alcanca = null) {
   for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     const x = cx + dx, y = cy + dy;
-    if (x >= 0 && y >= 0 && x < g.cols && y < g.rows && g.livre[y * g.cols + x]) return y * g.cols + x;
+    if (x >= 0 && y >= 0 && x < g.cols && y < g.rows && g.livre[y * g.cols + x]
+      && (!alcanca || alcanca((x + 0.5) * g.cw, (y + 0.5) * g.ch))) return y * g.cols + x;
   }
   return -1;
 }
+// Dá para ir de `de` até (x, y) em linha reta com os pés livres (amostras a cada 6 unidades)?
+function retaLivre(planet, area, de, x, y) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x - de.x, y - de.y) / 6));
+  for (let i = 1; i <= n; i++) if (!pesLivres(planet, de.x + (x - de.x) * i / n, de.y + (y - de.y) * i / n, 15, area)) return false;
+  return true;
+}
 export function caminhoPorTerra(planet, de, ate, area = null) {
   if (!MASCARAS[planet]) return null;
-  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO), de, ate) || buscar(gradeBusca(planet, area), de, ate);
+  const alcanca = pesLivres(planet, de.x, de.y, 15, area) ? (x, y) => retaLivre(planet, area, de, x, y) : null;
+  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO), de, ate, alcanca) || buscar(gradeBusca(planet, area), de, ate, alcanca);
 }
-function buscar(g, de, ate) {
-  const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch));
+function buscar(g, de, ate, alcanca) {
+  const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch), alcanca);
   const fim = celulaLivreMaisProxima(g, Math.floor(ate.x / g.cw), Math.floor(ate.y / g.ch));
   if (ini < 0 || fim < 0) return null;
   const veio = new Int32Array(g.cols * g.rows).fill(-1); veio[ini] = ini;

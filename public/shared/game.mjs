@@ -69,13 +69,20 @@ export class Game {
     if (!a || !b || a.id === b.id || !a.connected || !b.connected || a.hp <= 0 || b.hp <= 0) return false;
     return this.mesmoLugar(a, b) && Boolean(areaPorId(a.area)?.pvp);
   }
-  nearestMob(p, radius = 350) {
+  nearestMob(p, radius = 350, aceita = null) {
     let best = null, d = radius;
     for (const m of this.mobs.values()) {
-      if (m.hp <= 0 || !this.mesmoLugar(p, m)) continue;
+      if (m.hp <= 0 || !this.mesmoLugar(p, m) || (aceita && !aceita(m))) continue;
       const dd = distance(p, m); if (dd < d) { d = dd; best = m; }
     }
     return best;
+  }
+  // Alvo da caça automática: o mob mais próximo que dá para alcançar por terra (confere os 6 mais
+  // próximos; se nenhum tiver caminho, o mais próximo mesmo). Mob ignorado pela rede de segurança fica de fora.
+  alvoAlcancavel(p) {
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && this.mesmoLugar(p, m) && (p.ignorar?.[m.id] || 0) <= this.time)
+      .sort((a, b) => distance(p, a) - distance(p, b));
+    return vivos.slice(0, 6).find(m => distance(p, m) < 120 || caminhoPorTerra(p.planet, p, m, p.area)) || vivos[0] || null;
   }
   aimDirection(p, target = null) {
     if (target) return norm(target.x - p.x, target.y - p.y);
@@ -307,10 +314,17 @@ export class Game {
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1));
     else if (p.autoHunt) {
       // A área inteira é a região de caça: segue o alvo vivo ou o mob mais próximo da hunt.
+      // Rede de segurança: 3 s sem chegar mais perto do alvo → troca de alvo e ignora esse por 10 s.
       let target = this.mobs.get(p.targetId);
-      if (!target || target.hp <= 0 || !this.mesmoLugar(p, target)) target = this.nearestMob(p, Infinity);
+      if (!target || target.hp <= 0 || !this.mesmoLugar(p, target) || (p.ignorar?.[target.id] || 0) > this.time) target = this.alvoAlcancavel(p);
+      if (target?.id !== p.caca?.alvo) p.caca = { alvo: target?.id, melhor: Infinity, desde: this.time };
       p.targetId = target?.id || null;
-      if (target && distance(p, target) > 49) this.steer(p, target, dt, p.stats.mobility);
+      if (target && distance(p, target) > 49) {
+        this.steer(p, target, dt, p.stats.mobility);
+        const d = distance(p, target);
+        if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
+        else if (this.time - p.caca.desde > 3) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
+      } else if (p.caca) p.caca.desde = this.time;
     } else if (p.moveTo) {
       if (distance(p, p.moveTo) < 16) p.moveTo = null;
       else this.steer(p, p.moveTo, dt, p.stats.mobility);
@@ -362,7 +376,9 @@ export class Game {
     // O Veterano de Namek dispara de longe e soca quando o alvo chega perto.
     const atira = m.type === 'ranged' || (m.type === 'veterano' && closest > 62);
     const range = m.type === 'ranged' || m.type === 'veterano' ? 235 : grande ? 150 : 62;
-    if (closest > range) this.steer(m, target, dt, m.speed);
+    // O Veterano não fica parado atirando: continua se aproximando até a distância do soco.
+    if (m.type === 'veterano' && closest > 55 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
+    else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
       if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
       else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };

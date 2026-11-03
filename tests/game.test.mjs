@@ -334,3 +334,19 @@ test('Veterano de Namek dispara de longe e soca de perto; Guerreiro de Namek só
     assert.equal(mob.telegraph?.kind, golpe, tipo + ' a ' + dist);
   }
 });
+
+test('caça automática sai de fresta sem saída na beira do penhasco (travava olhando para o norte)', () => {
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = naArea(game, game.addPlayer('a', 'Goku', { level: 12 }), 'media');
+  p.x = 5880; p.y = 3824; p.autoAttack = false; p.autoSkills = false;
+  const mob = game.addMob('veterano', 5931, 3689, 'media'); mob.attackReady = Infinity;
+  game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+  advance(game, 3);
+  assert.ok(Math.hypot(mob.x - p.x, mob.y - p.y) < 60, 'chegou ao alvo');
+});
+
+test('Veterano de Namek se aproxima enquanto ataca, em vez de ficar parado atirando', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a', 'Goku', { level: 12 }), 'media'); p.x = 2650; p.y = 4000;
+  const v = game.addMob('veterano', 2850, 4000, 'media');
+  for (let i = 0; i < 40; i++) { game.tick(0.05); p.hp = p.stats.hp; }
+  assert.ok(Math.hypot(v.x - p.x, v.y - p.y) < 120);
+});
