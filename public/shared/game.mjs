@@ -7,8 +7,8 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo } from './enemies.mjs'
 import { deslocar, caminhoPorTerra } from './passagem.mjs';
 
 export class Game {
-  constructor({ now = Date.now() / 1000, random = Math.random, populate = true } = {}) {
-    this.time = now; this.random = random; this.players = new Map(); this.mobs = new Map();
+  constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
+    this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.projectiles = []; this.loot = []; this.events = []; this.serial = 0;
     if (populate) this.populate();
   }
@@ -31,7 +31,7 @@ export class Game {
     for (const s of spawnPoints(this.random)) {
       const m = this.addMob(s.type, s.x, s.y, s.area);
       // O chefe raro não está no mapa quando o servidor liga: aparece depois do primeiro sorteio.
-      if (s.raro) { m.raro = true; m.hp = 0; m.deadUntil = this.time + renasceEm(m.type, this.random); }
+      if (s.raro) { m.raro = true; m.hp = 0; m.deadUntil = this.time + (this.chefeJa ? 10 : renasceEm(m.type, this.random)); }
     }
   }
   // Mesmo lugar = mesmo planeta e mesma área fechada. Nada atravessa de um lugar para outro:
@@ -250,7 +250,7 @@ export class Game {
     if (target.hp <= 0) {
       if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
-        target.deadUntil = this.time + renasceEm(target.type, this.random); target.telegraph = null;
+        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null;
         if (attacker && this.players.has(attacker.id)) {
           this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.type === 'boss' ? 100 : 5 + Math.floor(this.random() * 5);
           if (target.type === 'boss') { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }

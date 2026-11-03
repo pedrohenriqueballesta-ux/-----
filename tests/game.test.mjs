@@ -375,3 +375,10 @@ test('chefe raro: nasce no círculo do planalto entre 45 e 90 minutos, e de novo
   game.hit(p, chefe, 1e9);
   assert.ok(chefe.deadUntil - game.time >= 45 * 60 - 1 && chefe.deadUntil - game.time <= 90 * 60, 'volta entre 45 e 90 min');
 });
+
+test('modo de teste do chefe: nasce em 10 s e volta em 60 s (o jogo normal não muda)', () => {
+  const game = new Game({ now: 1000, random: () => 0.5, chefeJa: true }), chefe = [...game.mobs.values()].find(m => m.type === 'boss');
+  assert.equal(chefe.deadUntil - game.time, 10);
+  game.time = chefe.deadUntil; game.tick(0.05); assert.equal(chefe.hp, chefe.maxHp);
+  game.hit(null, chefe, 1e9); assert.ok(Math.abs(chefe.deadUntil - game.time - 60) < 0.01);
+});
