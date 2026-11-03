@@ -31,6 +31,8 @@ export const art = {
   sentinelaPasso: loadImage(SENTINELA_PASSO.file),
   gokuGolpe: loadImage(GOKU_GOLPE.file),
   ssjGolpe: loadImage(SSJ_GOLPE.file),
+  passaro: loadImage('/assets/mobs/passaro.png'),
+  inseto: loadImage('/assets/mobs/inseto.png'),
   namekSolo: loadImage('/assets/namek/solo.webp'),
   namekCasas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/casas/casa_' + (i + 1) + '.png')),
   namekRuinas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/ruinas/ruina_' + (i + 1) + '.png')),

@@ -1,7 +1,7 @@
 import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal } from '../art/index.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -184,16 +184,16 @@ function drawMob(m, pos, time) {
   const attackProgress = mobStrikeProgress(m.strike, time);
   const facing = attackProgress !== null ? m.strike.direction : pos.facing;
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
-  // Pássaro e Inseto de Namek usam o desenho do Saibaman e da sentinela até as folhas deles chegarem.
-  const corpoACorpo = m.type === 'melee' || m.type === 'passaro';
-  const drawn = m.type === 'boss'
+  // Pássaro e Inseto de Namek voam (art/voadores.mjs); se a folha não carregar, usam o Saibaman e a sentinela.
+  const corpoACorpo = m.type === 'melee' || m.type === 'passaro', voa = m.type in VOADORES;
+  const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress)) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : corpoACorpo
       ? drawSaibaman(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
-      : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled);
+      : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled));
   if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : corpoACorpo ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
   ctx.restore();
-  placa(pos.x, pos.y - h - 16, m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
+  placa(pos.x, pos.y - h - 16 - (voa ? ALTURA_DE_VOO : 0), m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
 }
 function telegraphs(time) {
   for (const m of snapshot.mobs) {
