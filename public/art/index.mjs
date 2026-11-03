@@ -5,4 +5,4 @@ export { drawGoku } from './goku.mjs';
 export { drawSaibaman } from './saibaman.mjs';
 export { drawAlien } from './alien.mjs';
 export { drawFreeza } from './freeza.mjs';
-export { drawVoador, VOADORES, ALTURA_DE_VOO } from './voadores.mjs';
+export { drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU } from './voadores.mjs';
