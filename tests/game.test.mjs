@@ -288,3 +288,13 @@ test('Genki Dama só libera no nível 10 e atinge o alvo com projétil de área'
   advance(game, 0.6);
   assert.equal(game.cast(p, 'genki').ok, false, 'a técnica continua em recarga após 1 segundo');
 });
+
+test('dá para chegar andando (clique no chão) a cada portal, partindo da chegada da área', () => {
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  for (const o of PORTAIS) {
+    game.levar(p, lugar(o.area || 'terra'));
+    game.action(p.id, { type: 'moveTo', x: o.x, y: o.y });
+    let t = 0; while (t < 20 && Math.hypot(p.x - o.x, p.y - o.y) > 20) { game.tick(0.05); t += 0.05; }
+    assert.ok(Math.hypot(p.x - o.x, p.y - o.y) <= 20, o.id + ': travou a ' + Math.round(Math.hypot(p.x - o.x, p.y - o.y)) + ' do portal');
+  }
+});

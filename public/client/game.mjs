@@ -1,8 +1,8 @@
-import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, zoneAt } from '../shared/index.mjs';
+import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza } from '../art/index.mjs';
-import { $, notify, atualizarHud, ligarHud, alternarCaca } from './hud.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawForaDaArea } from '../art/index.mjs';
+import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
@@ -47,7 +47,7 @@ async function join(name, previousToken) {
     } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
   };
   if ($('welcomeDialog').open) $('welcomeDialog').close();
-  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Vá às Planícies de Namekusei ou ative a caça automática.');
+  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para ir a Namekusei.');
 }
 
 
@@ -101,7 +101,7 @@ canvas.addEventListener('pointermove', e => { if (e.pointerType !== 'touch') poi
 canvas.addEventListener('pointerdown', e => {
   if (!snapshot) return; canvas.focus(); const point = toWorld(e);
   const targets = [...snapshot.mobs, ...snapshot.players.filter(p => p.id !== playerId)];
-  const target = targets.find(t => Math.hypot(t.x - point.x, t.y - point.y) < (t.type === 'boss' ? 45 : 30));
+  const target = targets.find(t => Math.hypot(t.x - point.x, t.y - point.y) < (grande(t) ? 45 : 30));
   if (target) action({ type: 'target', id: target.id }); else action({ type: 'moveTo', x: point.x, y: point.y });
 });
 ligarHud({ action, api, snapshot: () => snapshot, soltarTeclas: () => { keys.clear(); sendInput(); } });
@@ -173,8 +173,10 @@ function drawPlayer(p, pos, time) {
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
+// Chefe e subchefe são desenhados grandes; o subchefe usa a sentinela ampliada (arte provisória).
+const grande = m => m.type === 'boss' || m.type === 'subboss';
 function drawMob(m, pos, time) {
-  const boss = m.type === 'boss', size = boss ? 76 : 40, h = boss ? 100 : 53;
+  const boss = grande(m), size = boss ? 76 : 40, h = boss ? 100 : 53;
   shadow(pos.x, pos.y, boss ? 35 : 17);
   if (snapshot.self?.targetId === m.id) { ctx.strokeStyle = '#f3c47b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y + 3, boss ? 39 : 24, boss ? 17 : 11, 0, 0, Math.PI * 2); ctx.stroke(); }
   const hit = floating.some(e => e.targetId === m.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -182,12 +184,12 @@ function drawMob(m, pos, time) {
   const attackProgress = mobStrikeProgress(m.strike, time);
   const facing = attackProgress !== null ? m.strike.direction : pos.facing;
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
-  const drawn = boss
+  const drawn = m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : m.type === 'melee'
       ? drawSaibaman(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
       : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled);
-  if (!drawn) ctx.drawImage(boss ? art.freezaBoss : m.type === 'melee' ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
+  if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : m.type === 'melee' ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
   ctx.restore();
   placa(pos.x, pos.y - h - 16, m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
 }
@@ -236,7 +238,7 @@ function drawMiniSelf(x, y, facing) {
 // Minimapa da região em volta do jogador (decisão do Pedro, 29/10): mostra um pedaço do mundo
 // centrado nele, preso às bordas do mapa; mobs, outros jogadores e o que a câmera vê, no mesmo recorte.
 const MINIMAPA_VISTA = 2400; // largura do pedaço de mundo mostrado (a altura segue a proporção do minimapa)
-function drawMinimap(onNamek = true, world = PLANETS.namek) {
+function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
   if (!mctx) return; // sem minimapa na página
   const mapW = mini.width, mapH = mini.height, self = snapshot.players.find(p => p.id === playerId);
   const vw = Math.min(MINIMAPA_VISTA, world.w), vh = Math.min(vw * mapH / mapW, world.h);
@@ -250,11 +252,32 @@ function drawMinimap(onNamek = true, world = PLANETS.namek) {
     mctx.imageSmoothingEnabled = true;
     mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
   }
-  for (const mob of snapshot.mobs) { mctx.fillStyle = mob.type === 'boss' ? '#ff9369' : '#d96049'; mctx.beginPath(); mctx.arc(X(mob.x), Y(mob.y), mob.type === 'boss' ? 4 : 3, 0, Math.PI * 2); mctx.fill(); }
+  if (area) { mctx.save(); mctx.fillStyle = '#04080cc4'; mctx.beginPath(); mctx.rect(0, 0, mapW, mapH); mctx.rect(X(area.x), Y(area.y), area.w * sx, area.h * sy); mctx.fill('evenodd'); mctx.restore(); }
+  for (const o of portaisAqui()) miniMarker(X(o.x), Y(o.y), 3, corDoPortal(o));
+  for (const mob of snapshot.mobs) { mctx.fillStyle = grande(mob) ? '#ff9369' : '#d96049'; mctx.beginPath(); mctx.arc(X(mob.x), Y(mob.y), grande(mob) ? 4 : 3, 0, Math.PI * 2); mctx.fill(); }
   for (const p of snapshot.players) if (p.id !== playerId) miniMarker(X(p.x), Y(p.y), 2.5, '#5fd8ff');
   mctx.strokeStyle = '#fff0c488'; mctx.lineWidth = 1; mctx.strokeRect(X(camera.x), Y(camera.y), width / camera.scale * sx, height / camera.scale * sy);
   if (self) drawMiniSelf(X(self.x), Y(self.y), self.facing);
 }
+// Portais do lugar onde o jogador está. Cor e texto pelo destino: portal de uma hunt leva a cor dela;
+// portal com vários destinos (saída de hunt) e o caminho Terra ↔ Vila ficam azuis.
+const portaisAqui = () => PORTAIS.filter(o => o.planet === snapshot.planet && o.area === (snapshot.area || null));
+const corDoPortal = o => o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida;
+function textoDoPortal(o) {
+  if (o.destinos.length > 1) return 'Saída';
+  const d = lugar(o.destinos[0]);
+  return (d.planet !== snapshot.planet ? (d.planet === 'terra' ? 'Terra' : 'Namekusei') : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
+}
+// Encostar no portal abre a janela de destinos uma vez; só abre de novo depois de sair do círculo
+// (quem chega por um portal aparece fora dele, e fechar a janela não faz ela voltar parada ali).
+// Com a caça automática ligada não abre: passar por cima da saída perseguindo um mob não é querer sair.
+let portalEncostado = null;
+function verificarPortal(pos) {
+  const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
+  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
+  portalEncostado = o ? o.id : null;
+}
+
 // Ordem de desenho de um personagem: pela posição dos pés, mas quem pisa à frente da curva da base
 // de uma casa (nas laterais a base sobe) vai na frente dela, mesmo acima da linha da base.
 function profundidade(pos, onNamek) {
@@ -275,22 +298,26 @@ function frame(now) {
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
       const iv = inputVector(); let px = entity.x, py = entity.y;
-      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * el); }
+      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * el, 15, snapshot.self?.area); }
       screenPosition({ ...entity, x: px, y: py }, dt);
     } else screenPosition(entity, dt);
   }
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };
+  if (self && !self.dead) verificarPortal(position);
+  const area = areaPorId(snapshot.area);
   camera = cameraView(position, width, height, zoom, world.w, world.h);
   ctx.save(); ctx.scale(camera.scale, camera.scale); ctx.translate(-camera.x, -camera.y);
   if (onNamek) {
     if (drawGroundImage(ctx, art.namekSolo, world, camera, width, height)) { for (const c of HOUSES) drawHouseGround(ctx, c); drawMarket(ctx, MERCHANT); }
     else drawTerrain(ctx, CONFIG, ZONES, MERCHANT, camera, width, height);
+    for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     telegraphs(time);
     for (const l of snapshot.loot) { shadow(l.x, l.y, 7); ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'crystal' ? '#83d2d3' : '#d7c8a3'; ctx.fillRect(l.x - 5, l.y - 6 + Math.sin(time * 3) * 2, 10, 9); ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3); }
   } else {
     // Planeta Terra: gramado verde limpo e seguro (tela inicial).
     ctx.fillStyle = '#5a8f3c'; ctx.fillRect(0, 0, world.w, world.h);
     ctx.strokeStyle = '#3c6428'; ctx.lineWidth = 12; ctx.strokeRect(0, 0, world.w, world.h);
+    for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
   }
   const drawables = [
     ...(onNamek ? OBSTACLES.map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
@@ -306,7 +333,10 @@ function frame(now) {
     if (s.kind === 'genki') { ctx.save(); const glow = ctx.createRadialGradient(px, py, 3, px, py, 29); glow.addColorStop(0, '#ffffff'); glow.addColorStop(.28, '#c4f7ff'); glow.addColorStop(.7, '#5cbbff'); glow.addColorStop(1, '#a152ff00'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(px, py, 29, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
-  effects(time); ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(onNamek, world); requestAnimationFrame(frame);
+  effects(time);
+  // Fora da área fechada fica escuro (por cima de tudo, inclusive casas de outras áreas).
+  if (onNamek && area) drawForaDaArea(ctx, area, world);
+  ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(onNamek, world, area); requestAnimationFrame(frame);
 }
 resize(); requestAnimationFrame(frame);
 const previousToken = sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');

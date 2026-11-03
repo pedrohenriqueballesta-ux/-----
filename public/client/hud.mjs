@@ -1,8 +1,8 @@
 // HUD: tudo o que o jogo mostra e liga na página (barras, botões, painéis, notificações, loja,
-// janelas de mundo e de caçada). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
+// janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
-import { CONFIG, PLANETS, zoneAt } from '../shared/index.mjs';
+import { CONFIG, PLANETS, PORTAIS, ZONES, areaPorId, lugar } from '../shared/index.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -78,7 +78,7 @@ export function atualizarHud(snapshot, playerId) {
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
-  $('huntZone').value = s.huntZone; $('huntButton').classList.toggle('running', s.autoHunt);
+  $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food; $('kiCount').textContent = s.inventory.ki;
   $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + s.inventory.crystal + ' cristais';
@@ -100,9 +100,10 @@ export function atualizarHud(snapshot, playerId) {
   for (const [botao, ligado] of [[$('quickHunt'), s.autoHunt], ...[...document.querySelectorAll('[data-toggle]')].map(b => [b, s[b.dataset.toggle]])]) {
     botao.classList.toggle('ligado', Boolean(ligado)); const estado = botao.querySelector('b'); if (estado) estado.textContent = ligado ? 'ON' : 'OFF';
   }
-  const z = zoneAt(p.x, p.y), seguro = snapshot.planet !== 'namek' || z?.id === 'vila';
-  $('regionName').textContent = z?.name || (snapshot.planet === 'namek' ? 'Trilhas de Namekusei' : PLANETS[snapshot.planet]?.name || 'Terra');
-  $('regionType').textContent = z?.pvp ? 'ÁREA PVP' : seguro ? 'ÁREA SEGURA' : 'ÁREA DE CAÇA';
+  // Região = a área fechada onde o jogador está (ou o planeta, na Terra).
+  const z = areaPorId(s.area), seguro = !z || z.segura;
+  $('regionName').textContent = z?.name || PLANETS[snapshot.planet]?.name || 'Terra';
+  $('regionType').textContent = z?.pvp ? 'ÁREA PVP' : seguro ? 'ÁREA SEGURA' : s.seguroRemaining > 0 ? 'CHEGADA PROTEGIDA' : 'HUNT · NÍVEL ' + z.nivel[0] + '–' + z.nivel[1];
   for (const [classe, ligado] of [['pvp', Boolean(z?.pvp)], ['seguro', !z?.pvp && seguro]]) document.querySelector('.hud-mapa')?.classList.toggle(classe, ligado);
   $('onlineText').textContent = snapshot.players.length + (snapshot.players.length === 1 ? ' jogador conectado' : ' jogadores conectados');
   $('coordsText').textContent = 'X: ' + Math.round(p.x) + '   Y: ' + Math.round(p.y);
@@ -141,113 +142,75 @@ export function atualizarHud(snapshot, playerId) {
   transformCooldown.textContent = !s.transformed && s.transformRemaining > 0 ? s.transformRemaining.toFixed(1) + 's' : '';
   renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
   $('respawn').classList.toggle('hidden', s.hp > 0);
-  $('respawnText').textContent = 'Retornando à vila em ' + Math.ceil(s.respawnRemaining) + 's';
-  if (document.getElementById('planetsDialog')?.open) markCurrentWorld(snapshot);
+  $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
 
-function markCurrentWorld(snapshot) {
-  const here = snapshot?.planet;
-  for (const card of document.querySelectorAll('#planetsDialog .world-card[data-planet]')) {
-    const isHere = card.dataset.planet === here;
-    card.classList.toggle('current', isHere);
-    const st = card.querySelector('.world-status');
-    if (st) st.textContent = isHere ? 'Você está aqui' : 'Viajar';
-  }
-}
-const HUNT_STAGES = {
-  namek: { name: 'Namekusei', bg: 'namek', stages: [
-    { name: 'Saibaman', x: 18.5, y: 22.3, lv: [1, 6], sprite: 'saibaman' },
-    { name: 'Mestre Kame', x: 39.3, y: 20.7, lv: [7, 13], sprite: 'mestre-kame' },
-    { name: 'Princesa Serpente', x: 60.7, y: 59, lv: [14, 20], sprite: 'princesa-snake' },
-    { name: 'Toma', x: 87.8, y: 73, lv: [21, 26], sprite: 'toma' },
-    { name: 'Fasha', x: 41.9, y: 59.8, lv: [27, 33], sprite: 'fasha' },
-    { name: 'Bardock', x: 38.8, y: 40.2, lv: [34, 40], sprite: 'bardock-fases-bardock' },
-    { name: 'Raditz', x: 58.6, y: 21.5, lv: [41, 46], sprite: 'raditz-fases-raditz' },
-    { name: 'Nappa (Armadura)', x: 81.5, y: 40.2, lv: [47, 53], sprite: 'nappa-armadura' },
-    { name: 'Turles', x: 60.7, y: 40.2, lv: [54, 60], sprite: 'turles' },
-    { name: 'Chaos', x: 17.4, y: 39.5, lv: [61, 66], sprite: 'chaos' },
-    { name: 'Lord Slug', x: 80.5, y: 20.7, lv: [67, 73], sprite: 'lord-slug' },
-    { name: 'Garlic Jr.', x: 82, y: 58.8, lv: [74, 80], sprite: 'garlic-jr' },
-    { name: 'Vovo Gohan', x: 18, y: 58.8, lv: [81, 86], sprite: 'vogohan' }
-  ] }
-};
-// Cidades da Terra: entrada livre, sem nível mínimo. Todas levam ao spawn seguro (Terra).
-const CITIES = {
-  cidades: { name: 'Cidades', bg: 'terra', list: [
-    { name: 'Cidade do Oeste', x: 22, y: 28 },
-    { name: 'Cidade do Norte', x: 50, y: 17 },
-    { name: 'Cidade do Leste', x: 78, y: 29 },
-    { name: 'Cidade Central', x: 49, y: 49 },
-    { name: 'Vila Pinguim', x: 24, y: 70 },
-    { name: 'Cidade Satã', x: 76, y: 68 },
-    { name: 'Cidade do Sul', x: 50, y: 82 }
-  ] }
-};
-function selectPlanet(planet) {
-  document.getElementById('planetsDialog')?.close();
-  if (CITIES[planet]) openCities(planet);
-  else if (HUNT_STAGES[planet]) openHunt(planet);
-  else action({ type: 'travelPlanet', planet });
-}
-function openHunt(planet) {
-  const data = HUNT_STAGES[planet]; if (!data) return;
-  $('huntTitle').textContent = data.name;
-  $('huntSub').textContent = 'Nível de Conta';
-  $('huntFoot').textContent = 'Escolha uma caçada no mapa';
-  $('huntMap').style.backgroundImage = 'url(/assets/worlds/' + data.bg + '.webp)';
-  renderHuntPins(planet);
-  $('huntDialog').showModal();
-}
-function openCities(key) {
-  const data = CITIES[key]; if (!data) return;
-  $('huntTitle').textContent = data.name;
-  $('huntSub').textContent = 'Terra · entrada livre';
-  $('huntFoot').textContent = 'Escolha uma cidade';
-  $('huntMap').style.backgroundImage = 'url(/assets/worlds/' + data.bg + '.webp)';
-  renderCityPins(key);
-  $('huntDialog').showModal();
-}
-function renderCityPins(key) {
-  const data = CITIES[key], layer = $('huntPins'); if (!data || !layer) return;
-  layer.replaceChildren(...data.list.map(c => {
-    const pin = document.createElement('button');
-    pin.className = 'hunt-pin city';
-    pin.style.left = c.x + '%'; pin.style.top = c.y + '%';
-    pin.onclick = () => { $('huntDialog').close(); action({ type: 'travelPlanet', planet: 'terra' }); notify('Viajando para ' + c.name); };
-    const orb = document.createElement('span'); orb.className = 'hunt-orb'; orb.textContent = '\u{1F3D9}\u{FE0F}';
-    const nm = document.createElement('strong'); nm.textContent = c.name;
-    pin.append(orb, nm); return pin;
+// Cor de cada destino, a mesma da proposta de divisão: verde, laranja e vermelho para as hunts;
+// azul para a Vila, a Terra e as saídas (portal com vários destinos).
+export const COR_DESTINO = { inicial: '#46e646', media: '#ffa51e', dificil: '#eb2d2d', vila: '#5fb6ff', terra: '#5fb6ff', saida: '#5fd8ff' };
+const imagemDoDestino = id => '/assets/worlds/' + (id === 'terra' ? 'terra' : 'namek') + '.webp';
+
+// Janela do portal: um cartão por destino. Encostar no portal abre (client/game.mjs); escolher viaja.
+// O servidor confere se o jogador está mesmo no portal e se o destino é dele.
+export function abrirPortal(portal) {
+  const nivel = ctx?.snapshot()?.self?.level || 1;
+  $('portalTitulo').textContent = portal.destinos.length > 1 ? 'SAÍDA — ESCOLHA O DESTINO' : 'PORTAL';
+  $('portalDestinos').replaceChildren(...portal.destinos.map(id => {
+    const d = lugar(id), botao = document.createElement('button');
+    botao.type = 'button'; botao.className = 'world-card';
+    const orbe = document.createElement('span'); orbe.className = 'world-orb';
+    orbe.style.backgroundImage = 'url(' + imagemDoDestino(id) + ')'; orbe.style.borderColor = COR_DESTINO[id];
+    const nome = document.createElement('strong'); nome.textContent = d.planet === 'terra' ? 'Terra' : d.planet !== ctx?.snapshot()?.planet ? 'Namekusei — ' + d.name : d.name;
+    const info = document.createElement('small');
+    info.textContent = d.nivel ? 'Nível ' + d.nivel[0] + '–' + d.nivel[1] + (nivel < d.nivel[0] ? ' · perigoso' : '') : 'Área segura';
+    if (d.nivel && nivel < d.nivel[0]) info.classList.add('perigo');
+    botao.append(orbe, nome, info);
+    botao.onclick = () => { $('portalDialog').close(); action({ type: 'portal', destino: id }); };
+    return botao;
   }));
-}
-function renderHuntPins(planet) {
-  const data = HUNT_STAGES[planet], layer = $('huntPins'); if (!data || !layer) return;
-  const lvl = ctx?.snapshot()?.self?.level || 1;
-  layer.replaceChildren(...data.stages.map(st => {
-    const locked = lvl < st.lv[0];
-    const pin = document.createElement(locked ? 'div' : 'button');
-    pin.className = 'hunt-pin' + (locked ? ' locked' : '');
-    pin.style.left = st.x + '%'; pin.style.top = st.y + '%';
-    if (!locked) pin.onclick = () => { $('huntDialog').close(); action({ type: 'travelPlanet', planet: 'namek' }); notify('Cacada: ' + st.name); };
-    const orb = document.createElement('span'); orb.className = 'hunt-orb';
-    orb.style.backgroundImage = 'url(/assets/worlds/pins/' + st.sprite + '.webp)';
-    const nm = document.createElement('strong'); nm.textContent = st.name;
-    const lv = document.createElement('small'); lv.textContent = 'Nv ' + st.lv[0] + '-' + st.lv[1];
-    pin.append(orb, nm, lv); return pin;
-  }));
+  $('portalDialog').showModal();
 }
 
-// Liga ou pausa a caça automática (botão de caça e tecla H). A região vem da lista da página,
-// se existir; senão, da última que o servidor registrou para o jogador.
-const regiaoDeCaca = () => document.getElementById('huntZone')?.value || ctx?.snapshot()?.self?.huntZone || 'campos';
+// Mapa (menu do topo): só consulta, não teleporta (decisão do Pedro, 03/11). Mostra Namekusei com as
+// áreas, os portais e onde o jogador está; viajar é sempre pelos portais.
+function abrirMapa() {
+  const snapshot = ctx?.snapshot(), aqui = snapshot?.self?.area, tela = $('mapaTela');
+  $('mapaOnde').textContent = 'Você está em: ' + (areaPorId(aqui)?.name ? 'Namekusei — ' + areaPorId(aqui).name : 'Terra (lobby)');
+  $('mapaLista').replaceChildren(...ZONES.map(z => {
+    const item = document.createElement('li'); item.style.setProperty('--cor', COR_DESTINO[z.id]);
+    item.classList.toggle('aqui', z.id === aqui);
+    item.textContent = z.name + (z.nivel ? ' · nível ' + z.nivel[0] + '–' + z.nivel[1] : ' · área segura') + (z.id === aqui ? ' · você está aqui' : '');
+    return item;
+  }));
+  $('mapaDialog').showModal();
+  const c = tela.getContext?.('2d'); if (!c) return;
+  const mundo = PLANETS.namek, kx = tela.width / mundo.w, ky = tela.height / mundo.h, solo = new Image();
+  const desenhar = () => {
+    c.fillStyle = '#0b2a2a'; c.fillRect(0, 0, tela.width, tela.height);
+    if (solo.naturalWidth) c.drawImage(solo, 0, 0, tela.width, tela.height);
+    c.fillStyle = '#04080c99'; c.fillRect(0, 0, tela.width, tela.height);
+    for (const z of ZONES) {
+      c.strokeStyle = COR_DESTINO[z.id]; c.lineWidth = z.id === aqui ? 4 : 2; c.strokeRect(z.x * kx, z.y * ky, z.w * kx, z.h * ky);
+      c.font = 'bold 13px system-ui, sans-serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = '#000';
+      c.strokeText(z.name, (z.x + z.w / 2) * kx, (z.y + 26 / ky) * ky); c.fillStyle = '#fff'; c.fillText(z.name, (z.x + z.w / 2) * kx, (z.y + 26 / ky) * ky);
+    }
+    for (const o of PORTAIS) if (o.planet === 'namek') { c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida; c.beginPath(); c.arc(o.x * kx, o.y * ky, 4, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke(); }
+    const eu = snapshot?.players.find(v => v.id === snapshot.selfId);
+    if (eu && snapshot.planet === 'namek') { c.fillStyle = '#ff2bd6'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(eu.x * kx, eu.y * ky, 6, 0, Math.PI * 2); c.fill(); c.stroke(); }
+  };
+  solo.onload = desenhar; solo.src = '/assets/namek/solo.webp'; desenhar();
+}
+
+// Liga ou pausa a caça automática (botão de caça e tecla H). Ela roda a hunt inteira onde o jogador está.
 export function alternarCaca() {
-  action({ type: 'hunt', zone: regiaoDeCaca(), enabled: !ctx?.snapshot()?.self?.autoHunt });
+  action({ type: 'hunt', enabled: !ctx?.snapshot()?.self?.autoHunt });
 }
 
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
   // Menus do topo: Loja e Mapa abrem janelas que já existem; os outros ainda não têm tela.
-  const telas = { loja: () => $('shopDialog').showModal(), mapa: () => $('planetsDialog').showModal() };
+  const telas = { loja: () => $('shopDialog').showModal(), mapa: abrirMapa };
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
   for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
   $('menuAlternar').onclick = () => { const aberto = $('hudMenus').classList.toggle('aberto'); $('menuAlternar').setAttribute('aria-expanded', String(aberto)); };
@@ -259,7 +222,6 @@ export function ligarHud(contexto) {
   for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
   $('huntButton').addEventListener('click', alternarCaca);
-  $('huntZone').addEventListener('change', () => action({ type: 'hunt', zone: regiaoDeCaca(), enabled: Boolean(ctx.snapshot()?.self?.autoHunt) }));
   $('foodButton').onclick = () => action({ type: 'food' });
   $('kiPotionButton').onclick = () => action({ type: 'potion' });
   $('seedButton').onclick = () => action({ type: 'seed', potency: Number($('seedSelect').value) });
@@ -270,9 +232,6 @@ export function ligarHud(contexto) {
   $('quickHunt').onclick = alternarCaca;
   $('shopButton').onclick = () => $('shopDialog').showModal();
   for (const btn of document.querySelectorAll('[data-close]')) btn.onclick = () => $(btn.dataset.close).close();
-  for (const btn of document.querySelectorAll('[data-travel]')) btn.onclick = () => action({ type: 'travel', zone: btn.dataset.travel });
-  for (const btn of document.querySelectorAll('[data-planet]')) btn.onclick = () => selectPlanet(btn.dataset.planet);
-  $('huntBack').onclick = () => { $('huntDialog').close(); $('planetsDialog').showModal(); };
   $('saveButton').onclick = async () => { try { await ctx.api('save'); notify('Progresso salvo no servidor.'); } catch (e) { notify(e.message); } };
   for (const [key, price] of Object.entries(CONFIG.prices)) {
     const row = document.createElement('div'); row.className = 'shop-item';

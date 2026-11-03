@@ -113,7 +113,7 @@ export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: ['vila'] },
   { id: 'vila-terra', planet: 'namek', area: 'vila', ...acimaDaChegada('vila'), destinos: ['terra'] },
   { id: 'vila-inicial', planet: 'namek', area: 'vila', x: naEscala(900), y: naEscala(1250), destinos: ['inicial'] },
-  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(520), y: naEscala(1640), destinos: ['media'] },
+  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(620), y: naEscala(1700), destinos: ['media'] },
   { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(480), y: naEscala(900), destinos: ['dificil'] },
   ...HUNTS.map(id => ({ id: 'saida-' + id, planet: 'namek', area: id, ...acimaDaChegada(id), destinos: ['vila', ...HUNTS.filter(h => h !== id)] }))
 ];
