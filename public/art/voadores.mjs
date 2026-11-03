@@ -3,24 +3,28 @@
 // ~/idle-dbz/ferramentas/recortar_folha_8dir.py. Nesta folha o norte ainda aparece de frente; a folha
 // definitiva (5 direções × 4 quadros de voo + 4 de ataque) foi pedida ao ChatGPT.
 import { art, loaded } from './assets.mjs';
-import { spriteFacing } from '../render/camera.mjs';
+import { spriteFacing, strikeColumn } from '../render/camera.mjs';
 import { PASSARO_VOO } from './passaro-voo.mjs';
+import { PASSARO_ATAQUE } from './passaro-ataque.mjs';
 
-// Folhas definitivas (5 direções × 4 quadros de asa, lado esquerdo espelhado), já com a batida de asa
-// de verdade. Ainda não há folha de ataque: no golpe, as asas batem mais rápido e o bicho avança.
-const FOLHAS = { passaro: PASSARO_VOO };
+// Folhas definitivas (5 direções × 4 quadros, lado esquerdo espelhado): voo com a batida de asa de verdade
+// e, quando houver, ataque (o quadro de impacto, coluna 3, cai no instante do dano, como nos outros mobs).
+// Sem folha de ataque, no golpe as asas batem mais rápido e o bicho avança. As duas folhas usam a escala
+// do voo, para o bicho não mudar de tamanho ao atacar.
+const FOLHAS = { passaro: { voo: PASSARO_VOO, ataque: PASSARO_ATAQUE } };
 // Direção do jogo (S, SW, W, NW, N, NE, E, SE) → linha da folha (S, SE, E, NE, N) e se espelha.
 const LINHA_DA_FOLHA = [[0, false], [1, true], [2, true], [3, true], [4, false], [3, false], [2, false], [1, false]];
 const BATIDAS_POR_SEGUNDO = 2.5;
-function drawFolha(ctx, tipo, folha, x, y, time, facing, phase, attackProgress) {
-  const img = art[tipo + 'Voo'];
+function drawFolha(ctx, tipo, folhas, x, y, time, facing, phase, attackProgress) {
+  const ataca = attackProgress !== null && folhas.ataque && loaded(art[tipo + 'Ataque']);
+  const folha = ataca ? folhas.ataque : folhas.voo, img = art[tipo + (ataca ? 'Ataque' : 'Voo')];
   if (!loaded(img)) return false;
   const [linha, espelha] = LINHA_DA_FOLHA[spriteFacing(facing)];
   const ritmo = BATIDAS_POR_SEGUNDO * (attackProgress !== null ? 2 : 1);
-  const coluna = Math.floor((time * ritmo + phase) * folha.columns) % folha.columns;
+  const coluna = ataca ? strikeColumn(attackProgress) : Math.floor((time * ritmo + phase) * folha.columns) % folha.columns;
   const [sx, sy, sw, sh, ax, ay] = folha.frames[linha][coluna];
-  const escala = ALTURA_GOKU * VOADORES[tipo].proporcao / folha.referenceHeight;
-  const avanco = attackProgress !== null ? Math.sin(Math.min(1, attackProgress * 2) * Math.PI) * 14 : 0;
+  const escala = ALTURA_GOKU * VOADORES[tipo].proporcao / folhas.voo.referenceHeight;
+  const avanco = attackProgress !== null && !ataca ? Math.sin(Math.min(1, attackProgress * 2) * Math.PI) * 14 : 0;
   const sobe = ALTURA_DE_VOO + Math.sin(time * 3 + phase * Math.PI * 2) * 3;
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.translate(Math.round(x + (facing?.x || 0) * avanco), Math.round(y + (facing?.y || 0) * avanco - sobe + 4));
