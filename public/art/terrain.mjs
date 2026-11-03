@@ -1,6 +1,7 @@
 // Cenário: grama, caminhos, pedras, árvores e a barraca do mercador.
 import { art, loaded } from './assets.mjs';
 import { ENTERRA_CASA } from '../shared/config.mjs';
+import { OBJETOS_DECORACAO } from '../shared/decoracao-objetos.mjs';
 
 const patterns = new WeakMap();
 export const CLEARINGS = [
@@ -160,3 +161,12 @@ export function drawPortal(ctx, portal, time, cor, texto, raio) {
 }
 
 
+
+// Árvore, arbusto ou pedra da decoração, com a base no ponto (x, y) do chão.
+export function drawDecoracao(ctx, d, escala) {
+  const img = art.decoracao; if (!loaded(img)) return;
+  const [sx, sy, w, h, bx, by] = OBJETOS_DECORACAO[d.sprite], k = escala * d.escala;
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, sx, sy, w, h, Math.round(d.x - (bx - sx) * k), Math.round(d.y - (by - sy) * k), w * k, h * k);
+  ctx.restore();
+}

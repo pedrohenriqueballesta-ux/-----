@@ -1,7 +1,7 @@
-import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from '../shared/index.mjs';
+import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -329,6 +329,8 @@ function frame(now) {
   const drawables = [
     ...(onNamek ? OBSTACLES.map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
     ...(onNamek ? [{ y: MERCHANT.y, draw: () => drawVendor(ctx, MERCHANT) }] : []),
+    // Árvores, arbustos e pedras: só os que estão perto da tela entram na ordem de profundidade.
+    ...(onNamek ? DECORACAO.filter(d => d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300).map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...(onNamek ? HOUSES.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })) : []),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), onNamek), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),

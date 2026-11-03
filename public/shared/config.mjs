@@ -1,5 +1,7 @@
 // Dados do mundo e números de balanceamento do protótipo. Todos ajustáveis.
 import { PEGADAS } from './pegadas-casas.mjs';
+import { DECORACAO_NAMEK } from './decoracao-namek.mjs';
+import { OBJETOS_DECORACAO } from './decoracao-objetos.mjs';
 
 // Escala do mundo de Namekusei: quantas unidades do jogo vale 1 px da imagem do solo
 // (as posições são medidas no solo de 4608x3072; o assets/namek/solo.webp hoje tem 8192x5461, o mapa de
@@ -122,3 +124,28 @@ export const PORTAIS = [
   { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(480), y: naEscala(900), destinos: ['dificil'] },
   ...HUNTS.map(id => ({ id: 'saida-' + id, planet: 'namek', area: id, ...acimaDaChegada(id), destinos: ['vila', ...HUNTS.filter(h => h !== id)] }))
 ];
+
+// Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
+// ~/idle-dbz/ferramentas/gerar_decoracao.mjs. Só TRONCOS e PEDRAS GRANDES bloqueiam, com uma área pequena
+// na base; copas, arbustos e pedra pequena são enfeite (o personagem passa na frente ou atrás).
+export const DECORACAO_ESCALA = 0.45;   // unidades do mundo por px do recorte (árvore mais alta ≈ 3× o Goku)
+const PEDRA_GRANDE = new Set([15, 16]);
+export const DECORACAO = DECORACAO_NAMEK.map(d => {
+  const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * DECORACAO_ESCALA * d.escala;
+  const raio = d.sprite < 12 ? 10 : PEDRA_GRANDE.has(d.sprite) ? largura * 0.32 : 0;
+  return { ...d, raio };
+});
+// Bloqueios num hash espacial (célula de 256): a conferência é chamada várias vezes por passo de cada ator.
+const CELULA_DECO = 256, BLOQUEIOS_DECO = new Map();
+for (const d of DECORACAO) if (d.raio) {
+  const chave = Math.floor(d.x / CELULA_DECO) + ':' + Math.floor(d.y / CELULA_DECO);
+  if (!BLOQUEIOS_DECO.has(chave)) BLOQUEIOS_DECO.set(chave, []);
+  BLOQUEIOS_DECO.get(chave).push(d);
+}
+// A base é uma elipse achatada (vista de cima): mais larga que funda.
+export function decoracaoBloqueia(x, y) {
+  const cx = Math.floor(x / CELULA_DECO), cy = Math.floor(y / CELULA_DECO);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const d of BLOQUEIOS_DECO.get((cx + dx) + ':' + (cy + dy)) || [])
+    if (((x - d.x) / d.raio) ** 2 + ((y - d.y) / (d.raio * 0.55)) ** 2 < 1) return true;
+  return false;
+}

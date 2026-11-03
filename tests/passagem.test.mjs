@@ -116,3 +116,14 @@ test('cada portal fica em chão andável e é alcançável a pé da chegada da s
     if (o.area) assert.ok(caminhoPorTerra('namek', lugar(o.area).chegada, o, o.area), o.id + ' sem caminho a pé desde a chegada');
   }
 });
+
+test('decoração: só troncos e pedras grandes bloqueiam, nada no chão vermelho nem perto de portais', async () => {
+  const { DECORACAO, PORTAIS, decoracaoBloqueia } = await import('../public/shared/config.mjs');
+  assert.ok(DECORACAO.length > 200, 'mapa decorado');
+  for (const d of DECORACAO) {
+    assert.equal(d.raio > 0, d.sprite < 12 || d.sprite === 15 || d.sprite === 16, 'bloqueio do objeto ' + d.sprite);
+    if (d.raio) assert.ok(decoracaoBloqueia(d.x, d.y), 'base do objeto ' + d.sprite + ' bloqueia');
+    else assert.equal(decoracaoBloqueia(d.x, d.y - 1) && !DECORACAO.some(o => o.raio && Math.hypot(o.x - d.x, o.y - d.y) < 60), false, 'enfeite não bloqueia');
+    for (const o of PORTAIS) if (o.planet === 'namek') assert.ok(Math.hypot(o.x - d.x, o.y - d.y) >= 260, 'objeto perto de portal');
+  }
+});

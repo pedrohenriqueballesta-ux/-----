@@ -46,6 +46,7 @@ export const art = {
   bossVoo: loadImage('/assets/mobs/porunga-boss-voo.png'),
   bossAtaque: loadImage('/assets/mobs/porunga-boss-ataque.png'),
   namekSolo: loadImage('/assets/namek/solo.webp'),
+  decoracao: loadImage('/assets/namek/decoracao.png'),
   namekCasas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/casas/casa_' + (i + 1) + '.png')),
   namekRuinas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/ruinas/ruina_' + (i + 1) + '.png')),
   grass: loadImage('/assets/grass.png'),
