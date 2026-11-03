@@ -170,3 +170,22 @@ export function drawDecoracao(ctx, d, escala) {
   ctx.drawImage(img, sx, sy, w, h, Math.round(d.x - (bx - sx) * k), Math.round(d.y - (by - sy) * k), w * k, h * k);
   ctx.restore();
 }
+
+// Sombra no chão da decoração (o que "assenta" a árvore no mapa): mancha suave para baixo e à direita,
+// porque a luz do mapa vem de cima à esquerda; árvore projeta a copa, arbusto e pedra só o contato.
+let manchaSombra = null;
+function mancha() {
+  if (manchaSombra) return manchaSombra;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(8,24,22,1)'); grad.addColorStop(0.55, 'rgba(8,24,22,0.55)'); grad.addColorStop(1, 'rgba(8,24,22,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128); return (manchaSombra = c);
+}
+export function drawSombraDecoracao(ctx, d, escala) {
+  const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * escala * d.escala, arvore = d.sprite < 12;
+  const rx = largura * (arvore ? 0.58 : 0.66), ry = rx * (arvore ? 0.4 : 0.34);
+  ctx.save(); ctx.globalAlpha = arvore ? 0.6 : 0.5;
+  ctx.drawImage(mancha(), d.x + largura * (arvore ? 0.22 : 0.08) - rx, d.y - ry * 0.6, rx * 2, ry * 2);
+  if (arvore) { ctx.globalAlpha = 0.6; ctx.drawImage(mancha(), d.x - 14 * d.escala, d.y - 5, 28 * d.escala, 10); }
+  ctx.restore();
+}

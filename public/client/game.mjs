@@ -1,7 +1,7 @@
 import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -314,10 +314,14 @@ function frame(now) {
   // Câmera presa à área: a tela termina onde a área termina, sem borda nem escurecimento (pedido do Pedro).
   camera = cameraView(position, width, height, zoom, world.w, world.h, area);
   ctx.save(); ctx.scale(camera.scale, camera.scale); ctx.translate(-camera.x, -camera.y);
+  // Decoração perto da tela (sombra no chão agora; o objeto entra na ordem de profundidade abaixo).
+  const decoVisivel = onNamek ? DECORACAO.filter(d => d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300
+    && d.y > camera.y - 100 && d.y < camera.y + height / camera.scale + 400) : [];
   if (onNamek) {
     if (drawGroundImage(ctx, art.namekSolo, world, camera, width, height)) { for (const c of HOUSES) drawHouseGround(ctx, c); drawMarket(ctx, MERCHANT); }
     else drawTerrain(ctx, CONFIG, ZONES, MERCHANT, camera, width, height);
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
+    for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);
     telegraphs(time);
     for (const l of snapshot.loot) { shadow(l.x, l.y, 7); ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'crystal' ? '#83d2d3' : '#d7c8a3'; ctx.fillRect(l.x - 5, l.y - 6 + Math.sin(time * 3) * 2, 10, 9); ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3); }
   } else {
@@ -330,7 +334,7 @@ function frame(now) {
     ...(onNamek ? OBSTACLES.map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
     ...(onNamek ? [{ y: MERCHANT.y, draw: () => drawVendor(ctx, MERCHANT) }] : []),
     // Árvores, arbustos e pedras: só os que estão perto da tela entram na ordem de profundidade.
-    ...(onNamek ? DECORACAO.filter(d => d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300).map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
+    ...(onNamek ? decoVisivel.map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...(onNamek ? HOUSES.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })) : []),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), onNamek), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
