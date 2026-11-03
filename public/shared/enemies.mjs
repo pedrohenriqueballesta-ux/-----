@@ -4,7 +4,8 @@
 import { ZONES, naEscala } from './config.mjs';
 import { podeAndar } from './passagem.mjs';
 
-// Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos; na média,
+// Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
+// Inseto de Namek, metade de cada, os dois atacando de perto); na média,
 // as sentinelas e um subchefe; na difícil, o chefe e os demais mobs, mais fortes.
 // Os NÚMEROS são provisórios, à espera de balanceamento: cada hunt repete, para a faixa de nível
 // recomendada dela, a proporção das Planícies no nível 1 (golpes para derrubar, dano recebido e
@@ -12,6 +13,8 @@ import { podeAndar } from './passagem.mjs';
 // subchefe = sentinela grande, chefe = Freeza (a lore pede namekuseijins e o Piccolo de chefe).
 const ATRIBUTOS = {
   inicial: {
+    passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
+    inseto: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Inseto de Namek' },
     melee: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Saibaman' }
   },
   media: {
@@ -48,11 +51,11 @@ function espalhar(random, area, n, tipo) {
   const salto = Math.max(1, candidatos.length / n);
   return Array.from({ length: Math.min(n, candidatos.length) }, (_, i) => ({ ...candidatos[Math.floor(i * salto)], type: tipo(i), area }));
 }
-// Quantidade de mobs por hunt: provisória, 16 comuns em cada uma, como nas Planícies (a densidade
-// será decidida pelo Pedro com o modelo montado).
+// Quantidade de mobs por hunt: na inicial, 20 (16 + 25%, pedido do Pedro, 03/11); nas outras, 16
+// comuns, provisório (a densidade será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
   return [
-    ...espalhar(random, 'inicial', 16, () => 'melee'),
+    ...espalhar(random, 'inicial', 20, i => i % 2 ? 'inseto' : 'passaro'),
     ...espalhar(random, 'media', 16, () => 'ranged'),
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },

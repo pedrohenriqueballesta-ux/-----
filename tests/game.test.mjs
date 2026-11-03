@@ -157,7 +157,7 @@ test('jogador nasce na Terra e viaja só por portal: Terra → Vila → hunts �
   assert.equal(porPortal(game, p, 'inicial').ok, true);
   const naInicial = game.snapshot(p.id);
   assert.equal(naInicial.area, 'inicial');
-  assert.ok(naInicial.mobs.length > 0 && naInicial.mobs.every(m => m.area === 'inicial' && m.type === 'melee'), 'só os mobs básicos da hunt inicial');
+  assert.ok(naInicial.mobs.length > 0 && naInicial.mobs.every(m => m.area === 'inicial' && ['passaro', 'inseto'].includes(m.type)), 'só os mobs básicos da hunt inicial');
   assert.equal(porPortal(game, p, 'dificil').ok, true, 'da saída de uma hunt vai direto a outra');
   assert.ok(game.snapshot(p.id).mobs.some(m => m.type === 'boss'), 'chefe na hunt difícil');
   assert.equal(porPortal(game, p, 'terra').ok, false, 'da hunt não se vai à Terra');
@@ -306,5 +306,19 @@ test('andar por clique contorna quina de casa e recorte de penhasco sem travar',
     game.levar(p, lugar(area)); game.action(p.id, { type: 'moveTo', ...alvo });
     let t = 0; while (t < 20 && Math.hypot(p.x - alvo.x, p.y - alvo.y) > 20) { game.tick(0.05); t += 0.05; }
     assert.ok(Math.hypot(p.x - alvo.x, p.y - alvo.y) <= 20, area + ': travou em ' + Math.round(p.x) + ',' + Math.round(p.y));
+  }
+});
+
+test('hunt fácil: 20 mobs, metade Pássaro e metade Inseto de Namek, os dois de perto', () => {
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'inicial');
+  assert.equal(mobs.length, 20);
+  assert.equal(mobs.filter(m => m.type === 'passaro').length, 10);
+  assert.equal(mobs.filter(m => m.type === 'inseto').length, 10);
+  assert.deepEqual([...new Set(mobs.map(m => m.name))].sort(), ['Inseto de Namek', 'Pássaro de Namek']);
+  for (const type of ['passaro', 'inseto']) {
+    const g = world(), p = naArea(g, g.addPlayer('a')); p.x = 2650; p.y = 2000;
+    const mob = g.addMob(type, 2700, 2000); mob.attackReady = g.time; g.tick(0.05);
+    assert.equal(mob.telegraph?.kind, 'area', type + ' ataca de perto');
   }
 });

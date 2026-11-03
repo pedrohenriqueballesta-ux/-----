@@ -184,12 +184,14 @@ function drawMob(m, pos, time) {
   const attackProgress = mobStrikeProgress(m.strike, time);
   const facing = attackProgress !== null ? m.strike.direction : pos.facing;
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
+  // Pássaro e Inseto de Namek usam o desenho do Saibaman e da sentinela até as folhas deles chegarem.
+  const corpoACorpo = m.type === 'melee' || m.type === 'passaro';
   const drawn = m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
-    : m.type === 'melee'
+    : corpoACorpo
       ? drawSaibaman(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
       : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled);
-  if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : m.type === 'melee' ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
+  if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : corpoACorpo ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
   ctx.restore();
   placa(pos.x, pos.y - h - 16, m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
 }
