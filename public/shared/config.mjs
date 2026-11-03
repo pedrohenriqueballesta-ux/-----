@@ -59,11 +59,15 @@ export const ENTERRA_CASA = 0.035;
 // x, y = centro da base da casa no chão; w = largura desenhada (a altura segue a proporção do sprite).
 // x, y em px da imagem (acompanham o mapa); w em px do desenho original, ampliado por
 // ESCALA_CONSTRUCOES: com 2, o vão das portas fica entre 1,0 e 1,1 vez a altura do Goku (70).
-export const HOUSES = [
+// Casas da Vila FORA DO MAPA por enquanto (pedido do Pedro, 03/11: tirar, ajustar e recolocar). Posições
+// guardadas aqui; para recolocar, junte CASAS_DA_VILA_GUARDADAS em HOUSES e gere o solo de novo.
+export const CASAS_DA_VILA_GUARDADAS = [
   { sprite: 2, x: 525, y: 1615, w: 190 },
   { sprite: 4, x: 285, y: 1405, w: 150 },
   { sprite: 5, x: 765, y: 1330, w: 240 },
-  { sprite: 6, x: 525, y: 1075, w: 290 },
+  { sprite: 6, x: 525, y: 1075, w: 290 }
+];
+export const HOUSES = [
   // Casas destruídas na luta contra o Freeza, no Campo de Batalha (assets/namek/ruinas/ruina_N.png).
   { sprite: 1, x: 1760, y: 2470, w: 150, ruina: true },
   { sprite: 3, x: 2260, y: 2410, w: 300, ruina: true },
