@@ -43,6 +43,8 @@ export const art = {
   insetoVoo: loadImage('/assets/mobs/inseto-voo.png'),
   porungaVoo: loadImage('/assets/mobs/porunga-voo.png'),
   porungaAtaque: loadImage('/assets/mobs/porunga-ataque.png'),
+  bossVoo: loadImage('/assets/mobs/porunga-boss-voo.png'),
+  bossAtaque: loadImage('/assets/mobs/porunga-boss-ataque.png'),
   namekSolo: loadImage('/assets/namek/solo.webp'),
   namekCasas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/casas/casa_' + (i + 1) + '.png')),
   namekRuinas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/ruinas/ruina_' + (i + 1) + '.png')),

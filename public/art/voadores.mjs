@@ -9,12 +9,15 @@ import { PASSARO_ATAQUE } from './passaro-ataque.mjs';
 import { INSETO_VOO } from './inseto-voo.mjs';
 import { PORUNGA_VOO } from './porunga-voo.mjs';
 import { PORUNGA_ATAQUE } from './porunga-ataque.mjs';
+import { PORUNGA_BOSS_VOO } from './porunga-boss-voo.mjs';
+import { PORUNGA_BOSS_ATAQUE } from './porunga-boss-ataque.mjs';
 
 // Folhas definitivas (5 direções × 4 quadros, lado esquerdo espelhado): voo com a batida de asa de verdade
 // e, quando houver, ataque (o quadro de impacto, coluna 3, cai no instante do dano, como nos outros mobs).
 // Sem folha de ataque, no golpe as asas batem mais rápido e o bicho avança. As duas folhas usam a escala
 // do voo, para o bicho não mudar de tamanho ao atacar.
-const FOLHAS = { passaro: { voo: PASSARO_VOO, ataque: PASSARO_ATAQUE }, inseto: { voo: INSETO_VOO }, porunga: { voo: PORUNGA_VOO, ataque: PORUNGA_ATAQUE } };
+const FOLHAS = { passaro: { voo: PASSARO_VOO, ataque: PASSARO_ATAQUE }, inseto: { voo: INSETO_VOO }, porunga: { voo: PORUNGA_VOO, ataque: PORUNGA_ATAQUE },
+  boss: { voo: PORUNGA_BOSS_VOO, ataque: PORUNGA_BOSS_ATAQUE } };   // Porunga BOSS (chefe raro)
 // Direção do jogo (S, SW, W, NW, N, NE, E, SE) → linha da folha (S, SE, E, NE, N) e se espelha.
 const LINHA_DA_FOLHA = [[0, false], [1, true], [2, true], [3, true], [4, false], [3, false], [2, false], [1, false]];
 const BATIDAS_POR_SEGUNDO = 2.5;
@@ -44,7 +47,8 @@ export const ALTURA_GOKU = 70;
 export const VOADORES = {
   passaro: { cw: 109, ch: 104, figura: 92, proporcao: 1.15 },
   inseto: { cw: 116, ch: 111, figura: 91, proporcao: 1.05 },
-  porunga: { proporcao: 2 }   // o dobro do Goku (pedido do Pedro); só tem as folhas definitivas
+  porunga: { proporcao: 2 },  // o dobro do Goku (pedido do Pedro); só tem as folhas definitivas
+  boss: { proporcao: 3 }      // Porunga BOSS: 3× o Goku, com a aura de fumaça
 };
 // Quanto o voador fica acima do chão (a sombra fica no chão, no ponto do mob).
 export const ALTURA_DE_VOO = 16;

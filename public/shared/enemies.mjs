@@ -11,7 +11,7 @@ import { podeAndar } from './passagem.mjs';
 // Os NÚMEROS são provisórios, à espera de balanceamento: cada hunt repete, para a faixa de nível
 // recomendada dela, a proporção das Planícies no nível 1 (golpes para derrubar, dano recebido e
 // mortes por nível). Arte também provisória: básico = Saibaman, sentinela = alienígena,
-// subchefe = sentinela grande, chefe = Freeza (a lore pede namekuseijins e o Piccolo de chefe).
+// subchefe = sentinela grande (provisório); chefe da hunt difícil = Porunga BOSS (folhas definitivas).
 const ATRIBUTOS = {
   inicial: {
     passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
@@ -30,7 +30,8 @@ const ATRIBUTOS = {
     porunga: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Porunga' },
     melee: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
     ranged: { hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
-    boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Freeza · Chefe' }
+    // Chefe raro do Planalto (decisão do Pedro, 03/11): voa, ataque de perto por enquanto, 3× o Goku.
+    boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Porunga BOSS' }
   }
 };
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
