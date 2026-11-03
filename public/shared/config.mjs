@@ -19,6 +19,8 @@ export const CONFIG = Object.freeze({
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
   seedCooldown: 20, kiCooldown: 8, pickupRadius: 60, respawnDelay: 4,
+  // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
+  chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
   itemWeights: { food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.7, crystal: 0.45 },
   prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
@@ -26,15 +28,20 @@ export const CONFIG = Object.freeze({
   skillCooldowns: { kame: 5, kaioken: 12, barrier: 8, transform: 30, genki: 45 },
   skills: { ki: 2, dash: 2, kame: 3, kaioken: 2, barrier: 2, transform: 5, genki: 10 }
 });
-// Regiões de Namekusei, posicionadas sobre o mapa da lore (assets/namek/solo.webp), em px da imagem.
-// Os ids são usados pelas regras (vila = segura, campos/cratera = caça, arena = PvP): mude
-// posição e nome à vontade, mas não os ids.
+// Áreas fechadas de Namekusei (modelo do Pedro, 03/11/2026). Cada área é um lugar à parte: não se anda
+// de uma para outra, troca-se pelos portais (PORTAIS). A caixa (x, y, w, h, em px da imagem) limita onde
+// se anda; dentro dela vale a máscara de passagem. `chegada` é onde o jogador aparece ao entrar e, nas
+// hunts, também onde fica a saída. `nivel` é só recomendação: entra quem quiser, mas é perigoso.
+// O que fica fora das caixas (ilha norte, ilha noroeste, ilhotas) está guardado para uma 4ª área.
+// Os ids são usados pelas regras e pelo save: mude nome, caixa e chegada à vontade, mas não os ids.
 export const ZONES = [
-  { id: 'vila', name: 'Vila Namekiana', x: 150, y: 1050, w: 750, h: 600, pvp: false },
-  { id: 'campos', name: 'Planícies de Namekusei', x: 1250, y: 580, w: 1900, h: 1220, pvp: false },
-  { id: 'cratera', name: 'Campo de Batalha', x: 1350, y: 1850, w: 2800, h: 950, pvp: false },
-  { id: 'arena', name: 'Planalto da Nave do Freeza', x: 3450, y: 650, w: 1100, h: 1100, pvp: true }
-].map(z => ({ ...z, x: naEscala(z.x), y: naEscala(z.y), w: naEscala(z.w), h: naEscala(z.h) }));
+  { id: 'vila', name: 'Vila Namekiana', segura: true, x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
+  { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
+  { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
+  { id: 'dificil', name: 'Planalto da Nave do Freeza', nivel: [20, 30], x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
+].map(z => ({ pvp: false, segura: false, ...z, x: naEscala(z.x), y: naEscala(z.y), w: naEscala(z.w), h: naEscala(z.h),
+  chegada: { x: naEscala(z.chegada.x), y: naEscala(z.chegada.y) } }));
+export const areaPorId = id => ZONES.find(z => z.id === id) || null;
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor
 // mantêm o tamanho; só a posição acompanha o mapa.
 export const MERCHANT = { x: naEscala(560), y: naEscala(1290) };
@@ -83,9 +90,30 @@ export function frenteDaCasa(c, x) {
 export function casaBloqueia(x, y) {
   return HOUSES.some(c => { const f = frenteDaCasa(c, x); return f !== null && y < f && y > 2 * c.pegada.centro - f; });
 }
-// Planetas (instâncias). 'terra' é o spawn verde pequeno e seguro (tela inicial);
-// 'namek' é o mundo atual com zonas, inimigos e combate. Só se troca de planeta por TP.
+// Planetas (instâncias). 'terra' é o lobby verde pequeno e seguro (tela inicial);
+// 'namek' é o mapa das áreas fechadas acima. Só se troca de lugar por portal.
 export const PLANETS = {
   terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 } },
-  namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, spawn: { x: naEscala(480), y: naEscala(1410) } } // praça da Vila Namekiana
+  namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, spawn: areaPorId('vila').chegada } // praça da Vila Namekiana
 };
+// Lugar de destino de um portal: a Terra ou uma das áreas de Namekusei.
+export function lugar(id) {
+  if (id === 'terra') return { id, planet: 'terra', area: null, name: 'Terra', chegada: PLANETS.terra.spawn, segura: true };
+  const z = areaPorId(id);
+  return z && { id, planet: 'namek', area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
+}
+// Portais (o desenho ainda vai ser escolhido). Encostar abre a janela com os destinos.
+// Terra: um portal para Namekusei. Vila: um portal por hunt, em três entradas, e a volta para a Terra
+// logo acima do ponto de chegada. Hunts: um só portal, logo acima do ponto de chegada (é a saída),
+// com a Vila e as outras duas hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
+export const RAIO_PORTAL = 55;
+const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
+const HUNTS = ['inicial', 'media', 'dificil'];
+export const PORTAIS = [
+  { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: ['vila'] },
+  { id: 'vila-terra', planet: 'namek', area: 'vila', ...acimaDaChegada('vila'), destinos: ['terra'] },
+  { id: 'vila-inicial', planet: 'namek', area: 'vila', x: naEscala(900), y: naEscala(1250), destinos: ['inicial'] },
+  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(520), y: naEscala(1640), destinos: ['media'] },
+  { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(480), y: naEscala(900), destinos: ['dificil'] },
+  ...HUNTS.map(id => ({ id: 'saida-' + id, planet: 'namek', area: id, ...acimaDaChegada(id), destinos: ['vila', ...HUNTS.filter(h => h !== id)] }))
+];

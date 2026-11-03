@@ -1,7 +1,7 @@
 // Onde dá para andar em cada planeta. Namekusei usa a máscara gerada da imagem do solo
 // (namek-passagem.mjs); os demais planetas são livres.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
-import { ESCALA_MUNDO, OBSTACLES, PLANETS, casaBloqueia } from './config.mjs';
+import { ESCALA_MUNDO, OBSTACLES, PLANETS, areaPorId, casaBloqueia } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -27,7 +27,14 @@ export function emTerra(planet, x, y) {
   return cx >= 0 && cy >= 0 && cx < m.cols && cy < m.rows && m.grade[cy * m.cols + cx] === 1;
 }
 
-export function podeAndar(planet, x, y) {
+// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue.
+function naArea(area, x, y) {
+  const z = area && areaPorId(area);
+  return !z || (x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h);
+}
+
+export function podeAndar(planet, x, y, area = null) {
+  if (!naArea(area, x, y)) return false;
   const m = MASCARAS[planet];
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
@@ -37,41 +44,43 @@ export function podeAndar(planet, x, y) {
 
 // Pés do personagem: centro e quatro pontos a 60% do raio. Evita encostar o corpo na água
 // sem exigir que o círculo inteiro caiba (o que travaria em trilhas estreitas).
-export function pesLivres(planet, x, y, radius) {
+export function pesLivres(planet, x, y, radius, area = null) {
   const r = radius * 0.6;
-  return podeAndar(planet, x, y) && podeAndar(planet, x + r, y) && podeAndar(planet, x - r, y)
-    && podeAndar(planet, x, y + r) && podeAndar(planet, x, y - r);
+  return podeAndar(planet, x, y, area) && podeAndar(planet, x + r, y, area) && podeAndar(planet, x - r, y, area)
+    && podeAndar(planet, x, y + r, area) && podeAndar(planet, x, y - r, area);
 }
 
 // Um passo de movimento: eixo X e depois Y, cada um só se o destino estiver dentro do mundo,
 // longe dos obstáculos e com os pés em terra. Servidor (Game.move) e predição do cliente usam
 // esta mesma regra; se divergirem, o cliente anda onde o servidor não deixa e o personagem treme.
-export function deslocar(planet, x, y, dx, dy, dist, radius = 15) {
+// `area` prende o passo à área fechada onde a entidade está (null: sem área, como na Terra).
+export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null) {
   const world = PLANETS[planet] || PLANETS.namek, onNamek = planet === 'namek';
   // Quem já está num ponto bloqueado (save antigo, mob nascido na água) pode sair dele.
-  const preso = !pesLivres(planet, x, y, radius);
+  const preso = !pesLivres(planet, x, y, radius, area);
   const livre = (nx, ny) => nx >= radius && ny >= radius && nx <= world.w - radius && ny <= world.h - radius
     && (!onNamek || !OBSTACLES.some(o => Math.hypot(o.x - nx, o.y - ny) < o.r + radius))
-    && (preso || pesLivres(planet, nx, ny, radius));
+    && (preso || pesLivres(planet, nx, ny, radius, area));
   const nx = x + dx * dist, ny = y + dy * dist;
   if (livre(nx, y)) x = nx;
   if (livre(x, ny)) y = ny;
   return [x, y];
 }
 
-// Caminho por terra entre dois pontos (busca em largura numa grade grossa da máscara).
+// Caminho por terra entre dois pontos (busca em largura numa grade grossa da máscara), sem sair da área.
 // Devolve a lista de pontos do mundo até o destino, ou null se não houver ligação por terra.
 const PASSO_GRADE = 4;   // células da máscara por célula de busca (6 px * 4 = 24 unidades)
 const cacheGrade = new Map();
-function gradeBusca(planet) {
-  if (cacheGrade.has(planet)) return cacheGrade.get(planet);
+function gradeBusca(planet, area) {
+  const chave = planet + ':' + area;
+  if (cacheGrade.has(chave)) return cacheGrade.get(chave);
   const m = MASCARAS[planet];
   const cols = Math.floor(m.cols / PASSO_GRADE), rows = Math.floor(m.rows / PASSO_GRADE);
   const livre = new Uint8Array(cols * rows), cw = m.cellW * PASSO_GRADE, ch = m.cellH * PASSO_GRADE;
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++)
-    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, 15) ? 1 : 0;
+    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, 15, area) ? 1 : 0;
   const g = { cols, rows, cw, ch, livre };
-  cacheGrade.set(planet, g); return g;
+  cacheGrade.set(chave, g); return g;
 }
 function celulaLivreMaisProxima(g, cx, cy) {
   for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -80,9 +89,9 @@ function celulaLivreMaisProxima(g, cx, cy) {
   }
   return -1;
 }
-export function caminhoPorTerra(planet, de, ate) {
+export function caminhoPorTerra(planet, de, ate, area = null) {
   if (!MASCARAS[planet]) return null;
-  const g = gradeBusca(planet);
+  const g = gradeBusca(planet, area);
   const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch));
   const fim = celulaLivreMaisProxima(g, Math.floor(ate.x / g.cw), Math.floor(ate.y / g.ch));
   if (ini < 0 || fim < 0) return null;

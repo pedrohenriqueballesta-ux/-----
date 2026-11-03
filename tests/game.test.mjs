@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, CONFIG, PLANETS, ZONES, statsFor, xpForLevel, bagWeight } from '../public/shared/index.mjs';
+import { Game, CONFIG, PLANETS, PORTAIS, statsFor, xpForLevel, bagWeight, lugar } from '../public/shared/index.mjs';
 import { createGameServer } from '../server.mjs';
 
 const world = () => new Game({ now: 1000, populate: false, random: () => 0.99 });
 function advance(game, seconds) { for (let i = 0; i < Math.ceil(seconds / 0.05); i++) game.tick(0.05); }
+// Põe o jogador na chegada de uma área, já sem a proteção de chegada (para testar combate).
+function naArea(game, p, area = 'inicial') { game.levar(p, lugar(area)); p.seguroAte = 0; return p; }
 
 test('sementes de potências diferentes compartilham a recarga, sem consumir item ao bloquear', () => {
   const game = world(), p = game.addPlayer('a'); p.hp = 10;
@@ -46,21 +48,14 @@ test('subir de nível aumenta todos os atributos automaticamente e libera técni
   assert.equal(game.snapshot(p.id).self.kameRemaining, CONFIG.skillCooldowns.kame);
 });
 
-test('PvP é recusado fora da região e permitido com os dois jogadores na área PvP', () => {
-  const game = world(), a = game.addPlayer('a'), b = game.addPlayer('b');
-  assert.equal(game.hit(a, b, 30), false); assert.equal(b.hp, b.stats.hp);
-  // Planalto da Nave do Freeza (arena PvP): jogadores logo depois da borda esquerda, depois um fora dela.
-  const arena = ZONES.find(z => z.pvp), y = arena.y + arena.h / 2;
-  a.planet = b.planet = 'namek'; a.x = arena.x + 150; a.y = y; b.x = arena.x + 190; b.y = y;
-  assert.equal(game.hit(a, b, 30), true); assert.ok(b.hp < b.stats.hp);
-  b.x = arena.x - 50; const hp = b.hp;
-  assert.equal(game.hit(a, b, 30), false); assert.equal(b.hp, hp);
-});
-
-test('Kamehameha atravessando a fronteira não causa dano em jogador fora da área PvP', () => {
+test('sem PvP nesta versão: dano entre jogadores é recusado em qualquer lugar, de soco ou Kamehameha', () => {
   const game = world(), a = game.addPlayer('a', 'Goku', { level: 3 }), b = game.addPlayer('b');
-  const arena = ZONES.find(z => z.pvp), y = arena.y + arena.h / 2;
-  a.planet = b.planet = 'namek'; a.x = arena.x + 50; a.y = y; b.x = arena.x - 50; b.y = y; a.aim = { x: b.x, y: b.y };
+  assert.equal(game.hit(a, b, 30), false, 'na Terra');
+  for (const area of ['inicial', 'media', 'dificil']) {
+    naArea(game, a, area); naArea(game, b, area); b.x = a.x + 40;
+    assert.equal(game.hit(a, b, 30), false, 'na hunt ' + area); assert.equal(b.hp, b.stats.hp);
+  }
+  a.aim = { x: b.x, y: b.y }; a.kameReady = 0;
   assert.equal(game.cast(a, 'kame').ok, true);
   advance(game, 0.8); assert.equal(b.hp, b.stats.hp);
 });
@@ -74,8 +69,8 @@ test('mochila respeita capacidade de peso e uma compra bloqueada não gasta Zeni
 });
 
 test('movimento manual interrompe a caça e desconexão suspende evolução AFK', () => {
-  const game = world(), p = game.addPlayer('a');
-  game.action(p.id, { type: 'hunt', zone: 'campos' }); assert.equal(p.autoHunt, true);
+  const game = world(), p = naArea(game, game.addPlayer('a'));
+  game.action(p.id, { type: 'hunt' }); assert.equal(p.autoHunt, true);
   game.setInput(p.id, { x: 1, y: 0 }); assert.equal(p.autoHunt, false);
   p.connected = false; p.hp = 20; p.foodUntil = game.time + 50;
   advance(game, 5); assert.equal(p.hp, 20);
@@ -99,10 +94,10 @@ test('teclado e condução automática mantêm velocidade igual nas quatro diago
   }
 });
 
-test('Saibaman, sentinela e chefe transmitem direção e recuperação sem antecipar o dano', () => {
-  for (const type of ['melee', 'ranged', 'boss']) {
-    const game = world(), p = game.addPlayer('a'); p.planet = 'namek'; p.x = 1650; p.y = 700;
-    const mob = game.addMob(type, 1625, 725); mob.attackReady = game.time;
+test('Saibaman, sentinela, subchefe e chefe transmitem direção e recuperação sem antecipar o dano', () => {
+  for (const type of ['melee', 'ranged', 'subboss', 'boss']) {
+    const game = world(), p = naArea(game, game.addPlayer('a')); p.x = 2650; p.y = 2000;
+    const mob = game.addMob(type, 2625, 2025); mob.attackReady = game.time;
     game.tick(0.05);
     const view = game.snapshot(p.id).mobs[0];
     assert.ok(view.facing.x > 0 && view.facing.y < 0);
@@ -130,10 +125,10 @@ test('transformação exige nível e termina quando o Ki acaba', () => {
 });
 
 test('caça automática sustenta uma sessão inicial, derrota mobs e evolui sem entrada manual', () => {
-  // Sai da praça da Vila e precisa contornar o mar por terra até as Planícies.
+  // Entra nas Planícies pelo portal e caça a hunt inteira, contornando a água por terra.
   const game = new Game({ now: 1000, random: () => 0.5 });
-  const p = game.addPlayer('a'); p.planet = 'namek'; p.x = PLANETS.namek.spawn.x; p.y = PLANETS.namek.spawn.y;
-  game.action(p.id, { type: 'hunt', zone: 'campos' });
+  const p = game.addPlayer('a'); game.levar(p, lugar('inicial'));
+  game.action(p.id, { type: 'hunt' });
   advance(game, 60);
   assert.ok(p.kills >= 10);
   assert.ok(p.level >= 3);
@@ -142,16 +137,79 @@ test('caça automática sustenta uma sessão inicial, derrota mobs e evolui sem 
   assert.equal(p.inventory.food, 4);
 });
 
-test('jogador nasce na Terra, viaja para Namekusei e os planetas ficam isolados', () => {
+// Anda até o portal que leva ao destino, no lugar onde o jogador está, e usa.
+function porPortal(game, p, destino) {
+  const o = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destino));
+  if (o) { p.x = o.x; p.y = o.y + 20; }
+  return game.action(p.id, { type: 'portal', destino });
+}
+
+test('jogador nasce na Terra e viaja só por portal: Terra → Vila → hunts → Vila → Terra', () => {
   const game = new Game({ now: 1000, random: () => 0.5 });
   const p = game.addPlayer('a');
   assert.equal(p.planet, 'terra');
   assert.equal(game.snapshot(p.id).mobs.length, 0, 'sem inimigos na Terra');
-  assert.equal(game.action(p.id, { type: 'travelPlanet', planet: 'namek' }).ok, true);
-  assert.equal(p.planet, 'namek');
-  assert.ok(game.snapshot(p.id).mobs.length > 0, 'Namekusei tem inimigos');
-  game.action(p.id, { type: 'travelPlanet', planet: 'terra' });
-  assert.equal(game.snapshot(p.id).mobs.length, 0);
+  assert.equal(game.action(p.id, { type: 'portal', destino: 'vila' }).ok, false, 'longe do portal não viaja');
+  assert.equal(game.action(p.id, { type: 'travelPlanet', planet: 'namek' }).ok, false, 'a viagem por menu saiu');
+  assert.equal(porPortal(game, p, 'vila').ok, true);
+  assert.deepEqual([p.planet, p.area], ['namek', 'vila']);
+  assert.equal(game.snapshot(p.id).mobs.length, 0, 'Vila sem inimigos');
+  assert.equal(porPortal(game, p, 'inicial').ok, true);
+  const naInicial = game.snapshot(p.id);
+  assert.equal(naInicial.area, 'inicial');
+  assert.ok(naInicial.mobs.length > 0 && naInicial.mobs.every(m => m.area === 'inicial' && m.type === 'melee'), 'só os mobs básicos da hunt inicial');
+  assert.equal(porPortal(game, p, 'dificil').ok, true, 'da saída de uma hunt vai direto a outra');
+  assert.ok(game.snapshot(p.id).mobs.some(m => m.type === 'boss'), 'chefe na hunt difícil');
+  assert.equal(porPortal(game, p, 'terra').ok, false, 'da hunt não se vai à Terra');
+  assert.equal(porPortal(game, p, 'vila').ok, true);
+  assert.equal(porPortal(game, p, 'terra').ok, true);
+  assert.deepEqual([p.planet, p.area], ['terra', null]);
+});
+
+test('hunt da média tem sentinelas e o subchefe; nível abaixo do recomendado entra com aviso', () => {
+  const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a');
+  porPortal(game, p, 'vila');
+  assert.equal(porPortal(game, p, 'media').ok, true, 'nível 1 entra na hunt média (só recomendação)');
+  assert.ok(game.events.some(e => e.type === 'message' && /cuidado/.test(e.text)));
+  const tipos = new Set(game.snapshot(p.id).mobs.map(m => m.type));
+  assert.deepEqual([...tipos].sort(), ['ranged', 'subboss']);
+});
+
+test('chegada protegida por alguns segundos, depois os mobs atacam; morte volta ao começo da hunt', () => {
+  const game = world(), p = game.addPlayer('a');
+  game.levar(p, lugar('inicial'));
+  const mob = game.addMob('melee', p.x + 30, p.y); mob.attackReady = game.time;
+  assert.equal(game.hit(mob, p, 30), false, 'protegido logo após chegar');
+  advance(game, CONFIG.chegadaSegura + 0.1);
+  assert.equal(game.hit(mob, p, 30), true, 'depois da proteção leva dano');
+  p.x += 600; p.hp = 1; game.hit(mob, p, 999);
+  assert.equal(p.hp, 0);
+  advance(game, CONFIG.respawnDelay + 0.1);
+  assert.equal(p.area, 'inicial', 'renasce na mesma hunt');
+  assert.deepEqual([Math.round(p.x), Math.round(p.y)], [Math.round(lugar('inicial').chegada.x), Math.round(lugar('inicial').chegada.y)]);
+  assert.ok(game.protegido(p), 'protegido ao renascer');
+});
+
+test('áreas isoladas: golpe, projétil e aggro não passam de uma área para outra', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a', 'Goku', { level: 10 }), 'inicial');
+  const outra = game.addMob('melee', p.x + 30, p.y, 'media'); outra.attackReady = game.time;
+  assert.equal(game.hit(p, outra, 50), false, 'jogador não acerta mob de outra área');
+  assert.equal(game.hit(outra, p, 50), false, 'mob de outra área não acerta o jogador');
+  advance(game, 1); assert.equal(outra.telegraph, null, 'mob de outra área não persegue');
+  assert.equal(game.snapshot(p.id).mobs.some(m => m.id === outra.id), false, 'nem aparece para o jogador');
+  assert.equal(game.cast(p, 'genki').ok, true); advance(game, 0.5);
+  assert.equal(outra.hp, outra.maxHp, 'Genki Dama não atravessa');
+});
+
+test('caça automática só dentro das hunts', () => {
+  const game = world(), p = game.addPlayer('a');
+  assert.equal(game.action(p.id, { type: 'hunt' }).ok, false, 'na Terra não');
+  game.levar(p, lugar('vila'));
+  assert.equal(game.action(p.id, { type: 'hunt' }).ok, false, 'na Vila não');
+  game.levar(p, lugar('media'));
+  assert.equal(game.action(p.id, { type: 'hunt' }).ok, true);
+  assert.equal(game.action(p.id, { type: 'hunt', enabled: false }).ok, true);
+  assert.equal(p.autoHunt, false);
 });
 
 test('duas sessões HTTP reais recebem o mundo compartilhado e entradas não alteram atributos', async () => {
@@ -201,7 +259,7 @@ test('Kaioken e Barreira de Ki têm níveis de desbloqueio, duração e recarga'
   assert.equal(game.snapshot(p.id).self.kaiokenActive, false);
   assert.ok(game.snapshot(p.id).self.kaiokenRemaining > 5, 'a recarga de 12s continua após os 6s de efeito');
 
-  const defended = world(), dp = defended.addPlayer('defended', 'Goku', { level: 2 });
+  const defended = world(), dp = naArea(defended, defended.addPlayer('defended', 'Goku', { level: 2 }));
   const attacker = defended.addMob('melee', dp.x + 20, dp.y);
   const hpBefore = dp.hp;
   const kiBeforeBarrier = dp.ki;
@@ -215,7 +273,7 @@ test('Kaioken e Barreira de Ki têm níveis de desbloqueio, duração e recarga'
 });
 
 test('Genki Dama só libera no nível 10 e atinge o alvo com projétil de área', () => {
-  const game = world(), p = game.addPlayer('ultimate', 'Goku', { level: 9 });
+  const game = world(), p = naArea(game, game.addPlayer('ultimate', 'Goku', { level: 9 }));
   assert.equal(game.cast(p, 'genki').ok, false);
   game.awardXp(p, xpForLevel(9));
   assert.equal(p.level, 10);
