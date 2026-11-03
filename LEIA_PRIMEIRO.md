@@ -57,10 +57,10 @@ Para conferir as sprites sem mexer no progresso, com o servidor ligado abra **ht
 3. Ao chegar ao nível 2, use a Imagem Residual para sair dos círculos vermelhos anunciados pelos inimigos.
 4. No nível 3, experimente alinhar o Kamehameha. O ataque é direcional e tem preparação.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.
-6. Abra outra aba para ver um segundo jogador real. Leve ambos para a Fronteira de Combate para testar o PvP. Fora dela, o servidor recusa dano entre jogadores.
+6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
 7. Volte ao mercador da vila, venda materiais e reponha comida e poções.
 
-Os botões Vila / mercado e Fronteira PvP fazem o personagem caminhar até a região. Movimentar manualmente interrompe a condução automática.
+Viagem só por portal: na Terra, o portal leva à Vila de Namekusei; na Vila, um portal para cada hunt e outro de volta à Terra; em cada hunt, a saída fica onde você chegou e leva à Vila ou às outras hunts. Movimentar manualmente interrompe a condução automática.
 
 ## Dois computadores ou celular na mesma rede
 
@@ -71,12 +71,12 @@ O servidor padrão aceita conexões apenas do próprio computador. Esta entrega 
 ## O que está implementado
 
 - Mundo 2D visto de cima, movimentação por teclado e toque e personagens reais compartilhando o mapa.
-- Goku com ataques manuais e automáticos, caça por região e técnicas desbloqueadas por nível.
+- Goku com ataques manuais e automáticos, caça automática pela hunt inteira e técnicas desbloqueadas por nível.
 - Crescimento automático de vida, Ki, ataque, defesa, cura, capacidade em peso, chance de loot e mobilidade.
 - Comida com efeito temporário de recuperação, sem regeneração gratuita de vida fora do efeito.
 - Sementes de 15%, 30%, 50% e 100% da vida máxima, com recarga compartilhada.
 - Poções de Ki, inventário com peso, coleta de materiais, Zeni e um mercado de NPC.
-- Regiões PvE, área específica de PvP e um chefe na Cratera Rubra.
+- Vila segura e três hunts fechadas em Namekusei (inicial, média com subchefe, difícil com chefe), ligadas por portais.
 - Simulação e validação de ações no servidor, inclusive dano, experiência, estoque e recarga.
 - Salvamento local do servidor. A caça é suspensa se a sessão desconectar.
 

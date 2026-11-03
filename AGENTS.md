@@ -21,8 +21,9 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 
 ## Decisões que devem ser preservadas
 
-- Mundo compartilhado; PvP apenas na região designada, validado para todos os tipos de dano.
-- Movimento por teclado/toque e caça automática opcional por região.
+- Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em Namekusei, a Vila (segura) e três hunts. Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
+- Sem PvP nesta versão (decisão do Pedro, 03/11/2026). Quando voltar, só em área marcada como pvp, validado para todos os tipos de dano.
+- Movimento por teclado/toque e caça automática opcional, que roda a hunt inteira onde o jogador está.
 - Técnicas, transformações e todos os atributos progridem automaticamente conforme classe e nível. Não há distribuição manual de atributos.
 - A comida gera a cura ao longo de um período. Não há regeneração gratuita de vida fora desse efeito.
 - Sementes curam instantaneamente e todas as potências respeitam a mesma recarga. Trocar item ou potência não remove o intervalo.
