@@ -359,10 +359,12 @@ export class Game {
       if (distance(m, { x: m.homeX, y: m.homeY }) > 10) this.steer(m, { x: m.homeX, y: m.homeY }, dt, m.speed);
       return;
     }
-    const range = m.type === 'ranged' ? 235 : grande ? 150 : 62;
+    // O guerreiro de turbante dispara de longe e soca quando o alvo chega perto.
+    const atira = m.type === 'ranged' || (m.type === 'turbante' && closest > 62);
+    const range = m.type === 'ranged' || m.type === 'turbante' ? 235 : grande ? 150 : 62;
     if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
-      if (m.type === 'ranged') { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
+      if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
       else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
       m.facing = norm(target.x - m.x, target.y - m.y);
       // Presentation timestamps only: impact, warning duration and cooldown are unchanged.

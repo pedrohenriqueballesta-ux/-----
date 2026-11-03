@@ -29,6 +29,8 @@ export const art = {
   saibamanPasso: loadImage(SAIBAMAN_PASSO.file),
   saibamanGolpe: loadImage(SAIBAMAN_GOLPE.file),
   sentinelaPasso: loadImage(SENTINELA_PASSO.file),
+  guerreiroPasso: loadImage('/assets/mobs/guerreiro-andar.png'),
+  guerreiroGolpe: loadImage('/assets/mobs/guerreiro-soco.png'),
   gokuGolpe: loadImage(GOKU_GOLPE.file),
   ssjGolpe: loadImage(SSJ_GOLPE.file),
   passaro: loadImage('/assets/mobs/passaro.png'),

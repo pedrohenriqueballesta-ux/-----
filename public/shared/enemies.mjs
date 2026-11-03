@@ -5,7 +5,8 @@ import { ZONES, naEscala } from './config.mjs';
 import { podeAndar } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
-// Inseto de Namek, metade de cada, os dois atacando de perto); na média,
+// Inseto de Namek, metade de cada, os dois atacando de perto); na média (decisão de 03/11), metade Guerreiros
+// de Namek (de perto) e metade guerreiros de turbante (de longe e de perto), mais o subchefe; antes eram
 // as sentinelas e um subchefe; na difícil, o chefe e os demais mobs, mais fortes.
 // Os NÚMEROS são provisórios, à espera de balanceamento: cada hunt repete, para a faixa de nível
 // recomendada dela, a proporção das Planícies no nível 1 (golpes para derrubar, dano recebido e
@@ -18,6 +19,9 @@ const ATRIBUTOS = {
     melee: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Saibaman' }
   },
   media: {
+    guerreiro: { hp: 210, attack: 17, xp: 45, defesa: 5, speed: 112, name: 'Guerreiro de Namek' },
+    // Ataca de longe (rajada de ki) e de perto (soco); nome e desenho provisórios até a folha dele chegar.
+    turbante: { hp: 190, attack: 16, xp: 45, defesa: 5, speed: 108, name: 'Guerreiro de turbante' },
     ranged: { hp: 200, attack: 17, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
     subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela · Subchefe' }
   },
@@ -56,7 +60,7 @@ function espalhar(random, area, n, tipo) {
 export function spawnPoints(random) {
   return [
     ...espalhar(random, 'inicial', 20, i => i % 2 ? 'inseto' : 'passaro'),
-    ...espalhar(random, 'media', 16, () => 'ranged'),
+    ...espalhar(random, 'media', 16, i => i % 2 ? 'turbante' : 'guerreiro'),
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
     ...espalhar(random, 'dificil', 16, i => i % 3 === 0 ? 'ranged' : 'melee'),

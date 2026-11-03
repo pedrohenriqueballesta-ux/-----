@@ -166,13 +166,16 @@ test('jogador nasce na Terra e viaja só por portal: Terra → Vila → hunts �
   assert.deepEqual([p.planet, p.area], ['terra', null]);
 });
 
-test('hunt da média tem sentinelas e o subchefe; nível abaixo do recomendado entra com aviso', () => {
+test('hunt da média tem Guerreiros de Namek, guerreiros de turbante e o subchefe; nível abaixo do recomendado entra com aviso', () => {
   const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a');
   porPortal(game, p, 'vila');
   assert.equal(porPortal(game, p, 'media').ok, true, 'nível 1 entra na hunt média (só recomendação)');
   assert.ok(game.events.some(e => e.type === 'message' && /cuidado/.test(e.text)));
   const tipos = new Set(game.snapshot(p.id).mobs.map(m => m.type));
-  assert.deepEqual([...tipos].sort(), ['ranged', 'subboss']);
+  assert.deepEqual([...tipos].sort(), ['guerreiro', 'subboss', 'turbante']);
+  const media = [...game.mobs.values()].filter(m => m.area === 'media');
+  assert.equal(media.filter(m => m.type === 'guerreiro').length, media.filter(m => m.type === 'turbante').length);
+  assert.ok(media.filter(m => m.type === 'guerreiro').every(m => m.name === 'Guerreiro de Namek'));
 });
 
 test('chegada protegida por alguns segundos, depois os mobs atacam; morte volta ao começo da hunt', () => {
@@ -320,5 +323,13 @@ test('hunt fácil: 20 mobs, metade Pássaro e metade Inseto de Namek, os dois de
     const g = world(), p = naArea(g, g.addPlayer('a')); p.x = 2650; p.y = 2000;
     const mob = g.addMob(type, 2700, 2000); mob.attackReady = g.time; g.tick(0.05);
     assert.equal(mob.telegraph?.kind, 'area', type + ' ataca de perto');
+  }
+});
+
+test('guerreiro de turbante dispara de longe e soca de perto; Guerreiro de Namek só de perto', () => {
+  for (const [tipo, dist, golpe] of [['turbante', 180, 'shot'], ['turbante', 40, 'area'], ['guerreiro', 40, 'area']]) {
+    const g = world(), p = naArea(g, g.addPlayer('a'), 'media'); p.x = 2650; p.y = 4000;
+    const mob = g.addMob(tipo, 2650 + dist, 4000, 'media'); mob.attackReady = g.time; g.tick(0.05);
+    assert.equal(mob.telegraph?.kind, golpe, tipo + ' a ' + dist);
   }
 });
