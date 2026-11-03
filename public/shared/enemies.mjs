@@ -26,6 +26,8 @@ const ATRIBUTOS = {
     subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela · Subchefe' }
   },
   dificil: {
+    // Porunga (decisão do Pedro, 03/11): o mob mais fraco da hunt difícil, voa e ataca de perto (garra).
+    porunga: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Porunga' },
     melee: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
     ranged: { hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
     boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Freeza · Chefe' }
@@ -63,7 +65,7 @@ export function spawnPoints(random) {
     ...espalhar(random, 'media', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
-    ...espalhar(random, 'dificil', 16, i => i % 3 === 0 ? 'ranged' : 'melee'),
+    ...espalhar(random, 'dificil', 16, i => i % 3 === 0 ? 'ranged' : 'porunga'),
     { type: 'boss', x: naEscala(4070), y: naEscala(1150), area: 'dificil' }
   ];
 }

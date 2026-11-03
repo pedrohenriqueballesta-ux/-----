@@ -351,3 +351,13 @@ test('Veterano de Namek se aproxima enquanto ataca, em vez de ficar parado atira
   for (let i = 0; i < 40; i++) { game.tick(0.05); p.hp = p.stats.hp; }
   assert.ok(Math.hypot(v.x - p.x, v.y - p.y) < 120);
 });
+
+test('hunt difícil tem Porunga (de perto, voando) no lugar do Saibaman de elite', () => {
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const dificil = [...game.mobs.values()].filter(m => m.area === 'dificil');
+  assert.ok(dificil.some(m => m.type === 'porunga' && m.name === 'Porunga'));
+  assert.equal(dificil.filter(m => m.type === 'melee').length, 0);
+  const g = world(), p = naArea(g, g.addPlayer('a', 'Goku', { level: 20 }), 'dificil'); p.x = 6300; p.y = 2100;
+  const mob = g.addMob('porunga', 6340, 2100, 'dificil'); mob.attackReady = g.time; g.tick(0.05);
+  assert.equal(mob.telegraph?.kind, 'area', 'Porunga ataca de perto');
+});
