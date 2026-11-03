@@ -39,7 +39,20 @@ export function mobStats(type, area = 'inicial') {
   return { ...base };
 }
 // Segundos até o mob voltar depois de derrotado.
-export const renasceEm = type => type === 'boss' ? 75 : type === 'subboss' ? 60 : 12;
+// Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
+export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
+export const renasceEm = (type, random = Math.random) => type === 'boss'
+  ? CHEFE_RARO.minimo + random() * (CHEFE_RARO.maximo - CHEFE_RARO.minimo) : type === 'subboss' ? 60 : 12;
+// Círculo do Planalto do Porunga onde o chefe raro nasce, num ponto sorteado (px da imagem → mundo).
+export const CIRCULO_DO_CHEFE = { x: naEscala(4065), y: naEscala(1150), r: naEscala(190) };
+export function pontoNoCirculo(random) {
+  for (let i = 0; i < 40; i++) {
+    const a = random() * Math.PI * 2, d = Math.sqrt(random()) * CIRCULO_DO_CHEFE.r;
+    const x = CIRCULO_DO_CHEFE.x + Math.cos(a) * d, y = CIRCULO_DO_CHEFE.y + Math.sin(a) * d;
+    if (em_terra('dificil', x, y)) return { x, y };
+  }
+  return { x: CIRCULO_DO_CHEFE.x, y: CIRCULO_DO_CHEFE.y };
+}
 
 // Pontos de nascimento dos inimigos: uma grade dentro de cada área, ficando só os pontos
 // em terra firme (máscara de passagem) e com folga da água. O sorteio só desloca cada ponto
@@ -65,7 +78,8 @@ export function spawnPoints(random) {
     ...espalhar(random, 'media', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
-    ...espalhar(random, 'dificil', 16, i => i % 3 === 0 ? 'ranged' : 'porunga'),
-    { type: 'boss', x: naEscala(4070), y: naEscala(1150), area: 'dificil' }
+    // Planalto do Porunga: só Porungas (decisão do Pedro, 03/11) e o chefe raro no círculo.
+    ...espalhar(random, 'dificil', 16, () => 'porunga'),
+    { type: 'boss', ...pontoNoCirculo(random), area: 'dificil', raro: true }
   ];
 }

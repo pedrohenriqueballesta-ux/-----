@@ -3,7 +3,7 @@
 import { CONFIG, MERCHANT, OBSTACLES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
-import { mobStats, renasceEm, spawnPoints } from './enemies.mjs';
+import { mobStats, renasceEm, spawnPoints, pontoNoCirculo } from './enemies.mjs';
 import { deslocar, caminhoPorTerra } from './passagem.mjs';
 
 export class Game {
@@ -28,13 +28,21 @@ export class Game {
     this.mobs.set(m.id, m); return m;
   }
   populate() {
-    for (const s of spawnPoints(this.random)) this.addMob(s.type, s.x, s.y, s.area);
+    for (const s of spawnPoints(this.random)) {
+      const m = this.addMob(s.type, s.x, s.y, s.area);
+      // O chefe raro não está no mapa quando o servidor liga: aparece depois do primeiro sorteio.
+      if (s.raro) { m.raro = true; m.hp = 0; m.deadUntil = this.time + renasceEm(m.type, this.random); }
+    }
   }
   // Mesmo lugar = mesmo planeta e mesma área fechada. Nada atravessa de um lugar para outro:
   // dano, alvo, aggro, projéteis, loot e o que cada jogador recebe no snapshot.
   mesmoLugar(a, b) { return Boolean(a && b) && a.planet === b.planet && (a.area || null) === (b.area || null); }
   // Jogador protegido: na Terra, na Vila (áreas seguras) ou nos segundos logo após chegar/renascer.
   protegido(p) { return !p.area || Boolean(areaPorId(p.area)?.segura) || this.time < p.seguroAte; }
+  // Avisa quem está na hunt que o chefe raro apareceu.
+  anunciarChefe(m) {
+    for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, m.name + ' apareceu no círculo do planalto!');
+  }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
@@ -242,7 +250,7 @@ export class Game {
     if (target.hp <= 0) {
       if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
-        target.deadUntil = this.time + renasceEm(target.type); target.telegraph = null;
+        target.deadUntil = this.time + renasceEm(target.type, this.random); target.telegraph = null;
         if (attacker && this.players.has(attacker.id)) {
           this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.type === 'boss' ? 100 : 5 + Math.floor(this.random() * 5);
           if (target.type === 'boss') { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
@@ -352,7 +360,7 @@ export class Game {
   }
   updateMob(m, dt) {
     m.moving = false;
-    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
+    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = m.type === 'boss' || m.type === 'subboss';
     let target = null, closest = grande ? 460 : 300;

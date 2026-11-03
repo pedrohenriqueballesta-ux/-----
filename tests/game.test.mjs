@@ -159,7 +159,7 @@ test('jogador nasce na Terra e viaja só por portal: Terra → Vila → hunts �
   assert.equal(naInicial.area, 'inicial');
   assert.ok(naInicial.mobs.length > 0 && naInicial.mobs.every(m => m.area === 'inicial' && ['passaro', 'inseto'].includes(m.type)), 'só os mobs básicos da hunt inicial');
   assert.equal(porPortal(game, p, 'dificil').ok, true, 'da saída de uma hunt vai direto a outra');
-  assert.ok(game.snapshot(p.id).mobs.some(m => m.type === 'boss'), 'chefe na hunt difícil');
+  assert.ok(game.snapshot(p.id).mobs.every(m => m.type === 'porunga'), 'só Porungas na hunt difícil (o chefe raro ainda não nasceu)');
   assert.equal(porPortal(game, p, 'terra').ok, false, 'da hunt não se vai à Terra');
   assert.equal(porPortal(game, p, 'vila').ok, true);
   assert.equal(porPortal(game, p, 'terra').ok, true);
@@ -360,4 +360,18 @@ test('hunt difícil tem Porunga (de perto, voando) no lugar do Saibaman de elite
   const g = world(), p = naArea(g, g.addPlayer('a', 'Goku', { level: 20 }), 'dificil'); p.x = 6300; p.y = 2100;
   const mob = g.addMob('porunga', 6340, 2100, 'dificil'); mob.attackReady = g.time; g.tick(0.05);
   assert.equal(mob.telegraph?.kind, 'area', 'Porunga ataca de perto');
+});
+
+test('chefe raro: nasce no círculo do planalto entre 45 e 90 minutos, e de novo no mesmo intervalo', async () => {
+  const { CIRCULO_DO_CHEFE } = await import('../public/shared/enemies.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 }), chefe = [...game.mobs.values()].find(m => m.type === 'boss');
+  assert.equal(chefe.hp, 0, 'não está no mapa quando o servidor liga');
+  assert.ok(chefe.deadUntil - game.time >= 45 * 60 && chefe.deadUntil - game.time <= 90 * 60);
+  const p = naArea(game, game.addPlayer('a'), 'dificil');
+  game.time = chefe.deadUntil; game.tick(0.05);
+  assert.equal(chefe.hp, chefe.maxHp, 'apareceu');
+  assert.ok(Math.hypot(chefe.x - CIRCULO_DO_CHEFE.x, chefe.y - CIRCULO_DO_CHEFE.y) <= CIRCULO_DO_CHEFE.r + 1, 'dentro do círculo');
+  assert.ok(game.events.some(e => e.type === 'message' && e.playerId === p.id && /apareceu/.test(e.text)), 'avisou quem está na hunt');
+  game.hit(p, chefe, 1e9);
+  assert.ok(chefe.deadUntil - game.time >= 45 * 60 - 1 && chefe.deadUntil - game.time <= 90 * 60, 'volta entre 45 e 90 min');
 });
