@@ -32,6 +32,7 @@ export const art = {
   gokuGolpe: loadImage(GOKU_GOLPE.file),
   ssjGolpe: loadImage(SSJ_GOLPE.file),
   passaro: loadImage('/assets/mobs/passaro.png'),
+  passaroVoo: loadImage('/assets/mobs/passaro-voo.png'),
   inseto: loadImage('/assets/mobs/inseto.png'),
   namekSolo: loadImage('/assets/namek/solo.webp'),
   namekCasas: Array.from({ length: 6 }, (_, i) => loadImage('/assets/namek/casas/casa_' + (i + 1) + '.png')),
