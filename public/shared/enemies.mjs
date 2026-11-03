@@ -15,13 +15,13 @@ const ATRIBUTOS = {
     melee: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Saibaman' }
   },
   media: {
-    ranged: { hp: 230, attack: 26, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
+    ranged: { hp: 200, attack: 17, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
     subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela · Subchefe' }
   },
   dificil: {
-    melee: { hp: 380, attack: 42, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
-    ranged: { hp: 320, attack: 38, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
-    boss: { hp: 4500, attack: 70, xp: 1500, defesa: 14, speed: 80, name: 'Freeza · Chefe' }
+    melee: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
+    ranged: { hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
+    boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Freeza · Chefe' }
   }
 };
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
@@ -48,14 +48,15 @@ function espalhar(random, area, n, tipo) {
   const salto = Math.max(1, candidatos.length / n);
   return Array.from({ length: Math.min(n, candidatos.length) }, (_, i) => ({ ...candidatos[Math.floor(i * salto)], type: tipo(i), area }));
 }
-// Quantidade de mobs por hunt: provisória (a densidade será decidida com o modelo montado).
+// Quantidade de mobs por hunt: provisória, 16 comuns em cada uma, como nas Planícies (a densidade
+// será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
   return [
     ...espalhar(random, 'inicial', 16, () => 'melee'),
-    ...espalhar(random, 'media', 10, () => 'ranged'),
+    ...espalhar(random, 'media', 16, () => 'ranged'),
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
-    ...espalhar(random, 'dificil', 10, i => i % 3 === 0 ? 'ranged' : 'melee'),
+    ...espalhar(random, 'dificil', 16, i => i % 3 === 0 ? 'ranged' : 'melee'),
     { type: 'boss', x: naEscala(4070), y: naEscala(1150), area: 'dificil' }
   ];
 }
