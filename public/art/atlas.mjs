@@ -14,6 +14,9 @@ import { SAIBAMAN_GOLPE } from './saibaman-golpe.mjs';
 import { SENTINELA_PASSO } from './sentinela-passo.mjs';
 import { GUERREIRO_PASSO } from './guerreiro-passo.mjs';
 import { GUERREIRO_GOLPE } from './guerreiro-golpe.mjs';
+import { VETERANO_PASSO } from './veterano-passo.mjs';
+import { VETERANO_SOCO } from './veterano-soco.mjs';
+import { VETERANO_KI } from './veterano-ki.mjs';
 
 // Five distinct views, with the three opposite views mirrored for consistent anatomy.
 // Back-diagonal views use a rear three-quarter drawing, never a side/front substitute.
@@ -66,8 +69,9 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 }
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
-const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'] };
-export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'] };
+const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'] };
+export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
+  veteranoKi: [VETERANO_KI, 'veteranoKi'] };
 function drawPasso(ctx, kind, pos, height, facing, moving, stride, phase = 0) {
   const [sheet, key] = PASSO[kind];
   const bob = moving ? walkBob(walkStep(pos.travelled || 0, stride, phase)) * height : 0;
