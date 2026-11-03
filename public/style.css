@@ -168,7 +168,7 @@ dialog input{padding:8px;border:1px solid var(--linha);border-radius:6px;backgro
 .shop-item button{padding:5px 8px;border:1px solid var(--linha);border-radius:6px;background:#0b1719}
 dialog small{display:block;margin-top:8px;color:var(--suave)}
 
-/* Janelas de mundo e de caçada: CSS do PR #15, sem alteração. */
+/* Visual das janelas de mundo (PR #15): hoje usado pela janela do portal e pelo mapa. */
 
 /* Seletor "ESCOLHA O MUNDO" (viagem entre planetas) — usa os fundos de mapa como miniaturas. */
 .worlds-dialog { border: none; background: transparent; padding: 0; width: max-content; max-width: 96vw; margin: auto; }
@@ -193,26 +193,15 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .world-card.locked small { color: #c79a3a; }
 @media (max-width: 620px) { .worlds-grid { grid-template-columns: repeat(3, 1fr); } .world-card .world-orb { width: 74px; height: 74px; } }
 
-/* Mapa de cacada do planeta (pinos de boss por estagio) — usa bg do mapa + retratos. */
-.hunt-dialog { border: none; background: transparent; padding: 0; width: max-content; max-width: 96vw; margin: auto; }
-.hunt-dialog::backdrop { background: rgba(2,4,10,.8); }
-.hunt-card { width: 620px; max-width: 96vw; border-radius: 14px; border: 2px solid #3a2f12; background: #060a14; box-shadow: 0 20px 60px #000b; color: #eaf2ff; overflow: hidden; }
-.hunt-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #0a1020; }
-.hunt-back, .hunt-x { background: none; border: none; color: #cdd7e6; font-size: 22px; cursor: pointer; line-height: 1; }
-.hunt-title { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #ffc24a; }
-.hunt-sub { font-size: 11px; color: #9fb4d0; flex: 1; }
-.hunt-map { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 72vh; background-size: cover; background-position: center; }
-.hunt-pins { position: absolute; inset: 0; }
-.hunt-pin { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: #fff; font: inherit; cursor: pointer; width: 78px; }
-.hunt-pin .hunt-orb { width: 52px; height: 52px; border-radius: 50%; background: #0a1020 center / cover no-repeat; border: 3px solid #e8b43a; box-shadow: 0 2px 8px #000a; position: relative; }
-.hunt-pin:not(.locked):hover .hunt-orb { box-shadow: 0 0 14px #ffd36b; }
-.hunt-pin strong { font-size: 11px; text-shadow: 0 1px 3px #000, 0 0 5px #000; line-height: 1.1; }
-.hunt-pin small { font-size: 10px; color: #ffe08a; text-shadow: 0 1px 2px #000; }
-.hunt-pin.locked { cursor: default; }
-.hunt-pin.locked .hunt-orb { filter: grayscale(.9) brightness(.45); border-color: #3a4a66; }
-.hunt-pin.locked .hunt-orb::after { content: "\01F512"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; filter: none; }
-.hunt-pin.locked strong { color: #9fb4d0; }
-.hunt-pin.city .hunt-orb { display: grid; place-items: center; font-size: 26px; background: #13203a; border-color: #5fb0ff; }
-.hunt-pin.city:hover .hunt-orb { box-shadow: 0 0 14px #7cc4ff; }
-.hunt-pin.city small { color: #bcd4f0; }
-.hunt-foot { text-align: center; padding: 10px; font-size: 12px; color: #9fb4d0; background: #0a1020; }
+/* Janela do portal e mapa de consulta (aproveitam o visual da janela de mundos). */
+.portal-card { width: min(560px, 96vw); }
+.portal-destinos { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); justify-items: center; }
+.world-card small.perigo { color: #ff8a6b; font-weight: 700; }
+.mapa-card { width: 740px; }
+.mapa-onde { margin: 0 0 10px; font-size: 14px; color: #cfe0ff; }
+.mapa-tela { width: 100%; height: auto; display: block; border-radius: 8px; border: 2px solid #2a3b66; image-rendering: auto; }
+.mapa-lista { list-style: none; padding: 0; margin: 12px 0 6px; display: grid; gap: 6px; font-size: 13px; }
+.mapa-lista li { padding-left: 16px; position: relative; color: #d6e2f5; }
+.mapa-lista li::before { content: ""; position: absolute; left: 0; top: .4em; width: 9px; height: 9px; border-radius: 50%; background: var(--cor); }
+.mapa-lista li.aqui { color: #fff; font-weight: 700; }
+.mapa-nota { font-size: 12px; color: #9fb4d0; margin: 8px 0 0; }

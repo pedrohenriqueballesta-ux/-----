@@ -26,11 +26,14 @@ export function baseScale(width, height) {
   const porArea = Math.max(Math.sqrt(width * height / CAMERA.areaVisivel), Math.max(width, height) / CAMERA.ladoMaximo);
   return Math.min(porArea, Math.min(width, height) / CAMERA.ladoMinimo);
 }
-export function cameraView(position, width, height, zoom, worldWidth, worldHeight) {
+// `limite` (opcional) é o retângulo { x, y, w, h } onde a câmera fica presa: numa área fechada, a tela
+// termina onde a área termina, como na borda do mundo, e o que está fora nunca aparece.
+export function cameraView(position, width, height, zoom, worldWidth, worldHeight, limite = null) {
   const scale = baseScale(width, height) * clampZoom(zoom);
   const visibleWidth = width / scale, visibleHeight = height / scale;
-  const axis = (value, extent, visible) => visible >= extent ? (extent - visible) / 2 : Math.max(0, Math.min(extent - visible, value - visible / 2));
-  return { x: axis(position.x, worldWidth, visibleWidth), y: axis(position.y, worldHeight, visibleHeight), scale };
+  const { x: x0, y: y0, w, h } = limite || { x: 0, y: 0, w: worldWidth, h: worldHeight };
+  const axis = (value, start, extent, visible) => visible >= extent ? start + (extent - visible) / 2 : Math.max(start, Math.min(start + extent - visible, value - visible / 2));
+  return { x: axis(position.x, x0, w, visibleWidth), y: axis(position.y, y0, h, visibleHeight), scale };
 }
 export function worldFromPointer(x, y, rect, camera) {
   return { x: (x - rect.left) / camera.scale + camera.x, y: (y - rect.top) / camera.scale + camera.y };

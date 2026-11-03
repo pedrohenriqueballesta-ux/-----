@@ -1,7 +1,7 @@
 // Onde dá para andar em cada planeta. Namekusei usa a máscara gerada da imagem do solo
 // (namek-passagem.mjs); os demais planetas são livres.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
-import { ESCALA_MUNDO, OBSTACLES, PLANETS, casaBloqueia } from './config.mjs';
+import { ESCALA_MUNDO, OBSTACLES, PLANETS, areaPorId, casaBloqueia } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -27,7 +27,14 @@ export function emTerra(planet, x, y) {
   return cx >= 0 && cy >= 0 && cx < m.cols && cy < m.rows && m.grade[cy * m.cols + cx] === 1;
 }
 
-export function podeAndar(planet, x, y) {
+// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue.
+function naArea(area, x, y) {
+  const z = area && areaPorId(area);
+  return !z || (x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h);
+}
+
+export function podeAndar(planet, x, y, area = null) {
+  if (!naArea(area, x, y)) return false;
   const m = MASCARAS[planet];
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
@@ -37,53 +44,71 @@ export function podeAndar(planet, x, y) {
 
 // Pés do personagem: centro e quatro pontos a 60% do raio. Evita encostar o corpo na água
 // sem exigir que o círculo inteiro caiba (o que travaria em trilhas estreitas).
-export function pesLivres(planet, x, y, radius) {
+export function pesLivres(planet, x, y, radius, area = null) {
   const r = radius * 0.6;
-  return podeAndar(planet, x, y) && podeAndar(planet, x + r, y) && podeAndar(planet, x - r, y)
-    && podeAndar(planet, x, y + r) && podeAndar(planet, x, y - r);
+  return podeAndar(planet, x, y, area) && podeAndar(planet, x + r, y, area) && podeAndar(planet, x - r, y, area)
+    && podeAndar(planet, x, y + r, area) && podeAndar(planet, x, y - r, area);
 }
 
 // Um passo de movimento: eixo X e depois Y, cada um só se o destino estiver dentro do mundo,
 // longe dos obstáculos e com os pés em terra. Servidor (Game.move) e predição do cliente usam
 // esta mesma regra; se divergirem, o cliente anda onde o servidor não deixa e o personagem treme.
-export function deslocar(planet, x, y, dx, dy, dist, radius = 15) {
+// `area` prende o passo à área fechada onde a entidade está (null: sem área, como na Terra).
+export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null) {
   const world = PLANETS[planet] || PLANETS.namek, onNamek = planet === 'namek';
   // Quem já está num ponto bloqueado (save antigo, mob nascido na água) pode sair dele.
-  const preso = !pesLivres(planet, x, y, radius);
+  const preso = !pesLivres(planet, x, y, radius, area);
   const livre = (nx, ny) => nx >= radius && ny >= radius && nx <= world.w - radius && ny <= world.h - radius
     && (!onNamek || !OBSTACLES.some(o => Math.hypot(o.x - nx, o.y - ny) < o.r + radius))
-    && (preso || pesLivres(planet, nx, ny, radius));
+    && (preso || pesLivres(planet, nx, ny, radius, area));
   const nx = x + dx * dist, ny = y + dy * dist;
   if (livre(nx, y)) x = nx;
   if (livre(x, ny)) y = ny;
   return [x, y];
 }
 
-// Caminho por terra entre dois pontos (busca em largura numa grade grossa da máscara).
+// Caminho por terra entre dois pontos (busca em largura numa grade grossa da máscara), sem sair da área.
 // Devolve a lista de pontos do mundo até o destino, ou null se não houver ligação por terra.
 const PASSO_GRADE = 4;   // células da máscara por célula de busca (6 px * 4 = 24 unidades)
+// O caminho prefere passar com folga (raio 24): rente ao obstáculo o personagem entrava em cantinhos
+// e travava (quina de casa na Vila, recorte de penhasco no Planalto). Sem caminho com folga, usa o raio do pé.
+const FOLGA_CAMINHO = 24;
 const cacheGrade = new Map();
-function gradeBusca(planet) {
-  if (cacheGrade.has(planet)) return cacheGrade.get(planet);
+function gradeBusca(planet, area, raio = 15) {
+  const chave = planet + ':' + area + ':' + raio;
+  if (cacheGrade.has(chave)) return cacheGrade.get(chave);
   const m = MASCARAS[planet];
   const cols = Math.floor(m.cols / PASSO_GRADE), rows = Math.floor(m.rows / PASSO_GRADE);
   const livre = new Uint8Array(cols * rows), cw = m.cellW * PASSO_GRADE, ch = m.cellH * PASSO_GRADE;
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++)
-    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, 15) ? 1 : 0;
+    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, raio, area) ? 1 : 0;
   const g = { cols, rows, cw, ch, livre };
-  cacheGrade.set(planet, g); return g;
+  cacheGrade.set(chave, g); return g;
 }
-function celulaLivreMaisProxima(g, cx, cy) {
+// Célula livre mais próxima de (cx, cy). Com `alcanca`, só vale a que dá para alcançar andando em linha
+// reta a partir do ponto real: sem isso, quem está numa fresta sem saída recebia uma célula do outro lado
+// da parede e ficava empurrando a parede (trava da caça automática, 03/11).
+function celulaLivreMaisProxima(g, cx, cy, alcanca = null) {
   for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     const x = cx + dx, y = cy + dy;
-    if (x >= 0 && y >= 0 && x < g.cols && y < g.rows && g.livre[y * g.cols + x]) return y * g.cols + x;
+    if (x >= 0 && y >= 0 && x < g.cols && y < g.rows && g.livre[y * g.cols + x]
+      && (!alcanca || alcanca((x + 0.5) * g.cw, (y + 0.5) * g.ch))) return y * g.cols + x;
   }
   return -1;
 }
-export function caminhoPorTerra(planet, de, ate) {
+// Dá para ir de `de` até (x, y) em linha reta com os pés livres (amostras a cada 6 unidades)?
+function retaLivre(planet, area, de, x, y) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x - de.x, y - de.y) / 6));
+  for (let i = 1; i <= n; i++) if (!pesLivres(planet, de.x + (x - de.x) * i / n, de.y + (y - de.y) * i / n, 15, area)) return false;
+  return true;
+}
+export function caminhoPorTerra(planet, de, ate, area = null) {
   if (!MASCARAS[planet]) return null;
-  const g = gradeBusca(planet);
-  const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch));
+  const alcanca = pesLivres(planet, de.x, de.y, 15, area) ? (x, y) => retaLivre(planet, area, de, x, y) : null;
+  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO), de, ate, alcanca) || buscar(gradeBusca(planet, area), de, ate, alcanca);
+}
+function buscar(g, de, ate, alcanca) {
+  const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch), alcanca);
   const fim = celulaLivreMaisProxima(g, Math.floor(ate.x / g.cw), Math.floor(ate.y / g.ch));
   if (ini < 0 || fim < 0) return null;
   const veio = new Int32Array(g.cols * g.rows).fill(-1); veio[ini] = ini;
@@ -95,6 +120,8 @@ export function caminhoPorTerra(planet, de, ate) {
     for (const d of viz) {
       const n = c + d, nx = n % g.cols;
       if (n < 0 || n >= veio.length || Math.abs(nx - cx) > 1 || veio[n] >= 0 || !g.livre[n]) continue;
+      // Diagonal só com as duas vizinhas retas livres: não corta quina.
+      if (nx !== cx && n - c !== 1 && n - c !== -1 && (!g.livre[c + (nx - cx)] || !g.livre[n - (nx - cx)])) continue;
       veio[n] = c; fila[b++] = n;
     }
   }

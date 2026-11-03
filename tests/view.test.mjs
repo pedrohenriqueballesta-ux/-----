@@ -82,3 +82,13 @@ test('o campo de visão é limitado em qualquer tela, mesmo no zoom mínimo', ()
     assert.ok(lw * lh <= 0.15 * 4608 * 3072, w + 'x' + h + ': afastamento mostra mapa demais (' + Math.round(lw) + 'x' + Math.round(lh) + ')');
   }
 });
+
+test('numa área fechada a câmera fica presa nela: a tela nunca mostra além da borda', () => {
+  const area = { x: 2000, y: 1100, w: 4000, h: 2000 };
+  for (const pos of [{ x: 2000, y: 1100 }, { x: 6000, y: 3100 }, { x: 4000, y: 2000 }, { x: 0, y: 0 }]) {
+    const cam = cameraView(pos, 1400, 900, 0.8, 8294, 5530, area);
+    const vw = 1400 / cam.scale, vh = 900 / cam.scale;
+    assert.ok(cam.x >= area.x && cam.x + vw <= area.x + area.w + 1e-6, 'horizontal dentro da área');
+    assert.ok(cam.y >= area.y && cam.y + vh <= area.y + area.h + 1e-6, 'vertical dentro da área');
+  }
+});
