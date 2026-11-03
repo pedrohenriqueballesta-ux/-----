@@ -2,7 +2,8 @@
 import { PEGADAS } from './pegadas-casas.mjs';
 
 // Escala do mundo de Namekusei: quantas unidades do jogo vale 1 px da imagem do solo
-// (assets/namek/solo.webp, 4608x3072). Ela amplia o terreno e tudo que está posto nele:
+// (as posições são medidas no solo de 4608x3072; o assets/namek/solo.webp hoje tem 8192x5461, o mapa de
+// 36 partes, e é esticado para o mesmo mundo). Ela amplia o terreno e tudo que está posto nele:
 // regiões, casas, mercador, chegada, pontos de nascimento dos mobs e a máscara de passagem.
 // NÃO amplia personagens, velocidades, alcances, tempos nem distâncias de interação.
 // As posições abaixo continuam em px da imagem (as mesmas das ferramentas) e passam por `naEscala`.
