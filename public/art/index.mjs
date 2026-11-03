@@ -1,6 +1,6 @@
 // Ponto de entrada da arte: reúne registro de imagens, cenário e personagens.
 export { art } from './assets.mjs';
-export { CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawPortal, nevoaForaDaArea, drawNevoa } from './terrain.mjs';
+export { CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawPortal } from './terrain.mjs';
 export { drawGoku } from './goku.mjs';
 export { drawSaibaman } from './saibaman.mjs';
 export { drawAlien } from './alien.mjs';

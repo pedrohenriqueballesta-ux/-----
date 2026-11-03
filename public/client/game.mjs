@@ -1,7 +1,7 @@
 import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from '../shared/index.mjs';
-import { deslocar, mascaraDe } from '../shared/passagem.mjs';
+import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, nevoaForaDaArea, drawNevoa } from '../art/index.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -242,7 +242,7 @@ function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
   if (!mctx) return; // sem minimapa na página
   const mapW = mini.width, mapH = mini.height, self = snapshot.players.find(p => p.id === playerId);
   // Preso à área fechada, como a câmera: o minimapa mostra só onde dá para ir.
-  const lim = area ? comFolga(area, world) : { x: 0, y: 0, w: world.w, h: world.h };
+  const lim = area || { x: 0, y: 0, w: world.w, h: world.h };
   const vw = Math.min(MINIMAPA_VISTA, lim.w), vh = Math.min(vw * mapH / mapW, lim.h);
   const cx = self ? self.x : lim.x + lim.w / 2, cy = self ? self.y : lim.y + lim.h / 2;
   const ox = Math.max(lim.x, Math.min(lim.x + lim.w - vw, cx - vw / 2)), oy = Math.max(lim.y, Math.min(lim.y + lim.h - vh, cy - vh / 2));
@@ -254,18 +254,11 @@ function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
     mctx.imageSmoothingEnabled = true;
     mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
   }
-  if (area && mascaraDe('namek')) { const n = nevoaForaDaArea(mascaraDe('namek'), area), k = n.canvas.width / n.w; mctx.drawImage(n.canvas, ox * k, oy * k, vw * k, vh * k, 0, 0, mapW, mapH); }
   for (const o of portaisAqui()) miniMarker(X(o.x), Y(o.y), 3, corDoPortal(o));
   for (const mob of snapshot.mobs) { mctx.fillStyle = grande(mob) ? '#ff9369' : '#d96049'; mctx.beginPath(); mctx.arc(X(mob.x), Y(mob.y), grande(mob) ? 4 : 3, 0, Math.PI * 2); mctx.fill(); }
   for (const p of snapshot.players) if (p.id !== playerId) miniMarker(X(p.x), Y(p.y), 2.5, '#5fd8ff');
   mctx.strokeStyle = '#fff0c488'; mctx.lineWidth = 1; mctx.strokeRect(X(camera.x), Y(camera.y), width / camera.scale * sx, height / camera.scale * sy);
   if (self) drawMiniSelf(X(self.x), Y(self.y), self.facing);
-}
-// Folga da câmera além da área (unidades do mundo), presa às bordas do planeta.
-const FOLGA_CAMERA = 320;
-function comFolga(area, world) {
-  const x = Math.max(0, area.x - FOLGA_CAMERA), y = Math.max(0, area.y - FOLGA_CAMERA);
-  return { x, y, w: Math.min(world.w, area.x + area.w + FOLGA_CAMERA) - x, h: Math.min(world.h, area.y + area.h + FOLGA_CAMERA) - y };
 }
 // Portais do lugar onde o jogador está. Cor e texto pelo destino: portal de uma hunt leva a cor dela;
 // portal com vários destinos (saída de hunt) e o caminho Terra ↔ Vila ficam azuis.
@@ -313,9 +306,8 @@ function frame(now) {
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };
   if (self && !self.dead) verificarPortal(position);
   const area = onNamek ? areaPorId(snapshot.area) : null;
-  // Câmera presa à área com uma folga: perto do limite dá para ver um pouco além, já na névoa.
-  camera = cameraView(position, width, height, zoom, world.w, world.h, area && comFolga(area, world));
-  const nevoa = area && mascaraDe('namek') ? nevoaForaDaArea(mascaraDe('namek'), area) : null;
+  // Câmera presa à área: a tela termina onde a área termina, sem borda nem escurecimento (pedido do Pedro).
+  camera = cameraView(position, width, height, zoom, world.w, world.h, area);
   ctx.save(); ctx.scale(camera.scale, camera.scale); ctx.translate(-camera.x, -camera.y);
   if (onNamek) {
     if (drawGroundImage(ctx, art.namekSolo, world, camera, width, height)) { for (const c of HOUSES) drawHouseGround(ctx, c); drawMarket(ctx, MERCHANT); }
@@ -343,8 +335,6 @@ function frame(now) {
     if (s.kind === 'genki') { ctx.save(); const glow = ctx.createRadialGradient(px, py, 3, px, py, 29); glow.addColorStop(0, '#ffffff'); glow.addColorStop(.28, '#c4f7ff'); glow.addColorStop(.7, '#5cbbff'); glow.addColorStop(1, '#a152ff00'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(px, py, 29, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
-  // Névoa por cima do cenário de fora (casas de outra área inclusive) e antes dos efeitos de golpe.
-  if (nevoa) drawNevoa(ctx, nevoa, camera, width, height);
   effects(time);
   ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(onNamek, world, area); requestAnimationFrame(frame);
 }

@@ -160,38 +160,3 @@ export function drawPortal(ctx, portal, time, cor, texto, raio) {
 }
 
 
-// Névoa sobre a terra que fica fora da área fechada (pedido do Pedro, 03/11): onde o limite não é o mar,
-// a terra do outro lado aparece apagada, com a borda macia (sem linha nem moldura). O mar fica como está,
-// porque ele já mostra sozinho que não dá para passar. Montada uma vez por área, na resolução da
-// máscara de passagem, e desfocada para a transição ficar suave.
-const nevoas = new Map();
-export function nevoaForaDaArea(mascara, area) {
-  const chave = area.id;
-  if (nevoas.has(chave)) return nevoas.get(chave);
-  const { cols, rows, cellW, cellH, grade } = mascara;
-  const base = document.createElement('canvas'); base.width = cols; base.height = rows;
-  const bctx = base.getContext('2d'), img = bctx.createImageData(cols, rows), d = img.data;
-  const x0 = area.x / cellW, x1 = (area.x + area.w) / cellW, y0 = area.y / cellH, y1 = (area.y + area.h) / cellH;
-  // A máscara marca só o chão andável; penhascos e mata fechada na beira das ilhas ficam de fora dela.
-  // Por isso a terra andável é alargada ~100 unidades (máximo em janela, separável) antes de virar névoa.
-  const R = Math.round(100 / cellW), larga = new Uint8Array(cols * rows), terra = new Uint8Array(cols * rows);
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (grade[y * cols + x]) for (let dx = Math.max(0, x - R); dx <= Math.min(cols - 1, x + R); dx++) larga[y * cols + dx] = 1;
-  for (let x = 0; x < cols; x++) for (let y = 0; y < rows; y++) if (larga[y * cols + x]) for (let dy = Math.max(0, y - R); dy <= Math.min(rows - 1, y + R); dy++) terra[dy * cols + x] = 1;
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-    const fora = x < x0 || x >= x1 || y < y0 || y >= y1;
-    if (fora && terra[y * cols + x]) { const i = (y * cols + x) * 4; d[i] = 6; d[i + 1] = 14; d[i + 2] = 22; d[i + 3] = 215; }
-  }
-  bctx.putImageData(img, 0, 0);
-  const macia = document.createElement('canvas'); macia.width = cols; macia.height = rows;
-  const mctx = macia.getContext('2d'); mctx.filter = 'blur(7px)'; mctx.drawImage(base, 0, 0);
-  const pronta = { canvas: macia, w: cols * cellW, h: rows * cellH };
-  nevoas.set(chave, pronta); return pronta;
-}
-export function drawNevoa(ctx, nevoa, camera, width, height) {
-  const k = nevoa.canvas.width / nevoa.w;
-  const x = Math.max(0, camera.x), y = Math.max(0, camera.y);
-  const w = Math.min(nevoa.w - x, width / camera.scale), h = Math.min(nevoa.h - y, height / camera.scale);
-  ctx.save(); ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(nevoa.canvas, x * k, y * k, w * k, h * k, x, y, w, h);
-  ctx.restore();
-}

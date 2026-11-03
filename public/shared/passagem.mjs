@@ -19,10 +19,6 @@ function decodificar({ cols, rows, linhas }) {
 // A máscara foi gerada em px da imagem do solo; cada célula cresce com a escala do mundo.
 const MASCARAS = { namek: { ...NAMEK_PASSAGEM, cellW: NAMEK_PASSAGEM.cellW * ESCALA_MUNDO, cellH: NAMEK_PASSAGEM.cellH * ESCALA_MUNDO, grade: decodificar(NAMEK_PASSAGEM) } };
 
-// Grade da máscara de um planeta (null se ele não tiver água): o cliente usa para desenhar a névoa
-// sobre a terra que fica fora da área onde o jogador está.
-export const mascaraDe = planet => MASCARAS[planet] || null;
-
 // Só o terreno (mar/lagos), sem contar casas e outras construções.
 export function emTerra(planet, x, y) {
   const m = MASCARAS[planet];
