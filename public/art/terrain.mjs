@@ -159,11 +159,3 @@ export function drawPortal(ctx, portal, time, cor, texto, raio) {
   ctx.restore();
 }
 
-// Escurece tudo o que fica fora da área fechada onde o jogador está (a borda que ele não atravessa).
-export function drawForaDaArea(ctx, area, world) {
-  ctx.save(); ctx.fillStyle = '#04080cc4'; ctx.beginPath();
-  ctx.rect(0, 0, world.w, world.h); ctx.rect(area.x, area.y, area.w, area.h);
-  ctx.fill('evenodd');
-  ctx.strokeStyle = '#ffffff30'; ctx.lineWidth = 3; ctx.strokeRect(area.x, area.y, area.w, area.h);
-  ctx.restore();
-}

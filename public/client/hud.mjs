@@ -189,10 +189,11 @@ function abrirMapa() {
     c.fillStyle = '#0b2a2a'; c.fillRect(0, 0, tela.width, tela.height);
     if (solo.naturalWidth) c.drawImage(solo, 0, 0, tela.width, tela.height);
     c.fillStyle = '#04080c99'; c.fillRect(0, 0, tela.width, tela.height);
+    // Cada área pelo nome, na cor dela, sobre a ilha (sem moldura: o próprio mapa mostra onde ela acaba).
     for (const z of ZONES) {
-      c.strokeStyle = COR_DESTINO[z.id]; c.lineWidth = z.id === aqui ? 4 : 2; c.strokeRect(z.x * kx, z.y * ky, z.w * kx, z.h * ky);
-      c.font = 'bold 13px system-ui, sans-serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = '#000';
-      c.strokeText(z.name, (z.x + z.w / 2) * kx, (z.y + 26 / ky) * ky); c.fillStyle = '#fff'; c.fillText(z.name, (z.x + z.w / 2) * kx, (z.y + 26 / ky) * ky);
+      const x = (z.x + z.w / 2) * kx, y = (z.chegada.y - z.h * 0.18) * ky;
+      c.font = (z.id === aqui ? 'bold 15px' : 'bold 13px') + ' system-ui, sans-serif'; c.textAlign = 'center'; c.lineJoin = 'round';
+      c.lineWidth = 4; c.strokeStyle = '#000d'; c.strokeText(z.name, x, y); c.fillStyle = COR_DESTINO[z.id]; c.fillText(z.name, x, y);
     }
     for (const o of PORTAIS) if (o.planet === 'namek') { c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida; c.beginPath(); c.arc(o.x * kx, o.y * ky, 4, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke(); }
     const eu = snapshot?.players.find(v => v.id === snapshot.selfId);

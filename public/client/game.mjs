@@ -1,7 +1,7 @@
 import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawForaDaArea } from '../art/index.mjs';
+import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -241,9 +241,11 @@ const MINIMAPA_VISTA = 2400; // largura do pedaço de mundo mostrado (a altura s
 function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
   if (!mctx) return; // sem minimapa na página
   const mapW = mini.width, mapH = mini.height, self = snapshot.players.find(p => p.id === playerId);
-  const vw = Math.min(MINIMAPA_VISTA, world.w), vh = Math.min(vw * mapH / mapW, world.h);
-  const cx = self ? self.x : world.w / 2, cy = self ? self.y : world.h / 2;
-  const ox = Math.max(0, Math.min(world.w - vw, cx - vw / 2)), oy = Math.max(0, Math.min(world.h - vh, cy - vh / 2));
+  // Preso à área fechada, como a câmera: o minimapa mostra só onde dá para ir.
+  const lim = area || { x: 0, y: 0, w: world.w, h: world.h };
+  const vw = Math.min(MINIMAPA_VISTA, lim.w), vh = Math.min(vw * mapH / mapW, lim.h);
+  const cx = self ? self.x : lim.x + lim.w / 2, cy = self ? self.y : lim.y + lim.h / 2;
+  const ox = Math.max(lim.x, Math.min(lim.x + lim.w - vw, cx - vw / 2)), oy = Math.max(lim.y, Math.min(lim.y + lim.h - vh, cy - vh / 2));
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
   mctx.fillStyle = onNamek ? '#385a2d' : '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
   const solo = art.namekSolo;
@@ -252,7 +254,6 @@ function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
     mctx.imageSmoothingEnabled = true;
     mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
   }
-  if (area) { mctx.save(); mctx.fillStyle = '#04080cc4'; mctx.beginPath(); mctx.rect(0, 0, mapW, mapH); mctx.rect(X(area.x), Y(area.y), area.w * sx, area.h * sy); mctx.fill('evenodd'); mctx.restore(); }
   for (const o of portaisAqui()) miniMarker(X(o.x), Y(o.y), 3, corDoPortal(o));
   for (const mob of snapshot.mobs) { mctx.fillStyle = grande(mob) ? '#ff9369' : '#d96049'; mctx.beginPath(); mctx.arc(X(mob.x), Y(mob.y), grande(mob) ? 4 : 3, 0, Math.PI * 2); mctx.fill(); }
   for (const p of snapshot.players) if (p.id !== playerId) miniMarker(X(p.x), Y(p.y), 2.5, '#5fd8ff');
@@ -304,9 +305,11 @@ function frame(now) {
   }
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };
   if (self && !self.dead) verificarPortal(position);
-  const area = areaPorId(snapshot.area);
-  camera = cameraView(position, width, height, zoom, world.w, world.h);
+  const area = onNamek ? areaPorId(snapshot.area) : null;
+  camera = cameraView(position, width, height, zoom, world.w, world.h, area);
   ctx.save(); ctx.scale(camera.scale, camera.scale); ctx.translate(-camera.x, -camera.y);
+  // Só a área onde o jogador está é desenhada (numa janela maior que a área, o resto fica vazio).
+  if (area) { ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip(); }
   if (onNamek) {
     if (drawGroundImage(ctx, art.namekSolo, world, camera, width, height)) { for (const c of HOUSES) drawHouseGround(ctx, c); drawMarket(ctx, MERCHANT); }
     else drawTerrain(ctx, CONFIG, ZONES, MERCHANT, camera, width, height);
@@ -334,8 +337,6 @@ function frame(now) {
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
   effects(time);
-  // Fora da área fechada fica escuro (por cima de tudo, inclusive casas de outras áreas).
-  if (onNamek && area) drawForaDaArea(ctx, area, world);
   ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(onNamek, world, area); requestAnimationFrame(frame);
 }
 resize(); requestAnimationFrame(frame);
