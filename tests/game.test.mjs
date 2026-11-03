@@ -298,3 +298,13 @@ test('dá para chegar andando (clique no chão) a cada portal, partindo da chega
     assert.ok(Math.hypot(p.x - o.x, p.y - o.y) <= 20, o.id + ': travou a ' + Math.round(Math.hypot(p.x - o.x, p.y - o.y)) + ' do portal');
   }
 });
+
+test('andar por clique contorna quina de casa e recorte de penhasco sem travar', () => {
+  // Casos que travavam antes de 03/11: porta da casa 2 na Vila e um recorte de penhasco no Planalto.
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  for (const [area, alvo] of [['vila', { x: 936, y: 2952 }], ['dificil', { x: 6522, y: 1466 }], ['dificil', { x: 6686, y: 1230 }]]) {
+    game.levar(p, lugar(area)); game.action(p.id, { type: 'moveTo', ...alvo });
+    let t = 0; while (t < 20 && Math.hypot(p.x - alvo.x, p.y - alvo.y) > 20) { game.tick(0.05); t += 0.05; }
+    assert.ok(Math.hypot(p.x - alvo.x, p.y - alvo.y) <= 20, area + ': travou em ' + Math.round(p.x) + ',' + Math.round(p.y));
+  }
+});

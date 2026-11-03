@@ -74,15 +74,18 @@ export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null) {
 // Caminho por terra entre dois pontos (busca em largura numa grade grossa da máscara), sem sair da área.
 // Devolve a lista de pontos do mundo até o destino, ou null se não houver ligação por terra.
 const PASSO_GRADE = 4;   // células da máscara por célula de busca (6 px * 4 = 24 unidades)
+// O caminho prefere passar com folga (raio 24): rente ao obstáculo o personagem entrava em cantinhos
+// e travava (quina de casa na Vila, recorte de penhasco no Planalto). Sem caminho com folga, usa o raio do pé.
+const FOLGA_CAMINHO = 24;
 const cacheGrade = new Map();
-function gradeBusca(planet, area) {
-  const chave = planet + ':' + area;
+function gradeBusca(planet, area, raio = 15) {
+  const chave = planet + ':' + area + ':' + raio;
   if (cacheGrade.has(chave)) return cacheGrade.get(chave);
   const m = MASCARAS[planet];
   const cols = Math.floor(m.cols / PASSO_GRADE), rows = Math.floor(m.rows / PASSO_GRADE);
   const livre = new Uint8Array(cols * rows), cw = m.cellW * PASSO_GRADE, ch = m.cellH * PASSO_GRADE;
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++)
-    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, 15, area) ? 1 : 0;
+    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, raio, area) ? 1 : 0;
   const g = { cols, rows, cw, ch, livre };
   cacheGrade.set(chave, g); return g;
 }
@@ -95,7 +98,9 @@ function celulaLivreMaisProxima(g, cx, cy) {
 }
 export function caminhoPorTerra(planet, de, ate, area = null) {
   if (!MASCARAS[planet]) return null;
-  const g = gradeBusca(planet, area);
+  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO), de, ate) || buscar(gradeBusca(planet, area), de, ate);
+}
+function buscar(g, de, ate) {
   const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch));
   const fim = celulaLivreMaisProxima(g, Math.floor(ate.x / g.cw), Math.floor(ate.y / g.ch));
   if (ini < 0 || fim < 0) return null;
@@ -108,6 +113,8 @@ export function caminhoPorTerra(planet, de, ate, area = null) {
     for (const d of viz) {
       const n = c + d, nx = n % g.cols;
       if (n < 0 || n >= veio.length || Math.abs(nx - cx) > 1 || veio[n] >= 0 || !g.livre[n]) continue;
+      // Diagonal só com as duas vizinhas retas livres: não corta quina.
+      if (nx !== cx && n - c !== 1 && n - c !== -1 && (!g.livre[c + (nx - cx)] || !g.livre[n - (nx - cx)])) continue;
       veio[n] = c; fila[b++] = n;
     }
   }

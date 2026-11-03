@@ -279,7 +279,16 @@ export class Game {
       const side = cross > 0 ? -1 : 1;
       dir = norm(dir.x - dir.y * side * 1.8, dir.y + dir.x * side * 1.8);
     }
-    this.move(entity, dir.x, dir.y, dt, speed); entity.facing = dir;
+    // Se o passo não sai do lugar (encostado num canto), tenta desviar em 45° e depois 90°, para os dois
+    // lados, em vez de ficar empurrando a parede.
+    const antes = { x: entity.x, y: entity.y };
+    for (const giro of [0, Math.PI / 4, -Math.PI / 4, Math.PI / 2, -Math.PI / 2]) {
+      const c = Math.cos(giro), s = Math.sin(giro), d = { x: dir.x * c - dir.y * s, y: dir.x * s + dir.y * c };
+      this.move(entity, d.x, d.y, dt, speed);
+      if (Math.hypot(entity.x - antes.x, entity.y - antes.y) > speed * dt * 0.3) break;
+      entity.x = antes.x; entity.y = antes.y;
+    }
+    entity.facing = dir;
   }
   updatePlayer(p, dt) {
     p.moving = false;
