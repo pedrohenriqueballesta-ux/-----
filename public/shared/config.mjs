@@ -38,7 +38,7 @@ export const ZONES = [
   { id: 'vila', name: 'Vila Namekiana', segura: true, x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
   { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
   { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
-  { id: 'dificil', name: 'Planalto da Nave do Freeza', nivel: [20, 30], x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
+  { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
 ].map(z => ({ pvp: false, segura: false, ...z, x: naEscala(z.x), y: naEscala(z.y), w: naEscala(z.w), h: naEscala(z.h),
   chegada: { x: naEscala(z.chegada.x), y: naEscala(z.chegada.y) } }));
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
