@@ -133,8 +133,10 @@ const PEDRA_GRANDE = new Set([15, 16]);
 // Árvores pequenas da folha (copa redonda pequena, tronco curto e a dupla) desenhadas com o dobro do
 // tamanho (pedido do Pedro, 04/11); o tronco delas bloqueia um pouco mais.
 const ARVORE_DOBRADA = new Set([5, 9, 10]);
+// As que ainda ficavam perto da altura do Goku (102–129 na tela) ganham 50% (pedido do Pedro, 04/11).
+const ARVORE_MAIS_50 = new Set([4, 6, 7, 8, 11]);
 export const DECORACAO = DECORACAO_NAMEK.map(d => {
-  const escala = d.escala * (ARVORE_DOBRADA.has(d.sprite) ? 2 : 1);
+  const escala = d.escala * (ARVORE_DOBRADA.has(d.sprite) ? 2 : ARVORE_MAIS_50.has(d.sprite) ? 1.5 : 1);
   const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * DECORACAO_ESCALA * escala;
   const raio = d.sprite < 12 ? (ARVORE_DOBRADA.has(d.sprite) ? 14 : 10) : PEDRA_GRANDE.has(d.sprite) ? largura * 0.32 : 0;
   return { ...d, escala, raio };

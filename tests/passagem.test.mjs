@@ -117,9 +117,10 @@ test('cada portal fica em chão andável e é alcançável a pé da chegada da s
   }
 });
 
-test('decoração: só troncos e pedras grandes bloqueiam, nada no chão vermelho nem perto de portais', async () => {
+test('decoração: só árvores, os troncos bloqueiam, nada no chão vermelho nem perto de portais', async () => {
   const { DECORACAO, PORTAIS, decoracaoBloqueia } = await import('../public/shared/config.mjs');
-  assert.ok(DECORACAO.length > 150, 'mapa decorado');
+  assert.ok(DECORACAO.length > 80, 'mapa decorado');
+  assert.equal(DECORACAO.filter(d => d.sprite >= 15).length, 0, 'sem pedras (Pedro, 04/11)');
   assert.equal(DECORACAO.filter(d => d.sprite >= 12 && d.sprite <= 14).length, 0, 'sem arbustos (Pedro, 04/11)');
   for (const d of DECORACAO) {
     assert.equal(d.raio > 0, d.sprite < 12 || d.sprite === 15 || d.sprite === 16, 'bloqueio do objeto ' + d.sprite);
