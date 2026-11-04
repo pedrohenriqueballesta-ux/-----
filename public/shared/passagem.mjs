@@ -1,7 +1,8 @@
-// Onde dá para andar em cada planeta. Namekusei usa a máscara gerada da imagem do solo
-// (namek-passagem.mjs); os demais planetas são livres.
+// Onde dá para andar em cada planeta. Planeta de hunt usa a máscara gerada da imagem do solo
+// (namek-passagem.mjs para Namekusei); planeta sem máscara (a Terra) é livre.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
-import { ESCALA_MUNDO, OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia } from './config.mjs';
+import { VEGETA_PASSAGEM } from './vegeta-passagem.mjs';
+import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -16,8 +17,22 @@ function decodificar({ cols, rows, linhas }) {
   return grade;
 }
 
-// A máscara foi gerada em px da imagem do solo; cada célula cresce com a escala do mundo.
-const MASCARAS = { namek: { ...NAMEK_PASSAGEM, cellW: NAMEK_PASSAGEM.cellW * ESCALA_MUNDO, cellH: NAMEK_PASSAGEM.cellH * ESCALA_MUNDO, grade: decodificar(NAMEK_PASSAGEM) } };
+// Área de cada célula (máscara com `areas`): corridas "índice*comprimento", índice em `ids` a partir de 1.
+function decodificarAreas({ cols, rows, ids, areas }) {
+  const grade = new Uint8Array(cols * rows);
+  areas.forEach((linha, y) => {
+    let x = 0;
+    for (const corrida of linha.split('.')) { const [i, n] = corrida.split('*'); const k = parseInt(n, 36); grade.fill(Number(i), y * cols + x, y * cols + x + k); x += k; }
+  });
+  return { grade, indice: Object.fromEntries(ids.map((id, i) => [id, i + 1])) };
+}
+// A máscara foi gerada em px da imagem do solo; cada célula cresce com a escala do planeta.
+// Planeta novo: gere a máscara dele e acrescente aqui.
+const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala, cellH: m.cellH * PLANETS[planet].escala, grade: decodificar(m),
+  areas: m.areas ? decodificarAreas(m) : null });
+const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM) };
+// Planeta com máscara tem água/penhasco: quem persegue precisa de caminho por terra.
+export const temMascara = planet => Boolean(MASCARAS[planet]);
 
 // Só o terreno (mar/lagos), sem contar casas e outras construções.
 export function emTerra(planet, x, y) {
@@ -27,10 +42,16 @@ export function emTerra(planet, x, y) {
   return cx >= 0 && cy >= 0 && cx < m.cols && cy < m.rows && m.grade[cy * m.cols + cx] === 1;
 }
 
-// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue.
+// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue. Se a máscara do
+// planeta diz a área de cada célula (Vegeta: ilhas cujas caixas se cruzam), vale também a área da célula.
 function naArea(area, x, y) {
   const z = area && areaPorId(area);
-  return !z || (x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h);
+  if (!z) return true;
+  if (!(x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h)) return false;
+  const m = MASCARAS[z.planet], a = m?.areas;
+  if (!a || !a.indice[area]) return true;
+  const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
+  return a.grade[cy * m.cols + cx] === a.indice[area];
 }
 
 export function podeAndar(planet, x, y, area = null) {
@@ -39,7 +60,7 @@ export function podeAndar(planet, x, y, area = null) {
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
   if (cx < 0 || cy < 0 || cx >= m.cols || cy >= m.rows) return false;
-  return m.grade[cy * m.cols + cx] === 1 && !(planet === 'namek' && (casaBloqueia(x, y) || decoracaoBloqueia(x, y)));
+  return m.grade[cy * m.cols + cx] === 1 && !casaBloqueia(planet, x, y) && !decoracaoBloqueia(planet, x, y);
 }
 
 // Pés do personagem: centro e quatro pontos a 60% do raio. Evita encostar o corpo na água
@@ -55,11 +76,11 @@ export function pesLivres(planet, x, y, radius, area = null) {
 // esta mesma regra; se divergirem, o cliente anda onde o servidor não deixa e o personagem treme.
 // `area` prende o passo à área fechada onde a entidade está (null: sem área, como na Terra).
 export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null) {
-  const world = PLANETS[planet] || PLANETS.namek, onNamek = planet === 'namek';
+  const world = PLANETS[planet] || PLANETS.namek;
   // Quem já está num ponto bloqueado (save antigo, mob nascido na água) pode sair dele.
   const preso = !pesLivres(planet, x, y, radius, area);
   const livre = (nx, ny) => nx >= radius && ny >= radius && nx <= world.w - radius && ny <= world.h - radius
-    && (!onNamek || !OBSTACLES.some(o => Math.hypot(o.x - nx, o.y - ny) < o.r + radius))
+    && !OBSTACLES.some(o => o.planet === planet && Math.hypot(o.x - nx, o.y - ny) < o.r + radius)
     && (preso || pesLivres(planet, nx, ny, radius, area));
   const nx = x + dx * dist, ny = y + dy * dist;
   if (livre(nx, y)) x = nx;

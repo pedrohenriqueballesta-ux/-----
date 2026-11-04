@@ -1,7 +1,7 @@
-import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
+import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
+import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -47,7 +47,7 @@ async function join(name, previousToken) {
     } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
   };
   if ($('welcomeDialog').open) $('welcomeDialog').close();
-  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para ir a Namekusei.');
+  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para viajar aos planetas.');
 }
 
 
@@ -246,7 +246,7 @@ function drawMiniSelf(x, y, facing) {
 // Minimapa da região em volta do jogador (decisão do Pedro, 29/10): mostra um pedaço do mundo
 // centrado nele, preso às bordas do mapa; mobs, outros jogadores e o que a câmera vê, no mesmo recorte.
 const MINIMAPA_VISTA = 2400; // largura do pedaço de mundo mostrado (a altura segue a proporção do minimapa)
-function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
+function drawMinimap(world = PLANETS.namek, area = null) {
   if (!mctx) return; // sem minimapa na página
   const mapW = mini.width, mapH = mini.height, self = snapshot.players.find(p => p.id === playerId);
   // Preso à área fechada, como a câmera: o minimapa mostra só onde dá para ir.
@@ -255,9 +255,9 @@ function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
   const cx = self ? self.x : lim.x + lim.w / 2, cy = self ? self.y : lim.y + lim.h / 2;
   const ox = Math.max(lim.x, Math.min(lim.x + lim.w - vw, cx - vw / 2)), oy = Math.max(lim.y, Math.min(lim.y + lim.h - vh, cy - vh / 2));
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
-  mctx.fillStyle = onNamek ? '#385a2d' : '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
-  const solo = art.namekSolo;
-  if (onNamek && solo.complete && solo.naturalWidth) {
+  mctx.fillStyle = world.fundo || '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
+  const solo = world.solo && soloDe(world);
+  if (solo?.complete && solo.naturalWidth) {
     const kx = solo.naturalWidth / world.w, ky = solo.naturalHeight / world.h;
     mctx.imageSmoothingEnabled = true;
     mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
@@ -273,9 +273,10 @@ function drawMinimap(onNamek = true, world = PLANETS.namek, area = null) {
 const portaisAqui = () => PORTAIS.filter(o => o.planet === snapshot.planet && o.area === (snapshot.area || null));
 const corDoPortal = o => o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida;
 function textoDoPortal(o) {
+  if (o.planet === 'terra') return 'Planetas';
   if (o.destinos.length > 1) return 'Saída';
   const d = lugar(o.destinos[0]);
-  return (d.planet !== snapshot.planet ? (d.planet === 'terra' ? 'Terra' : 'Namekusei') : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
+  return (d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
 }
 // Encostar no portal abre a janela de destinos uma vez; só abre de novo depois de sair do círculo
 // (quem chega por um portal aparece fora dele, e fechar a janela não faz ela voltar parada ali).
@@ -289,10 +290,16 @@ function verificarPortal(pos) {
 
 // Ordem de desenho de um personagem: pela posição dos pés, mas quem pisa à frente da curva da base
 // de uma casa (nas laterais a base sobe) vai na frente dela, mesmo acima da linha da base.
-function profundidade(pos, onNamek) {
+function profundidade(pos, casas) {
   let y = pos.y;
-  if (onNamek) for (const c of HOUSES) if (pos.y < c.y) { const f = frenteDaCasa(c, pos.x); if (f !== null && pos.y >= f) y = Math.max(y, c.y + 0.01); }
+  for (const c of casas) if (pos.y < c.y) { const f = frenteDaCasa(c, pos.x); if (f !== null && pos.y >= f) y = Math.max(y, c.y + 0.01); }
   return y;
+}
+// Recorte do solo do Vegeta desenhado de novo no mesmo lugar (px do solo de 8192 → mundo).
+function drawObjetoVegeta(o, escala) {
+  const img = objetoVegeta(o.id); if (!img.complete || !img.naturalWidth) return;
+  const k = escala / VEGETA_OBJETOS_ESCALA, [x, y, w, h] = o.img;
+  ctx.drawImage(img, x * k, y * k, w * k, h * k);
 }
 function frame(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
@@ -301,8 +308,9 @@ function frame(now) {
     ctx.fillStyle = '#2f4a3b'; ctx.fillRect(0, 0, width, height); ctx.fillStyle = '#9db78f'; ctx.font = '14px monospace'; ctx.textAlign = 'center'; ctx.fillText('PREPARANDO O MUNDO', width / 2, height / 2); requestAnimationFrame(frame); return;
   }
   const time = snapshot.time + Math.min(0.2, (now - receivedAt) / 1000);
-  const onNamek = snapshot.planet === 'namek';
-  const world = PLANETS[snapshot.planet] || PLANETS.namek;
+  // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
+  const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
+  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
   const self = snapshot.players.find(p => p.id === playerId);
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
@@ -313,16 +321,16 @@ function frame(now) {
   }
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };
   if (self && !self.dead) verificarPortal(position);
-  const area = onNamek ? areaPorId(snapshot.area) : null;
+  const area = comSolo ? areaPorId(snapshot.area) : null;
   // Câmera presa à área: a tela termina onde a área termina, sem borda nem escurecimento (pedido do Pedro).
   camera = cameraView(position, width, height, zoom, world.w, world.h, area);
   ctx.save(); ctx.scale(camera.scale, camera.scale); ctx.translate(-camera.x, -camera.y);
   // Decoração perto da tela (sombra no chão agora; o objeto entra na ordem de profundidade abaixo).
-  const decoVisivel = onNamek ? DECORACAO.filter(d => d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300
+  const decoVisivel = comSolo ? DECORACAO.filter(d => d.planet === world.id && d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300
     && d.y > camera.y - 100 && d.y < camera.y + height / camera.scale + 400) : [];
-  if (onNamek) {
-    if (drawGroundImage(ctx, art.namekSolo, world, camera, width, height)) { for (const c of HOUSES) drawHouseGround(ctx, c); drawMarket(ctx, MERCHANT); }
-    else drawTerrain(ctx, CONFIG, ZONES, MERCHANT, camera, width, height);
+  if (comSolo) {
+    if (drawGroundImage(ctx, soloDe(world), world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
+    else { ctx.fillStyle = world.fundo; ctx.fillRect(0, 0, world.w, world.h); } // solo ainda carregando
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);
     telegraphs(time);
@@ -334,14 +342,16 @@ function frame(now) {
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
   }
   const drawables = [
-    ...(onNamek ? OBSTACLES.map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
-    ...(onNamek ? [{ y: MERCHANT.y, draw: () => drawVendor(ctx, MERCHANT) }] : []),
+    ...(comSolo ? OBSTACLES.filter(aquiNoPlaneta).map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
+    ...mercadores.map(m => ({ y: m.y, draw: () => drawVendor(ctx, m) })),
     // Árvores, arbustos e pedras: só os que estão perto da tela entram na ordem de profundidade.
-    ...(onNamek ? decoVisivel.map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
+    ...(comSolo ? decoVisivel.map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
+    // Árvores e cristais do Vegeta (recortados do solo): entram pela base, como as casas.
+    ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
-    ...(onNamek ? HOUSES.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })) : []),
-    ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), onNamek), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
-    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), onNamek), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
+    ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
+    ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
+    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
   for (const s of snapshot.projectiles) {
@@ -350,7 +360,7 @@ function frame(now) {
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
   effects(time);
-  ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(onNamek, world, area); requestAnimationFrame(frame);
+  ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
 }
 resize(); requestAnimationFrame(frame);
 const previousToken = sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');

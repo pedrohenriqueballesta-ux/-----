@@ -1,7 +1,7 @@
 // Inimigos do protótipo e onde eles aparecem no mapa.
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
-import { ZONES, naEscala } from './config.mjs';
+import { PLANETS, areaPorId, naEscala } from './config.mjs';
 import { podeAndar } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
@@ -32,8 +32,26 @@ const ATRIBUTOS = {
     ranged: { hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
     // Chefe raro do Planalto (decisão do Pedro, 03/11): voa, ataque de perto por enquanto, 3× o Goku.
     boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Porunga BOSS' }
+  },
+  // Planeta Vegeta (04/11/2026): MOBS PROVISÓRIOS, os de Namekusei com outros números, até o Pedro decidir quem
+  // vive em cada hunt. Números pela mesma curva de Namek (vida 42 → 210 → 380 nos níveis 1, 10 e 20) estendida
+  // ao nível do meio de cada hunt (33, 39, 45, 51, 57): vida ≈ 45 + 17,5 × (nível − 1), ataque ≈ 8 + 1,25 ×,
+  // XP ≈ 10 + 4,2 ×, defesa ≈ 1 + 0,47 ×. Chefe raro da Cratera = o do Planalto × 2,7 (a vida dos mobs).
+  ...mobsDaFaixa('vegeta-planicies', 33, { passaro: 115, inseto: 115 }),
+  ...mobsDaFaixa('vegeta-canions', 39, { guerreiro: 112, veterano: 108 }),
+  ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
+  ...mobsDaFaixa('vegeta-lava', 51, { porunga: 115 }),
+  'vegeta-cratera': {
+    ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],
+    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' }
   }
 };
+// Mobs de uma hunt pela curva de Namek, no nível dado: { tipo: velocidade } → { [area]: { tipo: atributos } }.
+function mobsDaFaixa(area, nivel, tipos) {
+  const n = nivel - 1, nomes = { passaro: 'Pássaro de Namek', inseto: 'Inseto de Namek', guerreiro: 'Guerreiro de Namek', veterano: 'Veterano de Namek', porunga: 'Porunga' };
+  return { [area]: Object.fromEntries(Object.entries(tipos).map(([tipo, speed]) => [tipo,
+    { hp: Math.round(45 + 17.5 * n), attack: Math.round(8 + 1.25 * n), xp: Math.round(10 + 4.2 * n), defesa: Math.round(1 + 0.47 * n), speed, name: nomes[tipo] }])) };
+}
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
@@ -44,25 +62,32 @@ export function mobStats(type, area = 'inicial') {
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 export const renasceEm = (type, random = Math.random) => type === 'boss'
   ? CHEFE_RARO.minimo + random() * (CHEFE_RARO.maximo - CHEFE_RARO.minimo) : type === 'subboss' ? 60 : 12;
-// Círculo do Planalto do Porunga onde o chefe raro nasce, num ponto sorteado (px da imagem → mundo).
-export const CIRCULO_DO_CHEFE = { x: naEscala(4065), y: naEscala(1150), r: naEscala(190) };
-export function pontoNoCirculo(random) {
+// Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
+// `aviso`: o que aparece para quem está na hunt quando ele surge.
+export const CHEFES_RAROS = {
+  dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' },
+  // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
+  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'apareceu no meio da Grande Cratera!' }
+};
+export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
+export function pontoNoCirculo(random, area = 'dificil') {
+  const c = CHEFES_RAROS[area];
   for (let i = 0; i < 40; i++) {
-    const a = random() * Math.PI * 2, d = Math.sqrt(random()) * CIRCULO_DO_CHEFE.r;
-    const x = CIRCULO_DO_CHEFE.x + Math.cos(a) * d, y = CIRCULO_DO_CHEFE.y + Math.sin(a) * d;
-    if (em_terra('dificil', x, y)) return { x, y };
+    const a = random() * Math.PI * 2, d = Math.sqrt(random()) * c.r;
+    const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
+    if (em_terra(area, x, y)) return { x, y };
   }
-  return { x: CIRCULO_DO_CHEFE.x, y: CIRCULO_DO_CHEFE.y };
+  return { x: c.x, y: c.y };
 }
 
 // Pontos de nascimento dos inimigos: uma grade dentro de cada área, ficando só os pontos
 // em terra firme (máscara de passagem) e com folga da água. O sorteio só desloca cada ponto
 // um pouco, então funciona até com aleatoriedade fixa (testes). A grade acompanha a escala do
-// mundo; a folga da água (24) é do tamanho do mob e não cresce.
-const em_terra = (area, x, y) => [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar('namek', x + dx, y + dy, area));
+// mundo (do planeta da área); a folga da água (24) é do tamanho do mob e não cresce.
+const em_terra = (area, x, y) => [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar(areaPorId(area).planet, x + dx, y + dy, area));
 function espalhar(random, area, n, tipo) {
-  const z = ZONES.find(z => z.id === area), candidatos = [];
-  const passo = naEscala(170), margem = naEscala(90), fim = naEscala(60), sorteio = naEscala(60);
+  const z = areaPorId(area), k = PLANETS[z.planet].escala, candidatos = [];
+  const passo = 170 * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;
   for (let y = z.y + margem; y < z.y + z.h - fim; y += passo) for (let x = z.x + margem; x < z.x + z.w - fim; x += passo) {
     const px = x + (random() - 0.5) * sorteio, py = y + (random() - 0.5) * sorteio;
     if (em_terra(area, px, py)) candidatos.push({ x: px, y: py });
@@ -81,6 +106,13 @@ export function spawnPoints(random) {
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
     // Planalto do Porunga: só Porungas (decisão do Pedro, 03/11) e o chefe raro no círculo.
     ...espalhar(random, 'dificil', 16, () => 'porunga'),
-    { type: 'boss', ...pontoNoCirculo(random), area: 'dificil', raro: true }
+    { type: 'boss', ...pontoNoCirculo(random), area: 'dificil', raro: true },
+    // Planeta Vegeta: 16 mobs por hunt (provisório, como em Namek), metade de cada tipo onde há dois.
+    ...espalhar(random, 'vegeta-planicies', 16, i => i % 2 ? 'inseto' : 'passaro'),
+    ...espalhar(random, 'vegeta-canions', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
+    ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
+    ...espalhar(random, 'vegeta-lava', 16, () => 'porunga'),
+    ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),
+    { type: 'boss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];
 }

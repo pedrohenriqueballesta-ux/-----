@@ -1,10 +1,10 @@
 // Regras autoritativas do jogo: combate, movimento, inventário e mundo.
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
-import { CONFIG, MERCHANT, OBSTACLES, PORTAIS, RAIO_PORTAL, areaPorId, lugar } from './config.mjs';
+import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
-import { mobStats, renasceEm, spawnPoints, pontoNoCirculo } from './enemies.mjs';
-import { deslocar, caminhoPorTerra } from './passagem.mjs';
+import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from './enemies.mjs';
+import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
@@ -24,7 +24,7 @@ export class Game {
     const info = mobStats(type, area);
     const m = { id: this.uid('m'), type, area, x, y, homeX: x, homeY: y, ...info, maxHp: info.hp,
       attackReady: this.time + 1, telegraph: null, deadUntil: 0, moving: false,
-      facing: { x: 0, y: 1 }, strike: null, planet: 'namek' };
+      facing: { x: 0, y: 1 }, strike: null, planet: areaPorId(area)?.planet || 'namek' };
     this.mobs.set(m.id, m); return m;
   }
   populate() {
@@ -41,7 +41,7 @@ export class Game {
   protegido(p) { return !p.area || Boolean(areaPorId(p.area)?.segura) || this.time < p.seguroAte; }
   // Avisa quem está na hunt que o chefe raro apareceu.
   anunciarChefe(m) {
-    for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, m.name + ' apareceu no círculo do planalto!');
+    for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, m.name + ' ' + (CHEFES_RAROS[m.area]?.aviso || 'apareceu!'));
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
@@ -63,7 +63,7 @@ export class Game {
     if (Math.hypot(x, y) > 1) ({ x, y } = norm(x, y));
     p.input = { x, y }; p.inputAt = this.time;
     if (x || y) { p.autoHunt = false; p.moveTo = null; p.facing = norm(x, y); }
-    if (Number.isFinite(data.aimX) && Number.isFinite(data.aimY)) p.aim = { x: clamp(data.aimX, 0, CONFIG.width), y: clamp(data.aimY, 0, CONFIG.height) };
+    if (Number.isFinite(data.aimX) && Number.isFinite(data.aimY)) { const w = PLANETS[p.planet] || PLANETS.namek; p.aim = { x: clamp(data.aimX, 0, w.w), y: clamp(data.aimY, 0, w.h) }; }
   }
   targetOf(p) {
     const mob = this.mobs.get(p.targetId);
@@ -118,7 +118,7 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'moveTo' && Number.isFinite(data.x) && Number.isFinite(data.y)) {
-      p.autoHunt = false; p.moveTo = { x: clamp(data.x, 30, CONFIG.width - 30), y: clamp(data.y, 30, CONFIG.height - 30) }; return { ok: true };
+      p.autoHunt = false; const w = PLANETS[p.planet] || PLANETS.namek; p.moveTo = { x: clamp(data.x, 30, w.w - 30), y: clamp(data.y, 30, w.h - 30) }; return { ok: true };
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
     if (kind === 'food') return this.useFood(p);
@@ -169,14 +169,14 @@ export class Game {
     this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
   }
   buy(p, item) {
-    if (distance(p, MERCHANT) > 180) return this.reject(p, 'Aproxime-se do mercado na Vila Namekiana.');
+    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na Vila.');
     const price = CONFIG.prices[item]; if (!price) return { ok: false };
     if (p.zeni < price) return this.reject(p, 'Zeni insuficiente.');
     if (!this.addItem(p, item)) return this.reject(p, 'A mochila está sem capacidade.');
     p.zeni -= price; this.notify(p, 'Compra concluída.'); return { ok: true };
   }
   sell(p) {
-    if (distance(p, MERCHANT) > 180) return this.reject(p, 'Aproxime-se do mercado na vila.');
+    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na vila.');
     const value = p.inventory.scrap * 8 + p.inventory.crystal * 15;
     if (!value) return this.reject(p, 'Sem materiais para vender.');
     p.inventory.scrap = 0; p.inventory.crystal = 0; p.zeni += value;
@@ -279,7 +279,7 @@ export class Game {
   // Em planetas com água, segue um caminho por terra até o alvo (recalculado quando o alvo
   // se move ou a cada 1,5 s); sem caminho, vai em linha reta como antes.
   steer(entity, target, dt, speed) {
-    if (entity.planet === 'namek') {
+    if (temMascara(entity.planet)) {
       const rota = entity.rota;
       const velha = !rota || this.time - rota.em > 1.5 || Math.hypot(rota.alvo.x - target.x, rota.alvo.y - target.y) > 60;
       if (velha) entity.rota = { alvo: { x: target.x, y: target.y }, em: this.time, pontos: caminhoPorTerra(entity.planet, entity, target, entity.area) || [] };
@@ -360,7 +360,7 @@ export class Game {
   }
   updateMob(m, dt) {
     m.moving = false;
-    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
+    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = m.type === 'boss' || m.type === 'subboss';
     let target = null, closest = grande ? 460 : 300;

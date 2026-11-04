@@ -2,7 +2,7 @@
 // janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
-import { CONFIG, PLANETS, PORTAIS, ZONES, areaPorId, lugar } from '../shared/index.mjs';
+import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -146,22 +146,22 @@ export function atualizarHud(snapshot, playerId) {
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
 
-// Cor de cada destino, a mesma da proposta de divisão: verde, laranja e vermelho para as hunts;
-// azul para a Vila, a Terra e as saídas (portal com vários destinos).
-export const COR_DESTINO = { inicial: '#46e646', media: '#ffa51e', dificil: '#eb2d2d', vila: '#5fb6ff', terra: '#5fb6ff', saida: '#5fd8ff' };
-const imagemDoDestino = id => '/assets/worlds/' + (id === 'terra' ? 'terra' : 'namek') + '.webp';
+// Cor de cada destino: a da área (config.mjs: verde, laranja e vermelho para as hunts de Namekusei, azul
+// para a Vila); azul para a Terra e as saídas (portal com vários destinos).
+export const COR_DESTINO = { ...Object.fromEntries(ZONES.map(z => [z.id, z.cor])), terra: '#5fb6ff', saida: '#5fd8ff' };
+const imagemDoDestino = id => PLANETS[lugar(id).planet].imagem;
 
 // Janela do portal: um cartão por destino. Encostar no portal abre (client/game.mjs); escolher viaja.
 // O servidor confere se o jogador está mesmo no portal e se o destino é dele.
 export function abrirPortal(portal) {
   const nivel = ctx?.snapshot()?.self?.level || 1;
-  $('portalTitulo').textContent = portal.destinos.length > 1 ? 'SAÍDA — ESCOLHA O DESTINO' : 'PORTAL';
+  $('portalTitulo').textContent = portal.planet === 'terra' ? 'PORTAL — ESCOLHA O PLANETA' : portal.destinos.length > 1 ? 'SAÍDA — ESCOLHA O DESTINO' : 'PORTAL';
   $('portalDestinos').replaceChildren(...portal.destinos.map(id => {
     const d = lugar(id), botao = document.createElement('button');
     botao.type = 'button'; botao.className = 'world-card';
     const orbe = document.createElement('span'); orbe.className = 'world-orb';
     orbe.style.backgroundImage = 'url(' + imagemDoDestino(id) + ')'; orbe.style.borderColor = COR_DESTINO[id];
-    const nome = document.createElement('strong'); nome.textContent = d.planet === 'terra' ? 'Terra' : d.planet !== ctx?.snapshot()?.planet ? 'Namekusei — ' + d.name : d.name;
+    const nome = document.createElement('strong'); nome.textContent = d.planet === 'terra' ? 'Terra' : d.planet !== ctx?.snapshot()?.planet ? PLANETS[d.planet].name + ' — ' + d.name : d.name;
     const info = document.createElement('small');
     info.textContent = d.nivel ? 'Nível ' + d.nivel[0] + '–' + d.nivel[1] + (nivel < d.nivel[0] ? ' · perigoso' : '') : 'Área segura';
     if (d.nivel && nivel < d.nivel[0]) info.classList.add('perigo');
@@ -172,12 +172,15 @@ export function abrirPortal(portal) {
   $('portalDialog').showModal();
 }
 
-// Mapa (menu do topo): só consulta, não teleporta (decisão do Pedro, 03/11). Mostra Namekusei com as
-// áreas, os portais e onde o jogador está; viajar é sempre pelos portais.
+// Mapa (menu do topo): só consulta, não teleporta (decisão do Pedro, 03/11). Mostra o planeta onde o
+// jogador está (na Terra, o primeiro planeta de hunt) com as áreas, os portais e onde ele está;
+// viajar é sempre pelos portais.
 function abrirMapa() {
   const snapshot = ctx?.snapshot(), aqui = snapshot?.self?.area, tela = $('mapaTela');
-  $('mapaOnde').textContent = 'Você está em: ' + (areaPorId(aqui)?.name ? 'Namekusei — ' + areaPorId(aqui).name : 'Terra (lobby)');
-  $('mapaLista').replaceChildren(...ZONES.map(z => {
+  const mundo = PLANETS[snapshot?.planet]?.hunts ? PLANETS[snapshot.planet] : PLANETAS_DE_HUNT[0], zonas = zonasDe(mundo.id);
+  $('mapaTitulo').textContent = 'MAPA — ' + mundo.name.toUpperCase();
+  $('mapaOnde').textContent = 'Você está em: ' + (areaPorId(aqui)?.name ? PLANETS[areaPorId(aqui).planet].name + ' — ' + areaPorId(aqui).name : 'Terra (lobby)');
+  $('mapaLista').replaceChildren(...zonas.map(z => {
     const item = document.createElement('li'); item.style.setProperty('--cor', COR_DESTINO[z.id]);
     item.classList.toggle('aqui', z.id === aqui);
     item.textContent = z.name + (z.nivel ? ' · nível ' + z.nivel[0] + '–' + z.nivel[1] : ' · área segura') + (z.id === aqui ? ' · você está aqui' : '');
@@ -185,22 +188,22 @@ function abrirMapa() {
   }));
   $('mapaDialog').showModal();
   const c = tela.getContext?.('2d'); if (!c) return;
-  const mundo = PLANETS.namek, kx = tela.width / mundo.w, ky = tela.height / mundo.h, solo = new Image();
+  const kx = tela.width / mundo.w, ky = tela.height / mundo.h, solo = new Image();
   const desenhar = () => {
     c.fillStyle = '#0b2a2a'; c.fillRect(0, 0, tela.width, tela.height);
     if (solo.naturalWidth) c.drawImage(solo, 0, 0, tela.width, tela.height);
     c.fillStyle = '#04080c99'; c.fillRect(0, 0, tela.width, tela.height);
     // Cada área pelo nome, na cor dela, sobre a ilha (sem moldura: o próprio mapa mostra onde ela acaba).
-    for (const z of ZONES) {
+    for (const z of zonas) {
       const x = (z.x + z.w / 2) * kx, y = (z.chegada.y - z.h * 0.18) * ky;
       c.font = (z.id === aqui ? 'bold 15px' : 'bold 13px') + ' system-ui, sans-serif'; c.textAlign = 'center'; c.lineJoin = 'round';
       c.lineWidth = 4; c.strokeStyle = '#000d'; c.strokeText(z.name, x, y); c.fillStyle = COR_DESTINO[z.id]; c.fillText(z.name, x, y);
     }
-    for (const o of PORTAIS) if (o.planet === 'namek') { c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida; c.beginPath(); c.arc(o.x * kx, o.y * ky, 4, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke(); }
+    for (const o of PORTAIS) if (o.planet === mundo.id) { c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida; c.beginPath(); c.arc(o.x * kx, o.y * ky, 4, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke(); }
     const eu = snapshot?.players.find(v => v.id === snapshot.selfId);
-    if (eu && snapshot.planet === 'namek') { c.fillStyle = '#ff2bd6'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(eu.x * kx, eu.y * ky, 6, 0, Math.PI * 2); c.fill(); c.stroke(); }
+    if (eu && snapshot.planet === mundo.id) { c.fillStyle = '#ff2bd6'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(eu.x * kx, eu.y * ky, 6, 0, Math.PI * 2); c.fill(); c.stroke(); }
   };
-  solo.onload = desenhar; solo.src = '/assets/namek/solo.webp'; desenhar();
+  solo.onload = desenhar; solo.src = mundo.soloUrl; desenhar();
 }
 
 // Mochila: janela não modal (o jogo segue por trás). Cada tipo de item ocupa um espaço, com a quantidade;
