@@ -64,7 +64,7 @@ export const ZONES = [
     { id: 'vegeta-canions', name: 'Cânions', nivel: [36, 42], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1755, y: 825 } },
     { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [42, 48], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2901, y: 801 } },
     { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [48, 54], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3015, y: 1701 } },
-    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2181 } }
+    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2290 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
