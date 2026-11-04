@@ -1,7 +1,7 @@
 // Onde dá para andar em cada planeta. Namekusei usa a máscara gerada da imagem do solo
 // (namek-passagem.mjs); os demais planetas são livres.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
-import { ESCALA_MUNDO, OBSTACLES, PLANETS, areaPorId, casaBloqueia } from './config.mjs';
+import { ESCALA_MUNDO, OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -39,7 +39,7 @@ export function podeAndar(planet, x, y, area = null) {
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
   if (cx < 0 || cy < 0 || cx >= m.cols || cy >= m.rows) return false;
-  return m.grade[cy * m.cols + cx] === 1 && !(planet === 'namek' && casaBloqueia(x, y));
+  return m.grade[cy * m.cols + cx] === 1 && !(planet === 'namek' && (casaBloqueia(x, y) || decoracaoBloqueia(x, y)));
 }
 
 // Pés do personagem: centro e quatro pontos a 60% do raio. Evita encostar o corpo na água
