@@ -174,8 +174,8 @@ export const PORTAIS = [
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça; em cada hunt, a saída onde a estrada chega, com a chegada ao lado, para dentro.
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2570, y: 1165 }, 'vegeta-lava': { x: 2580, y: 1490 }, 'vegeta-cratera': { x: 2275, y: 1600 } },
-  { 'vegeta-planicies': { x: 1420, y: 1335 }, 'vegeta-canions': { x: 1770, y: 795 }, 'vegeta-floresta': { x: 2880, y: 850 },
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } },
+  { 'vegeta-planicies': { x: 1420, y: 1335 }, 'vegeta-canions': { x: 1790, y: 828 }, 'vegeta-floresta': { x: 2880, y: 850 },
     'vegeta-lava': { x: 2960, y: 1540 }, 'vegeta-cratera': { x: 2205, y: 2175 } })
 ];
 
