@@ -41,7 +41,7 @@
         </div>
         <div class="hud-recursos">
           <div class="hud-zeni"><i aria-hidden="true">🪙</i><span>Zeni</span><b id="hudZeni">0</b></div>
-          <div class="hud-mochila"><i aria-hidden="true">🎒</i><span>Mochila<b id="bagLabel">0 / 0 kg</b></span></div>
+          <button type="button" class="hud-mochila" data-menu="mochila" title="Mochila"><i aria-hidden="true">🎒</i><span>Mochila<b id="bagLabel">0 / 0 kg</b></span></button>
         </div>
       </section>
       <section id="targetHud" class="hud-alvo moldura-azul hidden" aria-label="Alvo"><span id="targetName"></span><div class="barra barra-alvo"><i id="targetBar"></i><b id="targetHp"></b></div></section>
@@ -71,7 +71,7 @@
         <button type="button" data-toggle="autoAttack" class="auto"><i aria-hidden="true">⚔️</i><span>Ataque auto • <b>OFF</b></span></button>
         <button type="button" data-toggle="autoSkills" class="auto auto-tecnicas"><i aria-hidden="true">✨</i><span>Técnicas auto • <b>OFF</b></span></button>
       </section>
-      <footer class="hud-dica">WASD mover • Clique selecionar • Scroll zoom</footer>
+      <footer class="hud-dica">WASD mover • Clique selecionar • B mochila • Scroll zoom</footer>
     </div>
     <div id="joystick" aria-label="Direcional de toque"><div id="joystickKnob"></div></div>
     <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><span id="respawnText">Retornando à vila...</span></div>
@@ -83,6 +83,18 @@
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></dialog>
   <!-- Mapa: só consulta (onde estou, as áreas e os portais); viajar é pelos portais. -->
   <dialog id="mapaDialog" class="worlds-dialog"><div class="worlds-card mapa-card"><div class="worlds-head"><span class="worlds-title">MAPA — NAMEKUSEI</span><button type="button" class="worlds-x" data-close="mapaDialog" aria-label="Fechar">×</button></div><p class="mapa-onde" id="mapaOnde"></p><canvas id="mapaTela" class="mapa-tela" width="690" height="460"></canvas><ul class="mapa-lista" id="mapaLista"></ul><p class="mapa-nota">Para viajar, use os portais: na Terra, para Namekusei; na Vila, um para cada hunt; em cada hunt, a saída fica onde você chegou.</p></div></dialog>
+  <!-- Mochila (B ou menu Mochila): equipamento em volta da silhueta, peso e Zeni, abas e 30 slots. Não é modal:
+       o jogo continua andando por trás (client/hud.mjs). Visual: modelo do ChatGPT aprovado pelo Pedro (04/11). -->
+  <dialog id="mochilaDialog" class="mochila" aria-label="Mochila">
+    <header class="mochila-topo"><span class="mochila-esfera" aria-hidden="true">★</span><h2>MOCHILA</h2><button type="button" class="mochila-x" data-close="mochilaDialog" aria-label="Fechar">✕</button></header>
+    <div class="mochila-equip" id="mochilaEquip"><img class="mochila-silhueta" src="/assets/hud/mochila/silhueta.png" alt=""></div>
+    <div class="mochila-info">
+      <div class="mochila-peso"><span>Peso <b id="mochilaPeso">0 / 0 kg</b></span><div class="barra barra-peso"><i id="mochilaPesoBarra"></i></div></div>
+      <div class="mochila-zeni"><i aria-hidden="true">🪙</i><span>Zeni</span><b id="mochilaZeni">0</b></div>
+    </div>
+    <nav class="mochila-abas" aria-label="Filtrar itens"><button type="button" data-aba="tudo" class="ativa">Tudo</button><button type="button" data-aba="equipamento">Equipamentos</button><button type="button" data-aba="consumivel">Consumíveis</button><button type="button" data-aba="material">Materiais</button></nav>
+    <div class="mochila-grade" id="mochilaGrade"></div>
+  </dialog>
   <script type="module" src="/client/game.mjs"></script>
 </body>
 </html>

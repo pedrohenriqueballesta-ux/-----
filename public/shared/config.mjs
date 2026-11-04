@@ -21,6 +21,8 @@ export const naEscala = v => v * ESCALA_MUNDO;
 export const CONFIG = Object.freeze({
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
+  // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
+  mochilaSlots: 30,
   seedCooldown: 20, kiCooldown: 8, pickupRadius: 60, respawnDelay: 4,
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,

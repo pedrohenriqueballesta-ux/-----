@@ -53,7 +53,8 @@ button{cursor:pointer}
 .barra-exp i{background:linear-gradient(#b884ff,#6a2bd4)}
 .barra-alvo i{background:linear-gradient(#ff6a5a,#c41a12)}
 .hud-recursos{display:grid;gap:calc(8 * var(--u));padding-left:calc(12 * var(--u));border-left:calc(1 * var(--u)) solid #f2b53a44}
-.hud-recursos div{display:flex;align-items:center;gap:calc(8 * var(--u));font-size:calc(14 * var(--u))}
+.hud-recursos div,.hud-recursos button{display:flex;align-items:center;gap:calc(8 * var(--u));font-size:calc(14 * var(--u))}
+.hud-recursos button{padding:0;border:0;background:none;text-align:left}
 .hud-recursos i{font-style:normal;font-size:calc(22 * var(--u))}
 .hud-zeni b{margin-left:calc(8 * var(--u))}
 .hud-mochila span{display:grid;line-height:1.2}
@@ -118,6 +119,41 @@ button{cursor:pointer}
 
 /* Dica */
 .hud-dica{position:absolute;left:50%;bottom:calc(1 * var(--u));transform:translateX(-50%);font-size:calc(12 * var(--u));color:#ffffffb0;text-shadow:0 0 calc(3 * var(--u)) #000;pointer-events:none;white-space:nowrap}
+
+/* Mochila (04/11): painel translúcido da HUD, moldura dourada; peças internas com borda azul. Tudo em --u.
+   Fica à esquerda, no vão entre o cartão do jogador e as pílulas de comida/conexão (lugar escolhido pelo
+   Pedro), sem escurecer o jogo (janela não modal). Tudo dentro dela é medido em --um = --u × --m: o
+   client/hud.mjs calcula --m para a janela inteira encolher e caber nesse vão. */
+.mochila{--m:1;--um:calc(var(--u) * var(--m));position:fixed;inset:auto auto auto calc(12 * var(--u));top:calc(206 * var(--u));margin:0;width:calc(380 * var(--um));padding:0 0 calc(12 * var(--um));color:var(--texto);font-size:calc(14 * var(--um));border:calc(2 * var(--um)) solid var(--ouro);border-radius:calc(14 * var(--um));background:linear-gradient(180deg,var(--painel) 0%,var(--painel-2) 100%);box-shadow:var(--brilho),inset 0 0 calc(10 * var(--um)) #0006;backdrop-filter:blur(calc(1.5 * var(--um)));z-index:5}
+.mochila-topo{display:flex;align-items:center;gap:calc(10 * var(--um));padding:calc(7 * var(--um)) calc(12 * var(--um));border-bottom:calc(1.5 * var(--um)) solid #f2b53a99}
+.mochila-esfera{display:grid;place-items:center;width:calc(34 * var(--um));height:calc(34 * var(--um));border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd68a,#f28a12 60%,#b4520a);color:#c8231b;font-size:calc(15 * var(--um));box-shadow:0 0 calc(8 * var(--um)) #f28a1288}
+.mochila-topo h2{flex:1;margin:0;font-size:calc(22 * var(--um));font-weight:900;letter-spacing:calc(1 * var(--um));color:#fff;text-shadow:0 0 calc(6 * var(--um)) #000}
+.mochila-x{display:grid;place-items:center;width:calc(36 * var(--um));height:calc(36 * var(--um));border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(8 * var(--um));background:rgba(10,20,48,.55);font-size:calc(18 * var(--um));font-weight:900}
+.mochila-equip{position:relative;margin:calc(6 * var(--um)) auto 0;width:calc(272 * var(--um));aspect-ratio:493/445}
+.mochila-equip>*{position:absolute}
+.mochila-silhueta{pointer-events:none}
+.mochila .slot{display:grid;place-items:center;padding:0;border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(7 * var(--um));background:rgba(5,10,28,.6);position:relative}
+.mochila .slot:hover{border-color:#6d93dd;box-shadow:0 0 calc(6 * var(--um)) #5fb6ff66}
+.mochila .slot-equip{position:absolute}
+.slot-equip img{width:86%;height:86%;object-fit:contain;opacity:.55;pointer-events:none}
+.mochila-info{display:flex;align-items:center;gap:calc(12 * var(--um));margin:calc(8 * var(--um)) calc(12 * var(--um)) 0;padding:calc(6 * var(--um)) calc(12 * var(--um));border:calc(1.5 * var(--um)) solid var(--ouro);border-radius:calc(10 * var(--um));background:rgba(5,10,28,.45)}
+.mochila-peso{flex:1;display:grid;gap:calc(5 * var(--um));padding-right:calc(12 * var(--um));border-right:calc(1 * var(--um)) solid #ffffff2a}
+.mochila-peso b{font-weight:700}
+.barra-peso{height:calc(10 * var(--um))}
+.barra-peso i{background:linear-gradient(#53e06a,#1f9a37)}
+.barra-peso.cheia i{background:linear-gradient(#ff6a5a,#c41a12)}
+.mochila-zeni{display:flex;align-items:center;gap:calc(8 * var(--um))}
+.mochila-zeni i{font-style:normal;font-size:calc(22 * var(--um))}
+.mochila-zeni b{color:var(--ouro-claro);font-size:calc(17 * var(--um))}
+.mochila-abas{display:grid;grid-template-columns:.8fr 1.2fr 1.2fr 1fr;gap:calc(6 * var(--um));margin:calc(8 * var(--um)) calc(12 * var(--um)) 0}
+.mochila-abas button{padding:calc(5 * var(--um)) 0;border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(8 * var(--um));background:rgba(5,10,28,.55);font-size:calc(12.5 * var(--um));font-weight:700}
+.mochila-abas button.ativa{border-color:var(--ouro);background:linear-gradient(#24418a,#13265a);box-shadow:0 0 calc(6 * var(--um)) #ff9d2a66}
+.mochila-grade{display:grid;grid-template-columns:repeat(6,1fr);gap:calc(6 * var(--um));margin:calc(8 * var(--um)) calc(16 * var(--um)) 0}
+.mochila-grade .slot{aspect-ratio:1;font-size:calc(26 * var(--um))}
+.mochila-grade .slot:disabled{cursor:default}
+.mochila-grade .slot:disabled:hover{border-color:var(--borda-azul);box-shadow:none}
+.slot em{position:absolute;right:calc(3 * var(--um));bottom:calc(1 * var(--um));font:800 calc(12 * var(--um))/1 system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--um)) #000,0 0 calc(3 * var(--um)) #000}
+.slot small{position:absolute;left:calc(3 * var(--um));top:calc(2 * var(--um));margin:0;font:800 calc(10 * var(--um))/1 system-ui;color:#9fe08a;text-shadow:0 0 calc(3 * var(--um)) #000}
 
 /* Faixas de largura */
 @media (max-width:1400px){
