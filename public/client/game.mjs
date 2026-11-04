@@ -2,7 +2,7 @@ import { CONFIG, ZONES, OBSTACLES, MERCHANT, PLANETS, HOUSES, PORTAIS, RAIO_PORT
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
 import { art, CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
-import { $, notify, atualizarHud, ligarHud, alternarCaca, abrirPortal, COR_DESTINO } from './hud.mjs';
+import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
@@ -64,8 +64,11 @@ async function sendInput() {
 }
 setInterval(sendInput, 70);
 document.addEventListener('keydown', e => {
-  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]')) return;
+  // A Mochila não trava o jogo: com ela aberta o personagem continua andando e usando técnicas.
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila)')) return;
   const key = e.key.toLowerCase();
+  if (key === 'b' && !e.repeat) { alternarMochila(); return; }
+  if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
   const skills = { '1': 'kame', '2': 'kaioken', '3': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
