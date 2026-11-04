@@ -1,5 +1,6 @@
 // Ponto de entrada da arte: reúne registro de imagens, cenário e personagens.
-export { art, soloDe } from './assets.mjs';
+export { art, soloDe, objetoVegeta } from './assets.mjs';
+export { VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA } from './vegeta-objetos.mjs';
 export { CLEARINGS, drawTerrain, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawPortal, drawDecoracao, drawSombraDecoracao } from './terrain.mjs';
 export { drawGoku } from './goku.mjs';
 export { drawSaibaman } from './saibaman.mjs';

@@ -1,7 +1,7 @@
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, soloDe, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
+import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -295,6 +295,12 @@ function profundidade(pos, casas) {
   for (const c of casas) if (pos.y < c.y) { const f = frenteDaCasa(c, pos.x); if (f !== null && pos.y >= f) y = Math.max(y, c.y + 0.01); }
   return y;
 }
+// Recorte do solo do Vegeta desenhado de novo no mesmo lugar (px do solo de 8192 → mundo).
+function drawObjetoVegeta(o, escala) {
+  const img = objetoVegeta(o.id); if (!img.complete || !img.naturalWidth) return;
+  const k = escala / VEGETA_OBJETOS_ESCALA, [x, y, w, h] = o.img;
+  ctx.drawImage(img, x * k, y * k, w * k, h * k);
+}
 function frame(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height); ctx.imageSmoothingEnabled = false;
@@ -340,6 +346,8 @@ function frame(now) {
     ...mercadores.map(m => ({ y: m.y, draw: () => drawVendor(ctx, m) })),
     // Árvores, arbustos e pedras: só os que estão perto da tela entram na ordem de profundidade.
     ...(comSolo ? decoVisivel.map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
+    // Árvores e cristais do Vegeta (recortados do solo): entram pela base, como as casas.
+    ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),

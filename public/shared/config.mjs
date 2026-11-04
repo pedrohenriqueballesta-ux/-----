@@ -60,11 +60,11 @@ export const ZONES = [
   // entra. Níveis 30–60 em degraus de 6 (decisão do Pedro, 04/11).
   ...zonasEmPx('vegeta', ESCALA_VEGETA, [
     { id: 'vegeta-cidade', name: 'Cidade dos Saiyajins', segura: true, cor: '#5fb6ff', x: 1800, y: 936, w: 1026, h: 756, chegada: { x: 2301, y: 1323 } },
-    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [30, 36], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1497, y: 1341 } },
-    { id: 'vegeta-canions', name: 'Cânions', nivel: [36, 42], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1755, y: 825 } },
-    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [42, 48], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2901, y: 801 } },
-    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [48, 54], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3015, y: 1701 } },
-    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2290 } }
+    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [30, 36], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1340, y: 1340 } },
+    { id: 'vegeta-canions', name: 'Cânions', nivel: [36, 42], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1715, y: 755 } },
+    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [42, 48], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
+    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [48, 54], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
+    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -158,21 +158,25 @@ export const RAIO_PORTAL = 55;
 const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
 // Portais de um planeta de hunt: a volta para a Terra acima da chegada da Vila, um portal da Vila para
 // cada hunt (`entradas`: posição em px da imagem do solo, por id de hunt) e a saída de cada hunt, com a
-// Vila e as outras hunts do mesmo planeta.
-function portaisDoPlaneta(planet, entradas) {
+// Vila e as outras hunts do mesmo planeta (`saidas`, px da imagem; sem ela, logo acima da chegada).
+function portaisDoPlaneta(planet, entradas, saidas = {}) {
   const { vila, hunts, escala } = PLANETS[planet];
   return [
     { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: ['terra'] },
     ...hunts.map(id => ({ id: vila + '-' + id, planet, area: vila, x: entradas[id].x * escala, y: entradas[id].y * escala, destinos: [id] })),
-    ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, ...acimaDaChegada(id), destinos: [vila, ...hunts.filter(h => h !== id)] }))
+    ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, ...(saidas[id] ? { x: saidas[id].x * escala, y: saidas[id].y * escala } : acimaDaChegada(id)),
+      destinos: [vila, ...hunts.filter(h => h !== id)] }))
   ];
 }
 export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
   ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } }),
-  // Vegeta: um portal em cada estrada que sai da cidade, na direção da hunt (px da imagem de 4608).
-  ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1995, y: 1341 }, 'vegeta-canions': { x: 2085, y: 1113 },
-    'vegeta-floresta': { x: 2511, y: 1131 }, 'vegeta-lava': { x: 2565, y: 1455 }, 'vegeta-cratera': { x: 2295, y: 1563 } })
+  // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
+  // estrada, perto da praça; em cada hunt, a saída onde a estrada chega, com a chegada ao lado, para dentro.
+  ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
+    'vegeta-floresta': { x: 2570, y: 1165 }, 'vegeta-lava': { x: 2580, y: 1490 }, 'vegeta-cratera': { x: 2275, y: 1600 } },
+  { 'vegeta-planicies': { x: 1420, y: 1335 }, 'vegeta-canions': { x: 1770, y: 795 }, 'vegeta-floresta': { x: 2880, y: 850 },
+    'vegeta-lava': { x: 2960, y: 1540 }, 'vegeta-cratera': { x: 2205, y: 2175 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
