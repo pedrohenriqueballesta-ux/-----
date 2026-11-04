@@ -130,10 +130,14 @@ export const PORTAIS = [
 // na base; copas, arbustos e pedra pequena são enfeite (o personagem passa na frente ou atrás).
 export const DECORACAO_ESCALA = 0.45;   // unidades do mundo por px do recorte (árvore mais alta ≈ 3× o Goku)
 const PEDRA_GRANDE = new Set([15, 16]);
+// Árvores pequenas da folha (copa redonda pequena, tronco curto e a dupla) desenhadas com o dobro do
+// tamanho (pedido do Pedro, 04/11); o tronco delas bloqueia um pouco mais.
+const ARVORE_DOBRADA = new Set([5, 9, 10]);
 export const DECORACAO = DECORACAO_NAMEK.map(d => {
-  const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * DECORACAO_ESCALA * d.escala;
-  const raio = d.sprite < 12 ? 10 : PEDRA_GRANDE.has(d.sprite) ? largura * 0.32 : 0;
-  return { ...d, raio };
+  const escala = d.escala * (ARVORE_DOBRADA.has(d.sprite) ? 2 : 1);
+  const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * DECORACAO_ESCALA * escala;
+  const raio = d.sprite < 12 ? (ARVORE_DOBRADA.has(d.sprite) ? 14 : 10) : PEDRA_GRANDE.has(d.sprite) ? largura * 0.32 : 0;
+  return { ...d, escala, raio };
 });
 // Bloqueios num hash espacial (célula de 256): a conferência é chamada várias vezes por passo de cada ator.
 const CELULA_DECO = 256, BLOQUEIOS_DECO = new Map();
