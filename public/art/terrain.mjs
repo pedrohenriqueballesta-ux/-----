@@ -1,6 +1,6 @@
 // Cenário: grama, caminhos, pedras, árvores e a barraca do mercador.
 import { art, loaded } from './assets.mjs';
-import { ENTERRA_CASA } from '../shared/config.mjs';
+import { ENTERRA_CASA, PLANETS } from '../shared/config.mjs';
 import { OBJETOS_DECORACAO } from '../shared/decoracao-objetos.mjs';
 
 const patterns = new WeakMap();
@@ -162,30 +162,66 @@ export function drawPortal(ctx, portal, time, cor, texto, raio) {
 
 
 
-// Árvore, arbusto ou pedra da decoração, com a base no ponto (x, y) do chão.
+// Árvore, arbusto ou pedra da decoração, com a base no ponto (x, y) do chão. Para parecer parte do cenário
+// (Pedro, 03/11: "não quero que pareça algo artificial") o desenho da folha não muda; muda como ele assenta:
+// depois do objeto, o PRÓPRIO CHÃO DO MAPA é redesenhado por cima do pé, num recorte irregular (o capim da
+// mata ou a areia cobrem a base do tronco, o tufo azul e o pé da pedra), e a sombra é a silhueta do objeto
+// deitada no chão (não um círculo).
 export function drawDecoracao(ctx, d, escala) {
   const img = art.decoracao; if (!loaded(img)) return;
   const [sx, sy, w, h, bx, by] = OBJETOS_DECORACAO[d.sprite], k = escala * d.escala;
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, sx, sy, w, h, Math.round(d.x - (bx - sx) * k), Math.round(d.y - (by - sy) * k), w * k, h * k);
+  const pe = chaoPorCima(d, k);
+  if (pe) ctx.drawImage(pe.canvas, pe.x, pe.y, pe.w, pe.h);
   ctx.restore();
 }
 
-// Sombra no chão da decoração (o que "assenta" a árvore no mapa): mancha suave para baixo e à direita,
-// porque a luz do mapa vem de cima à esquerda; árvore projeta a copa, arbusto e pedra só o contato.
-let manchaSombra = null;
-function mancha() {
-  if (manchaSombra) return manchaSombra;
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const g = c.getContext('2d'), grad = g.createRadialGradient(64, 64, 4, 64, 64, 64);
-  grad.addColorStop(0, 'rgba(8,24,22,1)'); grad.addColorStop(0.55, 'rgba(8,24,22,0.55)'); grad.addColorStop(1, 'rgba(8,24,22,0)');
-  g.fillStyle = grad; g.fillRect(0, 0, 128, 128); return (manchaSombra = c);
+// Número pseudoaleatório fixo por objeto (a borda irregular não muda de um quadro para o outro).
+const ruido = (n, i) => { const v = Math.sin(n * 12.9898 + i * 78.233) * 43758.5453; return v - Math.floor(v); };
+
+// Recorte do chão do mapa em volta do pé, com a borda de cima recortada como folhas/grãos. Feito uma vez
+// por objeto (o chão é fixo) e guardado.
+const pes = new Map();
+function chaoPorCima(d, k) {
+  const solo = art.namekSolo; if (!loaded(solo)) return null;
+  const chave = d.x + ':' + d.y; if (pes.has(chave)) return pes.get(chave);
+  const [, , w] = OBJETOS_DECORACAO[d.sprite], arvore = d.sprite < 12, pedra = d.sprite >= 15;
+  // Largura coberta: na árvore, o pé e o tufo da base; na pedra e no arbusto, a parte de baixo.
+  const W = Math.round(arvore ? Math.max(40, w * k * 0.62) : w * k * 1.05), H = Math.round(arvore ? 20 : pedra ? w * k * 0.24 : w * k * 0.22);
+  const x0 = Math.round(d.x - W / 2), y0 = Math.round(d.y - H * 0.75);
+  const kx = solo.naturalWidth / PLANETS.namek.w, ky = solo.naturalHeight / PLANETS.namek.h;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(solo, x0 * kx, y0 * ky, W * kx, H * ky, 0, 0, W, H);
+  // Máscara: elipse achatada mais larga embaixo, com a borda de cima em "dentes" irregulares de 3–7 px.
+  const m = g.getImageData(0, 0, W, H), n = d.x * 7 + d.y;
+  for (let x = 0; x < W; x++) {
+    const t = (x + 0.5) / W * 2 - 1, bojo = Math.sqrt(Math.max(0, 1 - t * t));
+    const dente = Math.floor(x / 4), alto = H * (1 - bojo * (0.55 + 0.45 * ruido(n, dente)));
+    for (let y = 0; y < H; y++) if (y < alto) m.data[(y * W + x) * 4 + 3] = 0;
+  }
+  g.putImageData(m, 0, 0);
+  const pe = { canvas: c, x: x0, y: y0, w: W, h: H }; pes.set(chave, pe); return pe;
 }
+
+// Sombra: a silhueta do próprio objeto, achatada e inclinada para baixo e à direita (luz do mapa vem de cima
+// à esquerda), num tom escuro da mata. Feita uma vez por tipo e tamanho.
+const sombras = new Map();
 export function drawSombraDecoracao(ctx, d, escala) {
-  const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * escala * d.escala, arvore = d.sprite < 12;
-  const rx = largura * (arvore ? 0.58 : 0.66), ry = rx * (arvore ? 0.4 : 0.34);
-  ctx.save(); ctx.globalAlpha = arvore ? 0.6 : 0.5;
-  ctx.drawImage(mancha(), d.x + largura * (arvore ? 0.22 : 0.08) - rx, d.y - ry * 0.6, rx * 2, ry * 2);
-  if (arvore) { ctx.globalAlpha = 0.6; ctx.drawImage(mancha(), d.x - 14 * d.escala, d.y - 5, 28 * d.escala, 10); }
+  const img = art.decoracao; if (!loaded(img)) return;
+  const [sx, sy, w, h, bx, by] = OBJETOS_DECORACAO[d.sprite], k = escala * d.escala, chave = d.sprite + ':' + d.escala;
+  if (!sombras.has(chave)) {
+    const c = document.createElement('canvas'); c.width = Math.ceil(w * k); c.height = Math.ceil(h * k);
+    const g = c.getContext('2d'); g.drawImage(img, sx, sy, w, h, 0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = 'rgb(6,26,30)'; g.fillRect(0, 0, c.width, c.height);
+    sombras.set(chave, c);
+  }
+  const c = sombras.get(chave), achata = d.sprite < 12 ? 0.2 : 0.35;
+  ctx.save(); ctx.globalAlpha = d.sprite < 12 ? 0.42 : 0.35;
+  // Ancorada no pé: a altura do objeto vira comprimento deitado para baixo/direita (cisalhamento).
+  // y < 0 (acima do pé) vai para baixo e para a direita: x' = x − 0,45·y, y' = −achata·y (curta, colada no pé).
+  ctx.setTransform(ctx.getTransform().multiply(new DOMMatrix([1, 0, -0.45, -achata, d.x, d.y])));
+  ctx.drawImage(c, -(bx - sx) * k, -(by - sy) * k, c.width, c.height);
   ctx.restore();
 }
