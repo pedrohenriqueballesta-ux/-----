@@ -124,8 +124,8 @@ test('decoração: só árvores, os troncos bloqueiam, nada no chão vermelho ne
   assert.equal(DECORACAO.filter(d => d.sprite >= 12 && d.sprite <= 14).length, 0, 'sem arbustos (Pedro, 04/11)');
   for (const d of DECORACAO) {
     assert.equal(d.raio > 0, d.sprite < 12 || d.sprite === 15 || d.sprite === 16, 'bloqueio do objeto ' + d.sprite);
-    if (d.raio) assert.ok(decoracaoBloqueia(d.x, d.y), 'base do objeto ' + d.sprite + ' bloqueia');
-    else assert.equal(decoracaoBloqueia(d.x, d.y - 1) && !DECORACAO.some(o => o.raio && Math.hypot(o.x - d.x, o.y - d.y) < 60), false, 'enfeite não bloqueia');
+    if (d.raio) assert.ok(decoracaoBloqueia('namek', d.x, d.y), 'base do objeto ' + d.sprite + ' bloqueia');
+    else assert.equal(decoracaoBloqueia('namek', d.x, d.y - 1) && !DECORACAO.some(o => o.raio && Math.hypot(o.x - d.x, o.y - d.y) < 60), false, 'enfeite não bloqueia');
     for (const o of PORTAIS) if (o.planet === 'namek') assert.ok(Math.hypot(o.x - d.x, o.y - d.y) >= 260, 'objeto perto de portal');
   }
 });

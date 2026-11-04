@@ -39,22 +39,32 @@ export const CONFIG = Object.freeze({
 // hunts, também onde fica a saída. `nivel` é só recomendação: entra quem quiser, mas é perigoso.
 // O que fica fora das caixas (ilha norte, ilha noroeste, ilhotas) está guardado para uma 4ª área.
 // Os ids são usados pelas regras e pelo save: mude nome, caixa e chegada à vontade, mas não os ids.
+// Os ids valem para o jogo inteiro (todos os planetas): um planeta novo usa ids próprios (ex.: 'vegeta-…').
+// `cor`: a do portal, do minimapa e do menu Mapa (verde, laranja e vermelho para as hunts; azul para a Vila).
+const zonasEmPx = (planet, escala, zonas) => zonas.map(z => ({ planet, pvp: false, segura: false, ...z,
+  x: z.x * escala, y: z.y * escala, w: z.w * escala, h: z.h * escala, chegada: { x: z.chegada.x * escala, y: z.chegada.y * escala } }));
 export const ZONES = [
-  { id: 'vila', name: 'Vila Namekiana', segura: true, x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
-  { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
-  { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
-  { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
-].map(z => ({ pvp: false, segura: false, ...z, x: naEscala(z.x), y: naEscala(z.y), w: naEscala(z.w), h: naEscala(z.h),
-  chegada: { x: naEscala(z.chegada.x), y: naEscala(z.chegada.y) } }));
+  ...zonasEmPx('namek', ESCALA_MUNDO, [
+    { id: 'vila', name: 'Vila Namekiana', segura: true, cor: '#5fb6ff', x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
+    { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], cor: '#46e646', x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
+    { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], cor: '#ffa51e', x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
+    { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
+  ])
+];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
+export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor
 // mantêm o tamanho; só a posição acompanha o mapa.
-export const MERCHANT = { x: naEscala(560), y: naEscala(1290) };
+export const MERCHANT = { planet: 'namek', area: 'vila', x: naEscala(560), y: naEscala(1290) };
+// Mercadores de todos os planetas (um por Vila). Comprar e vender pede estar no mesmo lugar e perto.
+export const MERCADORES = [MERCHANT];
+export const mercadorPerto = (p, alcance = 180) => MERCADORES.find(m => m.planet === p.planet && m.area === (p.area || null)
+  && Math.hypot(m.x - p.x, m.y - p.y) <= alcance) || null;
 // Árvores e pedras do mapa antigo saíram com o solo novo de Namekusei (28/10).
 // Os novos obstáculos entram nas próximas etapas, posicionados sobre a imagem do solo.
 export const OBSTACLES = [];
-export function zoneAt(x, y) {
-  return ZONES.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) || null;
+export function zoneAt(x, y, planet = 'namek') {
+  return ZONES.find(z => z.planet === planet && x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) || null;
 }
 // Quanto a casa afunda no chão ao ser desenhada, em fração da largura (drawHouse usa o mesmo).
 export const ENTERRA_CASA = 0.035;
@@ -80,7 +90,7 @@ export const HOUSES = [
   { sprite: 6, x: 2980, y: 2510, w: 290, ruina: true },
   { sprite: 4, x: 3400, y: 2650, w: 150, ruina: true },
   { sprite: 2, x: 3700, y: 2370, w: 190, ruina: true }
-].map(c => comPegada({ ...c, x: naEscala(c.x), y: naEscala(c.y), w: c.w * ESCALA_CONSTRUCOES }));
+].map(c => comPegada({ ...c, planet: 'namek', x: naEscala(c.x), y: naEscala(c.y), w: c.w * ESCALA_CONSTRUCOES }));
 // Pegada no chão: a base vista de cima é uma elipse, e a curva de baixo do desenho (PEGADAS,
 // tirada do PNG) é a metade da frente dela. Fica em coordenadas do mundo junto de cada casa.
 function comPegada(c) {
@@ -96,20 +106,28 @@ export function frenteDaCasa(c, x) {
   return frente[i] + (frente[j] - frente[i]) * (t - i);
 }
 // A casa ocupa o chão de trás da elipse (2 × centro − frente) até a frente.
-export function casaBloqueia(x, y) {
-  return HOUSES.some(c => { const f = frenteDaCasa(c, x); return f !== null && y < f && y > 2 * c.pegada.centro - f; });
+export function casaBloqueia(planet, x, y) {
+  return HOUSES.some(c => { if (c.planet !== planet) return false; const f = frenteDaCasa(c, x); return f !== null && y < f && y > 2 * c.pegada.centro - f; });
 }
-// Planetas (instâncias). 'terra' é o lobby verde pequeno e seguro (tela inicial);
-// 'namek' é o mapa das áreas fechadas acima. Só se troca de lugar por portal.
+// Planetas (instâncias). 'terra' é o lobby verde pequeno e seguro (tela inicial); os planetas de hunt
+// (por ora só 'namek') têm as áreas fechadas acima. Só se troca de lugar por portal.
+// Ficha de um planeta de hunt: tamanho em unidades do jogo, escala (unidades por px da imagem do solo),
+// `solo` = chave da imagem do chão em art/assets.mjs, `fundo` = cor sob o solo enquanto ele carrega,
+// `imagem` = a do cartão no portal, `vila` = id da área segura onde se chega, `hunts` = ids das hunts
+// na ordem de dificuldade. Para um planeta novo: ficha aqui, áreas em ZONES, máscara em passagem.mjs,
+// mobs em enemies.mjs e portais da Vila em PORTAIS.
 export const PLANETS = {
-  terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 } },
-  namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, spawn: areaPorId('vila').chegada } // praça da Vila Namekiana
+  terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 }, imagem: '/assets/worlds/terra.webp' },
+  namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
+    soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
+    vila: 'vila', hunts: ['inicial', 'media', 'dificil'], spawn: areaPorId('vila').chegada } // praça da Vila Namekiana
 };
-// Lugar de destino de um portal: a Terra ou uma das áreas de Namekusei.
+export const PLANETAS_DE_HUNT = Object.values(PLANETS).filter(p => p.hunts);
+// Lugar de destino de um portal: a Terra ou uma das áreas de um planeta de hunt.
 export function lugar(id) {
   if (id === 'terra') return { id, planet: 'terra', area: null, name: 'Terra', chegada: PLANETS.terra.spawn, segura: true };
   const z = areaPorId(id);
-  return z && { id, planet: 'namek', area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
+  return z && { id, planet: z.planet, area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
 }
 // Portais (o desenho ainda vai ser escolhido). Encostar abre a janela com os destinos.
 // Terra: um portal para Namekusei. Vila: um portal por hunt, cada um em cima da estrada de terra que sai da
@@ -119,14 +137,20 @@ export function lugar(id) {
 // com a Vila e as outras duas hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
 export const RAIO_PORTAL = 55;
 const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
-const HUNTS = ['inicial', 'media', 'dificil'];
+// Portais de um planeta de hunt: a volta para a Terra acima da chegada da Vila, um portal da Vila para
+// cada hunt (`entradas`: posição em px da imagem do solo, por id de hunt) e a saída de cada hunt, com a
+// Vila e as outras hunts do mesmo planeta.
+function portaisDoPlaneta(planet, entradas) {
+  const { vila, hunts, escala } = PLANETS[planet];
+  return [
+    { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: ['terra'] },
+    ...hunts.map(id => ({ id: vila + '-' + id, planet, area: vila, x: entradas[id].x * escala, y: entradas[id].y * escala, destinos: [id] })),
+    ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, ...acimaDaChegada(id), destinos: [vila, ...hunts.filter(h => h !== id)] }))
+  ];
+}
 export const PORTAIS = [
-  { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: ['vila'] },
-  { id: 'vila-terra', planet: 'namek', area: 'vila', ...acimaDaChegada('vila'), destinos: ['terra'] },
-  { id: 'vila-inicial', planet: 'namek', area: 'vila', x: naEscala(900), y: naEscala(1198), destinos: ['inicial'] },
-  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(510), y: naEscala(1675), destinos: ['media'] },
-  { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(438), y: naEscala(910), destinos: ['dificil'] },
-  ...HUNTS.map(id => ({ id: 'saida-' + id, planet: 'namek', area: id, ...acimaDaChegada(id), destinos: ['vila', ...HUNTS.filter(h => h !== id)] }))
+  { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
+  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
@@ -143,19 +167,19 @@ export const DECORACAO = DECORACAO_NAMEK.map(d => {
   const escala = d.escala * (ARVORE_DOBRADA.has(d.sprite) ? 2 : ARVORE_MAIS_50.has(d.sprite) ? 1.5 : 1);
   const [, , w] = OBJETOS_DECORACAO[d.sprite], largura = w * DECORACAO_ESCALA * escala;
   const raio = d.sprite < 12 ? (ARVORE_DOBRADA.has(d.sprite) ? 14 : 10) : PEDRA_GRANDE.has(d.sprite) ? largura * 0.32 : 0;
-  return { ...d, escala, raio };
+  return { ...d, planet: 'namek', escala, raio };
 });
 // Bloqueios num hash espacial (célula de 256): a conferência é chamada várias vezes por passo de cada ator.
 const CELULA_DECO = 256, BLOQUEIOS_DECO = new Map();
 for (const d of DECORACAO) if (d.raio) {
-  const chave = Math.floor(d.x / CELULA_DECO) + ':' + Math.floor(d.y / CELULA_DECO);
+  const chave = d.planet + ':' + Math.floor(d.x / CELULA_DECO) + ':' + Math.floor(d.y / CELULA_DECO);
   if (!BLOQUEIOS_DECO.has(chave)) BLOQUEIOS_DECO.set(chave, []);
   BLOQUEIOS_DECO.get(chave).push(d);
 }
 // A base é uma elipse achatada (vista de cima): mais larga que funda.
-export function decoracaoBloqueia(x, y) {
+export function decoracaoBloqueia(planet, x, y) {
   const cx = Math.floor(x / CELULA_DECO), cy = Math.floor(y / CELULA_DECO);
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const d of BLOQUEIOS_DECO.get((cx + dx) + ':' + (cy + dy)) || [])
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const d of BLOQUEIOS_DECO.get(planet + ':' + (cx + dx) + ':' + (cy + dy)) || [])
     if (((x - d.x) / d.raio) ** 2 + ((y - d.y) / (d.raio * 0.55)) ** 2 < 1) return true;
   return false;
 }

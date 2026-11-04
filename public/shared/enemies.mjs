@@ -1,7 +1,7 @@
 // Inimigos do protótipo e onde eles aparecem no mapa.
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
-import { ZONES, naEscala } from './config.mjs';
+import { PLANETS, areaPorId, naEscala } from './config.mjs';
 import { podeAndar } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
@@ -44,25 +44,30 @@ export function mobStats(type, area = 'inicial') {
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 export const renasceEm = (type, random = Math.random) => type === 'boss'
   ? CHEFE_RARO.minimo + random() * (CHEFE_RARO.maximo - CHEFE_RARO.minimo) : type === 'subboss' ? 60 : 12;
-// Círculo do Planalto do Porunga onde o chefe raro nasce, num ponto sorteado (px da imagem → mundo).
-export const CIRCULO_DO_CHEFE = { x: naEscala(4065), y: naEscala(1150), r: naEscala(190) };
-export function pontoNoCirculo(random) {
+// Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
+// `aviso`: o que aparece para quem está na hunt quando ele surge.
+export const CHEFES_RAROS = {
+  dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' }
+};
+export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
+export function pontoNoCirculo(random, area = 'dificil') {
+  const c = CHEFES_RAROS[area];
   for (let i = 0; i < 40; i++) {
-    const a = random() * Math.PI * 2, d = Math.sqrt(random()) * CIRCULO_DO_CHEFE.r;
-    const x = CIRCULO_DO_CHEFE.x + Math.cos(a) * d, y = CIRCULO_DO_CHEFE.y + Math.sin(a) * d;
-    if (em_terra('dificil', x, y)) return { x, y };
+    const a = random() * Math.PI * 2, d = Math.sqrt(random()) * c.r;
+    const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
+    if (em_terra(area, x, y)) return { x, y };
   }
-  return { x: CIRCULO_DO_CHEFE.x, y: CIRCULO_DO_CHEFE.y };
+  return { x: c.x, y: c.y };
 }
 
 // Pontos de nascimento dos inimigos: uma grade dentro de cada área, ficando só os pontos
 // em terra firme (máscara de passagem) e com folga da água. O sorteio só desloca cada ponto
 // um pouco, então funciona até com aleatoriedade fixa (testes). A grade acompanha a escala do
-// mundo; a folga da água (24) é do tamanho do mob e não cresce.
-const em_terra = (area, x, y) => [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar('namek', x + dx, y + dy, area));
+// mundo (do planeta da área); a folga da água (24) é do tamanho do mob e não cresce.
+const em_terra = (area, x, y) => [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar(areaPorId(area).planet, x + dx, y + dy, area));
 function espalhar(random, area, n, tipo) {
-  const z = ZONES.find(z => z.id === area), candidatos = [];
-  const passo = naEscala(170), margem = naEscala(90), fim = naEscala(60), sorteio = naEscala(60);
+  const z = areaPorId(area), k = PLANETS[z.planet].escala, candidatos = [];
+  const passo = 170 * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;
   for (let y = z.y + margem; y < z.y + z.h - fim; y += passo) for (let x = z.x + margem; x < z.x + z.w - fim; x += passo) {
     const px = x + (random() - 0.5) * sorteio, py = y + (random() - 0.5) * sorteio;
     if (em_terra(area, px, py)) candidatos.push({ x: px, y: py });

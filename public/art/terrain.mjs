@@ -184,13 +184,13 @@ const ruido = (n, i) => { const v = Math.sin(n * 12.9898 + i * 78.233) * 43758.5
 // por objeto (o chão é fixo) e guardado.
 const pes = new Map();
 function chaoPorCima(d, k) {
-  const solo = art.namekSolo; if (!loaded(solo)) return null;
-  const chave = d.x + ':' + d.y; if (pes.has(chave)) return pes.get(chave);
+  const mundo = PLANETS[d.planet], solo = art[mundo.solo]; if (!loaded(solo)) return null;
+  const chave = d.planet + ':' + d.x + ':' + d.y; if (pes.has(chave)) return pes.get(chave);
   const [, , w] = OBJETOS_DECORACAO[d.sprite], arvore = d.sprite < 12, pedra = d.sprite >= 15;
   // Largura coberta: na árvore, o pé e o tufo da base; na pedra e no arbusto, a parte de baixo.
   const W = Math.round(arvore ? Math.max(40, w * k * 0.62) : w * k * 1.05), H = Math.round(arvore ? 20 : pedra ? w * k * 0.24 : w * k * 0.22);
   const x0 = Math.round(d.x - W / 2), y0 = Math.round(d.y - H * 0.75);
-  const kx = solo.naturalWidth / PLANETS.namek.w, ky = solo.naturalHeight / PLANETS.namek.h;
+  const kx = solo.naturalWidth / mundo.w, ky = solo.naturalHeight / mundo.h;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(solo, x0 * kx, y0 * ky, W * kx, H * ky, 0, 0, W, H);
