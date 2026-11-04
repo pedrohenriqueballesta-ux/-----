@@ -258,11 +258,23 @@ function atualizarMochila(s) {
     return slot;
   }));
 }
+// Encaixa a Mochila no vão entre o cartão do jogador e as pílulas (comida/conexão): começa logo abaixo do
+// cartão e, se não couber inteira, encolhe tudo por igual (--m) até terminar acima das pílulas.
+function encaixarMochila() {
+  const janela = $('mochilaDialog'); if (!janela.open) return;
+  const u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--e')) || 1, folga = 8 * u;
+  const cartao = document.querySelector('.hud-jogador')?.getBoundingClientRect(), pilulas = document.querySelector('.hud-pilulas')?.getBoundingClientRect();
+  const topo = (cartao?.bottom ?? 0) + folga, fim = pilulas?.height ? pilulas.top - folga : innerHeight - folga;
+  janela.style.top = topo + 'px'; janela.style.setProperty('--m', '1');
+  const m = Math.min(1, Math.max(0.4, (fim - topo) / janela.offsetHeight));
+  janela.style.setProperty('--m', m.toFixed(3));
+}
+addEventListener('resize', encaixarMochila);
 // Abre/fecha a Mochila (menu Mochila, cartão de peso da HUD e tecla B).
 export function alternarMochila() {
   const janela = $('mochilaDialog');
   if (janela.open) { janela.close(); return; }
-  mochilaDesenhada = ''; janela.show(); atualizarMochila(ctx?.snapshot()?.self);
+  mochilaDesenhada = ''; janela.show(); atualizarMochila(ctx?.snapshot()?.self); encaixarMochila();
 }
 
 // Liga ou pausa a caça automática (botão de caça e tecla H). Ela roda a hunt inteira onde o jogador está.
