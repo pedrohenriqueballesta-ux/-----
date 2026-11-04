@@ -110,7 +110,9 @@ export function lugar(id) {
   return z && { id, planet: 'namek', area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
 }
 // Portais (o desenho ainda vai ser escolhido). Encostar abre a janela com os destinos.
-// Terra: um portal para Namekusei. Vila: um portal por hunt, em três entradas, e a volta para a Terra
+// Terra: um portal para Namekusei. Vila: um portal por hunt, cada um em cima da estrada de terra que sai da
+// praça na sua direção (leste, sul e norte; pedido do Pedro, 04/11: "guiando o personagem para fora pela
+// estrada"), medido no mapa de 36 partes; e a volta para a Terra
 // logo acima do ponto de chegada. Hunts: um só portal, logo acima do ponto de chegada (é a saída),
 // com a Vila e as outras duas hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
 export const RAIO_PORTAL = 55;
@@ -119,9 +121,9 @@ const HUNTS = ['inicial', 'media', 'dificil'];
 export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: ['vila'] },
   { id: 'vila-terra', planet: 'namek', area: 'vila', ...acimaDaChegada('vila'), destinos: ['terra'] },
-  { id: 'vila-inicial', planet: 'namek', area: 'vila', x: naEscala(900), y: naEscala(1250), destinos: ['inicial'] },
-  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(620), y: naEscala(1700), destinos: ['media'] },
-  { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(480), y: naEscala(900), destinos: ['dificil'] },
+  { id: 'vila-inicial', planet: 'namek', area: 'vila', x: naEscala(900), y: naEscala(1198), destinos: ['inicial'] },
+  { id: 'vila-media', planet: 'namek', area: 'vila', x: naEscala(510), y: naEscala(1675), destinos: ['media'] },
+  { id: 'vila-dificil', planet: 'namek', area: 'vila', x: naEscala(438), y: naEscala(910), destinos: ['dificil'] },
   ...HUNTS.map(id => ({ id: 'saida-' + id, planet: 'namek', area: id, ...acimaDaChegada(id), destinos: ['vila', ...HUNTS.filter(h => h !== id)] }))
 ];
 
