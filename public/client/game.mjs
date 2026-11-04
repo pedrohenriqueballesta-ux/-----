@@ -283,7 +283,7 @@ function textoDoPortal(o) {
 let portalEncostado = null;
 function verificarPortal(pos) {
   const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
-  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
+  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;
 }
 
