@@ -70,3 +70,17 @@ test('casas e árvores só bloqueiam no planeta delas', () => {
   assert.equal(decoracaoBloqueia(arvore.planet, arvore.x, arvore.y), true);
   assert.equal(decoracaoBloqueia('outro', arvore.x, arvore.y), false);
 });
+
+test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível recomendado sem travar', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  for (const area of PLANETS.vegeta.hunts) {
+    const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a'), nivel = lugar(area).nivel[0];
+    p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
+    game.levar(p, lugar(area)); game.action(p.id, { type: 'hunt' });
+    const mobs = [...game.mobs.values()].filter(m => m.area === area);
+    assert.ok(mobs.length >= 12, area + ': mobs suficientes (' + mobs.length + ')');
+    for (let i = 0; i < 60 / 0.05; i++) game.tick(0.05);
+    assert.ok(p.kills >= 5, area + ': só ' + p.kills + ' abates em 60 s');
+    assert.equal(p.planet, 'vegeta'); assert.equal(p.area, area, area + ': saiu da hunt');
+  }
+});

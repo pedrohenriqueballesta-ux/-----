@@ -53,5 +53,9 @@ export const art = {
   earth: loadImage('/assets/earth.png')
 };
 
+// Chão de um planeta (ficha em PLANETS): o de Namekusei carrega com o jogo; o dos outros planetas só quando
+// alguém precisa dele (ao chegar lá, ou no menu Mapa), para não baixar ~16 MB a mais na entrada.
+export const soloDe = mundo => art[mundo.solo] || loadImage(mundo.soloUrl);
+
 // Verdadeiro quando a imagem já carregou e pode ser desenhada.
 export const loaded = image => image.complete && image.naturalWidth > 0;

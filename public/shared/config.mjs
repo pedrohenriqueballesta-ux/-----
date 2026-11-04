@@ -16,6 +16,10 @@ export const ESCALA_MUNDO = 1.8;
 // das casas em px da imagem = w × ESCALA_CONSTRUCOES ÷ ESCALA_MUNDO, para o terreiro acompanhar.
 export const ESCALA_CONSTRUCOES = 2;
 export const SOLO_NAMEK = Object.freeze({ w: 4608, h: 3072 });
+// Planeta Vegeta (2º planeta de hunt, decidido pelo Pedro em 04/11/2026): mesmo sistema de Namekusei. Posições
+// em px da imagem de 4608×3072 (o solo.webp tem 8192×5461, o mapa de 36 partes), mesma escala do mundo.
+export const SOLO_VEGETA = Object.freeze({ w: 4608, h: 3072 });
+export const ESCALA_VEGETA = ESCALA_MUNDO;
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
@@ -49,6 +53,18 @@ export const ZONES = [
     { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], cor: '#46e646', x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
     { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], cor: '#ffa51e', x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
     { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
+  ]),
+  // Planeta Vegeta: cidade no centro e 5 hunts, cada uma numa ilha cercada de abismo, com uma estrada até a
+  // cidade (nomes e temas propostos, a confirmar pelo Pedro). Caixas = contorno de cada ilha na máscara
+  // (vegeta-passagem.mjs, que também diz a que área cada pedaço de chão pertence); chegada onde a estrada
+  // entra. Níveis 30–60 em degraus de 6 (decisão do Pedro, 04/11).
+  ...zonasEmPx('vegeta', ESCALA_VEGETA, [
+    { id: 'vegeta-cidade', name: 'Cidade dos Saiyajins', segura: true, cor: '#5fb6ff', x: 1800, y: 936, w: 1026, h: 756, chegada: { x: 2301, y: 1323 } },
+    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [30, 36], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1497, y: 1341 } },
+    { id: 'vegeta-canions', name: 'Cânions', nivel: [36, 42], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1755, y: 825 } },
+    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [42, 48], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2901, y: 801 } },
+    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [48, 54], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3015, y: 1701 } },
+    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2181 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -57,7 +73,7 @@ export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // mantêm o tamanho; só a posição acompanha o mapa.
 export const MERCHANT = { planet: 'namek', area: 'vila', x: naEscala(560), y: naEscala(1290) };
 // Mercadores de todos os planetas (um por Vila). Comprar e vender pede estar no mesmo lugar e perto.
-export const MERCADORES = [MERCHANT];
+export const MERCADORES = [MERCHANT, { planet: 'vegeta', area: 'vegeta-cidade', x: 2420 * ESCALA_VEGETA, y: 1220 * ESCALA_VEGETA }];
 export const mercadorPerto = (p, alcance = 180) => MERCADORES.find(m => m.planet === p.planet && m.area === (p.area || null)
   && Math.hypot(m.x - p.x, m.y - p.y) <= alcance) || null;
 // Árvores e pedras do mapa antigo saíram com o solo novo de Namekusei (28/10).
@@ -120,7 +136,10 @@ export const PLANETS = {
   terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 }, imagem: '/assets/worlds/terra.webp' },
   namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
     soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
-    vila: 'vila', hunts: ['inicial', 'media', 'dificil'], spawn: areaPorId('vila').chegada } // praça da Vila Namekiana
+    vila: 'vila', hunts: ['inicial', 'media', 'dificil'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
+  vegeta: { id: 'vegeta', name: 'Planeta Vegeta', w: SOLO_VEGETA.w * ESCALA_VEGETA, h: SOLO_VEGETA.h * ESCALA_VEGETA, escala: ESCALA_VEGETA,
+    solo: 'vegetaSolo', soloUrl: '/assets/vegeta/solo.webp', fundo: '#0b0308', imagem: '/assets/worlds/vegeta.webp', vila: 'vegeta-cidade',
+    hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada }
 };
 export const PLANETAS_DE_HUNT = Object.values(PLANETS).filter(p => p.hunts);
 // Lugar de destino de um portal: a Terra ou uma das áreas de um planeta de hunt.
@@ -130,7 +149,7 @@ export function lugar(id) {
   return z && { id, planet: z.planet, area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
 }
 // Portais (o desenho ainda vai ser escolhido). Encostar abre a janela com os destinos.
-// Terra: um portal para Namekusei. Vila: um portal por hunt, cada um em cima da estrada de terra que sai da
+// Terra: um portal que leva à Vila de cada planeta. Vila: um portal por hunt, cada um em cima da estrada de terra que sai da
 // praça na sua direção (leste, sul e norte; pedido do Pedro, 04/11: "guiando o personagem para fora pela
 // estrada"), medido no mapa de 36 partes; e a volta para a Terra
 // logo acima do ponto de chegada. Hunts: um só portal, logo acima do ponto de chegada (é a saída),
@@ -150,7 +169,10 @@ function portaisDoPlaneta(planet, entradas) {
 }
 export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
-  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } })
+  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } }),
+  // Vegeta: um portal em cada estrada que sai da cidade, na direção da hunt (px da imagem de 4608).
+  ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1995, y: 1341 }, 'vegeta-canions': { x: 2085, y: 1113 },
+    'vegeta-floresta': { x: 2511, y: 1131 }, 'vegeta-lava': { x: 2565, y: 1455 }, 'vegeta-cratera': { x: 2295, y: 1563 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por

@@ -1,5 +1,5 @@
 // Cenário: grama, caminhos, pedras, árvores e a barraca do mercador.
-import { art, loaded } from './assets.mjs';
+import { art, loaded, soloDe } from './assets.mjs';
 import { ENTERRA_CASA, PLANETS } from '../shared/config.mjs';
 import { OBJETOS_DECORACAO } from '../shared/decoracao-objetos.mjs';
 
@@ -184,7 +184,7 @@ const ruido = (n, i) => { const v = Math.sin(n * 12.9898 + i * 78.233) * 43758.5
 // por objeto (o chão é fixo) e guardado.
 const pes = new Map();
 function chaoPorCima(d, k) {
-  const mundo = PLANETS[d.planet], solo = art[mundo.solo]; if (!loaded(solo)) return null;
+  const mundo = PLANETS[d.planet], solo = soloDe(mundo); if (!loaded(solo)) return null;
   const chave = d.planet + ':' + d.x + ':' + d.y; if (pes.has(chave)) return pes.get(chave);
   const [, , w] = OBJETOS_DECORACAO[d.sprite], arvore = d.sprite < 12, pedra = d.sprite >= 15;
   // Largura coberta: na árvore, o pé e o tufo da base; na pedra e no arbusto, a parte de baixo.

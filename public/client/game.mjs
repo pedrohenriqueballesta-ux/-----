@@ -1,7 +1,7 @@
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
+import { art, soloDe, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -47,7 +47,7 @@ async function join(name, previousToken) {
     } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
   };
   if ($('welcomeDialog').open) $('welcomeDialog').close();
-  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para ir a Namekusei.');
+  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para viajar aos planetas.');
 }
 
 
@@ -256,7 +256,7 @@ function drawMinimap(world = PLANETS.namek, area = null) {
   const ox = Math.max(lim.x, Math.min(lim.x + lim.w - vw, cx - vw / 2)), oy = Math.max(lim.y, Math.min(lim.y + lim.h - vh, cy - vh / 2));
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
   mctx.fillStyle = world.fundo || '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
-  const solo = art[world.solo];
+  const solo = world.solo && soloDe(world);
   if (solo?.complete && solo.naturalWidth) {
     const kx = solo.naturalWidth / world.w, ky = solo.naturalHeight / world.h;
     mctx.imageSmoothingEnabled = true;
@@ -273,6 +273,7 @@ function drawMinimap(world = PLANETS.namek, area = null) {
 const portaisAqui = () => PORTAIS.filter(o => o.planet === snapshot.planet && o.area === (snapshot.area || null));
 const corDoPortal = o => o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida;
 function textoDoPortal(o) {
+  if (o.planet === 'terra') return 'Planetas';
   if (o.destinos.length > 1) return 'Saída';
   const d = lugar(o.destinos[0]);
   return (d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
@@ -322,7 +323,7 @@ function frame(now) {
   const decoVisivel = comSolo ? DECORACAO.filter(d => d.planet === world.id && d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300
     && d.y > camera.y - 100 && d.y < camera.y + height / camera.scale + 400) : [];
   if (comSolo) {
-    if (drawGroundImage(ctx, art[world.solo], world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
+    if (drawGroundImage(ctx, soloDe(world), world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
     else { ctx.fillStyle = world.fundo; ctx.fillRect(0, 0, world.w, world.h); } // solo ainda carregando
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);

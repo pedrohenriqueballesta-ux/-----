@@ -1,6 +1,7 @@
 // Onde dá para andar em cada planeta. Planeta de hunt usa a máscara gerada da imagem do solo
 // (namek-passagem.mjs para Namekusei); planeta sem máscara (a Terra) é livre.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
+import { VEGETA_PASSAGEM } from './vegeta-passagem.mjs';
 import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
@@ -16,10 +17,20 @@ function decodificar({ cols, rows, linhas }) {
   return grade;
 }
 
+// Área de cada célula (máscara com `areas`): corridas "índice*comprimento", índice em `ids` a partir de 1.
+function decodificarAreas({ cols, rows, ids, areas }) {
+  const grade = new Uint8Array(cols * rows);
+  areas.forEach((linha, y) => {
+    let x = 0;
+    for (const corrida of linha.split('.')) { const [i, n] = corrida.split('*'); const k = parseInt(n, 36); grade.fill(Number(i), y * cols + x, y * cols + x + k); x += k; }
+  });
+  return { grade, indice: Object.fromEntries(ids.map((id, i) => [id, i + 1])) };
+}
 // A máscara foi gerada em px da imagem do solo; cada célula cresce com a escala do planeta.
 // Planeta novo: gere a máscara dele e acrescente aqui.
-const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala, cellH: m.cellH * PLANETS[planet].escala, grade: decodificar(m) });
-const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM) };
+const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala, cellH: m.cellH * PLANETS[planet].escala, grade: decodificar(m),
+  areas: m.areas ? decodificarAreas(m) : null });
+const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM) };
 // Planeta com máscara tem água/penhasco: quem persegue precisa de caminho por terra.
 export const temMascara = planet => Boolean(MASCARAS[planet]);
 
@@ -31,10 +42,16 @@ export function emTerra(planet, x, y) {
   return cx >= 0 && cy >= 0 && cx < m.cols && cy < m.rows && m.grade[cy * m.cols + cx] === 1;
 }
 
-// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue.
+// Área fechada (ids de ZONES): fora da caixa dela não se anda, mesmo que o chão continue. Se a máscara do
+// planeta diz a área de cada célula (Vegeta: ilhas cujas caixas se cruzam), vale também a área da célula.
 function naArea(area, x, y) {
   const z = area && areaPorId(area);
-  return !z || (x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h);
+  if (!z) return true;
+  if (!(x >= z.x && y >= z.y && x <= z.x + z.w && y <= z.y + z.h)) return false;
+  const m = MASCARAS[z.planet], a = m?.areas;
+  if (!a || !a.indice[area]) return true;
+  const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
+  return a.grade[cy * m.cols + cx] === a.indice[area];
 }
 
 export function podeAndar(planet, x, y, area = null) {

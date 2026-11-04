@@ -31,7 +31,7 @@ test('quem nasce dentro da água consegue sair dela', () => {
   assert.ok(p.x > x, 'não fica preso no mar');
 });
 
-test('regiões e mobs de Namekusei ficam em terra firme, e o mercador na Vila', async () => {
+test('regiões e mobs de cada planeta ficam em terra firme, e o mercador na Vila', async () => {
   const { ZONES, MERCHANT } = await import('../public/shared/config.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()];
@@ -39,7 +39,7 @@ test('regiões e mobs de Namekusei ficam em terra firme, e o mercador na Vila', 
   assert.ok(mobs.filter(m => m.area === 'media').length >= 8, 'Campo de Batalha com mobs suficientes');
   assert.ok(mobs.filter(m => m.area === 'dificil').length >= 8, 'Planalto com mobs suficientes');
   assert.equal(mobs.filter(m => m.area === 'vila').length, 0, 'Vila sem mobs');
-  for (const m of mobs) assert.equal(podeAndar('namek', m.x, m.y, m.area), true, m.name + ' nasceu na água ou fora da área');
+  for (const m of mobs) assert.equal(podeAndar(m.planet, m.x, m.y, m.area), true, m.name + ' nasceu na água ou fora da área');
   assert.equal(podeAndar('namek', MERCHANT.x, MERCHANT.y), true);
   const vila = ZONES.find(z => z.id === 'vila');
   assert.ok(MERCHANT.x > vila.x && MERCHANT.x < vila.x + vila.w && MERCHANT.y > vila.y && MERCHANT.y < vila.y + vila.h, 'mercador dentro da Vila');
@@ -80,7 +80,7 @@ test('casas destruídas ficam no Campo de Batalha, em terra, longe do subchefe',
     assert.ok(emTerra('namek', c.x, c.y));
     assert.ok(Math.hypot(c.x - chefe.x, c.y - chefe.y) > c.w / 2 + 200, 'ruína ' + c.sprite + ' em cima do chefe');
   }
-  for (const m of game.mobs.values()) assert.equal(podeAndar('namek', m.x, m.y), true, m.name + ' nasceu dentro de uma casa');
+  for (const m of game.mobs.values()) assert.equal(podeAndar(m.planet, m.x, m.y), true, m.name + ' nasceu dentro de uma casa');
 });
 
 test('encostado numa ruína, a predição do cliente para no mesmo ponto que o servidor', async () => {
@@ -113,7 +113,7 @@ test('cada portal fica em chão andável e é alcançável a pé da chegada da s
   for (const o of PORTAIS) {
     assert.ok(pesLivres(o.planet, o.x, o.y, 15, o.area), o.id + ' em lugar bloqueado');
     for (const d of o.destinos) assert.ok(lugar(d), o.id + ' leva a um destino que não existe: ' + d);
-    if (o.area) assert.ok(caminhoPorTerra('namek', lugar(o.area).chegada, o, o.area), o.id + ' sem caminho a pé desde a chegada');
+    if (o.area) assert.ok(caminhoPorTerra(o.planet, lugar(o.area).chegada, o, o.area), o.id + ' sem caminho a pé desde a chegada');
   }
 });
 
