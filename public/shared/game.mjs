@@ -9,7 +9,10 @@ import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper']);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
-export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper']);
+export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'freezaBoss']);
+// Freeza: tempos dos dois golpes (segundos). Death Beam: aviso curto e raio rápido. Supernova: a bola cresce acima da
+// mão por CARGA, voa por VOO até o ponto marcado no chão e explode numa área grande.
+export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
 
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
@@ -437,9 +440,46 @@ export class Game {
     if (atual && aAtual && melhor !== atual && maior < aAtual.valor * 1.2) melhor = atual;
     m.alvoId = melhor.id; return melhor;
   }
+  // Freeza: troca de forma. Em pé usa os atributos base; na nave, ataque e defesa maiores (`nave` em enemies.mjs).
+  formaFreeza(m, forma) {
+    const base = mobStats('freezaBoss', m.area), n = base.nave;
+    m.forma = forma; m.transicao = null;
+    m.attack = forma === 'nave' ? Math.round(base.attack * n.ataque) : base.attack;
+    m.defesa = forma === 'nave' ? Math.round(base.defesa * n.defesa) : base.defesa;
+    m.speed = forma === 'nave' ? base.speed * n.velocidade : base.speed;
+    m.corpo = forma === 'nave' ? n.corpo : base.corpo;
+    m.name = forma === 'nave' ? n.nome : base.name;
+  }
+  // Ataque e troca de forma do Freeza. Devolve true quando cuidou do turno do mob.
+  turnoFreeza(m, target, closest, dt) {
+    if (!m.forma) this.formaFreeza(m, 'pe');
+    if (m.transicao) {   // entrando na nave: parado, invulnerável à troca, sem atacar
+      if (this.time >= m.transicao.until) this.formaFreeza(m, 'nave');
+      return true;
+    }
+    if (m.forma === 'pe' && m.hp <= m.maxHp * mobStats('freezaBoss', m.area).nave.aPartirDe) {
+      m.transicao = { started: this.time, until: this.time + 1.2 }; m.telegraph = null; m.strike = null;
+      this.emit('freezaNave', { x: m.x, y: m.y, planet: m.planet, area: m.area, mobId: m.id });
+      for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, 'O Freeza entrou na nave: ele ficou mais forte!');
+      return true;
+    }
+    if (!target) return false;
+    const nave = m.forma === 'nave', alcance = nave ? 340 : 300;
+    if (closest > alcance) { this.steer(m, target, dt, m.speed); return true; }
+    if (this.time < m.attackReady) { if (closest > 150) this.steer(m, target, dt, m.speed); return true; }
+    m.facing = norm(target.x - m.x, target.y - m.y);
+    if (nave) {   // Supernova: marca o chão onde o alvo está; a bola cresce, voa e explode lá
+      m.telegraph = { kind: 'supernova', x: target.x, y: target.y, ox: m.x, oy: m.y, radius: FREEZA.novaRaio,
+        started: this.time, lanca: this.time + FREEZA.novaCarga, until: this.time + FREEZA.novaCarga + FREEZA.novaVoo };
+    } else {      // Death Beam: aviso curto na linha, depois o raio fino e rápido
+      m.telegraph = { kind: 'shot', beam: true, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + FREEZA.beamAviso, started: this.time, radius: 25 };
+    }
+    m.strike = { started: this.time, release: nave ? m.telegraph.lanca : m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: nave ? 'supernova' : 'beam' };
+    return true;
+  }
   updateMob(m, dt) {
     m.moving = false;
-    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
+    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = CHEFES.has(m.type);
     const casa = { x: m.homeX, y: m.homeY }, longeDeCasa = distance(m, casa);
@@ -450,12 +490,17 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: 2 });
+        if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
+        else if (t.kind === 'supernova') {
+          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.6);
+          this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
+        }
         else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }
+    if (m.type === 'freezaBoss' && this.turnoFreeza(m, target, closest, dt)) return;
     if (!target) {
       if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
       return;
@@ -527,7 +572,7 @@ export class Game {
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
-      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null })),
-      projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => !e.playerId || e.playerId === id || e.type !== 'message') };
+      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
+      projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => (!e.playerId || e.playerId === id || e.type !== 'message') && (!e.planet || aqui(e))) };
   }
 }

@@ -1,7 +1,7 @@
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa } from '../shared/config.mjs';
-import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES } from '../art/index.mjs';
+import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -177,7 +177,7 @@ function drawPlayer(p, pos, time) {
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
 // Chefe e subchefe são desenhados grandes; o subchefe usa a sentinela ampliada (arte provisória).
-const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper';
+const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper' || m.type === 'freezaBoss';
 function drawMob(m, pos, time) {
   const boss = grande(m), size = boss ? 76 : 40, h = boss ? 100 : 53;
   shadow(pos.x, pos.y, boss ? 35 : 17);
@@ -186,11 +186,13 @@ function drawMob(m, pos, time) {
   const phase = ((Number(m.id.replace(/\D/g, '')) || 0) % 16) / 16;
   const attackProgress = mobStrikeProgress(m.strike, time);
   const facing = attackProgress !== null ? m.strike.direction : pos.facing;
+  if (m.transicao) auraFreeza(pos.x, pos.y, (time - m.transicao.started) / (m.transicao.until - m.transicao.started), time);
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   // Pássaro e Inseto de Namek voam (art/voadores.mjs); se a folha não carregar, usam o Saibaman e a sentinela.
   const corpoACorpo = ['melee', 'passaro', 'guerreiro'].includes(m.type), voa = m.type in VOADORES;
   const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress))
     || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled))
+    || (m.type === 'freezaBoss' && drawFreezaBoss(ctx, m.forma || 'pe', pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
     || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot'))
     || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot')) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
@@ -199,12 +201,45 @@ function drawMob(m, pos, time) {
       : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled));
   if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : corpoACorpo ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
   ctx.restore();
-  const topo = voa ? ALTURA_GOKU * VOADORES[m.type].proporcao + ALTURA_DE_VOO : ['guerreiro', 'veterano'].includes(m.type) ? ALTURA_GUERREIRO + 4 : m.type in LUTADORES ? LUTADORES[m.type].altura + 4 : h;
+  const topo = voa ? ALTURA_GOKU * VOADORES[m.type].proporcao + ALTURA_DE_VOO : ['guerreiro', 'veterano'].includes(m.type) ? ALTURA_GUERREIRO + 4 : m.type in LUTADORES ? LUTADORES[m.type].altura + 4 : m.type === 'freezaBoss' ? (FREEZA_ALTURA[m.forma] || FREEZA_ALTURA.pe) + 6 : h;
   placa(pos.x, pos.y - topo - 16, m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
+}
+// Freeza entrando na nave: aura roxa que cresce em volta dele (o clarão e a onda vêm pelo evento freezaNave).
+function auraFreeza(x, y, p, time) {
+  p = Math.max(0, Math.min(1, p)); const r = 40 + p * 70 + Math.sin(time * 20) * 4;
+  ctx.save(); const g = ctx.createRadialGradient(x, y - 40, 4, x, y - 40, r);
+  g.addColorStop(0, '#ffffffcc'); g.addColorStop(0.35, '#e7a0ffaa'); g.addColorStop(1, '#8a2be200');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 40, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+// Supernova: a bola cresce acima da mão do Freeza durante a carga e voa até o ponto marcado no chão (o dano é lá).
+const NOVA = { inicial: 26, final: 125 };   // diâmetro em unidades do mundo (final ≈ 3× a bola da folha antiga; ajustável)
+function bolaSupernova(m, t, time) {
+  const pos = renderPositions.get(m.id) || m, mao = { x: pos.x + 6, y: pos.y - FREEZA_ALTURA.nave - 30 };
+  let x, y, d;
+  if (time < t.lanca) {
+    const p = Math.max(0, (time - t.started) / (t.lanca - t.started)), e = p * p * (3 - 2 * p);
+    d = NOVA.inicial + (NOVA.final - NOVA.inicial) * e; x = mao.x; y = mao.y - d * 0.45;
+  } else {
+    const p = Math.min(1, (time - t.lanca) / (t.until - t.lanca)); d = NOVA.final;
+    x = mao.x + (t.x - mao.x) * p; y = (mao.y - d * 0.45) + (t.y - 20 - (mao.y - d * 0.45)) * p - Math.sin(p * Math.PI) * 60;
+  }
+  const img = art.supernova, pulso = 1 + Math.sin(time * 18) * 0.04;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, d * 0.2, x, y, d * 0.9); g.addColorStop(0, '#ffb34766'); g.addColorStop(1, '#ff3a0000');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, d * 0.9, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  if (img.complete && img.naturalWidth) ctx.drawImage(img, x - d * pulso / 2, y - d * pulso / 2, d * pulso, d * pulso);
 }
 function telegraphs(time) {
   for (const m of snapshot.mobs) {
     const t = m.telegraph; if (!t) continue;
+    if (t.kind === 'supernova') {   // área no chão que vai se enchendo de vermelho até o impacto
+      const p = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started)));
+      ctx.fillStyle = '#ff4a1a30'; ctx.beginPath(); ctx.ellipse(t.x, t.y, t.radius, t.radius * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff7a2a55'; ctx.beginPath(); ctx.ellipse(t.x, t.y, t.radius * p, t.radius * 0.6 * p, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffd08a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(t.x, t.y, t.radius, t.radius * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+      continue;
+    }
+    if (t.kind === 'shot' && t.beam) { ctx.strokeStyle = '#e06cff90'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(t.x, t.y - 30); ctx.lineTo(t.x + t.dx * 520, t.y - 30 + t.dy * 520); ctx.stroke(); ctx.setLineDash([]); continue; }
     const progress = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started)));
     if (t.kind === 'shot') { ctx.strokeStyle = '#f5a37ca0'; ctx.lineWidth = 7; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + t.dx * 240, t.y + t.dy * 240); ctx.stroke(); ctx.setLineDash([]); }
     else { ctx.fillStyle = '#a9423340'; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d6745460'; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius * progress, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#f3b089'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.stroke(); }
@@ -216,6 +251,16 @@ function effects(time) {
     const age = time - e.at; if (age < 0) continue;
     if (e.type === 'beam' && age < 0.35) {
       ctx.globalAlpha = Math.max(0, 1 - age / 0.35); ctx.lineCap = 'round'; ctx.strokeStyle = '#4bb9e899'; ctx.lineWidth = 32; ctx.beginPath(); ctx.moveTo(e.x, e.y - 12); ctx.lineTo(e.bx, e.by - 12); ctx.stroke(); ctx.strokeStyle = '#d7fbff'; ctx.lineWidth = 11; ctx.stroke(); ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    } else if (e.type === 'freezaNave' && age < 1.4) {   // clarão roxo e onda de energia pelo chão
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - age / 1.4);
+      ctx.strokeStyle = '#d78bff'; ctx.lineWidth = 10 * (1 - age / 1.4) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 40 + age * 380, (40 + age * 380) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+      if (age > 1.0) { ctx.globalAlpha = (1.4 - age) / 0.4 * 0.8; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(e.x, e.y - 50, 140, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    } else if (e.type === 'supernova' && age < 0.9) {   // explosão da Supernova no ponto marcado
+      const p = age / 0.9; ctx.save(); ctx.globalAlpha = 1 - p; ctx.globalCompositeOperation = 'lighter';
+      const r = e.radius * (0.6 + p * 0.7), g = ctx.createRadialGradient(e.x, e.y - 20, 10, e.x, e.y - 20, r);
+      g.addColorStop(0, '#fffbe0'); g.addColorStop(0.35, '#ffb347'); g.addColorStop(0.75, '#ff3d1a'); g.addColorStop(1, '#ff000000');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y - 20, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     } else if (e.type === 'punch' && age < 0.18) {
       ctx.strokeStyle = '#ffe4a7'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(e.x + e.dx * 30, e.y - 10 + e.dy * 30, 17, -1.1, 1.1); ctx.stroke();
     } else if (['damage', 'heal', 'level'].includes(e.type)) {
@@ -365,9 +410,11 @@ function frame(now) {
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
+    if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); continue; }
     if (s.kind === 'genki') { ctx.save(); const glow = ctx.createRadialGradient(px, py, 3, px, py, 29); glow.addColorStop(0, '#ffffff'); glow.addColorStop(.28, '#c4f7ff'); glow.addColorStop(.7, '#5cbbff'); glow.addColorStop(1, '#a152ff00'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(px, py, 29, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
+  for (const m of snapshot.mobs) if (m.telegraph?.kind === 'supernova') bolaSupernova(m, m.telegraph, time);
   effects(time);
   ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
 }

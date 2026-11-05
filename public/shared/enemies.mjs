@@ -65,7 +65,11 @@ const ATRIBUTOS = {
   },
   'vegeta-cratera': {
     ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],
-    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' }
+    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
+    // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
+    // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
+    freezaBoss: { hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 20, name: 'Freeza',
+      nave: { aPartirDe: 0.4, ataque: 1.35, defesa: 1.25, velocidade: 0.8, corpo: 40, nome: 'Freeza (nave)' } }
   }
 };
 // Mobs de uma hunt pela curva de Namek, no nível dado: { tipo: velocidade } → { [area]: { tipo: atributos } }.
@@ -90,7 +94,8 @@ export function mobStats(type, area = 'inicial') {
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 // Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
-export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 } };
+export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
+  freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
 export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
   ? TEMPO_CHEFE_RARO[type].minimo + random() * (TEMPO_CHEFE_RARO[type].maximo - TEMPO_CHEFE_RARO[type].minimo) : type === 'subboss' ? 60 : 12;
 // Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
@@ -98,7 +103,7 @@ export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
 export const CHEFES_RAROS = {
   dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' },
   // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
-  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'apareceu no meio da Grande Cratera!' },
+  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'chegou à Grande Cratera!' },
   // Oozaru Super: num ponto sorteado em qualquer lugar da hunt (todaHunt), não num círculo.
   'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' }
 };
@@ -164,6 +169,6 @@ export function spawnPoints(random) {
     ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
     { type: 'oozaruSuper', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
     ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),
-    { type: 'boss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
+    { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];
 }

@@ -154,3 +154,30 @@ test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Super é chefe raro de 6
   for (const pt of pontos) assert.ok(podeAndar('vegeta', pt.x, pt.y, 'vegeta-lava'));
   assert.ok(new Set(pontos.map(pt => Math.round(pt.x / 500) + ':' + Math.round(pt.y / 500))).size >= 3, 'pontos espalhados pela hunt');
 });
+
+test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica mais forte (Supernova)', async () => {
+  const { CHEFES, FREEZA } = await import('../public/shared/game.mjs');
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
+  assert.ok(CHEFES.has('freezaBoss'));
+  for (let i = 0; i < 40; i++) game.tick(0.05);
+  assert.equal(f.forma, 'pe'); const ataquePe = f.attack;
+  // Em pé: o golpe é o Death Beam (raio rápido).
+  let viuBeam = false; for (let i = 0; i < 80 && !viuBeam; i++) { game.tick(0.05); viuBeam = game.projectiles.some(s => s.kind === 'deathbeam'); }
+  assert.ok(viuBeam, 'soltou Death Beam');
+  // A 40% da vida: transição, depois nave com mais ataque e defesa.
+  f.hp = Math.floor(f.maxHp * 0.39); f.telegraph = null; game.tick(0.05);
+  assert.ok(f.transicao, 'começou a entrar na nave');
+  assert.ok(game.events.some(e => e.type === 'freezaNave'));
+  for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.equal(f.forma, 'nave'); assert.ok(f.attack > ataquePe);
+  // Na nave: o golpe é a Supernova, que acerta em área no ponto marcado.
+  f.attackReady = 0; let nova = null; for (let i = 0; i < 40 && !nova; i++) { game.tick(0.05); if (f.telegraph?.kind === 'supernova') nova = f.telegraph; }
+  assert.ok(nova && nova.radius === FREEZA.novaRaio, 'carregou a Supernova');
+  const vida = p.hp; for (let i = 0; i < 60; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'supernova')); assert.ok(p.hp < vida, 'a Supernova acertou');
+  // Morreu e renasceu: volta em pé.
+  f.hp = 0; f.deadUntil = game.time; game.tick(0.05); assert.equal(f.forma, 'pe');
+});
