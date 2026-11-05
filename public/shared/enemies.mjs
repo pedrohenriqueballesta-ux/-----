@@ -45,7 +45,13 @@ const ATRIBUTOS = {
     tsufuruGeneral: { hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
     hatchiyack: { hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
   },
-  ...mobsDaFaixa('vegeta-canions', 39, { guerreiro: 112, veterano: 108 }),
+  // Cânions (decisão do Pedro, 05/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte).
+  // Mesmo critério das Planícies, um degrau acima: um nível 36 NÃO mata com facilidade.
+  'vegeta-canions': {
+    nappa: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 108, name: 'Nappa' },
+    raditz: { hp: 3550, attack: 95, xp: 600, defesa: 33, speed: 112, name: 'Raditz' },
+    bardock: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 110, name: 'Bardock' }
+  },
   ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
   ...mobsDaFaixa('vegeta-lava', 51, { porunga: 115 }),
   'vegeta-cratera': {
@@ -105,6 +111,7 @@ function espalhar(random, area, n, tipo) {
 }
 const [G, M, H] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'];
 const PLANICIES_VERMELHAS = [G, M, G, H, G, M, G, G, M, H, G, M, G, G, M, H];
+const CANIONS = ['nappa', 'raditz', 'nappa', 'bardock', 'nappa', 'raditz', 'nappa', 'nappa', 'raditz', 'bardock'];
 // Quantidade de mobs por hunt: na inicial, 20 (16 + 25%, pedido do Pedro, 03/11); nas outras, 16
 // comuns, provisório (a densidade será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
@@ -119,7 +126,9 @@ export function spawnPoints(random) {
     // Planeta Vegeta: 16 mobs por hunt (provisório, como em Namek), metade de cada tipo onde há dois.
     // Planícies Vermelhas: mais Guerreiros, menos Hatchiyacks (8 / 5 / 3; provisório), misturados pela hunt.
     ...espalhar(random, 'vegeta-planicies', 16, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
-    ...espalhar(random, 'vegeta-canions', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
+    // Cânions: mais Nappas, menos Bardocks (5 / 3 / 2), misturados. Só 10: o chão dos Cânions é menos da metade do
+    // das Planícies, e com 16 a densidade dobrava (caça morria ~9 vezes em 5 min no nível 36; com 10, a das Planícies).
+    ...espalhar(random, 'vegeta-canions', 10, i => CANIONS[i % CANIONS.length]),
     ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
     ...espalhar(random, 'vegeta-lava', 16, () => 'porunga'),
     ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),

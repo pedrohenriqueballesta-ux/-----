@@ -7,7 +7,7 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from '
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack']);
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock']);
 
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
