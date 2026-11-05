@@ -177,7 +177,7 @@ function drawPlayer(p, pos, time) {
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
 // Chefe e subchefe são desenhados grandes; o subchefe usa a sentinela ampliada (arte provisória).
-const grande = m => m.type === 'boss' || m.type === 'subboss';
+const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper';
 function drawMob(m, pos, time) {
   const boss = grande(m), size = boss ? 76 : 40, h = boss ? 100 : 53;
   shadow(pos.x, pos.y, boss ? 35 : 17);

@@ -7,7 +7,9 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from '
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock']);
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper']);
+// Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
+export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper']);
 
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
@@ -90,7 +92,7 @@ export class Game {
   }
   // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
   alvoMaisProximo(p, raio = 350) {
-    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && m.type !== 'subboss' && m.type !== 'boss' && this.mesmoLugar(p, m)
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && this.mesmoLugar(p, m)
       && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
       .sort((a, b) => distance(p, a) - distance(p, b));
     const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40);
@@ -272,8 +274,8 @@ export class Game {
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null;
         if (attacker && this.players.has(attacker.id)) {
-          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.type === 'boss' ? 100 : 5 + Math.floor(this.random() * 5);
-          if (target.type === 'boss') { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
+          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? 100 : 5 + Math.floor(this.random() * 5);
+          if (target.raro) { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < 0.3 ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
           if (this.random() < 0.008) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
@@ -406,7 +408,7 @@ export class Game {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
-    const grande = m.type === 'boss' || m.type === 'subboss';
+    const grande = CHEFES.has(m.type);
     let target = null, closest = grande ? 460 : 300;
     for (const p of this.players.values()) {
       if (!p.connected || p.hp <= 0 || !this.mesmoLugar(p, m) || this.protegido(p)) continue;
@@ -434,7 +436,7 @@ export class Game {
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
       if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
-      else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
+      else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'oozaruSuper' ? 115 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
       m.facing = norm(target.x - m.x, target.y - m.y);
       // Presentation timestamps only: impact, warning duration and cooldown are unchanged.
       m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: m.telegraph.kind };
