@@ -53,7 +53,16 @@ const ATRIBUTOS = {
     bardock: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 110, name: 'Bardock' }
   },
   ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
-  ...mobsDaFaixa('vegeta-lava', 51, { porunga: 115 }),
+  // Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru (o mais fraco) e Oozaru Guerreiro (o mais forte), mesmo
+  // critério das outras hunts (nível 48 não mata com facilidade). Oozaru Super = chefe raro (6 a 12 h, em qualquer
+  // ponto da hunt), forte demais para um nível 48–54 sozinho e sem equipamento (o "set" ainda não existe no jogo).
+  'vegeta-lava': {
+    // `corpo`: quanto o mob é mais largo que um personagem comum (unidades). Soma no alcance do soco dele e no de quem
+    // bate nele: sem isso o gigante encostava no centro do Goku e ficava virando de lado (relato do Pedro, 05/11).
+    oozaru: { hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, corpo: 34, name: 'Oozaru' },
+    oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
+    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' }
+  },
   'vegeta-cratera': {
     ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],
     boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' }
@@ -66,26 +75,42 @@ function mobsDaFaixa(area, nivel, tipos) {
     { hp: Math.round(45 + 17.5 * n), attack: Math.round(8 + 1.25 * n), xp: Math.round(10 + 4.2 * n), defesa: Math.round(1 + 0.47 * n), speed, name: nomes[tipo] }])) };
 }
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
+// Aggro (pedido do Pedro, 05/11/2026), configurável por mob nos ATRIBUTOS; estes são os padrões:
+// - agressivo: ataca quem chega perto (true) ou só reage quando é atacado (false, mob neutro);
+// - aggro: raio em que o mob agressivo nota o jogador (unidades do mundo; chefe e mob grande enxergam mais longe);
+// - perseguicao: quanto ele se afasta do ponto de origem antes de desistir e voltar (curando-se ao chegar).
+// O raio antigo (300, fixo) era curto para os mapas do Vegeta: mobs a 400–500 do jogador não reagiam.
+export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
-  return { ...base };
+  const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper';
+  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
-export const renasceEm = (type, random = Math.random) => type === 'boss'
-  ? CHEFE_RARO.minimo + random() * (CHEFE_RARO.maximo - CHEFE_RARO.minimo) : type === 'subboss' ? 60 : 12;
+// Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
+export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 } };
+export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
+  ? TEMPO_CHEFE_RARO[type].minimo + random() * (TEMPO_CHEFE_RARO[type].maximo - TEMPO_CHEFE_RARO[type].minimo) : type === 'subboss' ? 60 : 12;
 // Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
 // `aviso`: o que aparece para quem está na hunt quando ele surge.
 export const CHEFES_RAROS = {
   dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' },
   // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
-  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'apareceu no meio da Grande Cratera!' }
+  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'apareceu no meio da Grande Cratera!' },
+  // Oozaru Super: num ponto sorteado em qualquer lugar da hunt (todaHunt), não num círculo.
+  'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' }
 };
 export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
 export function pontoNoCirculo(random, area = 'dificil') {
   const c = CHEFES_RAROS[area];
   const z = areaPorId(area);
+  if (c.todaHunt) for (let i = 0; i < 300; i++) {
+    const x = z.x + random() * z.w, y = z.y + random() * z.h;
+    if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
+  }
+  if (c.todaHunt) return { ...z.chegada };
   for (let i = 0; i < 40; i++) {
     const a = random() * Math.PI * 2, d = Math.sqrt(random()) * c.r;
     const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
@@ -135,7 +160,9 @@ export function spawnPoints(random) {
     // das Planícies, e com 16 a densidade dobrava (caça morria ~9 vezes em 5 min no nível 36; com 10, a das Planícies).
     ...espalhar(random, 'vegeta-canions', 10, i => CANIONS[i % CANIONS.length]),
     ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
-    ...espalhar(random, 'vegeta-lava', 16, () => 'porunga'),
+    // Campos de Lava: 11 mobs (densidade das Planícies para o chão da Lava), mais Oozarus que Guerreiros, e o chefe raro.
+    ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
+    { type: 'oozaruSuper', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
     ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),
     { type: 'boss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];

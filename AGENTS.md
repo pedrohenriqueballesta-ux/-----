@@ -24,6 +24,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 - Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em cada planeta de hunt, a Vila (segura) e as hunts: Namekusei com três; Planeta Vegeta, decidido em 04/11/2026, com cinco (níveis 30–60; mobs ainda provisórios). Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
 - Sem PvP nesta versão (decisão do Pedro, 03/11/2026). Quando voltar, só em área marcada como pvp, validado para todos os tipos de dano.
 - Movimento por teclado/toque e caça automática opcional, que roda a hunt inteira onde o jogador está.
+- Aggro por ameaça (decisão do Pedro, 05/11/2026): mob agressivo nota quem chega perto, todo mob reage a quem o ataca, persegue quem causou mais ameaça e volta à origem (curando-se) ao passar do limite. Raio, limite e agressividade configuráveis por mob em enemies.mjs.
 - Técnicas, transformações e todos os atributos progridem automaticamente conforme classe e nível. Não há distribuição manual de atributos.
 - A comida gera a cura ao longo de um período. Não há regeneração gratuita de vida fora desse efeito.
 - Sementes curam instantaneamente e todas as potências respeitam a mesma recarga. Trocar item ou potência não remove o intervalo.

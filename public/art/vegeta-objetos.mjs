@@ -2,7 +2,10 @@
 // ~/idle-dbz/ferramentas/recortar_arvore_vegeta.py (objetos em ~/idle-dbz/referencias/mapas/vegeta/objetos-floresta.json).
 // Eles já estão pintados no chão; o recorte é desenhado de novo por cima, na ordem de profundidade pela base,
 // para quem passa por trás ficar coberto (relato do Pedro, 04/11: "parece que está passando por cima").
-// x, y = base no chão (px da imagem de 4608); img = [x, y, largura, altura] do recorte no solo de 8192.
+// Vulcões dos Campos de Lava (05/11, relato do Pedro: bloqueavam onde não deviam): recortados pelo contorno marcado à mão
+// (~/idle-dbz/ferramentas/recortar_vulcoes.py + referencias/mapas/vegeta/vulcoes.json); só o pé do cone bloqueia.
+// x, y = base no chão (px da imagem de 4608; nos vulcões, o ponto mais baixo do pé). Vulcão: `frente` = borda de baixo do
+// contorno de 8 em 8 px; quem está abaixo dela naquela coluna é desenhado na frente (como na frente da casa); img = [x, y, largura, altura] do recorte no solo de 8192.
 // O bloqueio (pé da árvore, base do cristal) está na máscara de passagem, não aqui.
 export const VEGETA_OBJETOS_ESCALA = 1.7777777777777777;
 export const VEGETA_OBJETOS = [
@@ -20,5 +23,8 @@ export const VEGETA_OBJETOS = [
   { id: 'cristal-4', tipo: 'cristal', x: 2866, y: 662, img: [5047, 1101, 79, 74] },
   { id: 'cristal-5', tipo: 'cristal', x: 3003, y: 746, img: [5224, 1154, 238, 174] },
   { id: 'cristal-6', tipo: 'cristal', x: 3928, y: 906, img: [6889, 1493, 190, 116] },
-  { id: 'cristal-7', tipo: 'cristal', x: 3679, y: 1045, img: [6337, 1609, 382, 251] }
+  { id: 'cristal-7', tipo: 'cristal', x: 3679, y: 1045, img: [6337, 1609, 382, 251] },
+  { id: 'vulcao-grande', tipo: 'vulcao', x: 4140, y: 1744, img: [6842, 2566, 1018, 539], frente: {"x0": 3850, "passo": 8, "y": [1675, 1678, 1681, 1684, 1687, 1690, 1693, 1696, 1699, 1702, 1705, 1708, 1711, 1714, 1717, 1720, 1721, 1723, 1724, 1726, 1727, 1729, 1730, 1732, 1733, 1735, 1737, 1738, 1740, 1741, 1743, 1744, 1744, 1744, 1744, 1743, 1743, 1743, 1742, 1742, 1742, 1742, 1741, 1741, 1741, 1740, 1740, 1740, 1739, 1737, 1736, 1734, 1733, 1732, 1730, 1729, 1727, 1726, 1724, 1723, 1721, 1720, 1718, 1715, 1708, 1702, 1695, 1689, 1683, 1676, 1670, 1663]} },
+  { id: 'vulcao-sudoeste', tipo: 'vulcao', x: 3505, y: 2014, img: [5820, 3180, 831, 405], frente: {"x0": 3275, "passo": 8, "y": [1975, 1980, 1985, 1990, 1995, 2000, 2000, 2001, 2001, 2002, 2003, 2003, 2004, 2005, 2005, 2006, 2007, 2007, 2008, 2009, 2009, 2010, 2011, 2011, 2012, 2013, 2013, 2014, 2014, 2014, 2014, 2014, 2013, 2013, 2013, 2013, 2012, 2012, 2012, 2012, 2011, 2011, 2011, 2011, 2010, 2010, 2010, 2009, 2006, 2003, 2000, 1997, 1994, 1991, 1988, 1984, 1981, 1978, 1975]} },
+  { id: 'vulcao-norte', tipo: 'vulcao', x: 4148, y: 1397, img: [7150, 2291, 449, 197], frente: {"x0": 4023, "passo": 8, "y": [1370, 1374, 1378, 1383, 1384, 1385, 1386, 1388, 1389, 1390, 1392, 1393, 1394, 1395, 1397, 1397, 1397, 1397, 1397, 1397, 1397, 1397, 1397, 1397, 1396, 1393, 1389, 1386, 1383, 1380, 1377, 1373]} }
 ];

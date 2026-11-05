@@ -7,7 +7,9 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from '
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock']);
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper']);
+// Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
+export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper']);
 
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
@@ -80,17 +82,19 @@ export class Game {
     if (!a || !b || a.id === b.id || !a.connected || !b.connected || a.hp <= 0 || b.hp <= 0) return false;
     return this.mesmoLugar(a, b) && Boolean(areaPorId(a.area)?.pvp);
   }
+  // Distância até a borda do corpo do alvo: mob grande (Oozaru) é alcançado de mais longe.
+  distanciaAoCorpo(a, b) { return Math.max(0, distance(a, b) - (b.corpo || 0)); }
   nearestMob(p, radius = 350, aceita = null) {
     let best = null, d = radius;
     for (const m of this.mobs.values()) {
       if (m.hp <= 0 || !this.mesmoLugar(p, m) || (aceita && !aceita(m))) continue;
-      const dd = distance(p, m); if (dd < d) { d = dd; best = m; }
+      const dd = this.distanciaAoCorpo(p, m); if (dd < d) { d = dd; best = m; }
     }
     return best;
   }
   // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
   alvoMaisProximo(p, raio = 350) {
-    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && m.type !== 'subboss' && m.type !== 'boss' && this.mesmoLugar(p, m)
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && this.mesmoLugar(p, m)
       && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
       .sort((a, b) => distance(p, a) - distance(p, b));
     const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40);
@@ -209,7 +213,7 @@ export class Game {
       p.basicReady = this.time + 0.45;
       const dir = this.aimDirection(p, target); p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
-      if (target && distance(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
+      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
       return { ok: true };
     }
     if (skill === 'dash') {
@@ -266,14 +270,16 @@ export class Game {
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
     const damage = Math.max(1, Math.round(guardedRaw * 100 / (100 + defense * 3)));
     target.hp = Math.max(0, target.hp - damage);
+    // Ameaça: quem bate num mob vira (ou reforça) o alvo dele, mesmo de longe e mesmo sendo mob neutro.
+    if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
       if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
-        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null;
+        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.type === 'boss' ? 100 : 5 + Math.floor(this.random() * 5);
-          if (target.type === 'boss') { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
+          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? 100 : 5 + Math.floor(this.random() * 5);
+          if (target.raro) { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < 0.3 ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
           if (this.random() < 0.008) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
@@ -385,7 +391,7 @@ export class Game {
     if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
-    if (p.autoAttack && target && distance(p, target) < 70) this.cast(p, 'basic', true);
+    if (p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
     if (p.autoSkills && target) {
       if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && distance(p, target) < 400 && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
       else if (p.ki > p.stats.ki * 0.15 && distance(p, target) < 390) this.cast(p, 'ki', true);
@@ -402,16 +408,45 @@ export class Game {
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
+  // ---- Aggro ----
+  // Cada mob guarda uma tabela de ameaça { idDoJogador: { valor, em } }: dano soma ameaça; o mob agressivo também
+  // ganha um pouco de ameaça de quem entra no raio dele. O alvo é quem tem mais ameaça, com folga de 20% para não
+  // trocar de alvo a toda hora. A ameaça some quando o jogador morre, desconecta, sai do lugar, fica protegido
+  // (chegada/Vila) ou se afasta demais sem bater; e o mob larga tudo e volta quando passa do limite de perseguição.
+  somarAmeaca(m, p, valor) {
+    if (m.hp <= 0 || m.voltando) return;
+    if (!m.ameaca) m.ameaca = new Map();
+    const a = m.ameaca.get(p.id) || { valor: 0, em: this.time };
+    a.valor += valor; a.em = this.time; m.ameaca.set(p.id, a);
+  }
+  alvoDoMob(m) {
+    const valido = p => p && p.connected && p.hp > 0 && this.mesmoLugar(p, m) && !this.protegido(p);
+    // Esquece quem não vale mais, ou quem está longe sem bater há 6 s.
+    if (m.ameaca) for (const [id, a] of m.ameaca) {
+      const p = this.players.get(id);
+      if (!valido(p) || (distance(p, m) > m.aggro * 2 && this.time - a.em > 6)) m.ameaca.delete(id);
+    }
+    // Agressivo: quem entra no raio ganha ameaça mínima (proximidade), para o mob notar e perseguir.
+    if (m.agressivo) for (const p of this.players.values()) {
+      if (valido(p) && distance(p, m) < m.aggro && !m.ameaca?.has(p.id)) this.somarAmeaca(m, p, 1);
+    }
+    if (!m.ameaca?.size) return null;
+    let melhor = null, maior = -1;
+    for (const [id, a] of m.ameaca) if (a.valor > maior) { maior = a.valor; melhor = this.players.get(id); }
+    const atual = this.players.get(m.alvoId), aAtual = m.ameaca.get(m.alvoId);
+    if (atual && aAtual && melhor !== atual && maior < aAtual.valor * 1.2) melhor = atual;
+    m.alvoId = melhor.id; return melhor;
+  }
   updateMob(m, dt) {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
-    const grande = m.type === 'boss' || m.type === 'subboss';
-    let target = null, closest = grande ? 460 : 300;
-    for (const p of this.players.values()) {
-      if (!p.connected || p.hp <= 0 || !this.mesmoLugar(p, m) || this.protegido(p)) continue;
-      const d = distance(p, m); if (d < closest) { target = p; closest = d; }
-    }
+    const grande = CHEFES.has(m.type);
+    const casa = { x: m.homeX, y: m.homeY }, longeDeCasa = distance(m, casa);
+    // Passou do limite de perseguição: larga o alvo e volta para casa; ao chegar, recupera a vida.
+    if (!m.voltando && longeDeCasa > m.perseguicao) { m.voltando = true; m.ameaca = null; m.alvoId = null; }
+    if (m.voltando && longeDeCasa < 40) { m.voltando = false; m.hp = m.maxHp; }
+    const target = m.voltando ? null : this.alvoDoMob(m), closest = target ? distance(target, m) : Infinity;
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
@@ -421,20 +456,22 @@ export class Game {
       }
       return;
     }
-    if (!target || distance(m, { x: m.homeX, y: m.homeY }) > 470) {
-      if (distance(m, { x: m.homeX, y: m.homeY }) > 10) this.steer(m, { x: m.homeX, y: m.homeY }, dt, m.speed);
+    if (!target) {
+      if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
       return;
     }
     // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.
     const socaEAtira = SOCA_E_ATIRA.has(m.type);
-    const atira = m.type === 'ranged' || (socaEAtira && closest > 62);
-    const range = m.type === 'ranged' || socaEAtira ? 235 : grande ? 150 : 62;
+    // Mob grande soca de mais longe (o braço é maior) e para antes de encostar no centro do alvo.
+    const corpo = m.corpo || 0, soco = 62 + corpo;
+    const atira = m.type === 'ranged' || (socaEAtira && closest > soco);
+    const range = m.type === 'ranged' || socaEAtira ? 235 + corpo : grande ? 150 : soco;
     // E não fica parado atirando: continua se aproximando até a distância do soco.
-    if (socaEAtira && closest > 55 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
+    if (socaEAtira && closest > soco - 7 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
       if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
-      else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
+      else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'oozaruSuper' ? 115 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
       m.facing = norm(target.x - m.x, target.y - m.y);
       // Presentation timestamps only: impact, warning duration and cooldown are unchanged.
       m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: m.telegraph.kind };

@@ -131,3 +131,26 @@ test('Cânions: Nappa < Raditz < Bardock, 10 na hunt (5 / 3 / 2), os três socam
   assert.deepEqual([a.name, b.name, c.name], ['Nappa', 'Raditz', 'Bardock']);
   for (const t of ['nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
 });
+
+test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Super é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
+  const { SOCA_E_ATIRA, CHEFES } = await import('../public/shared/game.mjs');
+  const { renasceEm, pontoNoCirculo } = await import('../public/shared/enemies.mjs');
+  const { podeAndar } = await import('../public/shared/passagem.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-lava');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruSuper') === 1);
+  const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruSuper'].map(t => mobs.find(x => x.type === t));
+  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Super']);
+  assert.ok(o.maxHp < g.maxHp && g.maxHp * 4 < s.maxHp && o.attack < g.attack && g.attack < s.attack);
+  for (const t of ['oozaru', 'oozaruGuerreiro', 'oozaruSuper']) assert.ok(SOCA_E_ATIRA.has(t));
+  assert.ok(CHEFES.has('oozaruSuper'), 'caça automática não enfrenta o Oozaru Super');
+  // Raro: começa morto e volta entre 6 e 12 horas.
+  assert.ok(s.raro && s.hp === 0 && s.deadUntil - game.time >= 6 * 3600 && s.deadUntil - game.time <= 12 * 3600);
+  assert.equal(renasceEm('oozaruSuper', () => 0), 6 * 3600); assert.equal(renasceEm('oozaruSuper', () => 1), 12 * 3600);
+  // Nasce em pontos diferentes da hunt, sempre em chão andável dela.
+  let semente = 12345; const sorte = () => (semente = (semente * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pontos = Array.from({ length: 8 }, () => pontoNoCirculo(sorte, 'vegeta-lava'));
+  for (const pt of pontos) assert.ok(podeAndar('vegeta', pt.x, pt.y, 'vegeta-lava'));
+  assert.ok(new Set(pontos.map(pt => Math.round(pt.x / 500) + ':' + Math.round(pt.y / 500))).size >= 3, 'pontos espalhados pela hunt');
+});

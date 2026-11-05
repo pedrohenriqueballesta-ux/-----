@@ -177,7 +177,7 @@ function drawPlayer(p, pos, time) {
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
 // Chefe e subchefe são desenhados grandes; o subchefe usa a sentinela ampliada (arte provisória).
-const grande = m => m.type === 'boss' || m.type === 'subboss';
+const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper';
 function drawMob(m, pos, time) {
   const boss = grande(m), size = boss ? 76 : 40, h = boss ? 100 : 53;
   shadow(pos.x, pos.y, boss ? 35 : 17);
@@ -291,8 +291,15 @@ function verificarPortal(pos) {
 
 // Ordem de desenho de um personagem: pela posição dos pés, mas quem pisa à frente da curva da base
 // de uma casa (nas laterais a base sobe) vai na frente dela, mesmo acima da linha da base.
-function profundidade(pos, casas) {
+// Vulcão: a profundidade dele é o ponto mais baixo do pé, mas quem está ao lado, abaixo da borda da encosta naquela
+// coluna, está na frente (relato do Pedro, 05/11: "entrando debaixo do vulcão").
+function frenteDoVulcao(o, x, escala) {
+  const f = o.frente, i = Math.round((x / escala - f.x0) / f.passo);
+  return i >= 0 && i < f.y.length && f.y[i] != null ? f.y[i] * escala : null;
+}
+function profundidade(pos, casas, escala = 1, vulcoes = []) {
   let y = pos.y;
+  for (const o of vulcoes) if (pos.y < o.y * escala) { const f = frenteDoVulcao(o, pos.x, escala); if (f !== null && pos.y >= f) y = Math.max(y, o.y * escala + 0.01); }
   for (const c of casas) if (pos.y < c.y) { const f = frenteDaCasa(c, pos.x); if (f !== null && pos.y >= f) y = Math.max(y, c.y + 0.01); }
   return y;
 }
@@ -312,6 +319,7 @@ function frame(now) {
   // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
   const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
   const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
+  const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
@@ -351,8 +359,8 @@ function frame(now) {
     ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
-    ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
-    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
+    ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas, world.escala, vulcoesAqui), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
+    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
   for (const s of snapshot.projectiles) {

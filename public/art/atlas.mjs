@@ -37,6 +37,16 @@ import { RADITZ_KI } from './raditz-ki.mjs';
 import { BARDOCK_PASSO } from './bardock-passo.mjs';
 import { BARDOCK_SOCO } from './bardock-soco.mjs';
 import { BARDOCK_KI } from './bardock-ki.mjs';
+// Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru, Oozaru Guerreiro e o chefe raro Oozaru Super.
+import { OOZARU_PASSO } from './oozaru-passo.mjs';
+import { OOZARU_SOCO } from './oozaru-soco.mjs';
+import { OOZARU_KI } from './oozaru-ki.mjs';
+import { OOZARU_GUERREIRO_PASSO } from './oozaru-guerreiro-passo.mjs';
+import { OOZARU_GUERREIRO_SOCO } from './oozaru-guerreiro-soco.mjs';
+import { OOZARU_GUERREIRO_KI } from './oozaru-guerreiro-ki.mjs';
+import { OOZARU_SUPER_PASSO } from './oozaru-super-passo.mjs';
+import { OOZARU_SUPER_SOCO } from './oozaru-super-soco.mjs';
+import { OOZARU_SUPER_KI } from './oozaru-super-ki.mjs';
 
 // Five distinct views, with the three opposite views mirrored for consistent anatomy.
 // Back-diagonal views use a rear three-quarter drawing, never a side/front substitute.
@@ -89,7 +99,7 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 }
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
-const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'] };
+const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'] };
 export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
   veteranoKi: [VETERANO_KI, 'veteranoKi'],
   tsufuruGuerreiro: [TSUFURU_GUERREIRO_SOCO, 'tsufuruGuerreiroSoco'], tsufuruGuerreiroKi: [TSUFURU_GUERREIRO_KI, 'tsufuruGuerreiroKi'],
@@ -97,7 +107,10 @@ export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGol
   hatchiyack: [HATCHIYACK_SOCO, 'hatchiyackSoco'], hatchiyackKi: [HATCHIYACK_KI, 'hatchiyackKi'],
   nappa: [NAPPA_SOCO, 'nappaSoco'], nappaKi: [NAPPA_KI, 'nappaKi'],
   raditz: [RADITZ_SOCO, 'raditzSoco'], raditzKi: [RADITZ_KI, 'raditzKi'],
-  bardock: [BARDOCK_SOCO, 'bardockSoco'], bardockKi: [BARDOCK_KI, 'bardockKi'] };
+  bardock: [BARDOCK_SOCO, 'bardockSoco'], bardockKi: [BARDOCK_KI, 'bardockKi'],
+  oozaru: [OOZARU_SOCO, 'oozaruSoco'], oozaruKi: [OOZARU_KI, 'oozaruKi'],
+  oozaruGuerreiro: [OOZARU_GUERREIRO_SOCO, 'oozaruGuerreiroSoco'], oozaruGuerreiroKi: [OOZARU_GUERREIRO_KI, 'oozaruGuerreiroKi'],
+  oozaruSuper: [OOZARU_SUPER_SOCO, 'oozaruSuperSoco'], oozaruSuperKi: [OOZARU_SUPER_KI, 'oozaruSuperKi'] };
 function drawPasso(ctx, kind, pos, height, facing, moving, stride, phase = 0) {
   const [sheet, key] = PASSO[kind];
   const bob = moving ? walkBob(walkStep(pos.travelled || 0, stride, phase)) * height : 0;
