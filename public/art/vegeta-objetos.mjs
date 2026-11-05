@@ -1,9 +1,9 @@
 // Árvores secas e cristais da Floresta Seca (Planeta Vegeta), recortados do próprio solo por
-// ~/idle-dbz/ferramentas/recortar_arvore_vegeta.py (objetos em ~/idle-dbz/referencias/mapas/vegeta/objetos-floresta.json).
+// ferramentas/recortar_arvore_vegeta.py (objetos em ~/idle-dbz/referencias/mapas/vegeta/objetos-floresta.json).
 // Eles já estão pintados no chão; o recorte é desenhado de novo por cima, na ordem de profundidade pela base,
 // para quem passa por trás ficar coberto (relato do Pedro, 04/11: "parece que está passando por cima").
 // Vulcões dos Campos de Lava (05/11, relato do Pedro: bloqueavam onde não deviam): recortados pelo contorno marcado à mão
-// (~/idle-dbz/ferramentas/recortar_vulcoes.py + referencias/mapas/vegeta/vulcoes.json); só o pé do cone bloqueia.
+// (ferramentas/recortar_vulcoes.py + referencias/mapas/vegeta/vulcoes.json); só o pé do cone bloqueia.
 // x, y = base no chão (px da imagem de 4608; nos vulcões, o ponto mais baixo do pé). Vulcão: `frente` = borda de baixo do
 // contorno de 8 em 8 px; quem está abaixo dela naquela coluna é desenhado na frente (como na frente da casa); img = [x, y, largura, altura] do recorte no solo de 8192.
 // O bloqueio (pé da árvore, base do cristal) está na máscara de passagem, não aqui.

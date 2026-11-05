@@ -1,5 +1,5 @@
 // Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
-// ~/idle-dbz/ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
 // Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: preparação (garras erguidas), bote, impacto com poeira, recuperação.
 // referenceHeight copiado da caminhada: o 1º quadro do ataque é agachado e mediria menos,
 // o que faria o Saibaman crescer ao atacar. As duas folhas têm o mesmo tamanho de pixel.

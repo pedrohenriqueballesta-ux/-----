@@ -1,5 +1,5 @@
 // Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
-// ~/idle-dbz/ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
 // Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: preparação, avanço, impacto, recuperação.
 // Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
 export const HATCHIYACK_SOCO = {

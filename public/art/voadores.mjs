@@ -1,6 +1,6 @@
 // Mobs voadores da hunt fácil: Pássaro e Inseto de Namek (decisão do Pedro, 03/11/2026).
 // Folha PROVISÓRIA: 8 direções × 3 estados (parado, voando, atacando), um quadro cada, recortada por
-// ~/idle-dbz/ferramentas/recortar_folha_8dir.py. Nesta folha o norte ainda aparece de frente; a folha
+// ferramentas/recortar_folha_8dir.py. Nesta folha o norte ainda aparece de frente; a folha
 // definitiva (5 direções × 4 quadros de voo + 4 de ataque) foi pedida ao ChatGPT.
 import { art, loaded } from './assets.mjs';
 import { spriteFacing, strikeColumn } from '../render/camera.mjs';

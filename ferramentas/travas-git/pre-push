@@ -1,0 +1,8 @@
+#!/bin/sh
+# Regra do Pedro: nunca enviar nada para a main do GitHub; só ramos, via pull request.
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "Bloqueado: não se envia para a main. Envie o ramo e abra um pull request." >&2
+    exit 1
+  fi
+done

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Regra do Pedro: nunca commitar na main. Trabalhe num ramo: git switch -c nome-do-ramo
+ramo=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ "$ramo" = "main" ]; then
+  echo "Bloqueado: não se commita na main. Crie um ramo: git switch -c nome-do-ramo" >&2
+  exit 1
+fi

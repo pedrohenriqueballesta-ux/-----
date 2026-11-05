@@ -1,5 +1,5 @@
 // Caminhada do Goku base desenhada quadro a quadro (ChatGPT, 27/10/2026), recortada e alinhada
-// pela cabeça com ~/idle-dbz/ferramentas/fatiar_caminhada.py. Não edite à mão: gere de novo.
+// pela cabeça com ferramentas/fatiar_caminhada.py. Não edite à mão: gere de novo.
 // Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: contato esq., passagem, contato dir., passagem.
 // Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
 export const GOKU_PASSO = {
