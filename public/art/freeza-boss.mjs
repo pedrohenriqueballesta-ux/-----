@@ -7,7 +7,7 @@ import { drawWalk, drawSheet, GOLPE } from './atlas.mjs';
 import { strikeColumn } from '../render/camera.mjs';
 
 // Altura na tela (Goku = 70). Na nave ele é maior (a cápsula). Provisório.
-export const FREEZA_ALTURA = { pe: 82, nave: 120 };
+export const FREEZA_ALTURA = { pe: 131, nave: 120 };   // em pé +60% (pedido do Pedro, 05/11)
 export function drawFreezaBoss(ctx, forma, x, y, moving, facing, phase, attackProgress, travelled, time) {
   const nave = forma === 'nave', altura = FREEZA_ALTURA[forma] || FREEZA_ALTURA.pe;
   const pos = { x, y, travelled: nave ? time * 70 : travelled };   // a nave flutua sempre, parada ou não

@@ -68,7 +68,7 @@ const ATRIBUTOS = {
     boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
     // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
     // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
-    freezaBoss: { hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 20, name: 'Freeza',
+    freezaBoss: { hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 32, name: 'Freeza',
       nave: { aPartirDe: 0.4, ataque: 1.35, defesa: 1.25, velocidade: 0.8, corpo: 40, nome: 'Freeza (nave)' } }
   }
 };
