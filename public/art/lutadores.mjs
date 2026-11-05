@@ -1,0 +1,16 @@
+// Mobs que andam, socam de perto e disparam ki de longe, com as 3 folhas desenhadas (andar, soco, ki), recortadas
+// por fatiar_caminhada.py. Planeta Vegeta, Planícies Vermelhas (decisão do Pedro, 05/11/2026): Tsufurujin
+// Guerreiro (o mais fraco), Tsufurujin General (o mediano) e Hatchiyack (o mais forte, maior).
+// O quadro de impacto (coluna 3) cai no instante do dano, como no Veterano.
+import { art } from './assets.mjs';
+import { drawWalk, drawSheet, GOLPE } from './atlas.mjs';
+import { strikeColumn } from '../render/camera.mjs';
+
+// Altura na tela (Goku = 70). Provisório: o Hatchiyack é maior, o General um pouco maior que o Guerreiro.
+export const LUTADORES = { tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { altura: 76 }, hatchiyack: { altura: 92 } };
+export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false) {
+  const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
+  const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
+  if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, altura, facing, strikeColumn(attackProgress))) return true;
+  return drawWalk(ctx, tipo, pos, altura, facing, moving, 96, phase);
+}

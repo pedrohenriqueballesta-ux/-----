@@ -80,7 +80,20 @@ test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível reco
     const mobs = [...game.mobs.values()].filter(m => m.area === area);
     assert.ok(mobs.length >= 12, area + ': mobs suficientes (' + mobs.length + ')');
     for (let i = 0; i < 60 / 0.05; i++) game.tick(0.05);
-    assert.ok(p.kills >= 5, area + ': só ' + p.kills + ' abates em 60 s');
+    // Planícies Vermelhas é de propósito mais dura no nível mínimo (Pedro, 05/11): 3 abates em 60 s já é caça viva.
+    assert.ok(p.kills >= 3, area + ': só ' + p.kills + ' abates em 60 s');
     assert.equal(p.planet, 'vegeta'); assert.equal(p.area, area, area + ': saiu da hunt');
   }
+});
+
+test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os três socam e disparam ki', async () => {
+  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-planicies');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.deepEqual([n('tsufuruGuerreiro'), n('tsufuruGeneral'), n('hatchiyack')], [8, 5, 3]);
+  const [g, m, h] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'].map(t => mobs.find(x => x.type === t));
+  assert.ok(g.maxHp < m.maxHp && m.maxHp < h.maxHp && g.attack < m.attack && m.attack < h.attack && g.xp < m.xp && m.xp < h.xp);
+  assert.deepEqual([g.name, m.name, h.name], ['Tsufurujin Guerreiro', 'Tsufurujin General', 'Hatchiyack']);
+  for (const t of ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack']) assert.ok(SOCA_E_ATIRA.has(t));
 });
