@@ -86,7 +86,7 @@ export function zoneAt(x, y, planet = 'namek') {
 export const ENTERRA_CASA = 0.035;
 // Casas dos namekuseijins na Vila (sprites em assets/namek/casas/casa_N.png).
 // Cada uma fica num terreiro de terra batida pintado no próprio solo.webp por
-// ~/idle-dbz/ferramentas/assentar_casas.py: ao mudar posição ou tamanho aqui, gere o solo de novo.
+// ferramentas/assentar_casas.py: ao mudar posição ou tamanho aqui, gere o solo de novo.
 // x, y = centro da base da casa no chão; w = largura desenhada (a altura segue a proporção do sprite).
 // x, y em px da imagem (acompanham o mapa); w em px do desenho original, ampliado por
 // ESCALA_CONSTRUCOES: com 2, o vão das portas fica entre 1,0 e 1,1 vez a altura do Goku (70).
@@ -180,7 +180,7 @@ export const PORTAIS = [
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
-// ~/idle-dbz/ferramentas/gerar_decoracao.mjs. Só TRONCOS e PEDRAS GRANDES bloqueiam, com uma área pequena
+// ferramentas/gerar_decoracao.mjs. Só TRONCOS e PEDRAS GRANDES bloqueiam, com uma área pequena
 // na base; copas, arbustos e pedra pequena são enfeite (o personagem passa na frente ou atrás).
 export const DECORACAO_ESCALA = 0.45;   // unidades do mundo por px do recorte (árvore mais alta ≈ 3× o Goku)
 const PEDRA_GRANDE = new Set([15, 16]);

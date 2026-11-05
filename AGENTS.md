@@ -17,6 +17,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 - public/art/ (por assunto: assets, atlas, terrain, goku, saibaman, alien, freeza, sprite-data) e public/render/camera.mjs cuidam, respectivamente, das artes e da câmera, sem alterar as regras do servidor.
 - public/style.css cuida de desktop e telas pequenas.
 - data/save.json é estado local de execução e fica fora das entregas de código.
+- ferramentas/ guarda os scripts de apoio para arte e mapas (não carregados pelo jogo); docs/COMO_TRABALHAMOS.md é o manual de trabalho.
 - Sem empacotador: o navegador carrega os módulos pela URL, então o código compartilhado fica dentro de public/.
 
 ## Decisões que devem ser preservadas

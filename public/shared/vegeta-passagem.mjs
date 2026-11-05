@@ -1,4 +1,4 @@
-// Máscara de passagem do Planeta Vegeta, gerada por ~/idle-dbz/ferramentas/gerar_modulo_vegeta.py a partir de
+// Máscara de passagem do Planeta Vegeta, gerada por ferramentas/gerar_modulo_vegeta.py a partir de
 // ~/idle-dbz/referencias/mapas/vegeta/passagem.png (gerar_mascara_vegeta.py + bloqueios.json). Não edite à mão.
 // linhas: corridas em base 36, alternando anda/bloqueia, começando por anda. areas: por célula, a área
 // (índice em `ids`, 1 em diante; 0 = nenhuma), em corridas "índice*comprimento" (comprimento em base 36).

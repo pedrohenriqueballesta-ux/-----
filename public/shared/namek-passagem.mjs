@@ -1,4 +1,4 @@
-// Máscara de passagem gerada por ~/idle-dbz/ferramentas/converter_mascara.py a partir de
+// Máscara de passagem gerada por ferramentas/converter_mascara.py a partir de
 // public/assets/namek/passagem.png (branco = anda, preto = bloqueia). Não edite à mão:
 // corrija o PNG e gere de novo. Cada linha: corridas em base 36, alternando anda/bloqueia,
 // começando por anda.

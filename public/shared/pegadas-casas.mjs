@@ -1,4 +1,4 @@
-// Pegada no chão de cada casa e ruína, gerada por ~/idle-dbz/ferramentas/gerar_pegadas.py a partir
+// Pegada no chão de cada casa e ruína, gerada por ferramentas/gerar_pegadas.py a partir
 // dos PNGs em assets/namek/casas e ruinas. Não edite à mão: trocou um desenho, gere de novo.
 // Medidas em larguras do desenho, a partir do canto de cima: alto = altura/largura do desenho,
 // x0/x1 = onde a base começa e termina,
