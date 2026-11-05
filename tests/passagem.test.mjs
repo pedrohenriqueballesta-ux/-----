@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, PLANETS } from '../public/shared/index.mjs';
+import { Game, PLANETS, lugar } from '../public/shared/index.mjs';
 import { naEscala } from '../public/shared/config.mjs';
 import { podeAndar, emTerra } from '../public/shared/passagem.mjs';
 
@@ -114,6 +114,30 @@ test('cada portal fica em chão andável e é alcançável a pé da chegada da s
     assert.ok(pesLivres(o.planet, o.x, o.y, 15, o.area), o.id + ' em lugar bloqueado');
     for (const d of o.destinos) assert.ok(lugar(d), o.id + ' leva a um destino que não existe: ' + d);
     if (o.area) assert.ok(caminhoPorTerra(o.planet, lugar(o.area).chegada, o, o.area), o.id + ' sem caminho a pé desde a chegada');
+  }
+});
+
+test('todos os mobs das hunts têm rota contínua e livre de colisões desde a chegada', async () => {
+  const { caminhoPorTerra, pesLivres, pontoAlcancavelDesde } = await import('../public/shared/passagem.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  for (const planeta of Object.values(PLANETS).filter(p => p.hunts)) for (const id of planeta.hunts) {
+    const hunt = lugar(id), mobs = [...game.mobs.values()].filter(m => m.area === id);
+    assert.ok(mobs.length > 0, id + ': tem alvos para validar');
+    for (const mob of mobs) {
+      assert.ok(pontoAlcancavelDesde(planeta.id, hunt.chegada, mob, id), id + '/' + mob.id + ': spawn conectado à chegada');
+      const rota = caminhoPorTerra(planeta.id, hunt.chegada, mob, id, 40);
+      assert.ok(rota, id + '/' + mob.id + ': tem rota até o alcance de combate');
+      const pontos = [hunt.chegada, ...rota];
+      for (let i = 1; i < pontos.length; i++) {
+        const a = pontos[i - 1], b = pontos[i], n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4));
+        for (let j = 1; j < n; j++) {
+          const x = a.x + (b.x - a.x) * j / n, y = a.y + (b.y - a.y) * j / n;
+          assert.ok(pesLivres(planeta.id, x, y, 15, id), id + '/' + mob.id + ': segmento da rota cruza uma colisão em ' + Math.round(x) + ',' + Math.round(y));
+        }
+      }
+      const fim = rota.at(-1) || hunt.chegada;
+      assert.ok(Math.hypot(fim.x - mob.x, fim.y - mob.y) <= 40, id + '/' + mob.id + ': termina no alcance de ataque');
+    }
   }
 });
 

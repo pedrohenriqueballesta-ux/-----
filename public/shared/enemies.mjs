@@ -2,7 +2,7 @@
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
 import { PLANETS, areaPorId, naEscala } from './config.mjs';
-import { podeAndar } from './passagem.mjs';
+import { podeAndar, pontoAlcancavelDesde } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
 // Inseto de Namek, metade de cada, os dois atacando de perto); na média (decisão de 03/11), metade Guerreiros
@@ -85,12 +85,17 @@ export const CHEFES_RAROS = {
 export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
 export function pontoNoCirculo(random, area = 'dificil') {
   const c = CHEFES_RAROS[area];
+  const z = areaPorId(area);
   for (let i = 0; i < 40; i++) {
     const a = random() * Math.PI * 2, d = Math.sqrt(random()) * c.r;
     const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
-    if (em_terra(area, x, y)) return { x, y };
+    if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
   }
-  return { x: c.x, y: c.y };
+  for (let d = 0; d <= c.r; d += 36) for (let i = 0; i < 24; i++) {
+    const a = i * Math.PI / 12, x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
+    if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
+  }
+  return { ...z.chegada };
 }
 
 // Pontos de nascimento dos inimigos: uma grade dentro de cada área, ficando só os pontos
@@ -103,7 +108,7 @@ function espalhar(random, area, n, tipo) {
   const passo = 170 * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;
   for (let y = z.y + margem; y < z.y + z.h - fim; y += passo) for (let x = z.x + margem; x < z.x + z.w - fim; x += passo) {
     const px = x + (random() - 0.5) * sorteio, py = y + (random() - 0.5) * sorteio;
-    if (em_terra(area, px, py)) candidatos.push({ x: px, y: py });
+    if (em_terra(area, px, py) && pontoAlcancavelDesde(z.planet, z.chegada, { x: px, y: py }, area)) candidatos.push({ x: px, y: py });
   }
   // Pega n pontos bem distribuídos ao longo da lista (em vez dos n primeiros, que ficariam todos no topo).
   const salto = Math.max(1, candidatos.length / n);

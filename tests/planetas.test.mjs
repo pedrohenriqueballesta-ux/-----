@@ -71,6 +71,14 @@ test('casas e árvores só bloqueiam no planeta delas', () => {
   assert.equal(decoracaoBloqueia('outro', arvore.x, arvore.y), false);
 });
 
+test('árvores e cristais da Floresta Seca bloqueiam pela base na máscara do Planeta Vegeta', async () => {
+  const { VEGETA_OBJETOS } = await import('../public/art/vegeta-objetos.mjs');
+  for (const objeto of VEGETA_OBJETOS) {
+    const x = objeto.x * PLANETS.vegeta.escala, y = objeto.y * PLANETS.vegeta.escala;
+    assert.equal(podeAndar('vegeta', x, y, 'vegeta-floresta'), false, objeto.id + ': a base está marcada como obstáculo');
+  }
+});
+
 test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível recomendado sem travar', async () => {
   const { statsFor } = await import('../public/shared/characters.mjs');
   for (const area of PLANETS.vegeta.hunts) {
@@ -84,6 +92,19 @@ test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível reco
     // Planícies e Cânions são de propósito duros no nível mínimo (Pedro, 05/11): 3 abates em 2 min já é caça viva.
     assert.ok(p.kills >= 3, area + ': só ' + p.kills + ' abates em 2 min');
     assert.equal(p.planet, 'vegeta'); assert.equal(p.area, area, area + ': saiu da hunt');
+  }
+});
+
+test('Namekusei: caça automática cruza as 3 hunts sem ficar presa em água ou obstáculos', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  for (const area of PLANETS.namek.hunts) {
+    const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a'), nivel = lugar(area).nivel[0];
+    p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
+    game.levar(p, lugar(area)); game.action(p.id, { type: 'hunt' });
+    for (let i = 0; i < 60 / 0.05; i++) game.tick(0.05);
+    assert.ok(p.kills >= 5, area + ': só ' + p.kills + ' abates em 60 s');
+    assert.ok(p.hp > 0, area + ': permaneceu vivo');
+    assert.equal(p.area, area); assert.equal(p.autoHunt, true);
   }
 });
 
