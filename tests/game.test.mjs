@@ -137,6 +137,34 @@ test('caça automática sustenta uma sessão inicial, derrota mobs e evolui sem 
   assert.equal(p.inventory.food, 4);
 });
 
+test('caça automática troca imediatamente para o mob mais próximo', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a'));
+  const distante = game.addMob('melee', p.x + 110, p.y, 'inicial');
+  game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+  game.tick(0.05);
+  assert.equal(p.targetId, distante.id);
+
+  const proximo = game.addMob('melee', p.x + 45, p.y, 'inicial');
+  game.tick(0.05);
+  assert.equal(p.targetId, proximo.id, 'não espera matar o alvo anterior');
+});
+
+test('caça automática sorteia pontos de patrulha diferentes pela hunt quando não há mobs por perto', () => {
+  const patrulhaComSorteio = sorteio => {
+    const game = world(), p = naArea(game, game.addPlayer('a'));
+    const primeiro = game.addMob('melee', 5500, 2800, 'inicial');
+    game.addMob('melee', 2250, 1300, 'inicial');
+    const terceiro = game.addMob('melee', 5700, 1350, 'inicial');
+    game.random = () => sorteio;
+    game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+    game.tick(0.05);
+    return { alvo: p.patrulha?.id, primeiro: primeiro.id, terceiro: terceiro.id };
+  };
+  const inicio = patrulhaComSorteio(0), fim = patrulhaComSorteio(0.99);
+  assert.equal(inicio.alvo, inicio.primeiro);
+  assert.equal(fim.alvo, fim.terceiro);
+});
+
 // Anda até o portal que leva ao destino, no lugar onde o jogador está, e usa.
 function porPortal(game, p, destino) {
   const o = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destino));

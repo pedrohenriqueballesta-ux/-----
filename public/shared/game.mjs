@@ -85,12 +85,21 @@ export class Game {
     }
     return best;
   }
-  // Alvo da caça automática: o mob mais próximo que dá para alcançar por terra (confere os 6 mais
-  // próximos; se nenhum tiver caminho, o mais próximo mesmo). Mob ignorado pela rede de segurança fica de fora.
-  alvoAlcancavel(p) {
-    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && this.mesmoLugar(p, m) && (p.ignorar?.[m.id] || 0) <= this.time)
-      .sort((a, b) => distance(p, a) - distance(p, b));
-    return vivos.slice(0, 6).find(m => distance(p, m) < 120 || caminhoPorTerra(p.planet, p, m, p.area)) || vivos[0] || null;
+  // Alvo da caça automática: o mob vivo mais próximo dentro do raio local. Mob ignorado pela rede
+  // de segurança fica de fora; o caminho por terra é calculado pelo steer só para o alvo escolhido.
+  alvoMaisProximo(p, raio = 350) {
+    return this.nearestMob(p, raio, m => (p.ignorar?.[m.id] || 0) <= this.time);
+  }
+  // Entre combates, patrulha pontos de nascimento espalhados pela hunt. Evita repetir os três
+  // últimos pontos para sair da mesma área e encontrar outros inimigos.
+  proximaPatrulha(p) {
+    const historico = p.patrulhasRecentes || [];
+    let pontos = [...this.mobs.values()].filter(m => this.mesmoLugar(p, m) && distance(p, { x: m.homeX, y: m.homeY }) > 350 && !historico.includes(m.id));
+    if (!pontos.length) pontos = [...this.mobs.values()].filter(m => this.mesmoLugar(p, m) && distance(p, { x: m.homeX, y: m.homeY }) > 120);
+    if (!pontos.length) return null;
+    const ponto = pontos[Math.min(pontos.length - 1, Math.floor(this.random() * pontos.length))];
+    p.patrulhasRecentes = [...historico, ponto.id].slice(-3);
+    return { id: ponto.id, x: ponto.homeX, y: ponto.homeY };
   }
   aimDirection(p, target = null) {
     if (target) return norm(target.x - p.x, target.y - p.y);
@@ -113,7 +122,7 @@ export class Game {
     if (kind === 'hunt') {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
-      p.autoHunt = data.enabled !== false; p.moveTo = null;
+      p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.rota = null;
       if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
       return { ok: true };
     }
@@ -321,18 +330,30 @@ export class Game {
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1));
     else if (p.autoHunt) {
-      // A área inteira é a região de caça: segue o alvo vivo ou o mob mais próximo da hunt.
-      // Rede de segurança: 3 s sem chegar mais perto do alvo → troca de alvo e ignora esse por 10 s.
-      let target = this.mobs.get(p.targetId);
-      if (!target || target.hp <= 0 || !this.mesmoLugar(p, target) || (p.ignorar?.[target.id] || 0) > this.time) target = this.alvoAlcancavel(p);
-      if (target?.id !== p.caca?.alvo) p.caca = { alvo: target?.id, melhor: Infinity, desde: this.time };
-      p.targetId = target?.id || null;
-      if (target && distance(p, target) > 49) {
-        this.steer(p, target, dt, p.stats.mobility);
-        const d = distance(p, target);
-        if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
-        else if (this.time - p.caca.desde > 3) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
-      } else if (p.caca) p.caca.desde = this.time;
+      // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
+      // quando outro se aproxima durante a perseguição atual.
+      const target = this.alvoMaisProximo(p);
+      if (target) {
+        if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
+        p.targetId = target.id;
+        if (distance(p, target) > 49) {
+          this.steer(p, target, dt, p.stats.mobility);
+          const d = distance(p, target);
+          if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
+          else if (this.time - p.caca.desde > 3) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
+        } else if (p.caca) p.caca.desde = this.time;
+      } else {
+        p.targetId = null;
+        if (!p.patrulha || distance(p, p.patrulha) < 55) p.patrulha = this.proximaPatrulha(p);
+        if (p.patrulha) {
+          const idPatrulha = 'patrulha:' + p.patrulha.id;
+          if (idPatrulha !== p.caca?.alvo) p.caca = { alvo: idPatrulha, melhor: Infinity, desde: this.time };
+          this.steer(p, p.patrulha, dt, p.stats.mobility);
+          const d = distance(p, p.patrulha);
+          if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
+          else if (this.time - p.caca.desde > 3) { p.patrulha = null; p.caca = null; p.rota = null; }
+        }
+      }
     } else if (p.moveTo) {
       if (distance(p, p.moveTo) < 16) p.moveTo = null;
       else this.steer(p, p.moveTo, dt, p.stats.mobility);
