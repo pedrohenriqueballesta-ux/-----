@@ -75,9 +75,16 @@ function mobsDaFaixa(area, nivel, tipos) {
     { hp: Math.round(45 + 17.5 * n), attack: Math.round(8 + 1.25 * n), xp: Math.round(10 + 4.2 * n), defesa: Math.round(1 + 0.47 * n), speed, name: nomes[tipo] }])) };
 }
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
+// Aggro (pedido do Pedro, 05/11/2026), configurável por mob nos ATRIBUTOS; estes são os padrões:
+// - agressivo: ataca quem chega perto (true) ou só reage quando é atacado (false, mob neutro);
+// - aggro: raio em que o mob agressivo nota o jogador (unidades do mundo; chefe e mob grande enxergam mais longe);
+// - perseguicao: quanto ele se afasta do ponto de origem antes de desistir e voltar (curando-se ao chegar).
+// O raio antigo (300, fixo) era curto para os mapas do Vegeta: mobs a 400–500 do jogador não reagiam.
+export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
-  return { ...base };
+  const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper';
+  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.

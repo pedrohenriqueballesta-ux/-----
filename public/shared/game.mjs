@@ -270,11 +270,13 @@ export class Game {
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
     const damage = Math.max(1, Math.round(guardedRaw * 100 / (100 + defense * 3)));
     target.hp = Math.max(0, target.hp - damage);
+    // Ameaça: quem bate num mob vira (ou reforça) o alvo dele, mesmo de longe e mesmo sendo mob neutro.
+    if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
       if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
-        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null;
+        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
           this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? 100 : 5 + Math.floor(this.random() * 5);
           if (target.raro) { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
@@ -406,16 +408,45 @@ export class Game {
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
+  // ---- Aggro ----
+  // Cada mob guarda uma tabela de ameaça { idDoJogador: { valor, em } }: dano soma ameaça; o mob agressivo também
+  // ganha um pouco de ameaça de quem entra no raio dele. O alvo é quem tem mais ameaça, com folga de 20% para não
+  // trocar de alvo a toda hora. A ameaça some quando o jogador morre, desconecta, sai do lugar, fica protegido
+  // (chegada/Vila) ou se afasta demais sem bater; e o mob larga tudo e volta quando passa do limite de perseguição.
+  somarAmeaca(m, p, valor) {
+    if (m.hp <= 0 || m.voltando) return;
+    if (!m.ameaca) m.ameaca = new Map();
+    const a = m.ameaca.get(p.id) || { valor: 0, em: this.time };
+    a.valor += valor; a.em = this.time; m.ameaca.set(p.id, a);
+  }
+  alvoDoMob(m) {
+    const valido = p => p && p.connected && p.hp > 0 && this.mesmoLugar(p, m) && !this.protegido(p);
+    // Esquece quem não vale mais, ou quem está longe sem bater há 6 s.
+    if (m.ameaca) for (const [id, a] of m.ameaca) {
+      const p = this.players.get(id);
+      if (!valido(p) || (distance(p, m) > m.aggro * 2 && this.time - a.em > 6)) m.ameaca.delete(id);
+    }
+    // Agressivo: quem entra no raio ganha ameaça mínima (proximidade), para o mob notar e perseguir.
+    if (m.agressivo) for (const p of this.players.values()) {
+      if (valido(p) && distance(p, m) < m.aggro && !m.ameaca?.has(p.id)) this.somarAmeaca(m, p, 1);
+    }
+    if (!m.ameaca?.size) return null;
+    let melhor = null, maior = -1;
+    for (const [id, a] of m.ameaca) if (a.valor > maior) { maior = a.valor; melhor = this.players.get(id); }
+    const atual = this.players.get(m.alvoId), aAtual = m.ameaca.get(m.alvoId);
+    if (atual && aAtual && melhor !== atual && maior < aAtual.valor * 1.2) melhor = atual;
+    m.alvoId = melhor.id; return melhor;
+  }
   updateMob(m, dt) {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = CHEFES.has(m.type);
-    let target = null, closest = grande ? 460 : 300;
-    for (const p of this.players.values()) {
-      if (!p.connected || p.hp <= 0 || !this.mesmoLugar(p, m) || this.protegido(p)) continue;
-      const d = distance(p, m); if (d < closest) { target = p; closest = d; }
-    }
+    const casa = { x: m.homeX, y: m.homeY }, longeDeCasa = distance(m, casa);
+    // Passou do limite de perseguição: larga o alvo e volta para casa; ao chegar, recupera a vida.
+    if (!m.voltando && longeDeCasa > m.perseguicao) { m.voltando = true; m.ameaca = null; m.alvoId = null; }
+    if (m.voltando && longeDeCasa < 40) { m.voltando = false; m.hp = m.maxHp; }
+    const target = m.voltando ? null : this.alvoDoMob(m), closest = target ? distance(target, m) : Infinity;
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
@@ -425,8 +456,8 @@ export class Game {
       }
       return;
     }
-    if (!target || distance(m, { x: m.homeX, y: m.homeY }) > 470) {
-      if (distance(m, { x: m.homeX, y: m.homeY }) > 10) this.steer(m, { x: m.homeX, y: m.homeY }, dt, m.speed);
+    if (!target) {
+      if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
       return;
     }
     // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.
