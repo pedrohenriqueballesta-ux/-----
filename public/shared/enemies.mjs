@@ -37,8 +37,21 @@ const ATRIBUTOS = {
   // vive em cada hunt. Números pela mesma curva de Namek (vida 42 → 210 → 380 nos níveis 1, 10 e 20) estendida
   // ao nível do meio de cada hunt (33, 39, 45, 51, 57): vida ≈ 45 + 17,5 × (nível − 1), ataque ≈ 8 + 1,25 ×,
   // XP ≈ 10 + 4,2 ×, defesa ≈ 1 + 0,47 ×. Chefe raro da Cratera = o do Planalto × 2,7 (a vida dos mobs).
-  ...mobsDaFaixa('vegeta-planicies', 33, { passaro: 115, inseto: 115 }),
-  ...mobsDaFaixa('vegeta-canions', 39, { guerreiro: 112, veterano: 108 }),
+  // Planícies Vermelhas (decisão do Pedro, 05/11/2026): Tsufurujin Guerreiro (o mais fraco), Tsufurujin General
+  // (o mediano) e Hatchiyack (o mais forte). Todos socam de perto e disparam ki de longe. Balanceados para um
+  // nível 30 NÃO matar com facilidade (pedido do Pedro); números calibrados por simulação, ver PASSAGEM_CLAUDE.md.
+  'vegeta-planicies': {
+    tsufuruGuerreiro: { hp: 2000, attack: 64, xp: 220, defesa: 24, speed: 112, name: 'Tsufurujin Guerreiro' },
+    tsufuruGeneral: { hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
+    hatchiyack: { hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
+  },
+  // Cânions (decisão do Pedro, 05/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte).
+  // Mesmo critério das Planícies, um degrau acima: um nível 36 NÃO mata com facilidade.
+  'vegeta-canions': {
+    nappa: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 108, name: 'Nappa' },
+    raditz: { hp: 3550, attack: 95, xp: 600, defesa: 33, speed: 112, name: 'Raditz' },
+    bardock: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 110, name: 'Bardock' }
+  },
   ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
   ...mobsDaFaixa('vegeta-lava', 51, { porunga: 115 }),
   'vegeta-cratera': {
@@ -101,6 +114,9 @@ function espalhar(random, area, n, tipo) {
   const salto = Math.max(1, candidatos.length / n);
   return Array.from({ length: Math.min(n, candidatos.length) }, (_, i) => ({ ...candidatos[Math.floor(i * salto)], type: tipo(i), area }));
 }
+const [G, M, H] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'];
+const PLANICIES_VERMELHAS = [G, M, G, H, G, M, G, G, M, H, G, M, G, G, M, H];
+const CANIONS = ['nappa', 'raditz', 'nappa', 'bardock', 'nappa', 'raditz', 'nappa', 'nappa', 'raditz', 'bardock'];
 // Quantidade de mobs por hunt: na inicial, 20 (16 + 25%, pedido do Pedro, 03/11); nas outras, 16
 // comuns, provisório (a densidade será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
@@ -113,8 +129,11 @@ export function spawnPoints(random) {
     ...espalhar(random, 'dificil', 16, () => 'porunga'),
     { type: 'boss', ...pontoNoCirculo(random), area: 'dificil', raro: true },
     // Planeta Vegeta: 16 mobs por hunt (provisório, como em Namek), metade de cada tipo onde há dois.
-    ...espalhar(random, 'vegeta-planicies', 16, i => i % 2 ? 'inseto' : 'passaro'),
-    ...espalhar(random, 'vegeta-canions', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
+    // Planícies Vermelhas: mais Guerreiros, menos Hatchiyacks (8 / 5 / 3; provisório), misturados pela hunt.
+    ...espalhar(random, 'vegeta-planicies', 16, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
+    // Cânions: mais Nappas, menos Bardocks (5 / 3 / 2), misturados. Só 10: o chão dos Cânions é menos da metade do
+    // das Planícies, e com 16 a densidade dobrava (caça morria ~9 vezes em 5 min no nível 36; com 10, a das Planícies).
+    ...espalhar(random, 'vegeta-canions', 10, i => CANIONS[i % CANIONS.length]),
     ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
     ...espalhar(random, 'vegeta-lava', 16, () => 'porunga'),
     ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),

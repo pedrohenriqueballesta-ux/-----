@@ -86,9 +86,11 @@ test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível reco
     p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
     game.levar(p, lugar(area)); game.action(p.id, { type: 'hunt' });
     const mobs = [...game.mobs.values()].filter(m => m.area === area);
-    assert.ok(mobs.length >= 12, area + ': mobs suficientes (' + mobs.length + ')');
-    for (let i = 0; i < 60 / 0.05; i++) game.tick(0.05);
-    assert.ok(p.kills >= 5, area + ': só ' + p.kills + ' abates em 60 s');
+    assert.ok(mobs.length >= 10, area + ': mobs suficientes (' + mobs.length + ')');
+    // Morrer desliga a caça; o jogador religa ao voltar (aqui, logo que renasce).
+    for (let i = 0; i < 120 / 0.05; i++) { game.tick(0.05); if (p.hp > 0 && !p.autoHunt) game.action(p.id, { type: 'hunt' }); }
+    // Planícies e Cânions são de propósito duros no nível mínimo (Pedro, 05/11): 3 abates em 2 min já é caça viva.
+    assert.ok(p.kills >= 3, area + ': só ' + p.kills + ' abates em 2 min');
     assert.equal(p.planet, 'vegeta'); assert.equal(p.area, area, area + ': saiu da hunt');
   }
 });
@@ -104,4 +106,28 @@ test('Namekusei: caça automática cruza as 3 hunts sem ficar presa em água ou 
     assert.ok(p.hp > 0, area + ': permaneceu vivo');
     assert.equal(p.area, area); assert.equal(p.autoHunt, true);
   }
+});
+
+test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os três socam e disparam ki', async () => {
+  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-planicies');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.deepEqual([n('tsufuruGuerreiro'), n('tsufuruGeneral'), n('hatchiyack')], [8, 5, 3]);
+  const [g, m, h] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'].map(t => mobs.find(x => x.type === t));
+  assert.ok(g.maxHp < m.maxHp && m.maxHp < h.maxHp && g.attack < m.attack && m.attack < h.attack && g.xp < m.xp && m.xp < h.xp);
+  assert.deepEqual([g.name, m.name, h.name], ['Tsufurujin Guerreiro', 'Tsufurujin General', 'Hatchiyack']);
+  for (const t of ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack']) assert.ok(SOCA_E_ATIRA.has(t));
+});
+
+test('Cânions: Nappa < Raditz < Bardock, 10 na hunt (5 / 3 / 2), os três socam e disparam ki', async () => {
+  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-canions');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.deepEqual([n('nappa'), n('raditz'), n('bardock')], [5, 3, 2]);
+  const [a, b, c] = ['nappa', 'raditz', 'bardock'].map(t => mobs.find(x => x.type === t));
+  assert.ok(a.maxHp < b.maxHp && b.maxHp < c.maxHp && a.attack < b.attack && b.attack < c.attack && a.xp < b.xp && b.xp < c.xp);
+  assert.deepEqual([a.name, b.name, c.name], ['Nappa', 'Raditz', 'Bardock']);
+  for (const t of ['nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
 });

@@ -8,3 +8,4 @@ export { drawAlien } from './alien.mjs';
 export { drawFreeza } from './freeza.mjs';
 export { drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU } from './voadores.mjs';
 export { drawGuerreiro, drawVeterano, ALTURA_GUERREIRO } from './guerreiro.mjs';
+export { drawLutador, LUTADORES } from './lutadores.mjs';

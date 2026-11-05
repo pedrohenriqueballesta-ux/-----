@@ -6,6 +6,9 @@ import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializ
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
+// Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock']);
+
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
@@ -422,11 +425,12 @@ export class Game {
       if (distance(m, { x: m.homeX, y: m.homeY }) > 10) this.steer(m, { x: m.homeX, y: m.homeY }, dt, m.speed);
       return;
     }
-    // O Veterano de Namek dispara de longe e soca quando o alvo chega perto.
-    const atira = m.type === 'ranged' || (m.type === 'veterano' && closest > 62);
-    const range = m.type === 'ranged' || m.type === 'veterano' ? 235 : grande ? 150 : 62;
-    // O Veterano não fica parado atirando: continua se aproximando até a distância do soco.
-    if (m.type === 'veterano' && closest > 55 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
+    // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.
+    const socaEAtira = SOCA_E_ATIRA.has(m.type);
+    const atira = m.type === 'ranged' || (socaEAtira && closest > 62);
+    const range = m.type === 'ranged' || socaEAtira ? 235 : grande ? 150 : 62;
+    // E não fica parado atirando: continua se aproximando até a distância do soco.
+    if (socaEAtira && closest > 55 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
       if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
