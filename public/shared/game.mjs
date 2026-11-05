@@ -82,11 +82,13 @@ export class Game {
     if (!a || !b || a.id === b.id || !a.connected || !b.connected || a.hp <= 0 || b.hp <= 0) return false;
     return this.mesmoLugar(a, b) && Boolean(areaPorId(a.area)?.pvp);
   }
+  // Distância até a borda do corpo do alvo: mob grande (Oozaru) é alcançado de mais longe.
+  distanciaAoCorpo(a, b) { return Math.max(0, distance(a, b) - (b.corpo || 0)); }
   nearestMob(p, radius = 350, aceita = null) {
     let best = null, d = radius;
     for (const m of this.mobs.values()) {
       if (m.hp <= 0 || !this.mesmoLugar(p, m) || (aceita && !aceita(m))) continue;
-      const dd = distance(p, m); if (dd < d) { d = dd; best = m; }
+      const dd = this.distanciaAoCorpo(p, m); if (dd < d) { d = dd; best = m; }
     }
     return best;
   }
@@ -211,7 +213,7 @@ export class Game {
       p.basicReady = this.time + 0.45;
       const dir = this.aimDirection(p, target); p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
-      if (target && distance(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
+      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
       return { ok: true };
     }
     if (skill === 'dash') {
@@ -387,7 +389,7 @@ export class Game {
     if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
-    if (p.autoAttack && target && distance(p, target) < 70) this.cast(p, 'basic', true);
+    if (p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
     if (p.autoSkills && target) {
       if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && distance(p, target) < 400 && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
       else if (p.ki > p.stats.ki * 0.15 && distance(p, target) < 390) this.cast(p, 'ki', true);
@@ -429,10 +431,12 @@ export class Game {
     }
     // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.
     const socaEAtira = SOCA_E_ATIRA.has(m.type);
-    const atira = m.type === 'ranged' || (socaEAtira && closest > 62);
-    const range = m.type === 'ranged' || socaEAtira ? 235 : grande ? 150 : 62;
+    // Mob grande soca de mais longe (o braço é maior) e para antes de encostar no centro do alvo.
+    const corpo = m.corpo || 0, soco = 62 + corpo;
+    const atira = m.type === 'ranged' || (socaEAtira && closest > soco);
+    const range = m.type === 'ranged' || socaEAtira ? 235 + corpo : grande ? 150 : soco;
     // E não fica parado atirando: continua se aproximando até a distância do soco.
-    if (socaEAtira && closest > 55 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
+    if (socaEAtira && closest > soco - 7 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
       if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }

@@ -57,9 +57,11 @@ const ATRIBUTOS = {
   // critério das outras hunts (nível 48 não mata com facilidade). Oozaru Super = chefe raro (6 a 12 h, em qualquer
   // ponto da hunt), forte demais para um nível 48–54 sozinho e sem equipamento (o "set" ainda não existe no jogo).
   'vegeta-lava': {
-    oozaru: { hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, name: 'Oozaru' },
-    oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, name: 'Oozaru Guerreiro' },
-    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, name: 'Oozaru Super' }
+    // `corpo`: quanto o mob é mais largo que um personagem comum (unidades). Soma no alcance do soco dele e no de quem
+    // bate nele: sem isso o gigante encostava no centro do Goku e ficava virando de lado (relato do Pedro, 05/11).
+    oozaru: { hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, corpo: 34, name: 'Oozaru' },
+    oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
+    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' }
   },
   'vegeta-cratera': {
     ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],

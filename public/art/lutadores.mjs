@@ -16,5 +16,6 @@ export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgre
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
   if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, altura, facing, strikeColumn(attackProgress))) return true;
-  return drawWalk(ctx, tipo, pos, altura, facing, moving, 96, phase);
+  // Passo proporcional ao tamanho: o gigante anda mais por ciclo, senão os pés "patinam" (Goku: 70 de altura, 96 por ciclo).
+  return drawWalk(ctx, tipo, pos, altura, facing, moving, 96 * Math.max(1, altura / 70), phase);
 }

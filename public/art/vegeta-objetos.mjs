@@ -2,7 +2,9 @@
 // ~/idle-dbz/ferramentas/recortar_arvore_vegeta.py (objetos em ~/idle-dbz/referencias/mapas/vegeta/objetos-floresta.json).
 // Eles já estão pintados no chão; o recorte é desenhado de novo por cima, na ordem de profundidade pela base,
 // para quem passa por trás ficar coberto (relato do Pedro, 04/11: "parece que está passando por cima").
-// x, y = base no chão (px da imagem de 4608); img = [x, y, largura, altura] do recorte no solo de 8192.
+// Vulcões dos Campos de Lava (05/11, relato do Pedro: bloqueavam onde não deviam): recortados pelo contorno marcado à mão
+// (~/idle-dbz/ferramentas/recortar_vulcoes.py + referencias/mapas/vegeta/vulcoes.json); só o pé do cone bloqueia.
+// x, y = base no chão (px da imagem de 4608; nos vulcões, a frente da base); img = [x, y, largura, altura] do recorte no solo de 8192.
 // O bloqueio (pé da árvore, base do cristal) está na máscara de passagem, não aqui.
 export const VEGETA_OBJETOS_ESCALA = 1.7777777777777777;
 export const VEGETA_OBJETOS = [
@@ -20,5 +22,8 @@ export const VEGETA_OBJETOS = [
   { id: 'cristal-4', tipo: 'cristal', x: 2866, y: 662, img: [5047, 1101, 79, 74] },
   { id: 'cristal-5', tipo: 'cristal', x: 3003, y: 746, img: [5224, 1154, 238, 174] },
   { id: 'cristal-6', tipo: 'cristal', x: 3928, y: 906, img: [6889, 1493, 190, 116] },
-  { id: 'cristal-7', tipo: 'cristal', x: 3679, y: 1045, img: [6337, 1609, 382, 251] }
+  { id: 'cristal-7', tipo: 'cristal', x: 3679, y: 1045, img: [6337, 1609, 382, 251] },
+  { id: 'vulcao-grande', tipo: 'vulcao', x: 4140, y: 1744, img: [6842, 2566, 1018, 539] },
+  { id: 'vulcao-sudoeste', tipo: 'vulcao', x: 3505, y: 2012, img: [5820, 3180, 831, 405] },
+  { id: 'vulcao-norte', tipo: 'vulcao', x: 4148, y: 1400, img: [7150, 2291, 449, 197] }
 ];
