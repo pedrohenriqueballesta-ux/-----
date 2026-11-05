@@ -149,6 +149,31 @@ test('caça automática troca imediatamente para o mob mais próximo', () => {
   assert.equal(p.targetId, proximo.id, 'não espera matar o alvo anterior');
 });
 
+test('caça automática mantém o alvo quando as distâncias quase empatam e evita tremedeira', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a'));
+  const a = game.addMob('melee', p.x + 120, p.y, 'inicial');
+  const b = game.addMob('melee', p.x + 128, p.y, 'inicial');
+  game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+  game.tick(0.05);
+  assert.equal(p.targetId, a.id);
+  a.x = p.x + 132; b.x = p.x + 124;
+  game.tick(0.05);
+  assert.equal(p.targetId, a.id, 'uma diferença pequena não reinicia a rota a cada passo');
+  b.x = p.x + 55;
+  game.tick(0.05);
+  assert.equal(p.targetId, b.id, 'troca quando outro alvo está claramente mais perto');
+});
+
+test('caça automática segue um trecho reto sem oscilar de lado', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a'));
+  game.addMob('melee', p.x + 180, p.y, 'inicial');
+  game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+  const yInicial = p.y;
+  for (let i = 0; i < 12; i++) game.tick(0.05);
+  assert.ok(p.x > 2580, 'avançou em direção ao alvo');
+  assert.ok(Math.abs(p.y - yInicial) < 20, 'não alternou para os lados durante a perseguição');
+});
+
 test('caça automática sorteia pontos de patrulha diferentes pela hunt quando não há mobs por perto', () => {
   const patrulhaComSorteio = sorteio => {
     const game = world(), p = naArea(game, game.addPlayer('a'));
@@ -156,9 +181,9 @@ test('caça automática sorteia pontos de patrulha diferentes pela hunt quando n
     game.addMob('melee', 2250, 1300, 'inicial');
     const terceiro = game.addMob('melee', 5700, 1350, 'inicial');
     game.random = () => sorteio;
-    game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
-    game.tick(0.05);
-    return { alvo: p.patrulha?.id, primeiro: primeiro.id, terceiro: terceiro.id };
+    p.autoHunt = true;
+    const patrulha = game.proximaPatrulha(p);
+    return { alvo: patrulha?.id, primeiro: primeiro.id, terceiro: terceiro.id };
   };
   const inicio = patrulhaComSorteio(0), fim = patrulhaComSorteio(0.99);
   assert.equal(inicio.alvo, inicio.primeiro);
@@ -371,6 +396,18 @@ test('caça automática sai de fresta sem saída na beira do penhasco (travava o
   game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
   advance(game, 3);
   assert.ok(Math.hypot(mob.x - p.x, mob.y - p.y) < 60, 'chegou ao alvo');
+});
+
+test('caça automática não persegue um mob isolado atrás de água ou penhasco', async () => {
+  const { caminhoPorTerra } = await import('../public/shared/passagem.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 });
+  const p = naArea(game, game.addPlayer('a'), 'media');
+  const isolado = game.addMob('guerreiro', 5904, 3708, 'media');
+  assert.equal(caminhoPorTerra(p.planet, p, isolado, p.area, 40), null, 'o local do alvo não tem ligação por terra');
+  game.action(p.id, { type: 'hunt' }); p.autoAttack = false; p.autoSkills = false;
+  const antes = { x: p.x, y: p.y }; advance(game, 1);
+  assert.equal(p.targetId, null, 'a caça não fixa o alvo inacessível');
+  assert.deepEqual({ x: p.x, y: p.y }, antes, 'não empurra o personagem contra a barreira');
 });
 
 test('Veterano de Namek se aproxima enquanto ataca, em vez de ficar parado atirando', () => {

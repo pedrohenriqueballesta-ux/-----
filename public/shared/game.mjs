@@ -85,10 +85,18 @@ export class Game {
     }
     return best;
   }
-  // Alvo da caça automática: o mob vivo mais próximo dentro do raio local. Mob ignorado pela rede
-  // de segurança fica de fora; o caminho por terra é calculado pelo steer só para o alvo escolhido.
+  // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
   alvoMaisProximo(p, raio = 350) {
-    return this.nearestMob(p, raio, m => (p.ignorar?.[m.id] || 0) <= this.time);
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && m.type !== 'subboss' && m.type !== 'boss' && this.mesmoLugar(p, m)
+      && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
+      .sort((a, b) => distance(p, a) - distance(p, b));
+    const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40);
+    const atual = this.mobs.get(p.targetId);
+    if (atual && vivos.includes(atual) && alcançavel(atual)) {
+      const maisPerto = vivos.find(m => m !== atual && distance(p, m) + 35 < distance(p, atual) && alcançavel(m));
+      return maisPerto || atual;
+    }
+    return vivos.find(alcançavel) || null;
   }
   // Entre combates, patrulha pontos de nascimento espalhados pela hunt. Evita repetir os três
   // últimos pontos para sair da mesma área e encontrar outros inimigos.
@@ -122,7 +130,7 @@ export class Game {
     if (kind === 'hunt') {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
-      p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.rota = null;
+      p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.rota = null;
       if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
       return { ok: true };
     }
@@ -285,17 +293,25 @@ export class Game {
     [entity.x, entity.y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area);
     entity.moving = Math.hypot(dx, dy) > 0.05;
   }
-  // Em planetas com água, segue um caminho por terra até o alvo (recalculado quando o alvo
-  // se move ou a cada 1,5 s); sem caminho, vai em linha reta como antes.
-  steer(entity, target, dt, speed) {
+  // Em planetas com máscara, segue pontos da rota livre (recalculados quando o alvo se move ou a cada 1,5 s).
+  // A caça automática para se o alvo ficou sem rota; cliques e inimigos mantêm o desvio local de segurança.
+  steer(entity, target, dt, speed, alcanceFinal = 0) {
+    let alcancavel = true;
     if (temMascara(entity.planet)) {
       const rota = entity.rota;
-      const velha = !rota || this.time - rota.em > 1.5 || Math.hypot(rota.alvo.x - target.x, rota.alvo.y - target.y) > 60;
-      if (velha) entity.rota = { alvo: { x: target.x, y: target.y }, em: this.time, pontos: caminhoPorTerra(entity.planet, entity, target, entity.area) || [] };
+      const velha = !rota || this.time - rota.em > 1.5 || rota.alcance !== alcanceFinal || Math.hypot(rota.alvo.x - target.x, rota.alvo.y - target.y) > 60;
+      if (velha) {
+        const pontos = caminhoPorTerra(entity.planet, entity, target, entity.area, alcanceFinal);
+        entity.rota = { alvo: { x: target.x, y: target.y }, em: this.time, alcance: alcanceFinal, pontos: pontos || [], encontrada: pontos !== null };
+        alcancavel = Boolean(pontos);
+      }
+      alcancavel = alcancavel && entity.rota.encontrada;
+      if (!alcancavel && alcanceFinal > 0) return false;
       const pontos = entity.rota.pontos;
-      while (pontos.length > 1 && Math.hypot(pontos[0].x - entity.x, pontos[0].y - entity.y) < 30) pontos.shift();
-      if (pontos.length > 1) target = pontos[0];
+      while (pontos.length > 1 && Math.hypot(pontos[0].x - entity.x, pontos[0].y - entity.y) < 5) pontos.shift();
+      if (pontos.length && (alcanceFinal > 0 || pontos.length > 1 || Math.hypot(pontos[0].x - entity.x, pontos[0].y - entity.y) > 12)) target = pontos[0];
     }
+    if (distance(entity, target) < 1) { entity.moving = false; return alcancavel; }
     let dir = norm(target.x - entity.x, target.y - entity.y);
     const obstacle = OBSTACLES.find(o => segmentDistance(o.x, o.y, entity.x, entity.y, entity.x + dir.x * 90, entity.y + dir.y * 90) < o.r + 22 && distance(entity, o) < o.r + 100);
     if (obstacle) {
@@ -305,14 +321,16 @@ export class Game {
     }
     // Se o passo não sai do lugar (encostado num canto), tenta desviar em 45° e depois 90°, para os dois
     // lados, em vez de ficar empurrando a parede.
+    const dtMovimento = speed > 0 ? Math.min(dt, distance(entity, target) / speed) : dt;
     const antes = { x: entity.x, y: entity.y };
     for (const giro of [0, Math.PI / 4, -Math.PI / 4, Math.PI / 2, -Math.PI / 2]) {
       const c = Math.cos(giro), s = Math.sin(giro), d = { x: dir.x * c - dir.y * s, y: dir.x * s + dir.y * c };
-      this.move(entity, d.x, d.y, dt, speed);
-      if (Math.hypot(entity.x - antes.x, entity.y - antes.y) > speed * dt * 0.3) break;
+      this.move(entity, d.x, d.y, dtMovimento, speed);
+      if (Math.hypot(entity.x - antes.x, entity.y - antes.y) > speed * dtMovimento * 0.3) break;
       entity.x = antes.x; entity.y = antes.y;
     }
     entity.facing = dir;
+    return alcancavel;
   }
   updatePlayer(p, dt) {
     p.moving = false;
@@ -337,9 +355,10 @@ export class Game {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
         p.targetId = target.id;
         if (distance(p, target) > 49) {
-          this.steer(p, target, dt, p.stats.mobility);
+          const alcancavel = this.steer(p, target, dt, p.stats.mobility, 40);
           const d = distance(p, target);
-          if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
+          if (!alcancavel) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
+          else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
           else if (this.time - p.caca.desde > 3) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
         } else if (p.caca) p.caca.desde = this.time;
       } else {
@@ -348,9 +367,10 @@ export class Game {
         if (p.patrulha) {
           const idPatrulha = 'patrulha:' + p.patrulha.id;
           if (idPatrulha !== p.caca?.alvo) p.caca = { alvo: idPatrulha, melhor: Infinity, desde: this.time };
-          this.steer(p, p.patrulha, dt, p.stats.mobility);
+          const alcancavel = this.steer(p, p.patrulha, dt, p.stats.mobility, 40);
           const d = distance(p, p.patrulha);
-          if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
+          if (!alcancavel) { p.patrulha = null; p.caca = null; p.rota = null; }
+          else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
           else if (this.time - p.caca.desde > 3) { p.patrulha = null; p.caca = null; p.rota = null; }
         }
       }
@@ -361,7 +381,7 @@ export class Game {
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
-    const target = this.targetOf(p) || this.nearestMob(p, 320);
+    const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
     if (p.autoAttack && target && distance(p, target) < 70) this.cast(p, 'basic', true);
     if (p.autoSkills && target) {
       if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && distance(p, target) < 400 && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
