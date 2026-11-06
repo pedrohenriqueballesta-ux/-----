@@ -219,21 +219,40 @@ function bocaOozaru(m) {
 }
 // Laser negro (opção A, Pedro 06/11): desenhado pelo jogo, da boca até o fim do alcance; miolo preto, borda roxo-avermelhada,
 // pulsando. Se o Pedro preferir textura de pixel art (opção B), trocar só esta função.
-function laserNegro(e, age) {
+// O raio começa à frente da boca (não cobre o rosto) e, quando vai para cima/para trás, é desenhado ATRÁS do Oozaru
+// (`fundo`). Pedido do Pedro, 06/11: "o raio tampa a cara do ozaru".
+const LASER_FOLGA = 30;   // distância da boca até o começo do raio (unidades do mundo)
+const vaiParaTras = (dx, dy) => dy < -0.25 * Math.hypot(dx, dy);
+function laserNegro(e, age, fundo = false) {
   const dur = 0.55, p = age / dur; if (p >= 1) return;
-  const m = snapshot.mobs.find(x => x.id === e.mobId), o = m ? bocaOozaru(m) : { x: e.x, y: e.y - 128 };
-  const fx = e.bx, fy = e.by - 40, ang = Math.atan2(fy - o.y, fx - o.x), len = Math.hypot(fx - o.x, fy - o.y);
+  const m = snapshot.mobs.find(x => x.id === e.mobId), b = m ? bocaOozaru(m) : { x: e.x, y: e.y - 128 };
+  const fx = e.bx, fy = e.by - 40, ang = Math.atan2(fy - b.y, fx - b.x);
+  if (vaiParaTras(fx - b.x, fy - b.y) !== fundo) return;
+  const o = { x: b.x + Math.cos(ang) * LASER_FOLGA, y: b.y + Math.sin(ang) * LASER_FOLGA }, len = Math.max(0, Math.hypot(fx - o.x, fy - o.y));
   const abre = Math.min(1, age / 0.08), fecha = p > 0.75 ? (1 - p) / 0.25 : 1, w = e.largura * abre * fecha * (1 + Math.sin(age * 60) * 0.08);
   ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(ang);
   ctx.globalCompositeOperation = 'lighter';
   const brilho = ctx.createLinearGradient(0, -w, 0, w); brilho.addColorStop(0, '#ff2a6a00'); brilho.addColorStop(0.5, '#c0186a99'); brilho.addColorStop(1, '#ff2a6a00');
   ctx.fillStyle = brilho; ctx.fillRect(0, -w, len, w * 2);
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = '#7a1a8acc'; ctx.beginPath(); ctx.roundRect(0, -w * 0.62, len, w * 1.24, w * 0.6); ctx.fill();
-  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.roundRect(0, -w * 0.42, len, w * 0.84, w * 0.42); ctx.fill();
-  ctx.strokeStyle = '#ff5ad0'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(0, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.moveTo(0, w * 0.62); ctx.lineTo(len, w * 0.62); ctx.stroke();
-  ctx.globalAlpha = 1; ctx.fillStyle = '#2a0630'; ctx.beginPath(); ctx.arc(0, 0, w * 0.75, 0, Math.PI * 2); ctx.fill();
+  // O raio nasce fino na boca e engrossa nos primeiros passos (como um Kamehameha saindo das mãos).
+  const ponta = Math.min(len, w * 2.2);
+  ctx.fillStyle = '#7a1a8acc'; ctx.beginPath(); ctx.moveTo(0, -w * 0.25); ctx.lineTo(ponta, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.lineTo(len, w * 0.62); ctx.lineTo(ponta, w * 0.62); ctx.lineTo(0, w * 0.25); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.moveTo(0, -w * 0.15); ctx.lineTo(ponta, -w * 0.42); ctx.lineTo(len, -w * 0.42); ctx.lineTo(len, w * 0.42); ctx.lineTo(ponta, w * 0.42); ctx.lineTo(0, w * 0.15); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#ff5ad0'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(ponta, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.moveTo(ponta, w * 0.62); ctx.lineTo(len, w * 0.62); ctx.stroke();
   ctx.restore();
+}
+// Bola de energia negra carregando na boca durante a mira (cresce até o disparo), à frente da boca.
+function cargaLaser(m, t, time, fundo = false) {
+  const b = bocaOozaru(m), d = norm2(t.tx - t.x, t.ty - t.y);
+  if (vaiParaTras(d.x, d.y) !== fundo) return;
+  const p = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started))), r = 5 + p * 17 + Math.sin(time * 30) * 1.5;
+  const x = b.x + d.x * 16, y = b.y + d.y * 16;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.2); g.addColorStop(0, '#ff4ad888'); g.addColorStop(1, '#8a0a6a00');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#d94cff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
 }
 // Supernova: a bola cresce acima da mão do Freeza durante a carga e voa até o ponto marcado no chão (o dano é lá).
 const NOVA = { inicial: 26, final: 125 };   // diâmetro em unidades do mundo (final ≈ 3× a bola da folha antiga; ajustável)
@@ -290,9 +309,7 @@ function effects(time) {
     } else if (e.type === 'pancada' && age < 0.7) {   // punhos no chão: onda de poeira e rachadura em volta
       const p = age / 0.7; ctx.save(); ctx.globalAlpha = 1 - p;
       ctx.strokeStyle = '#d9b37a'; ctx.lineWidth = 8 * (1 - p) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, e.radius * (0.4 + p * 0.7), e.radius * (0.4 + p * 0.7) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = '#2b1a10'; ctx.lineWidth = 3; ctx.beginPath();
-      for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3; ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(a) * e.radius * 0.7, e.y + Math.sin(a) * e.radius * 0.42); }
-      ctx.stroke(); ctx.restore();
+      ctx.restore();   // a rachadura entra como imagem (pedido do Pedro, 06/11), quando a arte chegar
     } else if (e.type === 'supernova' && age < 0.9) {   // explosão da Supernova no ponto marcado
       const p = age / 0.9; ctx.save(); ctx.globalAlpha = 1 - p; ctx.globalCompositeOperation = 'lighter';
       const r = e.radius * (0.6 + p * 0.7), g = ctx.createRadialGradient(e.x, e.y - 20, 10, e.x, e.y - 20, r);
@@ -425,6 +442,9 @@ function frame(now) {
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);
     telegraphs(time);
+    // Raio e carga do Oozaru Dourado indo para cima/para trás: desenhados antes dele, para ficarem atrás da cabeça.
+    for (const e of floating) if (e.type === 'laserNegro' && time >= e.at) laserNegro(e, time - e.at, true);
+    for (const m of snapshot.mobs) if (m.telegraph?.kind === 'laser') cargaLaser(m, m.telegraph, time, true);
     for (const l of snapshot.loot) { shadow(l.x, l.y, 7); ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'crystal' ? '#83d2d3' : '#d7c8a3'; ctx.fillRect(l.x - 5, l.y - 6 + Math.sin(time * 3) * 2, 10, 9); ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3); }
   } else {
     // Planeta Terra: gramado verde limpo e seguro (tela inicial).
@@ -452,6 +472,7 @@ function frame(now) {
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'supernova') bolaSupernova(m, m.telegraph, time);
+  for (const m of snapshot.mobs) if (m.telegraph?.kind === 'laser') cargaLaser(m, m.telegraph, time);
   effects(time);
   ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
 }
