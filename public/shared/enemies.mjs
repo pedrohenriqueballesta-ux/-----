@@ -63,8 +63,11 @@ const ATRIBUTOS = {
     oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
     oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' }
   },
+  // Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte), no lugar dos
+  // Porungas provisórios. Mesmo critério das outras hunts: um nível 54 não mata com facilidade.
   'vegeta-cratera': {
-    ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],
+    reiVegeta: { hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 6, name: 'Rei Vegeta' },
+    broly: { hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 16, name: 'Broly' },
     boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
     // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
     // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
@@ -168,7 +171,8 @@ export function spawnPoints(random) {
     // Campos de Lava: 11 mobs (densidade das Planícies para o chão da Lava), mais Oozarus que Guerreiros, e o chefe raro.
     ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
     { type: 'oozaruSuper', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
-    ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),
+    // Grande Cratera: 11 mobs (chão parecido com o da Lava), 2 Reis Vegeta para 1 Broly, e o chefe raro.
+    ...espalhar(random, 'vegeta-cratera', 11, i => i % 3 === 2 ? 'broly' : 'reiVegeta'),
     { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];
 }

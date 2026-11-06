@@ -7,7 +7,7 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from '
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper']);
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly']);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
 export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'freezaBoss']);
 // Freeza: tempos dos dois golpes (segundos). Death Beam: aviso curto e raio rápido. Supernova: a bola cresce acima da
@@ -468,8 +468,8 @@ export class Game {
     if (closest > alcance) { this.steer(m, target, dt, m.speed); return true; }
     if (this.time < m.attackReady) { if (closest > 150) this.steer(m, target, dt, m.speed); return true; }
     m.facing = norm(target.x - m.x, target.y - m.y);
-    if (nave) {   // Supernova: marca o chão onde o alvo está; a bola cresce, voa e explode lá
-      m.telegraph = { kind: 'supernova', x: target.x, y: target.y, ox: m.x, oy: m.y, radius: FREEZA.novaRaio,
+    if (nave) {   // Supernova: mira o personagem (a área acompanha o alvo até o impacto); a bola cresce, voa e explode nele
+      m.telegraph = { kind: 'supernova', alvoId: target.id, x: target.x, y: target.y, ox: m.x, oy: m.y, radius: FREEZA.novaRaio,
         started: this.time, lanca: this.time + FREEZA.novaCarga, until: this.time + FREEZA.novaCarga + FREEZA.novaVoo };
     } else {      // Death Beam: aviso curto na linha, depois o raio fino e rápido
       m.telegraph = { kind: 'shot', beam: true, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + FREEZA.beamAviso, started: this.time, radius: 25 };
@@ -487,6 +487,8 @@ export class Game {
     if (!m.voltando && longeDeCasa > m.perseguicao) { m.voltando = true; m.ameaca = null; m.alvoId = null; }
     if (m.voltando && longeDeCasa < 40) { m.voltando = false; m.hp = m.maxHp; }
     const target = m.voltando ? null : this.alvoDoMob(m), closest = target ? distance(target, m) : Infinity;
+    // Freeza: a Supernova segue o alvo durante a carga e o voo (o turno dele roda depois do telegrafo).
+    if (m.type === 'freezaBoss' && m.telegraph?.kind === 'supernova') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.x = a.x; m.telegraph.y = a.y; } }
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;

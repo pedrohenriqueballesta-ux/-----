@@ -181,3 +181,35 @@ test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica
   // Morreu e renasceu: volta em pé.
   f.hp = 0; f.deadUntil = game.time; game.tick(0.05); assert.equal(f.forma, 'pe');
 });
+
+test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continua como chefe raro', async () => {
+  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-cratera');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.equal(n('porunga'), 0);
+  assert.ok(n('reiVegeta') > n('broly') && n('broly') > 0 && n('freezaBoss') === 1);
+  const [r, b] = ['reiVegeta', 'broly'].map(t => mobs.find(x => x.type === t));
+  assert.deepEqual([r.name, b.name], ['Rei Vegeta', 'Broly']);
+  assert.ok(r.maxHp < b.maxHp && r.attack < b.attack && r.xp < b.xp);
+  assert.ok(SOCA_E_ATIRA.has('reiVegeta') && SOCA_E_ATIRA.has('broly'));
+});
+
+test('Supernova mira o personagem: a área acompanha o alvo até explodir nele', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
+  f.hp = Math.floor(f.maxHp * 0.3); for (let i = 0; i < 40; i++) game.tick(0.05);
+  assert.equal(f.forma, 'nave');
+  f.attackReady = 0; let nova = null; for (let i = 0; i < 40 && !nova; i++) { game.tick(0.05); if (f.telegraph?.kind === 'supernova') nova = f.telegraph; }
+  assert.ok(nova, 'carregou a Supernova');
+  // O jogador corre para longe durante a carga: a área vai junto e a bola explode onde ele está.
+  p.x += 260; p.y += 120; const vida = p.hp;
+  for (let i = 0; i < 4; i++) game.tick(0.05);
+  assert.ok(Math.hypot(nova.x - p.x, nova.y - p.y) < 1, 'área seguiu o jogador');
+  for (let i = 0; i < 60; i++) game.tick(0.05);
+  const exp = game.events.find(e => e.type === 'supernova');
+  assert.ok(exp && Math.hypot(exp.x - p.x, exp.y - p.y) < 1, 'explodiu em cima do jogador');
+  assert.ok(p.hp < vida, 'acertou');
+});

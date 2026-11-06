@@ -11,7 +11,9 @@ import { strikeColumn } from '../render/camera.mjs';
 // Altura na tela (Goku = 70). Provisório: o Hatchiyack é maior, o General um pouco maior que o Guerreiro.
 export const LUTADORES = { tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { altura: 76 }, hatchiyack: { altura: 92 },
   nappa: { altura: 84 }, raditz: { altura: 80 }, bardock: { altura: 76 },
-  oozaru: { altura: 120 }, oozaruGuerreiro: { altura: 128 }, oozaruSuper: { altura: 175 } };
+  oozaru: { altura: 120 }, oozaruGuerreiro: { altura: 128 }, oozaruSuper: { altura: 175 },
+  // Grande Cratera (06/11): Rei Vegeta (o mais fraco) e Broly (o mais forte, o maior dos humanoides).
+  reiVegeta: { altura: 82 }, broly: { altura: 96 } };
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
