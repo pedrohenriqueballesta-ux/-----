@@ -517,7 +517,7 @@ export class Game {
         else if (t.kind === 'laser') {   // raio reto da boca até o alcance, na direção do alvo no fim da carga
           const d = norm(t.tx - m.x, t.ty - m.y), bx = m.x + d.x * OOZARU_DOURADO.laserAlcance, by = m.y + d.y * OOZARU_DOURADO.laserAlcance;
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && segmentDistance(p.x, p.y, m.x, m.y, bx, by) < t.largura / 2 + 15) this.hit(m, p, m.attack * 1.4);
-          this.emit('laserNegro', { x: m.x, y: m.y, bx, by, largura: t.largura, mobId: m.id, planet: m.planet, area: m.area });
+          this.emit('laserNegro', { x: m.x, y: m.y, bx, by, tx: t.tx, ty: t.ty, largura: t.largura, mobId: m.id, planet: m.planet, area: m.area });
         } else if (t.kind === 'pancada') {
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
           this.emit('pancada', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });

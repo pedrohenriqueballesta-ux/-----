@@ -219,27 +219,24 @@ function bocaOozaru(m) {
 }
 // Laser negro (opção A, Pedro 06/11): desenhado pelo jogo, da boca até o fim do alcance; miolo preto, borda roxo-avermelhada,
 // pulsando. Se o Pedro preferir textura de pixel art (opção B), trocar só esta função.
-// O raio começa à frente da boca (não cobre o rosto) e, quando vai para cima/para trás, é desenhado ATRÁS do Oozaru
-// (`fundo`). Pedido do Pedro, 06/11: "o raio tampa a cara do ozaru".
-const LASER_FOLGA = 30;   // distância da boca até o começo do raio (unidades do mundo)
-const vaiParaTras = (dx, dy) => dy < -0.25 * Math.hypot(dx, dy);
-function laserNegro(e, age, fundo = false) {
+// Raio do Oozaru Dourado (opção A). Ajustes do Pedro (06/11): (1) sai de DENTRO da boca e é desenhado ATRÁS do Oozaru,
+// então o pedaço de raio que a folha já tem na boca cobre o começo e os dois se emendam, sem "quebrar"; (2) passa pelo
+// CENTRO do corpo do alvo (não pela cabeça) e segue até o fim do alcance.
+const CENTRO_DO_ALVO = 35;   // altura do meio do corpo do personagem acima dos pés (Goku = 70)
+function laserNegro(e, age) {
   const dur = 0.55, p = age / dur; if (p >= 1) return;
-  const m = snapshot.mobs.find(x => x.id === e.mobId), b = m ? bocaOozaru(m) : { x: e.x, y: e.y - 128 };
-  const fx = e.bx, fy = e.by - 40, ang = Math.atan2(fy - b.y, fx - b.x);
-  if (vaiParaTras(fx - b.x, fy - b.y) !== fundo) return;
-  const o = { x: b.x + Math.cos(ang) * LASER_FOLGA, y: b.y + Math.sin(ang) * LASER_FOLGA }, len = Math.max(0, Math.hypot(fx - o.x, fy - o.y));
+  const m = snapshot.mobs.find(x => x.id === e.mobId), o = m ? bocaOozaru(m) : { x: e.x, y: e.y - 128 };
+  const alvo = { x: e.tx ?? e.bx, y: (e.ty ?? e.by) - CENTRO_DO_ALVO }, ang = Math.atan2(alvo.y - o.y, alvo.x - o.x);
+  const len = Math.max(Math.hypot(alvo.x - o.x, alvo.y - o.y) + 160, Math.hypot(e.bx - e.x, e.by - e.y) * 0.85);
   const abre = Math.min(1, age / 0.08), fecha = p > 0.75 ? (1 - p) / 0.25 : 1, w = e.largura * abre * fecha * (1 + Math.sin(age * 60) * 0.08);
   ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(ang);
   ctx.globalCompositeOperation = 'lighter';
   const brilho = ctx.createLinearGradient(0, -w, 0, w); brilho.addColorStop(0, '#ff2a6a00'); brilho.addColorStop(0.5, '#c0186a99'); brilho.addColorStop(1, '#ff2a6a00');
   ctx.fillStyle = brilho; ctx.fillRect(0, -w, len, w * 2);
   ctx.globalCompositeOperation = 'source-over';
-  // O raio nasce fino na boca e engrossa nos primeiros passos (como um Kamehameha saindo das mãos).
-  const ponta = Math.min(len, w * 2.2);
-  ctx.fillStyle = '#7a1a8acc'; ctx.beginPath(); ctx.moveTo(0, -w * 0.25); ctx.lineTo(ponta, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.lineTo(len, w * 0.62); ctx.lineTo(ponta, w * 0.62); ctx.lineTo(0, w * 0.25); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.moveTo(0, -w * 0.15); ctx.lineTo(ponta, -w * 0.42); ctx.lineTo(len, -w * 0.42); ctx.lineTo(len, w * 0.42); ctx.lineTo(ponta, w * 0.42); ctx.lineTo(0, w * 0.15); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#ff5ad0'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(ponta, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.moveTo(ponta, w * 0.62); ctx.lineTo(len, w * 0.62); ctx.stroke();
+  ctx.fillStyle = '#7a1a8acc'; ctx.beginPath(); ctx.roundRect(0, -w * 0.62, len, w * 1.24, w * 0.62); ctx.fill();
+  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.roundRect(0, -w * 0.42, len, w * 0.84, w * 0.42); ctx.fill();
+  ctx.strokeStyle = '#ff5ad0'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(0, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.moveTo(0, w * 0.62); ctx.lineTo(len, w * 0.62); ctx.stroke();
   ctx.restore();
 }
 // Bola de energia negra carregando na boca durante a mira (cresce até o disparo), à frente da boca.
@@ -308,7 +305,6 @@ function effects(time) {
       ctx.strokeStyle = '#d78bff'; ctx.lineWidth = 10 * (1 - age / 1.4) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 40 + age * 380, (40 + age * 380) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       if (age > 1.0) { ctx.globalAlpha = (1.4 - age) / 0.4 * 0.8; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(e.x, e.y - 50, 140, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
-    } else if (e.type === 'laserNegro') { laserNegro(e, age);
     } else if (e.type === 'pancada' && age < 0.7) {   // punhos no chão: onda de poeira e rachadura em volta
       const p = age / 0.7; ctx.save(); ctx.globalAlpha = 1 - p;
       ctx.strokeStyle = '#d9b37a'; ctx.lineWidth = 8 * (1 - p) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, e.radius * (0.4 + p * 0.7), e.radius * (0.4 + p * 0.7) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
@@ -445,8 +441,8 @@ function frame(now) {
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);
     telegraphs(time);
-    // Raio e carga do Oozaru Dourado indo para cima/para trás: desenhados antes dele, para ficarem atrás da cabeça.
-    for (const e of floating) if (e.type === 'laserNegro' && time >= e.at) laserNegro(e, time - e.at, true);
+    // Raio do Oozaru Dourado: sempre por trás dele (o começo fica escondido atrás do pedaço de raio da folha).
+    for (const e of floating) if (e.type === 'laserNegro' && time >= e.at) laserNegro(e, time - e.at);
     // Carga do laser: só um brilho ATRÁS do Oozaru (a bola negra já está na boca no desenho da folha) — a cabeça fica
     // à mostra durante toda a carga (Pedro, 06/11).
     for (const m of snapshot.mobs) if (m.telegraph?.kind === 'laser') cargaLaser(m, m.telegraph, time);
