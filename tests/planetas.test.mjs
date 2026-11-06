@@ -188,7 +188,7 @@ test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continu
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-cratera');
   const n = t => mobs.filter(m => m.type === t).length;
   assert.equal(n('porunga'), 0);
-  assert.ok(n('reiVegeta') > n('broly') && n('broly') > 0 && n('freezaBoss') === 1);
+  assert.deepEqual([n('reiVegeta'), n('broly'), n('freezaBoss')], [6, 4, 1], '60% Rei Vegeta, 40% Broly');
   const [r, b] = ['reiVegeta', 'broly'].map(t => mobs.find(x => x.type === t));
   assert.deepEqual([r.name, b.name], ['Rei Vegeta', 'Broly']);
   assert.ok(r.maxHp < b.maxHp && r.attack < b.attack && r.xp < b.xp);

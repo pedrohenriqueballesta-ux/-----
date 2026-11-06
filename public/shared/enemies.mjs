@@ -66,8 +66,8 @@ const ATRIBUTOS = {
   // Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte), no lugar dos
   // Porungas provisórios. Mesmo critério das outras hunts: um nível 54 não mata com facilidade.
   'vegeta-cratera': {
-    reiVegeta: { hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 6, name: 'Rei Vegeta' },
-    broly: { hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 16, name: 'Broly' },
+    reiVegeta: { hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 12, name: 'Rei Vegeta' },
+    broly: { hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 30, name: 'Broly' },
     boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
     // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
     // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
@@ -171,8 +171,8 @@ export function spawnPoints(random) {
     // Campos de Lava: 11 mobs (densidade das Planícies para o chão da Lava), mais Oozarus que Guerreiros, e o chefe raro.
     ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
     { type: 'oozaruSuper', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
-    // Grande Cratera: 11 mobs (chão parecido com o da Lava), 2 Reis Vegeta para 1 Broly, e o chefe raro.
-    ...espalhar(random, 'vegeta-cratera', 11, i => i % 3 === 2 ? 'broly' : 'reiVegeta'),
+    // Grande Cratera: 10 mobs, 60% Rei Vegeta e 40% Broly (Pedro, 06/11: 6 e 4), misturados, e o chefe raro.
+    ...espalhar(random, 'vegeta-cratera', 10, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
     { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];
 }
