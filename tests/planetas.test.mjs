@@ -132,22 +132,22 @@ test('Cânions: Nappa < Raditz < Bardock, 10 na hunt (5 / 3 / 2), os três socam
   for (const t of ['nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
 });
 
-test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Super é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
+test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
   const { SOCA_E_ATIRA, CHEFES } = await import('../public/shared/game.mjs');
   const { renasceEm, pontoNoCirculo } = await import('../public/shared/enemies.mjs');
   const { podeAndar } = await import('../public/shared/passagem.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-lava');
   const n = t => mobs.filter(m => m.type === t).length;
-  assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruSuper') === 1);
-  const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruSuper'].map(t => mobs.find(x => x.type === t));
-  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Super']);
+  assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruDourado') === 1 && n('oozaruSuper') === 0);
+  const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruDourado'].map(t => mobs.find(x => x.type === t));
+  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Dourado']);
   assert.ok(o.maxHp < g.maxHp && g.maxHp * 4 < s.maxHp && o.attack < g.attack && g.attack < s.attack);
-  for (const t of ['oozaru', 'oozaruGuerreiro', 'oozaruSuper']) assert.ok(SOCA_E_ATIRA.has(t));
-  assert.ok(CHEFES.has('oozaruSuper'), 'caça automática não enfrenta o Oozaru Super');
+  for (const t of ['oozaru', 'oozaruGuerreiro']) assert.ok(SOCA_E_ATIRA.has(t));
+  assert.ok(CHEFES.has('oozaruDourado'), 'caça automática não enfrenta o Oozaru Dourado');
   // Raro: começa morto e volta entre 6 e 12 horas.
   assert.ok(s.raro && s.hp === 0 && s.deadUntil - game.time >= 6 * 3600 && s.deadUntil - game.time <= 12 * 3600);
-  assert.equal(renasceEm('oozaruSuper', () => 0), 6 * 3600); assert.equal(renasceEm('oozaruSuper', () => 1), 12 * 3600);
+  assert.equal(renasceEm('oozaruDourado', () => 0), 6 * 3600); assert.equal(renasceEm('oozaruDourado', () => 1), 12 * 3600);
   // Nasce em pontos diferentes da hunt, sempre em chão andável dela.
   let semente = 12345; const sorte = () => (semente = (semente * 1103515245 + 12345) % 2147483648) / 2147483648;
   const pontos = Array.from({ length: 8 }, () => pontoNoCirculo(sorte, 'vegeta-lava'));
@@ -212,4 +212,21 @@ test('Supernova mira o personagem: a área acompanha o alvo até explodir nele',
   const exp = game.events.find(e => e.type === 'supernova');
   assert.ok(exp && Math.hypot(exp.x - p.x, exp.y - p.y) < 1, 'explodiu em cima do jogador');
   assert.ok(p.hp < vida, 'acertou');
+});
+
+test('Oozaru Dourado: laser negro mira o personagem; de perto, pancada em área com os dois punhos', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.seguroAte = 0;
+  const o = game.addMob('oozaruDourado', p.x + 350, p.y, 'vegeta-lava'); o.attackReady = 0;
+  let laser = null; for (let i = 0; i < 20 && !laser; i++) { game.tick(0.05); if (o.telegraph?.kind === 'laser') laser = o.telegraph; }
+  assert.ok(laser, 'de longe: carrega o laser');
+  p.y += 150; game.tick(0.05); assert.ok(Math.abs(laser.ty - p.y) < 1, 'a mira acompanha o personagem');
+  const vida = p.hp; for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'laserNegro') && p.hp < vida, 'o laser acertou');
+  o.attackReady = 0; o.telegraph = null; p.x = o.x - 80; p.y = o.y;
+  let pancada = null; for (let i = 0; i < 20 && !pancada; i++) { game.tick(0.05); if (o.telegraph?.kind === 'pancada') pancada = o.telegraph; }
+  assert.ok(pancada, 'de perto: pancada');
+  const v2 = p.hp; for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'pancada') && p.hp < v2, 'a pancada acertou');
 });

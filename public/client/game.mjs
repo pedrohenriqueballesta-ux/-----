@@ -177,7 +177,7 @@ function drawPlayer(p, pos, time) {
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
 // Chefe e subchefe são desenhados grandes; o subchefe usa a sentinela ampliada (arte provisória).
-const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper' || m.type === 'freezaBoss';
+const grande = m => m.type === 'boss' || m.type === 'subboss' || m.type === 'oozaruSuper' || m.type === 'oozaruDourado' || m.type === 'freezaBoss';
 function drawMob(m, pos, time) {
   const boss = grande(m), size = boss ? 76 : 40, h = boss ? 100 : 53;
   shadow(pos.x, pos.y, boss ? 35 : 17);
@@ -211,6 +211,30 @@ function auraFreeza(x, y, p, time) {
   g.addColorStop(0, '#ffffffcc'); g.addColorStop(0.35, '#e7a0ffaa'); g.addColorStop(1, '#8a2be200');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 40, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 }
+// Oozaru Dourado: boca na altura da cabeça, um pouco à frente na direção em que ele olha.
+const norm2 = (x, y) => { const l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; };
+function bocaOozaru(m) {
+  const pos = renderPositions.get(m.id) || m, f = norm2(m.facing?.x || 0, m.facing?.y || 1);
+  return { x: pos.x + f.x * 34, y: pos.y - 128 + f.y * 18 };
+}
+// Laser negro (opção A, Pedro 06/11): desenhado pelo jogo, da boca até o fim do alcance; miolo preto, borda roxo-avermelhada,
+// pulsando. Se o Pedro preferir textura de pixel art (opção B), trocar só esta função.
+function laserNegro(e, age) {
+  const dur = 0.55, p = age / dur; if (p >= 1) return;
+  const m = snapshot.mobs.find(x => x.id === e.mobId), o = m ? bocaOozaru(m) : { x: e.x, y: e.y - 128 };
+  const fx = e.bx, fy = e.by - 40, ang = Math.atan2(fy - o.y, fx - o.x), len = Math.hypot(fx - o.x, fy - o.y);
+  const abre = Math.min(1, age / 0.08), fecha = p > 0.75 ? (1 - p) / 0.25 : 1, w = e.largura * abre * fecha * (1 + Math.sin(age * 60) * 0.08);
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(ang);
+  ctx.globalCompositeOperation = 'lighter';
+  const brilho = ctx.createLinearGradient(0, -w, 0, w); brilho.addColorStop(0, '#ff2a6a00'); brilho.addColorStop(0.5, '#c0186a99'); brilho.addColorStop(1, '#ff2a6a00');
+  ctx.fillStyle = brilho; ctx.fillRect(0, -w, len, w * 2);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#7a1a8acc'; ctx.beginPath(); ctx.roundRect(0, -w * 0.62, len, w * 1.24, w * 0.6); ctx.fill();
+  ctx.fillStyle = '#0b020d'; ctx.beginPath(); ctx.roundRect(0, -w * 0.42, len, w * 0.84, w * 0.42); ctx.fill();
+  ctx.strokeStyle = '#ff5ad0'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(0, -w * 0.62); ctx.lineTo(len, -w * 0.62); ctx.moveTo(0, w * 0.62); ctx.lineTo(len, w * 0.62); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.fillStyle = '#2a0630'; ctx.beginPath(); ctx.arc(0, 0, w * 0.75, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 // Supernova: a bola cresce acima da mão do Freeza durante a carga e voa até o ponto marcado no chão (o dano é lá).
 const NOVA = { inicial: 26, final: 125 };   // diâmetro em unidades do mundo (final ≈ 3× a bola da folha antiga; ajustável)
 function bolaSupernova(m, t, time) {
@@ -239,6 +263,12 @@ function telegraphs(time) {
       ctx.strokeStyle = '#ffd08a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(t.x, t.y, t.radius, t.radius * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       continue;
     }
+    if (t.kind === 'laser') {   // Oozaru Dourado carregando: linha escura tracejada da boca até o alvo (ela acompanha o personagem)
+      const p = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started))), o = bocaOozaru(m), d = norm2(t.tx - t.x, t.ty - t.y);
+      ctx.save(); ctx.globalAlpha = 0.35 + p * 0.5; ctx.strokeStyle = '#3a0a3a'; ctx.lineWidth = 4 + p * 10; ctx.setLineDash([10, 8]);
+      ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + d.x * 620, o.y + d.y * 620 + 80 * d.y); ctx.stroke(); ctx.restore();
+      continue;
+    }
     if (t.kind === 'shot' && t.beam) { ctx.strokeStyle = '#e06cff90'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(t.x, t.y - 30); ctx.lineTo(t.x + t.dx * 520, t.y - 30 + t.dy * 520); ctx.stroke(); ctx.setLineDash([]); continue; }
     const progress = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started)));
     if (t.kind === 'shot') { ctx.strokeStyle = '#f5a37ca0'; ctx.lineWidth = 7; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + t.dx * 240, t.y + t.dy * 240); ctx.stroke(); ctx.setLineDash([]); }
@@ -256,6 +286,13 @@ function effects(time) {
       ctx.strokeStyle = '#d78bff'; ctx.lineWidth = 10 * (1 - age / 1.4) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 40 + age * 380, (40 + age * 380) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       if (age > 1.0) { ctx.globalAlpha = (1.4 - age) / 0.4 * 0.8; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(e.x, e.y - 50, 140, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
+    } else if (e.type === 'laserNegro') { laserNegro(e, age);
+    } else if (e.type === 'pancada' && age < 0.7) {   // punhos no chão: onda de poeira e rachadura em volta
+      const p = age / 0.7; ctx.save(); ctx.globalAlpha = 1 - p;
+      ctx.strokeStyle = '#d9b37a'; ctx.lineWidth = 8 * (1 - p) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, e.radius * (0.4 + p * 0.7), e.radius * (0.4 + p * 0.7) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#2b1a10'; ctx.lineWidth = 3; ctx.beginPath();
+      for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3; ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(a) * e.radius * 0.7, e.y + Math.sin(a) * e.radius * 0.42); }
+      ctx.stroke(); ctx.restore();
     } else if (e.type === 'supernova' && age < 0.9) {   // explosão da Supernova no ponto marcado
       const p = age / 0.9; ctx.save(); ctx.globalAlpha = 1 - p; ctx.globalCompositeOperation = 'lighter';
       const r = e.radius * (0.6 + p * 0.7), g = ctx.createRadialGradient(e.x, e.y - 20, 10, e.x, e.y - 20, r);

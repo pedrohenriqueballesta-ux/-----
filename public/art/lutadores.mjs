@@ -13,7 +13,9 @@ export const LUTADORES = { tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { a
   nappa: { altura: 84 }, raditz: { altura: 80 }, bardock: { altura: 76 },
   oozaru: { altura: 120 }, oozaruGuerreiro: { altura: 128 }, oozaruSuper: { altura: 175 },
   // Grande Cratera (06/11): Rei Vegeta (o mais fraco) e Broly (o mais forte, o maior dos humanoides).
-  reiVegeta: { altura: 98 }, broly: { altura: 130 } };   // Pedro, 06/11: Rei +20%, Broly +35%
+  reiVegeta: { altura: 98 }, broly: { altura: 130 },
+  // Oozaru Dourado (sem armadura): chefe raro dos Campos de Lava; o Oozaru Super (de armadura) fica guardado para outro planeta.
+  oozaruDourado: { altura: 175 } };   // Pedro, 06/11: Rei +20%, Broly +35%
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
