@@ -45,14 +45,19 @@ const ATRIBUTOS = {
     tsufuruGeneral: { hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
     hatchiyack: { hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
   },
-  // Cânions (decisão do Pedro, 05/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte).
-  // Mesmo critério das Planícies, um degrau acima: um nível 36 NÃO mata com facilidade.
+  // Cânions (decisão do Pedro, 06/11/2026): Dodoria (o mais fraco) e Zarbon (o mais forte). Mesmo critério das
+  // Planícies, um degrau acima: um nível 36 NÃO mata com facilidade. (Nappa, Raditz e Bardock foram para a Floresta.)
   'vegeta-canions': {
-    nappa: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 108, name: 'Nappa' },
-    raditz: { hp: 3550, attack: 95, xp: 600, defesa: 33, speed: 112, name: 'Raditz' },
-    bardock: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 110, name: 'Bardock' }
+    dodoria: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 104, corpo: 10, name: 'Dodoria' },
+    zarbon: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 112, name: 'Zarbon' }
   },
-  ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
+  // Floresta Seca (decisão do Pedro, 06/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte),
+  // vindos dos Cânions, mais fortes: um nível 42 NÃO mata com facilidade.
+  'vegeta-floresta': {
+    nappa: { hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 108, name: 'Nappa' },
+    raditz: { hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 112, name: 'Raditz' },
+    bardock: { hp: 4800, attack: 126, xp: 1800, defesa: 45, speed: 110, name: 'Bardock' }
+  },
   // Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru (o mais fraco) e Oozaru Guerreiro (o mais forte), mesmo
   // critério das outras hunts (nível 48 não mata com facilidade). Oozaru Super = chefe raro (6 a 12 h, em qualquer
   // ponto da hunt), forte demais para um nível 48–54 sozinho e sem equipamento (o "set" ainda não existe no jogo).
@@ -154,7 +159,9 @@ function espalhar(random, area, n, tipo) {
 }
 const [G, M, H] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'];
 const PLANICIES_VERMELHAS = [G, M, G, H, G, M, G, G, M, H, G, M, G, G, M, H];
-const CANIONS = ['nappa', 'raditz', 'nappa', 'bardock', 'nappa', 'raditz', 'nappa', 'nappa', 'raditz', 'bardock'];
+// Cânions: 10 mobs, 6 Dodorias e 4 Zarbons (60/40, como a Cratera). Floresta Seca: 16, 8 Nappas, 5 Raditz, 3 Bardocks.
+const CANIONS = ['dodoria', 'zarbon', 'dodoria', 'zarbon', 'dodoria', 'dodoria', 'zarbon', 'dodoria', 'zarbon', 'dodoria'];
+const FLORESTA = PLANICIES_VERMELHAS.map(t => ({ [G]: 'nappa', [M]: 'raditz', [H]: 'bardock' })[t]);
 // Quantidade de mobs por hunt: na inicial, 20 (16 + 25%, pedido do Pedro, 03/11); nas outras, 16
 // comuns, provisório (a densidade será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
@@ -172,7 +179,7 @@ export function spawnPoints(random) {
     // Cânions: mais Nappas, menos Bardocks (5 / 3 / 2), misturados. Só 10: o chão dos Cânions é menos da metade do
     // das Planícies, e com 16 a densidade dobrava (caça morria ~9 vezes em 5 min no nível 36; com 10, a das Planícies).
     ...espalhar(random, 'vegeta-canions', 10, i => CANIONS[i % CANIONS.length]),
-    ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
+    ...espalhar(random, 'vegeta-floresta', 16, i => FLORESTA[i % FLORESTA.length]),
     // Campos de Lava: 11 mobs (densidade das Planícies para o chão da Lava), mais Oozarus que Guerreiros, e o chefe raro.
     ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
     { type: 'oozaruDourado', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },

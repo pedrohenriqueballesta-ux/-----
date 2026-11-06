@@ -120,16 +120,20 @@ test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os trê
   for (const t of ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack']) assert.ok(SOCA_E_ATIRA.has(t));
 });
 
-test('Cânions: Nappa < Raditz < Bardock, 10 na hunt (5 / 3 / 2), os três socam e disparam ki', async () => {
+test('Cânions: Dodoria < Zarbon, 10 na hunt (6 / 4); Floresta Seca: Nappa < Raditz < Bardock, 16 (8 / 5 / 3)', async () => {
   const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
-  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-canions');
-  const n = t => mobs.filter(m => m.type === t).length;
-  assert.deepEqual([n('nappa'), n('raditz'), n('bardock')], [5, 3, 2]);
-  const [a, b, c] = ['nappa', 'raditz', 'bardock'].map(t => mobs.find(x => x.type === t));
-  assert.ok(a.maxHp < b.maxHp && b.maxHp < c.maxHp && a.attack < b.attack && b.attack < c.attack && a.xp < b.xp && b.xp < c.xp);
+  const em = area => [...game.mobs.values()].filter(m => m.area === area);
+  const n = (area, t) => em(area).filter(m => m.type === t).length;
+  assert.deepEqual([n('vegeta-canions', 'dodoria'), n('vegeta-canions', 'zarbon')], [6, 4]);
+  assert.deepEqual([n('vegeta-floresta', 'nappa'), n('vegeta-floresta', 'raditz'), n('vegeta-floresta', 'bardock')], [8, 5, 3]);
+  const [d, z] = ['dodoria', 'zarbon'].map(t => em('vegeta-canions').find(x => x.type === t));
+  assert.deepEqual([d.name, z.name], ['Dodoria', 'Zarbon']);
+  assert.ok(d.maxHp < z.maxHp && d.attack < z.attack && d.xp < z.xp);
+  const [a, b, c] = ['nappa', 'raditz', 'bardock'].map(t => em('vegeta-floresta').find(x => x.type === t));
   assert.deepEqual([a.name, b.name, c.name], ['Nappa', 'Raditz', 'Bardock']);
-  for (const t of ['nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
+  assert.ok(a.maxHp < b.maxHp && b.maxHp < c.maxHp && a.attack < b.attack && b.attack < c.attack);
+  for (const t of ['dodoria', 'zarbon', 'nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
 });
 
 test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {

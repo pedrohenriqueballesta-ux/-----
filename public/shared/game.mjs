@@ -7,7 +7,7 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from '
 import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly']);
+export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
 export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
 // Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
