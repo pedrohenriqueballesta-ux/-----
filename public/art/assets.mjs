@@ -75,6 +75,7 @@ export const art = {
   oozaruDouradoPasso: loadImage('/assets/mobs/oozaru-dourado-andar.png'),
   oozaruDouradoPancada: loadImage('/assets/mobs/oozaru-dourado-pancada.png'),
   oozaruDouradoLaser: loadImage('/assets/mobs/oozaru-dourado-laser.png'),
+  rachadura: loadImage('/assets/mobs/oozaru-dourado-rachadura.webp'),
   gokuGolpe: loadImage(GOKU_GOLPE.file),
   ssjGolpe: loadImage(SSJ_GOLPE.file),
   passaro: loadImage('/assets/mobs/passaro.png'),
