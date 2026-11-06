@@ -10,8 +10,9 @@ import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly']);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
 export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
-// Oozaru Dourado: pancada com os dois punhos (área em volta dele) e laser negro pela boca, grosso, mirando o alvo.
-export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, laserCarga: 1.0, laserAlcance: 620, laserLargura: 46, laserRecarga: 2.6 };
+// Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
+// (Pedro, 06/11: no lugar do laser; metade do tamanho da Supernova). A bola carrega na boca, voa até o alvo e explode.
+export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga: 1.0, bolaVoo: 0.45, bolaAlcance: 620, bolaRaio: 75, bolaRecarga: 2.6 };
 // Freeza: tempos dos dois golpes (segundos). Death Beam: aviso curto e raio rápido. Supernova: a bola cresce acima da
 // mão por CARGA, voa por VOO até o ponto marcado no chão e explode numa área grande.
 export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
@@ -479,20 +480,21 @@ export class Game {
     m.strike = { started: this.time, release: nave ? m.telegraph.lanca : m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: nave ? 'supernova' : 'beam' };
     return true;
   }
-  // Oozaru Dourado: perto, pancada no chão; longe, laser negro que segue o alvo durante a carga e sai reto.
+  // Oozaru Dourado: perto, pancada no chão; longe, bola negra que segue o alvo (carga e voo) e explode nele.
   turnoOozaruDourado(m, target, closest, dt) {
     if (!target) return false;
     const O = OOZARU_DOURADO, perto = 70 + (m.corpo || 0);
     if (this.time < m.attackReady) { if (closest > perto - 10) this.steer(m, target, dt, m.speed); return true; }
-    if (closest > O.laserAlcance) { this.steer(m, target, dt, m.speed); return true; }
+    if (closest > O.bolaAlcance) { this.steer(m, target, dt, m.speed); return true; }
     m.facing = norm(target.x - m.x, target.y - m.y);
     if (closest <= perto) {
       const c = { x: m.x + m.facing.x * (m.corpo || 0) * 0.8, y: m.y + m.facing.y * (m.corpo || 0) * 0.8 };
       m.telegraph = { kind: 'pancada', x: c.x, y: c.y, radius: O.pancadaRaio, started: this.time, until: this.time + O.pancadaAviso };
       m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: 'area' };
     } else {
-      m.telegraph = { kind: 'laser', alvoId: target.id, x: m.x, y: m.y, tx: target.x, ty: target.y, largura: O.laserLargura, started: this.time, until: this.time + O.laserCarga };
-      m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.5, direction: m.facing, kind: 'shot' };
+      m.telegraph = { kind: 'bolaNegra', alvoId: target.id, x: m.x, y: m.y, tx: target.x, ty: target.y, radius: O.bolaRaio,
+        started: this.time, lanca: this.time + O.bolaCarga, until: this.time + O.bolaCarga + O.bolaVoo };
+      m.strike = { started: this.time, release: m.telegraph.lanca, until: m.telegraph.lanca + 0.4, direction: m.facing, kind: 'shot' };
     }
     return true;
   }
@@ -507,17 +509,16 @@ export class Game {
     if (m.voltando && longeDeCasa < 40) { m.voltando = false; m.hp = m.maxHp; }
     const target = m.voltando ? null : this.alvoDoMob(m), closest = target ? distance(target, m) : Infinity;
     // Freeza: a Supernova segue o alvo durante a carga e o voo (o turno dele roda depois do telegrafo).
-    // Oozaru Dourado: o laser acompanha o alvo durante a carga (mira o personagem), e ele gira junto.
-    if (m.type === 'oozaruDourado' && m.telegraph?.kind === 'laser') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.tx = a.x; m.telegraph.ty = a.y; m.facing = norm(a.x - m.x, a.y - m.y); if (m.strike) m.strike.direction = m.facing; } }
+    // Oozaru Dourado: a bola acompanha o alvo na carga e no voo (mira o personagem); na carga ele gira junto.
+    if (m.type === 'oozaruDourado' && m.telegraph?.kind === 'bolaNegra') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.tx = a.x; m.telegraph.ty = a.y; m.facing = norm(a.x - m.x, a.y - m.y); if (m.strike) m.strike.direction = m.facing; } }
     if (m.type === 'freezaBoss' && m.telegraph?.kind === 'supernova') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.x = a.x; m.telegraph.y = a.y; } }
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
         if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
-        else if (t.kind === 'laser') {   // raio reto da boca até o alcance, na direção do alvo no fim da carga
-          const d = norm(t.tx - m.x, t.ty - m.y), bx = m.x + d.x * OOZARU_DOURADO.laserAlcance, by = m.y + d.y * OOZARU_DOURADO.laserAlcance;
-          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && segmentDistance(p.x, p.y, m.x, m.y, bx, by) < t.largura / 2 + 15) this.hit(m, p, m.attack * 1.4);
-          this.emit('laserNegro', { x: m.x, y: m.y, bx, by, tx: t.tx, ty: t.ty, largura: t.largura, mobId: m.id, planet: m.planet, area: m.area });
+        else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
+          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
+          this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
         } else if (t.kind === 'pancada') {
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
           this.emit('pancada', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
@@ -527,7 +528,7 @@ export class Game {
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (m.type === 'oozaruDourado' ? OOZARU_DOURADO.laserRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }

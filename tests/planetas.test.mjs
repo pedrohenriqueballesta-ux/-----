@@ -214,16 +214,16 @@ test('Supernova mira o personagem: a área acompanha o alvo até explodir nele',
   assert.ok(p.hp < vida, 'acertou');
 });
 
-test('Oozaru Dourado: laser negro mira o personagem; de perto, pancada em área com os dois punhos', async () => {
+test('Oozaru Dourado: bola negra mira o personagem; de perto, pancada em área com os dois punhos', async () => {
   const { statsFor } = await import('../public/shared/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
   p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.seguroAte = 0;
   const o = game.addMob('oozaruDourado', p.x + 350, p.y, 'vegeta-lava'); o.attackReady = 0;
-  let laser = null; for (let i = 0; i < 20 && !laser; i++) { game.tick(0.05); if (o.telegraph?.kind === 'laser') laser = o.telegraph; }
-  assert.ok(laser, 'de longe: carrega o laser');
+  let laser = null; for (let i = 0; i < 20 && !laser; i++) { game.tick(0.05); if (o.telegraph?.kind === 'bolaNegra') laser = o.telegraph; }
+  assert.ok(laser, 'de longe: carrega a bola negra');
   p.y += 150; game.tick(0.05); assert.ok(Math.abs(laser.ty - p.y) < 1, 'a mira acompanha o personagem');
   const vida = p.hp; for (let i = 0; i < 30; i++) game.tick(0.05);
-  assert.ok(game.events.some(e => e.type === 'laserNegro') && p.hp < vida, 'o laser acertou');
+  assert.ok(game.events.some(e => e.type === 'bolaNegra') && p.hp < vida, 'a bola acertou');
   o.attackReady = 0; o.telegraph = null; p.x = o.x - 80; p.y = o.y;
   let pancada = null; for (let i = 0; i < 20 && !pancada; i++) { game.tick(0.05); if (o.telegraph?.kind === 'pancada') pancada = o.telegraph; }
   assert.ok(pancada, 'de perto: pancada');

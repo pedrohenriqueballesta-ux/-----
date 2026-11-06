@@ -19,7 +19,11 @@ export const LUTADORES = { tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { a
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
-  if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, altura, facing, strikeColumn(attackProgress))) return true;
+  // Oozaru Dourado: a folha do ataque de longe foi feita para um raio; com a bola (Pedro, 06/11) o quadro do disparo
+  // (que tem um pedaço de raio na boca) é trocado pelo da boca aberta com a energia.
+  let coluna = attackProgress !== null ? strikeColumn(attackProgress) : 0;
+  if (tipo === 'oozaruDourado' && tiro && coluna === 2) coluna = 1;
+  if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, altura, facing, coluna)) return true;
   // Passo proporcional ao tamanho: o gigante anda mais por ciclo, senão os pés "patinam" (Goku: 70 de altura, 96 por ciclo).
   return drawWalk(ctx, tipo, pos, altura, facing, moving, 96 * Math.max(1, altura / 70), phase);
 }
