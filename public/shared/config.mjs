@@ -68,6 +68,15 @@ export const ZONES = [
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
+// Safe zone na chegada de cada hunt (pedido de 07/11/2026); lado provisório de 180 unidades.
+export function zonaSeguraDaHunt(area) {
+  const z = areaPorId(area);
+  return z && !z.segura ? { x: z.chegada.x - 90, y: z.chegada.y - 90, w: 180, h: 180 } : null;
+}
+export function naZonaSegura(p) {
+  const z = areaPorId(p.area), q = zonaSeguraDaHunt(p.area);
+  return Boolean(q && p.planet === z.planet && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h);
+}
 export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor
 // mantêm o tamanho; só a posição acompanha o mapa.

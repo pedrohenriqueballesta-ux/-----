@@ -1,10 +1,10 @@
 // Regras autoritativas do jogo: combate, movimento, inventário e mundo.
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
-import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto } from './config.mjs';
+import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from './enemies.mjs';
-import { deslocar, caminhoPorTerra, temMascara } from './passagem.mjs';
+import { deslocar, caminhoPorTerra, temMascara, pesLivres } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
@@ -48,8 +48,8 @@ export class Game {
   // Mesmo lugar = mesmo planeta e mesma área fechada. Nada atravessa de um lugar para outro:
   // dano, alvo, aggro, projéteis, loot e o que cada jogador recebe no snapshot.
   mesmoLugar(a, b) { return Boolean(a && b) && a.planet === b.planet && (a.area || null) === (b.area || null); }
-  // Jogador protegido: na Terra, na Vila (áreas seguras) ou nos segundos logo após chegar/renascer.
-  protegido(p) { return !p.area || Boolean(areaPorId(p.area)?.segura) || this.time < p.seguroAte; }
+  // Proteção permanente na Terra, Vila e quadrado da hunt, além da proteção breve de chegada.
+  protegido(p) { return !p.area || Boolean(areaPorId(p.area)?.segura) || naZonaSegura(p) || this.time < p.seguroAte; }
   // Avisa quem está na hunt que o chefe raro apareceu.
   anunciarChefe(m) {
     for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, m.name + ' ' + (CHEFES_RAROS[m.area]?.aviso || 'apareceu!'));
@@ -57,7 +57,7 @@ export class Game {
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
-    p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.rota = null; p.input = { x: 0, y: 0 };
+    p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.rota = null; p.input = { x: 0, y: 0 };
     p.seguroAte = this.time + CONFIG.chegadaSegura;
   }
   usePortal(p, destinoId) {
@@ -122,6 +122,15 @@ export class Game {
     p.patrulhasRecentes = [...historico, ponto.id].slice(-3);
     return { id: ponto.id, x: ponto.homeX, y: ponto.homeY };
   }
+  // Sai por um caminho livre antes de procurar alvos, mesmo que haja mobs ao lado.
+  saidaDaZonaSegura(p) {
+    const q = zonaSeguraDaHunt(p.area), candidatos = [];
+    for (let i = 0; i < 32; i++) {
+      const a = i * Math.PI / 16, ponto = { x: q.x + q.w / 2 + Math.cos(a) * 145, y: q.y + q.h / 2 + Math.sin(a) * 145 };
+      if (pesLivres(p.planet, ponto.x, ponto.y, 15, p.area) && caminhoPorTerra(p.planet, p, ponto, p.area, 0)) candidatos.push(ponto);
+    }
+    return candidatos.sort((a, b) => distance(p, a) - distance(p, b))[0] || null;
+  }
   aimDirection(p, target = null) {
     if (target) return norm(target.x - p.x, target.y - p.y);
     if (p.aim) return norm(p.aim.x - p.x, p.aim.y - p.y);
@@ -143,7 +152,7 @@ export class Game {
     if (kind === 'hunt') {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
-      p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.rota = null;
+      p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.rota = null;
       if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
       return { ok: true };
     }
@@ -213,6 +222,7 @@ export class Game {
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
   cast(p, skill, automated = false) {
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -267,6 +277,7 @@ export class Game {
   }
   hit(attacker, target, raw) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
+    if (attacker && this.players.has(attacker.id) && naZonaSegura(attacker)) return false;
     const playerTarget = this.players.has(target.id);
     if (playerTarget) {
       if (attacker && this.players.has(attacker.id) && !this.canPvp(attacker, target)) return false;
@@ -362,7 +373,13 @@ export class Game {
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1));
+    else if (p.autoHunt && naZonaSegura(p)) {
+      p.targetId = null; p.charge = null;
+      p.saidaSegura ||= this.saidaDaZonaSegura(p);
+      if (p.saidaSegura) this.steer(p, p.saidaSegura, dt, p.stats.mobility);
+    }
     else if (p.autoHunt) {
+      p.saidaSegura = null;
       // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
       // quando outro se aproxima durante a perseguição atual.
       const target = this.alvoMaisProximo(p);
@@ -393,6 +410,7 @@ export class Game {
       if (distance(p, p.moveTo) < 16) p.moveTo = null;
       else this.steer(p, p.moveTo, dt, p.stats.mobility);
     }
+    if (naZonaSegura(p)) { p.charge = null; return; }
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
@@ -593,7 +611,7 @@ export class Game {
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
         level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
+      self: self ? { naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,

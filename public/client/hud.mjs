@@ -102,7 +102,11 @@ export function atualizarHud(snapshot, playerId) {
     botao.classList.toggle('ligado', Boolean(ligado)); const estado = botao.querySelector('b'); if (estado) estado.textContent = ligado ? 'ON' : 'OFF';
   }
   // Região = a área fechada onde o jogador está (ou o planeta, na Terra).
-  const z = areaPorId(s.area), seguro = !z || z.segura;
+  const z = areaPorId(s.area), seguro = !z || z.segura || s.naZonaSegura;
+  $('safeZoneAviso').classList.toggle('visivel', Boolean(s.naZonaSegura));
+  $('safeZoneAviso').setAttribute('aria-hidden', String(!s.naZonaSegura));
+  // Mede a mensagem para manter o alvo logo abaixo em qualquer escala da HUD.
+  $('targetHud').style.setProperty('--altura-safe-zone', ($('safeZoneAviso').offsetHeight + 12) + 'px');
   $('regionName').textContent = z?.name || PLANETS[snapshot.planet]?.name || 'Terra';
   $('regionType').textContent = z?.pvp ? 'ÁREA PVP' : seguro ? 'ÁREA SEGURA' : s.seguroRemaining > 0 ? 'CHEGADA PROTEGIDA' : 'HUNT · NÍVEL ' + z.nivel[0] + '–' + z.nivel[1];
   for (const [classe, ligado] of [['pvp', Boolean(z?.pvp)], ['seguro', !z?.pvp && seguro]]) document.querySelector('.hud-mapa')?.classList.toggle(classe, ligado);

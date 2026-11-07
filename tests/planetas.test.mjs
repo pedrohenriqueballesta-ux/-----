@@ -163,7 +163,7 @@ test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica
   const { CHEFES, FREEZA } = await import('../public/shared/game.mjs');
   const { statsFor } = await import('../public/shared/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
-  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.x += 180; p.seguroAte = 0;
   const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
   assert.ok(CHEFES.has('freezaBoss'));
   for (let i = 0; i < 40; i++) game.tick(0.05);
@@ -202,7 +202,7 @@ test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continu
 test('Supernova mira o personagem: a área acompanha o alvo até explodir nele', async () => {
   const { statsFor } = await import('../public/shared/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
-  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.x += 180; p.seguroAte = 0;
   const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
   f.hp = Math.floor(f.maxHp * 0.3); for (let i = 0; i < 40; i++) game.tick(0.05);
   assert.equal(f.forma, 'nave');
@@ -221,7 +221,7 @@ test('Supernova mira o personagem: a área acompanha o alvo até explodir nele',
 test('Oozaru Dourado: bola negra mira o personagem; de perto, pancada em área com os dois punhos', async () => {
   const { statsFor } = await import('../public/shared/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
-  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.seguroAte = 0;
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.x += 180; p.seguroAte = 0;
   const o = game.addMob('oozaruDourado', p.x + 350, p.y, 'vegeta-lava'); o.attackReady = 0;
   let laser = null; for (let i = 0; i < 20 && !laser; i++) { game.tick(0.05); if (o.telegraph?.kind === 'bolaNegra') laser = o.telegraph; }
   assert.ok(laser, 'de longe: carrega a bola negra');
