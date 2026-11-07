@@ -1,0 +1,17 @@
+{
+  "skill": "kamehameha",
+  "stage": 3,
+  "level_min": 50,
+  "level_max": 99,
+  "range_tiles": 8,
+  "tile_size": 32,
+  "range_pixels": 256,
+  "direction": "right",
+  "frame_count": 16,
+  "frame_width": 443,
+  "frame_height": 221,
+  "frame_duration_ms": 80,
+  "spritesheet_columns": 4,
+  "spritesheet_rows": 4,
+  "note": "Alcance planejado para a lógica do jogo; sprites precisam de escala e posicionamento no motor."
+}

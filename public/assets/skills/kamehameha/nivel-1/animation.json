@@ -1,0 +1,16 @@
+{
+  "skill": "kamehameha",
+  "stage": 1,
+  "level_min": 1,
+  "level_max": 19,
+  "range_tiles": 4,
+  "tile_size": 32,
+  "direction": "right",
+  "frame_count": 16,
+  "frame_width": 443,
+  "frame_height": 221,
+  "frame_duration_ms": 80,
+  "spritesheet_columns": 4,
+  "spritesheet_rows": 4,
+  "note": "Frames extraídos da animação. Ajustar escala e âncora no motor do jogo."
+}
