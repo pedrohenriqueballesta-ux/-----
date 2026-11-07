@@ -67,6 +67,20 @@ Captura automatizada pendente por indisponibilidade do host do navegador.
 Usuário testou e aprovou o resultado, autorizando o commit em 07/11/2026.
 Push e merge aguardam autorização.
 
+## HUD Auto Hunt — implementação local (07/11/2026)
+
+Branch `feature/hud-auto-hunt`, criada de `origin/main` após merge da cura.
+Um botão Auto Hunt no canto inferior direito abre painel não modal com caça,
+ataque, técnicas, cura, poção de Ki, semente/potência e comida automáticos.
+Limites de recuperação configuráveis no servidor (inteiros 1–100%): cura 70% HP,
+poção 25% Ki e semente 30% HP por padrão. Compara estritamente abaixo do limite.
+Preferências de recuperação, limites e potência persistem; caça não reativa ao
+reconectar. Custos, estoques e recargas anteriores preservados.
+197 testes e `npm run check` passaram. Detalhes em `docs/AUTO_HUNT.md`. Captura visual pendente por indisponibilidade
+do navegador. Painel compacto com rolagem e arrasto pelo cabeçalho; posição final
+persistida no navegador. Usuário revisou e aprovou, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.

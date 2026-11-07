@@ -96,8 +96,8 @@ async function sendInput() {
 setInterval(sendInput, 70);
 document.addEventListener('keydown', e => {
   if (transicaoTeleport.ativa) { e.preventDefault(); return; }
-  // A Mochila não trava o jogo: com ela aberta o personagem continua andando e usando técnicas.
-  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila)')) return;
+  // Mochila e Auto Hunt são painéis não modais: não pausam movimento ou técnicas.
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) return;
   const key = e.key.toLowerCase();
   if (key === 'b' && !e.repeat) { alternarMochila(); return; }
   if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
@@ -421,7 +421,7 @@ let portalEncostado = null;
 function verificarPortal(pos) {
   if (transicaoTeleport.ativa) return;
   const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
-  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
+  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;
 }
 

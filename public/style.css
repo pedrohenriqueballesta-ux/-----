@@ -109,9 +109,6 @@ button{cursor:pointer}
 .sprite-kame{background-position:4.6% 8.2%}.sprite-kaioken{background-position:50.1% 8.2%}.sprite-barrier{background-position:95.8% 8.2%}
 .sprite-transform{background-position:26.3% 88.7%}.sprite-genki{background-position:73.4% 88.7%}
 .sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}
-.cura-config{display:grid;gap:calc(4 * var(--u));padding:calc(8 * var(--u));border:1px solid #59a86c;border-radius:calc(9 * var(--u));background:#0b231ed9;font-size:calc(13 * var(--u))}
-.cura-config label{display:flex;align-items:center;justify-content:center;gap:calc(5 * var(--u))}
-.cura-config input[type="number"]{width:calc(50 * var(--u));padding:calc(2 * var(--u));background:#081912;border:1px solid #649477;border-radius:4px;text-align:center}
 .item-icone{background-image:none;font-size:calc(38 * var(--u))}
 .tecnica strong{font-size:calc(13 * var(--u));white-space:nowrap}
 .tecnica small{display:none}
@@ -129,6 +126,30 @@ button{cursor:pointer}
 .auto i{font-style:normal;font-size:calc(18 * var(--u))}
 
 .auto-tecnicas{border-color:#6a8cff;background:linear-gradient(rgba(36,58,130,.66),rgba(14,24,64,.66));box-shadow:0 0 calc(8 * var(--u)) #6a8cff88}
+
+/* Auto Hunt reúne as preferências em um painel não modal, no estilo da Mochila. */
+.auto-hunt-panel{position:fixed;inset:auto calc(12 * var(--u)) calc(74 * var(--u)) auto;margin:0;width:min(340px,calc(100vw - 24px));max-height:min(380px,calc(100dvh - 110px));padding:0;border:2px solid var(--ouro);border-radius:14px;color:var(--texto);background:linear-gradient(160deg,#132341f2,#071222f5);box-shadow:var(--brilho),0 12px 40px #0009;z-index:5;font-size:13px;overflow:hidden}
+.auto-hunt-panel[open]{display:flex;flex-direction:column}
+.auto-hunt-head{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f2b53a66;background:#182a48;flex-shrink:0;z-index:1}
+.auto-hunt-emblema{font-size:28px}.auto-hunt-head>div{flex:1}.auto-hunt-head small{font-size:10px;letter-spacing:2px;color:var(--ouro-claro)}
+.auto-hunt-head{cursor:grab;user-select:none;touch-action:none}
+.auto-hunt-head.arrastando{cursor:grabbing}
+.auto-hunt-head button{cursor:pointer}
+.auto-hunt-head h2{margin:0;font-size:20px;color:#fff}.auto-hunt-head .mochila-x{--um:1px}
+.auto-hunt-body{padding:10px 12px;overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#b98a39 #10203a}.auto-hunt-start p{margin:0 0 10px;color:#d4e0f1}.auto-hunt-start .auto{width:100%;font-size:14px;padding:9px 12px}
+.auto-hunt-start>small{display:block;margin-top:8px;font-size:11px;color:#a8b9cd}
+.auto-hunt-panel .auto span{font-size:14px}
+.auto-hunt-panel fieldset{margin:18px 0 0;padding:8px 12px;border:1px solid #3d5c98;border-radius:10px}.auto-hunt-panel legend{padding:0 8px;font-weight:800;color:var(--ouro-claro)}
+.auto-hunt-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0}.auto-hunt-option strong{display:block;color:#f0f5ff;font-size:14px}.auto-hunt-option small{display:block;color:#a8b9cd;font-size:11px;margin-top:2px}
+.auto-hunt-option input{width:19px;height:19px;accent-color:#7cdb78;flex-shrink:0;cursor:pointer}
+.auto-hunt-threshold{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;color:#c4d2e3;font-size:12px}.auto-hunt-threshold>span{white-space:nowrap}
+.auto-hunt-threshold input,.auto-hunt-threshold select{padding:6px;border:1px solid #5274ab;border-radius:6px;background:#0b1830;color:#fff}.auto-hunt-threshold input{width:62px;text-align:center;margin-right:5px}.auto-hunt-threshold input:focus,.auto-hunt-threshold select:focus{outline:2px solid var(--ouro)}
+.auto-hunt-note{margin:14px 0 0;color:#9db0c7;font-size:11px;line-height:1.5}
+#autoHuntButton[aria-expanded="true"]{border-color:#a8e6a0;box-shadow:0 0 12px #5fcb7777}
+#autoHuntButton[aria-expanded="true"]>i:last-child{transform:rotate(180deg)}
+#autoHuntButton.ligado,.auto-hunt-panel .auto.ligado{background:linear-gradient(#326846,#153b29);border-color:#9be28c}
+.auto-hunt-panel .auto:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:1100px){#autoHuntButton>span{font-size:calc(15 * var(--u))}}
 
 /* Dica */
 .hud-dica{position:absolute;left:50%;bottom:calc(1 * var(--u));transform:translateX(-50%);font-size:calc(12 * var(--u));color:#ffffffb0;text-shadow:0 0 calc(3 * var(--u)) #000;pointer-events:none;white-space:nowrap}

@@ -4,6 +4,7 @@
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
+import { instalarPainelMovel } from '../render/painel-movel.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -80,7 +81,16 @@ export function atualizarHud(snapshot, playerId) {
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
   $('autoHeal').checked = s.autoHeal;
-  if (document.activeElement !== $('healThreshold')) $('healThreshold').value = s.healThreshold;
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
+    if (document.activeElement !== $(key)) $(key).value = s[key];
+  }
+  $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
+  $('autoHuntButton').classList.toggle('ligado', s.autoHunt);
+  const hunt = areaPorId(s.area);
+  $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
+  $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
+  $('autoKiInfo').textContent = `${s.inventory.ki} poções · ${!s.inventory.ki ? 'sem estoque' : s.kiRemaining > 0 ? 'recarga ' + s.kiRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
+  $('autoSeedInfo').textContent = `${s.inventory['seed' + s.seedSelected]} sementes de ${s.seedSelected}% · ${!s.inventory['seed' + s.seedSelected] ? 'sem estoque' : s.seedRemaining > 0 ? 'recarga ' + s.seedRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food; $('kiCount').textContent = s.inventory.ki;
@@ -88,7 +98,7 @@ export function atualizarHud(snapshot, playerId) {
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);
-  $('seedSelect').value = String(s.seedSelected);
+  if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
   $('seedButton').disabled = s.seedRemaining > 0 || !s.inventory['seed' + s.seedSelected];
   $('seedCount').textContent = s.inventory['seed' + s.seedSelected] || 0;
@@ -297,6 +307,25 @@ export function alternarCaca() {
   action({ type: 'hunt', enabled: !ctx?.snapshot()?.self?.autoHunt });
 }
 
+let autoHuntMovel = null;
+export function encaixarAutoHunt() {
+  const painel = $('autoHuntDialog'); if (!painel.open) return;
+  if (autoHuntMovel?.restaurar()) return;
+  const caixa = seletor => document.querySelector?.(seletor)?.getBoundingClientRect();
+  const topo = Math.max(caixa('.hud-topo')?.bottom || 0, caixa('.hud-mapa')?.bottom || 0, caixa('.hud-zoom')?.bottom || 0) + 8;
+  const fim = Math.min(caixa('.hud-tecnicas')?.top ?? innerHeight - 16, caixa('.hud-auto')?.top ?? innerHeight - 16) - 8;
+  painel.style.bottom = Math.max(8, innerHeight - fim) + 'px';
+  painel.style.maxHeight = Math.max(0, Math.min(380, fim - topo)) + 'px';
+}
+addEventListener('resize', encaixarAutoHunt);
+
+export function alternarAutoHunt() {
+  const painel = $('autoHuntDialog');
+  if (painel.open) painel.close(); else painel.show();
+  $('autoHuntButton').setAttribute('aria-expanded', String(painel.open));
+  encaixarAutoHunt();
+}
+
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
@@ -314,11 +343,19 @@ export function ligarHud(contexto) {
   for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
   $('autoHeal').onchange = () => action({ type: 'toggle', key: 'autoHeal', value: $('autoHeal').checked });
-  $('healThreshold').onchange = () => {
-    const input = $('healThreshold'), value = Number(input.value);
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) $(key).onchange = () => {
+    const input = $(key), value = Number(input.value);
     if (!input.checkValidity() || !Number.isInteger(value)) { input.reportValidity(); return; }
-    action({ type: 'healThreshold', value });
+    action({ type: 'automationThreshold', key, value });
   };
+  $('autoHuntButton').onclick = alternarAutoHunt;
+  autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
+  $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
+  $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
+  $('autoHuntDialog').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); $('autoHuntDialog').close(); }
+    else if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+  });
   $('huntButton').addEventListener('click', alternarCaca);
   $('foodButton').onclick = () => action({ type: 'food' });
   $('kiPotionButton').onclick = () => action({ type: 'potion' });
