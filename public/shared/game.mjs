@@ -324,8 +324,52 @@ export class Game {
     }
   }
   move(entity, dx, dy, dt, speed, radius = 15) {
+    // Só mobs bloqueiam outros mobs. Jogadores atravessam seus corpos para sair de cercos.
+    if (this.mobs.get(entity.id) === entity) {
+      const antes = { x: entity.x, y: entity.y };
+      this.moverMob(entity, dx * speed * dt, dy * speed * dt, true);
+      entity.moving = distance(antes, entity) > 0.01;
+      return;
+    }
     [entity.x, entity.y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area, Boolean(entity.autoHunt && !naZonaSegura(entity)));
     entity.moving = Math.hypot(dx, dy) > 0.05;
+  }
+  // Raio no chão, incluindo a largura extra dos gigantes (pedido do Pedro, 07/11).
+  raioMob(m) { return 22 + (m.corpo || 0); }
+  moverMob(m, dx, dy, colidir = false) {
+    const raio = this.raioMob(m), passos = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 4));
+    const mundo = PLANETS[m.planet];
+    const livre = (x, y) => x >= raio && y >= raio && x <= mundo.w - raio && y <= mundo.h - raio
+      && pesLivres(m.planet, x, y, raio / 0.6, m.area)
+      && (!colidir || ![...this.mobs.values()].some(outro => outro !== m && outro.hp > 0 && this.mesmoLugar(m, outro)
+        && Math.hypot(x - outro.x, y - outro.y) < raio + this.raioMob(outro) - 0.001));
+    // Passos curtos impedem atravessar uma parede ou outro corpo entre dois ticks.
+    for (let i = 0; i < passos; i++) {
+      if (livre(m.x + dx / passos, m.y)) m.x += dx / passos;
+      if (livre(m.x, m.y + dy / passos)) m.y += dy / passos;
+    }
+  }
+  separarMobs() {
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0);
+    // Resolve também nascimento, renascimento e crescimento da forma do Freeza.
+    for (let rodada = 0; rodada < 32; rodada++) {
+      let sobrepostos = false;
+      for (let i = 0; i < vivos.length; i++) for (let j = i + 1; j < vivos.length; j++) {
+        const a = vivos[i], b = vivos[j];
+        if (!this.mesmoLugar(a, b)) continue;
+        const d = distance(a, b), falta = this.raioMob(a) + this.raioMob(b) - d;
+        if (falta <= 0.01) continue;
+        sobrepostos = true;
+        const angulo = (i + j) * 2.399963229728653;
+        const nx = d > 0.001 ? (b.x - a.x) / d : Math.cos(angulo);
+        const ny = d > 0.001 ? (b.y - a.y) / d : Math.sin(angulo);
+        const antes = { x: a.x, y: a.y };
+        this.moverMob(a, -nx * falta / 2, -ny * falta / 2);
+        const afastou = Math.max(0, (antes.x - a.x) * nx + (antes.y - a.y) * ny);
+        this.moverMob(b, nx * (falta - afastou), ny * (falta - afastou));
+      }
+      if (!sobrepostos) break;
+    }
   }
   // Em planetas com máscara, segue pontos da rota livre (recalculados quando o alvo se move ou a cada 1,5 s).
   // A caça automática para se o alvo ficou sem rota; cliques e inimigos mantêm o desvio local de segurança.
@@ -604,6 +648,7 @@ export class Game {
     for (const p of this.players.values()) this.updatePlayer(p, dt);
     this.atualizarKamehamehas();
     for (const m of this.mobs.values()) this.updateMob(m, dt);
+    this.separarMobs();
     for (const s of this.projectiles) {
       s.ttl -= dt; const oldX = s.x, oldY = s.y; s.x += s.dx * s.speed * dt; s.y += s.dy * s.speed * dt;
       if (s.ttl <= 0) continue;

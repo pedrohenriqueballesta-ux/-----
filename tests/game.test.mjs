@@ -87,7 +87,7 @@ test('teclado e condução automática mantêm velocidade igual nas quatro diago
     assert.equal(Math.sign(p.y - origin.y), y);
     const direction = game.snapshot(p.id).players[0].facing;
     assert.equal(Math.sign(direction.x), x); assert.equal(Math.sign(direction.y), y);
-    const mob = game.addMob('melee', 550, 380); mob.planet = 'terra';
+    const mob = game.addMob('melee', 550, 380); mob.planet = 'terra'; mob.area = null;
     game.steer(mob, { x: mob.x + x * 100, y: mob.y + y * 100 }, 0.1, mob.speed);
     assert.ok(Math.abs(Math.hypot(mob.x - 550, mob.y - 380) - mob.speed * 0.1) < 1e-8);
     assert.equal(Math.sign(mob.facing.x), x); assert.equal(Math.sign(mob.facing.y), y);
