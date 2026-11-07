@@ -4,7 +4,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
-import { deslocar, caminhoPorTerra, temMascara, pesLivres } from './passagem.mjs';
+import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
 
@@ -167,7 +167,11 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'moveTo' && Number.isFinite(data.x) && Number.isFinite(data.y)) {
-      p.autoHunt = false; const w = PLANETS[p.planet] || PLANETS.namek; p.moveTo = { x: clamp(data.x, 30, w.w - 30), y: clamp(data.y, 30, w.h - 30) }; return { ok: true };
+      p.autoHunt = false; const w = PLANETS[p.planet] || PLANETS.namek;
+      const plano = planejarClique(p.planet, p, { x: clamp(data.x, 30, w.w - 30), y: clamp(data.y, 30, w.h - 30) }, p.area);
+      p.rota = null;
+      p.moveTo = { ...plano.destino, pontos: plano.pontos, progresso: { x: p.x, y: p.y, em: this.time } };
+      return { ok: true };
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
     if (kind === 'food') return this.useFood(p);
@@ -486,8 +490,17 @@ export class Game {
         }
       }
     } else if (p.moveTo) {
-      if (distance(p, p.moveTo) < 16) p.moveTo = null;
-      else this.steer(p, p.moveTo, dt, p.stats.mobility);
+      const destino = p.moveTo;
+      if (distance(p, destino) < (destino.pontos ? 2 : 16)) { p.moveTo = null; p.rota = null; }
+      else {
+        if (destino.pontos) {
+          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 1) destino.pontos.shift();
+          const alvo = destino.pontos[0], d = distance(p, alvo), dir = norm(alvo.x - p.x, alvo.y - p.y);
+          this.move(p, dir.x, dir.y, Math.min(dt, d / p.stats.mobility), p.stats.mobility); p.facing = dir;
+        } else this.steer(p, destino, dt, p.stats.mobility);
+        if (!destino.progresso || distance(p, destino.progresso) > 4) destino.progresso = { x: p.x, y: p.y, em: this.time };
+        else if (this.time - destino.progresso.em > 1) { p.moveTo = null; p.rota = null; p.moving = false; }
+      }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);

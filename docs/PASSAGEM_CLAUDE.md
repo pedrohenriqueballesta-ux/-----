@@ -81,6 +81,21 @@ do navegador. Painel compacto com rolagem e arrasto pelo cabeçalho; posição f
 persistida no navegador. Usuário revisou e aprovou, autorizando o commit em 07/11/2026.
 Push e merge aguardam autorização.
 
+## Minimapa interativo — implementação local (07/11/2026)
+
+Branch `feature/ajustes-minimapa`. Clique envia destino ao movimento existente do
+servidor; −/+ ajustam o tamanho da HUD entre 1× e 2×, crescendo para baixo/esquerda.
+Zoom do minimapa via scroll é independente da câmera (100–400%, sem faixas inertes).
+Arrasto pelo botão esquerdo explora a visão; clique simples move o personagem.
+Botão ◎ restaura o acompanhamento do personagem.
+Informação de zoom do jogador acompanha a altura real da HUD do mapa. Clique usa
+o recorte exibido, respeita o lugar atual e ignora transição ou imagem de outro lugar.
+Cliques inacessíveis agora têm destino e rota corrigidos no servidor para a margem
+alcançável; a ordem termina ao chegar, sem insistir na água ou em estruturas.
+209 testes e `npm run check` passaram. Detalhes em `docs/MINIMAPA.md`.
+Conferência visual automatizada pendente: host do navegador indisponível.
+Commit autorizado em 07/11/2026; push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.
