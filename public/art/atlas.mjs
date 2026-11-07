@@ -47,6 +47,29 @@ import { OOZARU_GUERREIRO_KI } from './oozaru-guerreiro-ki.mjs';
 import { OOZARU_SUPER_PASSO } from './oozaru-super-passo.mjs';
 import { OOZARU_SUPER_SOCO } from './oozaru-super-soco.mjs';
 import { OOZARU_SUPER_KI } from './oozaru-super-ki.mjs';
+// Freeza BOSS (ideia do Pedro, 05/11/2026): em pé (Death Beam) e, a partir de 40% da vida, na nave (Supernova).
+import { FREEZA_PE_PASSO } from './freeza-pe-andar.mjs';
+import { FREEZA_PE_DEATHBEAM } from './freeza-pe-deathbeam.mjs';
+import { FREEZA_NAVE_PASSO } from './freeza-nave-flutuar.mjs';
+import { FREEZA_NAVE_SUPERNOVA } from './freeza-nave-supernova.mjs';
+// Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte).
+import { REI_VEGETA_PASSO } from './rei-vegeta-passo.mjs';
+import { REI_VEGETA_SOCO } from './rei-vegeta-soco.mjs';
+import { REI_VEGETA_KI } from './rei-vegeta-ki.mjs';
+import { BROLY_PASSO } from './broly-passo.mjs';
+import { BROLY_SOCO } from './broly-soco.mjs';
+import { BROLY_KI } from './broly-ki.mjs';
+// Oozaru Dourado (sem armadura): chefe raro dos Campos de Lava (Pedro, 06/11): pancada com os dois punhos e laser negro.
+import { OOZARU_DOURADO_PASSO } from './oozaru-dourado-passo.mjs';
+import { OOZARU_DOURADO_PANCADA } from './oozaru-dourado-pancada.mjs';
+import { OOZARU_DOURADO_LASER } from './oozaru-dourado-laser.mjs';
+// Cânions (decisão do Pedro, 06/11/2026): Dodoria (o mais fraco) e Zarbon (o mais forte).
+import { ZARBON_PASSO } from './zarbon-passo.mjs';
+import { ZARBON_SOCO } from './zarbon-soco.mjs';
+import { ZARBON_KI } from './zarbon-ki.mjs';
+import { DODORIA_PASSO } from './dodoria-passo.mjs';
+import { DODORIA_SOCO } from './dodoria-soco.mjs';
+import { DODORIA_KI } from './dodoria-ki.mjs';
 
 // Five distinct views, with the three opposite views mirrored for consistent anatomy.
 // Back-diagonal views use a rear three-quarter drawing, never a side/front substitute.
@@ -99,7 +122,8 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 }
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
-const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'] };
+const PASSO = { goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'],
+  freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'] };
 export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
   veteranoKi: [VETERANO_KI, 'veteranoKi'],
   tsufuruGuerreiro: [TSUFURU_GUERREIRO_SOCO, 'tsufuruGuerreiroSoco'], tsufuruGuerreiroKi: [TSUFURU_GUERREIRO_KI, 'tsufuruGuerreiroKi'],
@@ -110,7 +134,13 @@ export const GOLPE = { goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGol
   bardock: [BARDOCK_SOCO, 'bardockSoco'], bardockKi: [BARDOCK_KI, 'bardockKi'],
   oozaru: [OOZARU_SOCO, 'oozaruSoco'], oozaruKi: [OOZARU_KI, 'oozaruKi'],
   oozaruGuerreiro: [OOZARU_GUERREIRO_SOCO, 'oozaruGuerreiroSoco'], oozaruGuerreiroKi: [OOZARU_GUERREIRO_KI, 'oozaruGuerreiroKi'],
-  oozaruSuper: [OOZARU_SUPER_SOCO, 'oozaruSuperSoco'], oozaruSuperKi: [OOZARU_SUPER_KI, 'oozaruSuperKi'] };
+  oozaruSuper: [OOZARU_SUPER_SOCO, 'oozaruSuperSoco'], oozaruSuperKi: [OOZARU_SUPER_KI, 'oozaruSuperKi'],
+  freezaPeBeam: [FREEZA_PE_DEATHBEAM, 'freezaPeBeam'], freezaNaveNova: [FREEZA_NAVE_SUPERNOVA, 'freezaNaveNova'],
+  reiVegeta: [REI_VEGETA_SOCO, 'reiVegetaSoco'], reiVegetaKi: [REI_VEGETA_KI, 'reiVegetaKi'],
+  broly: [BROLY_SOCO, 'brolySoco'], brolyKi: [BROLY_KI, 'brolyKi'],
+  oozaruDourado: [OOZARU_DOURADO_PANCADA, 'oozaruDouradoPancada'], oozaruDouradoKi: [OOZARU_DOURADO_LASER, 'oozaruDouradoLaser'],
+  zarbon: [ZARBON_SOCO, 'zarbonSoco'], zarbonKi: [ZARBON_KI, 'zarbonKi'],
+  dodoria: [DODORIA_SOCO, 'dodoriaSoco'], dodoriaKi: [DODORIA_KI, 'dodoriaKi'] };
 function drawPasso(ctx, kind, pos, height, facing, moving, stride, phase = 0) {
   const [sheet, key] = PASSO[kind];
   const bob = moving ? walkBob(walkStep(pos.travelled || 0, stride, phase)) * height : 0;

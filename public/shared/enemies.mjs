@@ -45,14 +45,19 @@ const ATRIBUTOS = {
     tsufuruGeneral: { hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
     hatchiyack: { hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
   },
-  // Cânions (decisão do Pedro, 05/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte).
-  // Mesmo critério das Planícies, um degrau acima: um nível 36 NÃO mata com facilidade.
+  // Cânions (decisão do Pedro, 06/11/2026): Dodoria (o mais fraco) e Zarbon (o mais forte). Mesmo critério das
+  // Planícies, um degrau acima: um nível 36 NÃO mata com facilidade. (Nappa, Raditz e Bardock foram para a Floresta.)
   'vegeta-canions': {
-    nappa: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 108, name: 'Nappa' },
-    raditz: { hp: 3550, attack: 95, xp: 600, defesa: 33, speed: 112, name: 'Raditz' },
-    bardock: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 110, name: 'Bardock' }
+    dodoria: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 104, corpo: 10, name: 'Dodoria' },
+    zarbon: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 112, name: 'Zarbon' }
   },
-  ...mobsDaFaixa('vegeta-floresta', 45, { inseto: 115, veterano: 108 }),
+  // Floresta Seca (decisão do Pedro, 06/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte),
+  // vindos dos Cânions, mais fortes: um nível 42 NÃO mata com facilidade.
+  'vegeta-floresta': {
+    nappa: { hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 108, name: 'Nappa' },
+    raditz: { hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 112, name: 'Raditz' },
+    bardock: { hp: 4800, attack: 126, xp: 1800, defesa: 45, speed: 110, name: 'Bardock' }
+  },
   // Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru (o mais fraco) e Oozaru Guerreiro (o mais forte), mesmo
   // critério das outras hunts (nível 48 não mata com facilidade). Oozaru Super = chefe raro (6 a 12 h, em qualquer
   // ponto da hunt), forte demais para um nível 48–54 sozinho e sem equipamento (o "set" ainda não existe no jogo).
@@ -61,11 +66,22 @@ const ATRIBUTOS = {
     // bate nele: sem isso o gigante encostava no centro do Goku e ficava virando de lado (relato do Pedro, 05/11).
     oozaru: { hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, corpo: 34, name: 'Oozaru' },
     oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
-    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' }
+    // Oozaru Super (dourado DE ARMADURA): fora da Lava desde 06/11 (Pedro), guardado para ser chefe de outro planeta.
+    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' },
+    // Oozaru Dourado (sem armadura, como no GT): chefe raro da Lava no lugar dele (Pedro, 06/11). Golpes próprios:
+    // pancada com os dois punhos (área em volta dele) e laser negro pela boca mirando o personagem. Mesma força por ora.
+    oozaruDourado: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Dourado' }
   },
+  // Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte), no lugar dos
+  // Porungas provisórios. Mesmo critério das outras hunts: um nível 54 não mata com facilidade.
   'vegeta-cratera': {
-    ...mobsDaFaixa('vegeta-cratera', 57, { porunga: 115 })['vegeta-cratera'],
-    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' }
+    reiVegeta: { hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 12, name: 'Rei Vegeta' },
+    broly: { hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 30, name: 'Broly' },
+    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
+    // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
+    // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
+    freezaBoss: { hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 32, name: 'Freeza',
+      nave: { aPartirDe: 0.4, ataque: 1.35, defesa: 1.25, velocidade: 0.8, corpo: 40, nome: 'Freeza (nave)' } }
   }
 };
 // Mobs de uma hunt pela curva de Namek, no nível dado: { tipo: velocidade } → { [area]: { tipo: atributos } }.
@@ -83,14 +99,16 @@ function mobsDaFaixa(area, nivel, tipos) {
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
-  const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper';
+  const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
   return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 // Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
-export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 } };
+export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
+  oozaruDourado: { minimo: 6 * 3600, maximo: 12 * 3600 },
+  freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
 export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
   ? TEMPO_CHEFE_RARO[type].minimo + random() * (TEMPO_CHEFE_RARO[type].maximo - TEMPO_CHEFE_RARO[type].minimo) : type === 'subboss' ? 60 : 12;
 // Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
@@ -98,7 +116,7 @@ export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
 export const CHEFES_RAROS = {
   dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' },
   // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
-  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'apareceu no meio da Grande Cratera!' },
+  'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'chegou à Grande Cratera!' },
   // Oozaru Super: num ponto sorteado em qualquer lugar da hunt (todaHunt), não num círculo.
   'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' }
 };
@@ -141,7 +159,9 @@ function espalhar(random, area, n, tipo) {
 }
 const [G, M, H] = ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack'];
 const PLANICIES_VERMELHAS = [G, M, G, H, G, M, G, G, M, H, G, M, G, G, M, H];
-const CANIONS = ['nappa', 'raditz', 'nappa', 'bardock', 'nappa', 'raditz', 'nappa', 'nappa', 'raditz', 'bardock'];
+// Cânions: 10 mobs, 6 Dodorias e 4 Zarbons (60/40, como a Cratera). Floresta Seca: 16, 8 Nappas, 5 Raditz, 3 Bardocks.
+const CANIONS = ['dodoria', 'zarbon', 'dodoria', 'zarbon', 'dodoria', 'dodoria', 'zarbon', 'dodoria', 'zarbon', 'dodoria'];
+const FLORESTA = PLANICIES_VERMELHAS.map(t => ({ [G]: 'nappa', [M]: 'raditz', [H]: 'bardock' })[t]);
 // Quantidade de mobs por hunt: na inicial, 20 (16 + 25%, pedido do Pedro, 03/11); nas outras, 16
 // comuns, provisório (a densidade será decidida pelo Pedro com o modelo montado).
 export function spawnPoints(random) {
@@ -159,11 +179,12 @@ export function spawnPoints(random) {
     // Cânions: mais Nappas, menos Bardocks (5 / 3 / 2), misturados. Só 10: o chão dos Cânions é menos da metade do
     // das Planícies, e com 16 a densidade dobrava (caça morria ~9 vezes em 5 min no nível 36; com 10, a das Planícies).
     ...espalhar(random, 'vegeta-canions', 10, i => CANIONS[i % CANIONS.length]),
-    ...espalhar(random, 'vegeta-floresta', 16, i => i % 2 ? 'veterano' : 'inseto'),
+    ...espalhar(random, 'vegeta-floresta', 16, i => FLORESTA[i % FLORESTA.length]),
     // Campos de Lava: 11 mobs (densidade das Planícies para o chão da Lava), mais Oozarus que Guerreiros, e o chefe raro.
     ...espalhar(random, 'vegeta-lava', 11, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru'),
-    { type: 'oozaruSuper', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
-    ...espalhar(random, 'vegeta-cratera', 16, () => 'porunga'),
-    { type: 'boss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
+    { type: 'oozaruDourado', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
+    // Grande Cratera: 10 mobs, 60% Rei Vegeta e 40% Broly (Pedro, 06/11: 6 e 4), misturados, e o chefe raro.
+    ...espalhar(random, 'vegeta-cratera', 10, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
+    { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
   ];
 }

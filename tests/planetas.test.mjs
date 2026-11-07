@@ -120,37 +120,117 @@ test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os trê
   for (const t of ['tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack']) assert.ok(SOCA_E_ATIRA.has(t));
 });
 
-test('Cânions: Nappa < Raditz < Bardock, 10 na hunt (5 / 3 / 2), os três socam e disparam ki', async () => {
+test('Cânions: Dodoria < Zarbon, 10 na hunt (6 / 4); Floresta Seca: Nappa < Raditz < Bardock, 16 (8 / 5 / 3)', async () => {
   const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
-  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-canions');
-  const n = t => mobs.filter(m => m.type === t).length;
-  assert.deepEqual([n('nappa'), n('raditz'), n('bardock')], [5, 3, 2]);
-  const [a, b, c] = ['nappa', 'raditz', 'bardock'].map(t => mobs.find(x => x.type === t));
-  assert.ok(a.maxHp < b.maxHp && b.maxHp < c.maxHp && a.attack < b.attack && b.attack < c.attack && a.xp < b.xp && b.xp < c.xp);
+  const em = area => [...game.mobs.values()].filter(m => m.area === area);
+  const n = (area, t) => em(area).filter(m => m.type === t).length;
+  assert.deepEqual([n('vegeta-canions', 'dodoria'), n('vegeta-canions', 'zarbon')], [6, 4]);
+  assert.deepEqual([n('vegeta-floresta', 'nappa'), n('vegeta-floresta', 'raditz'), n('vegeta-floresta', 'bardock')], [8, 5, 3]);
+  const [d, z] = ['dodoria', 'zarbon'].map(t => em('vegeta-canions').find(x => x.type === t));
+  assert.deepEqual([d.name, z.name], ['Dodoria', 'Zarbon']);
+  assert.ok(d.maxHp < z.maxHp && d.attack < z.attack && d.xp < z.xp);
+  const [a, b, c] = ['nappa', 'raditz', 'bardock'].map(t => em('vegeta-floresta').find(x => x.type === t));
   assert.deepEqual([a.name, b.name, c.name], ['Nappa', 'Raditz', 'Bardock']);
-  for (const t of ['nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
+  assert.ok(a.maxHp < b.maxHp && b.maxHp < c.maxHp && a.attack < b.attack && b.attack < c.attack);
+  for (const t of ['dodoria', 'zarbon', 'nappa', 'raditz', 'bardock']) assert.ok(SOCA_E_ATIRA.has(t));
 });
 
-test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Super é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
+test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
   const { SOCA_E_ATIRA, CHEFES } = await import('../public/shared/game.mjs');
   const { renasceEm, pontoNoCirculo } = await import('../public/shared/enemies.mjs');
   const { podeAndar } = await import('../public/shared/passagem.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-lava');
   const n = t => mobs.filter(m => m.type === t).length;
-  assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruSuper') === 1);
-  const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruSuper'].map(t => mobs.find(x => x.type === t));
-  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Super']);
+  assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruDourado') === 1 && n('oozaruSuper') === 0);
+  const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruDourado'].map(t => mobs.find(x => x.type === t));
+  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Dourado']);
   assert.ok(o.maxHp < g.maxHp && g.maxHp * 4 < s.maxHp && o.attack < g.attack && g.attack < s.attack);
-  for (const t of ['oozaru', 'oozaruGuerreiro', 'oozaruSuper']) assert.ok(SOCA_E_ATIRA.has(t));
-  assert.ok(CHEFES.has('oozaruSuper'), 'caça automática não enfrenta o Oozaru Super');
+  for (const t of ['oozaru', 'oozaruGuerreiro']) assert.ok(SOCA_E_ATIRA.has(t));
+  assert.ok(CHEFES.has('oozaruDourado'), 'caça automática não enfrenta o Oozaru Dourado');
   // Raro: começa morto e volta entre 6 e 12 horas.
   assert.ok(s.raro && s.hp === 0 && s.deadUntil - game.time >= 6 * 3600 && s.deadUntil - game.time <= 12 * 3600);
-  assert.equal(renasceEm('oozaruSuper', () => 0), 6 * 3600); assert.equal(renasceEm('oozaruSuper', () => 1), 12 * 3600);
+  assert.equal(renasceEm('oozaruDourado', () => 0), 6 * 3600); assert.equal(renasceEm('oozaruDourado', () => 1), 12 * 3600);
   // Nasce em pontos diferentes da hunt, sempre em chão andável dela.
   let semente = 12345; const sorte = () => (semente = (semente * 1103515245 + 12345) % 2147483648) / 2147483648;
   const pontos = Array.from({ length: 8 }, () => pontoNoCirculo(sorte, 'vegeta-lava'));
   for (const pt of pontos) assert.ok(podeAndar('vegeta', pt.x, pt.y, 'vegeta-lava'));
   assert.ok(new Set(pontos.map(pt => Math.round(pt.x / 500) + ':' + Math.round(pt.y / 500))).size >= 3, 'pontos espalhados pela hunt');
+});
+
+test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica mais forte (Supernova)', async () => {
+  const { CHEFES, FREEZA } = await import('../public/shared/game.mjs');
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
+  assert.ok(CHEFES.has('freezaBoss'));
+  for (let i = 0; i < 40; i++) game.tick(0.05);
+  assert.equal(f.forma, 'pe'); const ataquePe = f.attack;
+  // Em pé: o golpe é o Death Beam (raio rápido).
+  let viuBeam = false; for (let i = 0; i < 80 && !viuBeam; i++) { game.tick(0.05); viuBeam = game.projectiles.some(s => s.kind === 'deathbeam'); }
+  assert.ok(viuBeam, 'soltou Death Beam');
+  // A 40% da vida: transição, depois nave com mais ataque e defesa.
+  f.hp = Math.floor(f.maxHp * 0.39); f.telegraph = null; game.tick(0.05);
+  assert.ok(f.transicao, 'começou a entrar na nave');
+  assert.ok(game.events.some(e => e.type === 'freezaNave'));
+  for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.equal(f.forma, 'nave'); assert.ok(f.attack > ataquePe);
+  // Na nave: o golpe é a Supernova, que acerta em área no ponto marcado.
+  f.attackReady = 0; let nova = null; for (let i = 0; i < 40 && !nova; i++) { game.tick(0.05); if (f.telegraph?.kind === 'supernova') nova = f.telegraph; }
+  assert.ok(nova && nova.radius === FREEZA.novaRaio, 'carregou a Supernova');
+  const vida = p.hp; for (let i = 0; i < 60; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'supernova')); assert.ok(p.hp < vida, 'a Supernova acertou');
+  // Morreu e renasceu: volta em pé.
+  f.hp = 0; f.deadUntil = game.time; game.tick(0.05); assert.equal(f.forma, 'pe');
+});
+
+test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continua como chefe raro', async () => {
+  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const game = new Game({ now: 1000, random: () => 0.5 });
+  const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-cratera');
+  const n = t => mobs.filter(m => m.type === t).length;
+  assert.equal(n('porunga'), 0);
+  assert.deepEqual([n('reiVegeta'), n('broly'), n('freezaBoss')], [6, 4, 1], '60% Rei Vegeta, 40% Broly');
+  const [r, b] = ['reiVegeta', 'broly'].map(t => mobs.find(x => x.type === t));
+  assert.deepEqual([r.name, b.name], ['Rei Vegeta', 'Broly']);
+  assert.ok(r.maxHp < b.maxHp && r.attack < b.attack && r.xp < b.xp);
+  assert.ok(SOCA_E_ATIRA.has('reiVegeta') && SOCA_E_ATIRA.has('broly'));
+});
+
+test('Supernova mira o personagem: a área acompanha o alvo até explodir nele', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.seguroAte = 0;
+  const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
+  f.hp = Math.floor(f.maxHp * 0.3); for (let i = 0; i < 40; i++) game.tick(0.05);
+  assert.equal(f.forma, 'nave');
+  f.attackReady = 0; let nova = null; for (let i = 0; i < 40 && !nova; i++) { game.tick(0.05); if (f.telegraph?.kind === 'supernova') nova = f.telegraph; }
+  assert.ok(nova, 'carregou a Supernova');
+  // O jogador corre para longe durante a carga: a área vai junto e a bola explode onde ele está.
+  p.x += 260; p.y += 120; const vida = p.hp;
+  for (let i = 0; i < 4; i++) game.tick(0.05);
+  assert.ok(Math.hypot(nova.x - p.x, nova.y - p.y) < 1, 'área seguiu o jogador');
+  for (let i = 0; i < 60; i++) game.tick(0.05);
+  const exp = game.events.find(e => e.type === 'supernova');
+  assert.ok(exp && Math.hypot(exp.x - p.x, exp.y - p.y) < 1, 'explodiu em cima do jogador');
+  assert.ok(p.hp < vida, 'acertou');
+});
+
+test('Oozaru Dourado: bola negra mira o personagem; de perto, pancada em área com os dois punhos', async () => {
+  const { statsFor } = await import('../public/shared/characters.mjs');
+  const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
+  p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.seguroAte = 0;
+  const o = game.addMob('oozaruDourado', p.x + 350, p.y, 'vegeta-lava'); o.attackReady = 0;
+  let laser = null; for (let i = 0; i < 20 && !laser; i++) { game.tick(0.05); if (o.telegraph?.kind === 'bolaNegra') laser = o.telegraph; }
+  assert.ok(laser, 'de longe: carrega a bola negra');
+  p.y += 150; game.tick(0.05); assert.ok(Math.abs(laser.ty - p.y) < 1, 'a mira acompanha o personagem');
+  const vida = p.hp; for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'bolaNegra') && p.hp < vida, 'a bola acertou');
+  o.attackReady = 0; o.telegraph = null; p.x = o.x - 80; p.y = o.y;
+  let pancada = null; for (let i = 0; i < 20 && !pancada; i++) { game.tick(0.05); if (o.telegraph?.kind === 'pancada') pancada = o.telegraph; }
+  assert.ok(pancada, 'de perto: pancada');
+  const v2 = p.hp; for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.ok(game.events.some(e => e.type === 'pancada') && p.hp < v2, 'a pancada acertou');
 });
