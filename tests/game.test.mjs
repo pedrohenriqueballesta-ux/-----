@@ -341,6 +341,8 @@ test('Genki Dama só libera no nível 10 e atinge o alvo com projétil de área'
   assert.equal(p.ki, kiBefore - 60);
   assert.equal(game.snapshot(p.id).self.genkiRemaining, CONFIG.skillCooldowns.genki);
   advance(game, 0.45);
+  assert.equal(target.hp, target.maxHp, 'não causa dano durante a canalização');
+  advance(game, 2);
   assert.equal(target.hp, 0, 'o projétil da Genki Dama deve acertar o alvo próximo');
   assert.equal(game.cast(p, 'genki').ok, false, 'a técnica ainda está na recarga de 45 segundos');
   advance(game, 0.6);
