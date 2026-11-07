@@ -109,4 +109,6 @@ export const objetoVegeta = id => loadImage('/assets/vegeta/objetos/' + id + '.w
 export const soloDe = mundo => art[mundo.solo] || loadImage(mundo.soloUrl);
 
 // Verdadeiro quando a imagem já carregou e pode ser desenhada.
-export const loaded = image => image.complete && image.naturalWidth > 0;
+// Alguns mobs só têm as folhas novas: enquanto carregam, o atlas de reserva pode não existir.
+// A ausência deve permitir o desenho provisório, sem interromper o próximo quadro do jogo.
+export const loaded = image => Boolean(image?.complete && image.naturalWidth > 0);
