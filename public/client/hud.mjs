@@ -3,9 +3,11 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
+let atualizarDetalhes = () => {};
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -166,6 +168,7 @@ export function atualizarHud(snapshot, playerId) {
   if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; transformCooldown.setAttribute('aria-hidden', 'true'); $('transformButton').append(transformCooldown); }
   transformCooldown.textContent = !s.transformed && s.transformRemaining > 0 ? s.transformRemaining.toFixed(1) + 's' : '';
   renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
+  atualizarDetalhes(s);
   $('respawn').classList.toggle('hidden', s.hp > 0);
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
@@ -277,6 +280,7 @@ function atualizarMochila(s) {
   $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
     const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
     if (!item) { slot.disabled = true; return slot; }
+    if (item.usar) slot.dataset.item = item.key;
     const qtd = s.inventory[item.key];
     const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
     imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
@@ -334,6 +338,7 @@ export function alternarAutoHunt() {
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
+  atualizarDetalhes = instalarDetalhesHabilidades();
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
   const telas = { loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
