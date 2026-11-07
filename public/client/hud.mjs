@@ -4,6 +4,7 @@
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
+import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -80,7 +81,18 @@ export function atualizarHud(snapshot, playerId) {
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
   $('autoHeal').checked = s.autoHeal;
-  if (document.activeElement !== $('healThreshold')) $('healThreshold').value = s.healThreshold;
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
+    if (document.activeElement !== $(key)) $(key).value = s[key];
+  }
+  $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
+  $('autoHuntButton').classList.toggle('ligado', s.autoHunt);
+  $('godmodeToggle').querySelector('b').textContent = s.godmode ? 'ON' : 'OFF';
+  $('godmodeToggle').classList.toggle('ligado', s.godmode);
+  const hunt = areaPorId(s.area);
+  $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
+  $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
+  $('autoKiInfo').textContent = `${s.inventory.ki} poções · ${!s.inventory.ki ? 'sem estoque' : s.kiRemaining > 0 ? 'recarga ' + s.kiRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
+  $('autoSeedInfo').textContent = `${s.inventory['seed' + s.seedSelected]} sementes de ${s.seedSelected}% · ${!s.inventory['seed' + s.seedSelected] ? 'sem estoque' : s.seedRemaining > 0 ? 'recarga ' + s.seedRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food; $('kiCount').textContent = s.inventory.ki;
@@ -88,7 +100,7 @@ export function atualizarHud(snapshot, playerId) {
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);
-  $('seedSelect').value = String(s.seedSelected);
+  if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
   $('seedButton').disabled = s.seedRemaining > 0 || !s.inventory['seed' + s.seedSelected];
   $('seedCount').textContent = s.inventory['seed' + s.seedSelected] || 0;
@@ -220,13 +232,13 @@ function abrirMapa() {
 
 // Mochila: janela não modal (o jogo segue por trás). Cada tipo de item ocupa um espaço, com a quantidade;
 // clicar num consumível usa. Equipamento ainda não existe no jogo: os espaços em volta da silhueta ficam
-// vazios, com o ícone fantasma do tipo. Ícones dos itens em emoji, provisórios (como na barra de atalhos).
+// vazios, com o ícone fantasma do tipo. Itens usam as imagens do pacote de inventário fornecido.
 const ITENS_MOCHILA = [
-  { key: 'food', nome: 'Presunto', icone: '🍖', tipo: 'consumivel', usar: { type: 'food' } },
-  { key: 'ki', nome: 'Poção de Ki', icone: '🧪', tipo: 'consumivel', usar: { type: 'potion' } },
-  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '🌱', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
-  { key: 'scrap', nome: 'Sucata', icone: '⚙️', tipo: 'material' },
-  { key: 'crystal', nome: 'Cristal', icone: '💎', tipo: 'material' }
+  { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
+  { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
+  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '/assets/inventario/semente_dos_deuses.png', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
+  { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
+  { key: 'crystal', nome: 'Cristal', icone: '/assets/inventario/cristal.png', tipo: 'material' }
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).
 const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
@@ -266,7 +278,10 @@ function atualizarMochila(s) {
     const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
     if (!item) { slot.disabled = true; return slot; }
     const qtd = s.inventory[item.key];
-    slot.textContent = item.icone; slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
+    imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
+    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    slot.setAttribute('aria-label', slot.title);
     if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
     const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
     slot.onclick = () => { slot.blur(); if (item.usar) action(item.usar); };
@@ -297,6 +312,25 @@ export function alternarCaca() {
   action({ type: 'hunt', enabled: !ctx?.snapshot()?.self?.autoHunt });
 }
 
+let autoHuntMovel = null;
+export function encaixarAutoHunt() {
+  const painel = $('autoHuntDialog'); if (!painel.open) return;
+  if (autoHuntMovel?.restaurar()) return;
+  const caixa = seletor => document.querySelector?.(seletor)?.getBoundingClientRect();
+  const topo = Math.max(caixa('.hud-topo')?.bottom || 0, caixa('.hud-mapa')?.bottom || 0, caixa('.hud-zoom')?.bottom || 0) + 8;
+  const fim = Math.min(caixa('.hud-tecnicas')?.top ?? innerHeight - 16, caixa('.hud-auto')?.top ?? innerHeight - 16) - 8;
+  painel.style.bottom = Math.max(8, innerHeight - fim) + 'px';
+  painel.style.maxHeight = Math.max(0, Math.min(380, fim - topo)) + 'px';
+}
+addEventListener('resize', encaixarAutoHunt);
+
+export function alternarAutoHunt() {
+  const painel = $('autoHuntDialog');
+  if (painel.open) painel.close(); else painel.show();
+  $('autoHuntButton').setAttribute('aria-expanded', String(painel.open));
+  encaixarAutoHunt();
+}
+
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
@@ -314,17 +348,31 @@ export function ligarHud(contexto) {
   for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
   $('autoHeal').onchange = () => action({ type: 'toggle', key: 'autoHeal', value: $('autoHeal').checked });
-  $('healThreshold').onchange = () => {
-    const input = $('healThreshold'), value = Number(input.value);
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) $(key).onchange = () => {
+    const input = $(key), value = Number(input.value);
     if (!input.checkValidity() || !Number.isInteger(value)) { input.reportValidity(); return; }
-    action({ type: 'healThreshold', value });
+    action({ type: 'automationThreshold', key, value });
   };
+  $('autoHuntButton').onclick = alternarAutoHunt;
+  autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
+  // Painéis arrastáveis pela alça (⠿): minimapa, skills, chat e automação. Posição salva por painel no localStorage.
+  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-tecnicas', 'dbi-pos-skills'], ['.hud-chat', 'dbi-pos-chat'], ['.hud-auto', 'dbi-pos-auto']]) {
+    const painel = document.querySelector(sel), alca = painel?.querySelector('.arrasto-alca');
+    if (painel && alca) instalarArrasto(painel, alca, chave);
+  }
+  $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
+  $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
+  $('autoHuntDialog').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); $('autoHuntDialog').close(); }
+    else if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+  });
   $('huntButton').addEventListener('click', alternarCaca);
   $('foodButton').onclick = () => action({ type: 'food' });
   $('kiPotionButton').onclick = () => action({ type: 'potion' });
   $('seedButton').onclick = () => action({ type: 'seed', potency: Number($('seedSelect').value) });
   $('seedSelect').onchange = () => action({ type: 'selectSeed', potency: Number($('seedSelect').value) });
   $('transformButton').onclick = () => action({ type: 'transform' });
+  $('godmodeToggle').onclick = () => action({ type: 'godmode' });
   $('helpButton').onclick = () => { ctx.soltarTeclas(); $('helpDialog').showModal(); };
   $('panelButton').onclick = () => { const open = $('panel').classList.toggle('open'); $('panelButton').setAttribute('aria-expanded', String(open)); };
   $('quickHunt').onclick = alternarCaca;

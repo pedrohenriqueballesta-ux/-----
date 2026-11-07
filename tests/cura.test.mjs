@@ -47,8 +47,8 @@ test('tecla, automação e pedidos repetidos compartilham a mesma recarga de 0,7
 });
 
 test('autocura usa limite estrito de 70%, respeita configuração e pode ser desligada', () => {
-  for (const modo of ['autoHunt', 'autoSkills']) {
-    const { g, p } = cena(50); p.autoHeal = true; p[modo] = true;
+  for (const tecnicas of [true, false]) {
+    const { g, p } = cena(50); p.autoHeal = true; p.autoHunt = true; p.autoSkills = tecnicas;
     p.hp = p.stats.hp * .7; g.updatePlayer(p, 0);
     assert.equal(p.healReady, 0, '70% exatos não ativa');
     p.hp -= 1; const ki = p.ki;
@@ -95,7 +95,7 @@ test('cura é universal, não muda direção, movimento, alvo, ataques, carga ou
 test('autocura não depende de alvo e funciona durante ataque sem curar outro jogador ou lugar', () => {
   const { g, p } = cena(20), outro = g.addPlayer('outro'), distante = g.addPlayer('distante');
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
-  p.autoHeal = true; p.autoSkills = true; p.autoAttack = true;
+  p.autoHeal = true; p.autoSkills = true; p.autoHunt = true; p.autoAttack = true;
   const m = g.addMob('melee', p.x + 40, p.y, p.area); m.hp = m.maxHp = 10000; m.agressivo = false;
   p.targetId = m.id; const vidaOutro = outro.hp;
   g.levar(outro, lugar('inicial')); g.tick(.05);
@@ -112,7 +112,7 @@ test('jogador desconectado não continua se curando', () => {
 });
 
 test('autocura repete a cada 0,7s sem regeneração gratuita, sem alvo e sem pausar ataques', () => {
-  const { g, p } = cena(50); p.autoHeal = true; p.autoSkills = true;
+  const { g, p } = cena(50); p.autoHeal = true; p.autoSkills = true; p.autoHunt = true;
   p.basicReady = g.time + 100; // impede a recuperação provisória de Ki durante a medição
   g.action(p.id, { type: 'healThreshold', value: 100 });
   const hp = p.hp, ki = p.ki;

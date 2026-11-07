@@ -2,6 +2,12 @@
 
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
+## Auto Hunt: controle principal da automação — 07/11/2026
+
+- **DECIDIDO:** com Auto Hunt OFF, ataque, técnicas, cura, poção de Ki, semente e comida automáticos ficam pausados, mesmo com suas opções marcadas.
+- Preferências e porcentagens são mantidas. Uso manual continua disponível; efeitos já aplicados e projéteis já lançados terminam normalmente.
+- Carga de Kamehameha iniciada automaticamente é cancelada ao desligar; carga manual é preservada. Movimento manual e clique em destino, que já desligavam a caça, também pausam as automações.
+
 ## Colisão dos inimigos — 07/11/2026
 
 - **DECIDIDO:** Pedro pediu corpos próprios para os inimigos, sem atravessar estruturas nem empilhar mobs.
@@ -66,6 +72,49 @@ ativação para não duplicar. Marcas numéricas dos cantos removidas na cópia 
 Captura automatizada pendente por indisponibilidade do host do navegador.
 Usuário testou e aprovou o resultado, autorizando o commit em 07/11/2026.
 Push e merge aguardam autorização.
+
+## HUD Auto Hunt — implementação local (07/11/2026)
+
+Branch `feature/hud-auto-hunt`, criada de `origin/main` após merge da cura.
+Um botão Auto Hunt no canto inferior direito abre painel não modal com caça,
+ataque, técnicas, cura, poção de Ki, semente/potência e comida automáticos.
+Limites de recuperação configuráveis no servidor (inteiros 1–100%): cura 70% HP,
+poção 25% Ki e semente 30% HP por padrão. Compara estritamente abaixo do limite.
+Preferências de recuperação, limites e potência persistem; caça não reativa ao
+reconectar. Custos, estoques e recargas anteriores preservados.
+197 testes e `npm run check` passaram. Detalhes em `docs/AUTO_HUNT.md`. Captura visual pendente por indisponibilidade
+do navegador. Painel compacto com rolagem e arrasto pelo cabeçalho; posição final
+persistida no navegador. Usuário revisou e aprovou, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
+## Minimapa interativo — implementação local (07/11/2026)
+
+Branch `feature/ajustes-minimapa`. Clique envia destino ao movimento existente do
+servidor; −/+ ajustam o tamanho da HUD entre 1× e 2×, crescendo para baixo/esquerda.
+Zoom do minimapa via scroll é independente da câmera (100–400%, sem faixas inertes).
+Arrasto pelo botão esquerdo explora a visão; clique simples move o personagem.
+Botão ◎ restaura o acompanhamento do personagem.
+Informação de zoom do jogador acompanha a altura real da HUD do mapa. Clique usa
+o recorte exibido, respeita o lugar atual e ignora transição ou imagem de outro lugar.
+Cliques inacessíveis agora têm destino e rota corrigidos no servidor para a margem
+alcançável; a ordem termina ao chegar, sem insistir na água ou em estruturas.
+209 testes e `npm run check` passaram. Detalhes em `docs/MINIMAPA.md`.
+Conferência visual automatizada pendente: host do navegador indisponível.
+Commit autorizado em 07/11/2026; push e merge aguardam autorização.
+
+## Genki-Dama Ultimate — implementação local (07/11/2026)
+
+Branch `feature/genki-dama-vfx`. Três folhas do pacote final: canalização de 16
+frames em 1,92 s, voo em loop de 16 frames até impacto, explosão de 16 frames em
+1,76 s. Render independente do personagem, rotação com célula inteira e ancoragem
+da esfera. Custo 60 Ki, cooldown 45 s, dano ×10/×14 e área secundária de 45% no
+raio 72 preservados. Removida expiração de voo por 2,35 s para permitir distância
+longa; alvo acompanha posição atual no mesmo lugar. Cancelamentos impedem efeitos
+órfãos, dano em safe zone ou entre lugares. Detalhes em `docs/GENKI_DAMA.md`.
+Suíte de 217 testes e sintaxe passaram. Captura visual
+pendente por indisponibilidade do navegador. Canalização atualizada com o GIF
+`Carga de Energia Azul Suprema.gif`, energia em V ancorada na cabeça; voo e
+explosão preservados. Commit autorizado em 07/11/2026; push e merge aguardam autorização.
 
 ## Como interpretar este documento
 
