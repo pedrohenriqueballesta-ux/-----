@@ -65,6 +65,11 @@ button{cursor:pointer}
 .hud-zeni b{margin-left:calc(8 * var(--u))}
 .hud-mochila span{display:grid;line-height:1.2}
 
+/* Botão de teste GOD MODE, embaixo do cartão do personagem. Liga/desliga ao vivo. */
+.hud-godmode{position:absolute;top:calc(192 * var(--u));left:calc(12 * var(--u));padding:calc(6 * var(--u)) calc(12 * var(--u));font-weight:800;font-size:calc(13 * var(--u));color:#ffd36a;white-space:nowrap;cursor:pointer}
+.hud-godmode b{color:inherit}
+.hud-godmode.ligado{color:#7cff9b;border-color:#4be07a;box-shadow:0 0 calc(10 * var(--u)) #35e06a88}
+
 /* Alvo */
 .hud-alvo{position:absolute;top:calc(94 * var(--u));left:50%;transform:translateX(-50%);display:grid;gap:calc(4 * var(--u));width:calc(300 * var(--u));padding:calc(6 * var(--u)) calc(12 * var(--u));text-align:center;font-weight:700}
 .hud-alvo .barra{height:calc(18 * var(--u))}

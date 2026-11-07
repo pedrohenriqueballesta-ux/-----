@@ -2,7 +2,7 @@
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode } from './characters.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
@@ -155,6 +155,11 @@ export class Game {
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
+    }
+    if (kind === 'godmode') {
+      aplicarGodmode(p, !p.godmode);
+      this.notify(p, p.godmode ? 'God mode LIGADO: nível 100, invencível, Zeni e peso infinitos.' : 'God mode desligado: status restaurados.');
+      return { ok: true };
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
       const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
@@ -503,6 +508,7 @@ export class Game {
   updatePlayer(p, dt) {
     p.moving = false;
     if (!p.connected) return;
+    if (p.godmode) { p.hp = p.stats.hp; p.ki = p.stats.ki; }
     if (p.hp <= 0) {
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
@@ -793,7 +799,7 @@ export class Game {
         kaiokenRemaining: Math.max(0, self.kaiokenReady - this.time), kaiokenActive: this.time < self.kaiokenUntil,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
-        transformed: self.transformed, kills: self.kills, bossKills: self.bossKills,
+        transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
