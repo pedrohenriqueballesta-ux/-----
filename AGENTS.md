@@ -1,5 +1,8 @@
 # Guia do projeto
 
+- Inimigos têm colisão própria: não devem atravessar estruturas nem sobrepor outros inimigos vivos no mesmo lugar (pedido de 07/11/2026).
+- Jogadores atravessam os corpos dos mobs para evitar cercos sem saída; a colisão entre mobs não bloqueia nem empurra jogadores (pedido de 07/11/2026).
+
 Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 
 ## Executar e verificar

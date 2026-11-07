@@ -2,6 +2,14 @@
 
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
+## Colisão dos inimigos — 07/11/2026
+
+- **DECIDIDO:** Pedro pediu corpos próprios para os inimigos, sem atravessar estruturas nem empilhar mobs.
+- **DECIDIDO:** o jogador atravessa os corpos dos mobs para evitar traps; apenas mobs bloqueiam outros mobs. Teste específico cobre sair de um cerco e ocupar o mesmo ponto de um gigante sem ser empurrado.
+- **IMPLEMENTADO:** servidor bloqueia movimento contra outros mobs vivos do mesmo planeta/área e valida terreno/estruturas em passos de até 4 unidades. Separação iterativa corrige corpos sobrepostos, respeitando o terreno.
+- **PROVISÓRIO:** raio no chão de 22 unidades + `corpo` do mob; até 32 rodadas de separação por tick. A arte pode cobrir outro sprite pela perspectiva; a colisão representa a base no chão.
+- **VERIFICADO:** 163 testes passaram, incluindo quatro novos testes de colisão; `npm run check` passou. Conferência visual pendente: navegador de teste indisponível nesta sessão.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.
