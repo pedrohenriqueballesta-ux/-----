@@ -98,13 +98,13 @@
   <dialog id="autoHuntDialog" class="auto-hunt-panel" aria-labelledby="autoHuntTitle">
     <header class="auto-hunt-head"><span class="auto-hunt-emblema" aria-hidden="true"><img src="/assets/hud/auto-hunt.png" alt=""></span><div><small>AUTOMAÇÃO</small><h2 id="autoHuntTitle">Auto Hunt</h2></div><button type="button" class="mochila-x" data-close="autoHuntDialog" aria-label="Fechar Auto Hunt">×</button></header>
     <div class="auto-hunt-body">
-      <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa a caça. Ao iniciar, ataque e técnicas são ativados.</small></section>
+      <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa toda a automação. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>
         <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca os alvos próximos.</small></span><input id="autoAttack" type="checkbox"></label>
         <label class="auto-hunt-option"><span><strong>Técnicas automáticas</strong><small>Usa as técnicas de combate disponíveis.</small></span><input id="autoSkills" type="checkbox"></label>
       </fieldset>
       <fieldset><legend>Recuperação</legend>
-        <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Durante a caça ou técnicas automáticas.</small></span><input id="autoHeal" type="checkbox" checked></label>
+        <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Funciona somente com Auto Hunt ligado.</small></span><input id="autoHeal" type="checkbox" checked></label>
         <label class="auto-hunt-threshold">Curar abaixo de <span><input id="healThreshold" type="number" min="1" max="100" step="1" value="70" inputmode="numeric" aria-label="Limite de HP para autocura">% HP</span></label>
         <label class="auto-hunt-option"><span><strong>Poção de Ki automática</strong><small id="autoKiInfo">Usa poções do inventário.</small></span><input id="autoKi" type="checkbox"></label>
         <label class="auto-hunt-threshold">Usar poção abaixo de <span><input id="kiThreshold" type="number" min="1" max="100" step="1" value="25" inputmode="numeric" aria-label="Limite de Ki para usar poção">% Ki</span></label>
@@ -113,7 +113,7 @@
         <label class="auto-hunt-threshold">Potência da semente <select id="seedSelect" aria-label="Potência da semente"><option value="15">15%</option><option value="30">30%</option><option value="50">50%</option><option value="100">100%</option></select></label>
         <label class="auto-hunt-option"><span><strong>Comida automática</strong><small>Renova o efeito da comida durante a caça.</small></span><input id="autoFood" type="checkbox" checked></label>
       </fieldset>
-      <p class="auto-hunt-note">As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
+      <p class="auto-hunt-note">Com Auto Hunt OFF, combate e recuperação automáticos ficam pausados. As configurações são mantidas. As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
     </div>
   </dialog>
   <script type="module" src="/client/game.mjs"></script>

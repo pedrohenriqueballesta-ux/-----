@@ -6,7 +6,7 @@ import { CONFIG, lugar } from '../public/shared/config.mjs';
 function cena() {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
-  p.autoFood = false; p.autoHeal = false;
+  p.autoFood = false; p.autoHeal = false; p.autoHunt = true;
   return { g, p };
 }
 const limitar = (g, p, key, value) => g.action(p.id, { type: 'automationThreshold', key, value });
@@ -60,9 +60,10 @@ test('semente usa potência selecionada, limite próprio e mesma recarga para to
 });
 
 test('controles desligados, safe zone e desconexão impedem consumo automático', () => {
-  for (const modo of ['desligado', 'safe', 'desconectado']) {
+  for (const modo of ['desligado', 'principal desligado', 'safe', 'desconectado']) {
     const { g, p } = cena(); p.autoKi = modo !== 'desligado'; p.autoSeed = modo !== 'desligado';
     p.hp = 1; p.ki = 0;
+    if (modo === 'principal desligado') p.autoHunt = false;
     if (modo === 'safe') g.levar(p, lugar('inicial'));
     if (modo === 'desconectado') p.connected = false;
     const inventario = { ...p.inventory };
@@ -92,4 +93,29 @@ test('iniciar e pausar a caça preserva limites de recuperação e toggles indep
   assert.equal(p.autoHunt, true); assert.equal(p.autoSkills, false);
   g.action(p.id, { type: 'hunt', enabled: false });
   assert.equal(p.autoHunt, false); assert.deepEqual([p.kiThreshold,p.seedThreshold], [55,35]);
+});
+
+test('Auto Hunt OFF bloqueia todo combate e recuperação mesmo com opções marcadas', () => {
+  const { g, p } = cena();
+  for (const key of ['autoAttack','autoSkills','autoHeal','autoKi','autoSeed','autoFood']) p[key] = true;
+  g.action(p.id, { type: 'hunt', enabled: false });
+  const m = g.addMob('melee', p.x + 30, p.y, p.area); m.hp = m.maxHp = 10000;
+  p.targetId = m.id; p.hp = 1; p.ki = p.stats.ki * .1;
+  const antes = structuredClone([p.hp,p.ki,p.inventory,m.hp]);
+  g.updatePlayer(p, 0);
+  assert.deepEqual([p.hp,p.ki,p.inventory,m.hp], antes);
+  assert.equal(p.charge, null); assert.equal(g.projectiles.length, 0);
+  assert.ok(['autoAttack','autoSkills','autoHeal','autoKi','autoSeed','autoFood'].every(key => p[key]));
+  p.ki = p.stats.ki;
+  assert.equal(g.cast(p, 'heal').ok, true, 'uso manual continua disponível');
+});
+
+test('desligar cancela carga automática pendente e preserva carga manual', () => {
+  for (const automated of [true,false]) {
+    const { g, p } = cena();
+    p.charge = { automated, until: g.time + .2, started: g.time, direction: {x:1,y:0}, nivel:1 };
+    g.action(p.id, { type:'hunt', enabled:false });
+    g.updatePlayer(p, 0);
+    assert.equal(Boolean(p.charge), !automated);
+  }
 });

@@ -84,7 +84,7 @@ test('dano preserva os multiplicadores de Super Saiyajin e Kaioken', () => {
 });
 test('auto técnicas usa o alcance do estágio antes de gastar Ki com Kamehameha', () => {
   for (const dentro of [true, false]) {
-    const { g, p, mob } = cena(20), m = mob(dentro ? 100 : 250); p.targetId = m.id; p.autoSkills = true;
+    const { g, p, mob } = cena(20), m = mob(dentro ? 100 : 250); p.targetId = m.id; p.autoSkills = true; p.autoHunt = true;
     g.tick(.01); assert.equal(Boolean(p.charge), dentro);
     if (!dentro) assert.ok(g.projectiles.some(s => s.owner === p.id), 'continua usando rajada de Ki');
   }
@@ -97,12 +97,14 @@ test('Kamehameha manual segue o corpo, ignorando mouse e inimigo selecionado em 
   assert.deepEqual(p.facing, p.charge.direction);
   passar(g, 1.7); assert.equal(lateral.hp, lateral.maxHp, 'não vira sozinho para acertar o alvo');
 });
-test('auto caça OFF mantém direção manual com ataque e técnicas automáticos ON, durante carga e feixe', () => {
+test('auto caça OFF mantém direção manual durante carga e feixe manuais', () => {
   const { g, p, mob } = cena(50), m = mob(30); p.targetId = m.id;
   p.autoAttack = true; p.autoSkills = true;
   g.setInput(p.id, { x: 0, y: -1 }); g.tick(.01);
   assert.equal(p.autoHunt, false);
   assert.deepEqual(p.facing, { x: 0, y: -1 });
+  assert.equal(p.charge, null, 'não inicia técnica automaticamente com Auto Hunt OFF');
+  assert.ok(g.cast(p, 'kame').ok);
   assert.deepEqual(p.charge.direction, p.facing);
   passar(g, .7); mesmaDirecao(g.kamehamehas[0].direction, { x: 0, y: -1 });
   g.setInput(p.id, { x: -1, y: 0 }); g.tick(.01);
