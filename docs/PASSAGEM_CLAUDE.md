@@ -10,6 +10,17 @@ Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir dest
 - **PROVISÓRIO:** raio no chão de 22 unidades + `corpo` do mob; até 32 rodadas de separação por tick. A arte pode cobrir outro sprite pela perspectiva; a colisão representa a base no chão.
 - **VERIFICADO:** 163 testes passaram, incluindo quatro novos testes de colisão; `npm run check` passou. Conferência visual pendente: navegador de teste indisponível nesta sessão.
 
+## Barreira de Ki — VFX em revisão (07/11/2026)
+
+Implementação local em `feature/barreira-ki-vfx`: arte fornecida em grade 4×4;
+frames 0–3 uma vez, 4–9 em ciclo durante a proteção, 10–15 uma vez após o fim.
+120 ms/frame, mesma arte em todos os níveis, posição ligada aos pés do personagem.
+Preservados custo (30 Ki), proteção (2,5 s), recarga (8 s) e multiplicador de dano (0,28).
+169 testes e sintaxe passaram. Conferência visual pendente por bloqueio do controle
+do navegador. Prévia sem save em `/barreira-ki.html`; detalhes em `docs/BARREIRA_KI.md`.
+Usuário revisou e aprovou o resultado, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.

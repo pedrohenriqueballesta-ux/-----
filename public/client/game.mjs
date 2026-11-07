@@ -4,6 +4,7 @@ import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
 import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 import { origemKame } from '../shared/kamehameha.mjs';
+import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -40,6 +41,7 @@ async function join(name, previousToken) {
     try {
       snapshot = JSON.parse(event.data); receivedAt = performance.now();
       carregarKame(snapshot.self?.level || 1);
+      carregarBarreira();
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -169,7 +171,6 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   if (!somenteCorpo) {
     if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
     if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
-    if (p.id === playerId && snapshot.self?.barrierActive) { const r = 33 + Math.sin(time * 12) * 2; ctx.strokeStyle = '#66dfffcc'; ctx.lineWidth = 2.5; ctx.fillStyle = '#4bc5ff18'; ctx.beginPath(); ctx.arc(pos.x, pos.y - 22, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
   }
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
@@ -178,6 +179,7 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
+  desenharBarreira(ctx, p, pos, time);
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }

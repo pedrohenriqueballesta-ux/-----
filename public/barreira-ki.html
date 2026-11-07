@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia da Barreira de Ki</title>
+<style>
+body{margin:0;background:#101c22;color:#e9f3ed;font:16px system-ui}main{max-width:1100px;margin:auto;padding:24px}a{color:#8ce5ff}canvas{width:100%;border:1px solid #64847c;border-radius:12px}button,input{font:inherit}button{padding:8px 16px;margin:12px 12px 12px 0}label{margin-right:16px}output{display:block;margin:10px 0}
+</style>
+<main>
+<h1>Barreira de Ki</h1>
+<p>Abertura 0–3 · ciclo 4–9 · encerramento 10–15. Mesma animação em todos os níveis. Esta prévia não altera o progresso salvo. <a href="/">Voltar ao jogo</a></p>
+<button id="tocar">Pausar</button><label>Tempo <input id="tempo" type="range" min="0" max="3.3" step="0.01" value="0.8"></label><label><input id="ataque" type="checkbox" checked> Atacando</label><label><input id="mover" type="checkbox" checked> Movimento</label>
+<output id="info"></output>
+<canvas id="previa" width="1100" height="560" aria-label="Barreira nas oito direções e nas três fases"></canvas>
+</main>
+<script type="module" src="/render/barreira-ki-previa.mjs"></script>
+</html>
