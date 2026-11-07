@@ -4,7 +4,7 @@
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
-import { instalarPainelMovel } from '../render/painel-movel.mjs';
+import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -352,6 +352,11 @@ export function ligarHud(contexto) {
   };
   $('autoHuntButton').onclick = alternarAutoHunt;
   autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
+  // Painéis arrastáveis pela alça (⠿): minimapa, skills, chat e automação. Posição salva por painel no localStorage.
+  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-tecnicas', 'dbi-pos-skills'], ['.hud-chat', 'dbi-pos-chat'], ['.hud-auto', 'dbi-pos-auto']]) {
+    const painel = document.querySelector(sel), alca = painel?.querySelector('.arrasto-alca');
+    if (painel && alca) instalarArrasto(painel, alca, chave);
+  }
   $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
   $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
   $('autoHuntDialog').addEventListener('keydown', e => {
