@@ -5,6 +5,7 @@ import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres } from './passagem.mjs';
+import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
@@ -20,7 +21,7 @@ export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, no
 export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
-    this.projectiles = []; this.loot = []; this.events = []; this.serial = 0;
+    this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -56,6 +57,7 @@ export class Game {
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
+    this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
     p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.rota = null; p.input = { x: 0, y: 0 };
     p.seguroAte = this.time + CONFIG.chegadaSegura;
@@ -227,7 +229,7 @@ export class Game {
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
       p.basicReady = this.time + 0.45;
-      const dir = this.aimDirection(p, target); p.facing = dir;
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
       if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
       return { ok: true };
@@ -242,7 +244,7 @@ export class Game {
       if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível 2.');
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
-      const dir = this.aimDirection(p, target); p.facing = dir;
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
         owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (this.time < p.kaiokenUntil ? 1.4 : 1), ttl: 0.95, kind: 'ki' });
       return { ok: true };
@@ -250,8 +252,13 @@ export class Game {
     if (skill === 'kame') {
       if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível 3.');
       if (p.charge || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
-      const dir = this.aimDirection(p, target); p.facing = dir; p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + CONFIG.skillCooldowns.kame;
-      p.charge = { until: this.time + 0.65, direction: dir }; return { ok: true };
+      // Só a auto caça vira o corpo. Os atalhos de ataque/técnicas automáticas não tomam a direção manual.
+      if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
+      const dir = norm(p.facing.x, p.facing.y); p.facing = dir;
+      p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + CONFIG.skillCooldowns.kame;
+      const nivel = estagioKame(p.level).nivel;
+      p.charge = { until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
+      return { ok: true };
     }
     if (skill === 'kaioken') {
       if (p.level < CONFIG.skills.kaioken) return automated ? { ok: false } : this.reject(p, 'Kaioken libera no nível 2.');
@@ -268,7 +275,7 @@ export class Game {
     if (skill === 'genki') {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível 10.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
-      const dir = this.aimDirection(p, target); p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + CONFIG.skillCooldowns.genki;
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + CONFIG.skillCooldowns.genki;
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y - 22, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 265,
         owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 14 : 10), ttl: 2.35, kind: 'genki', radius: 72 });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
@@ -415,22 +422,38 @@ export class Game {
     if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
+    // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
+    if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
     if (p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
     if (p.autoSkills && target) {
-      if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && distance(p, target) < 400 && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
+      if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && this.distanciaAoCorpo(p, target) < estagioKame(p.level).alcance + KAME.mao && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
       else if (p.ki > p.stats.ki * 0.15 && distance(p, target) < 390) this.cast(p, 'ki', true);
     }
+    if (p.charge) p.charge.direction = norm(p.facing.x, p.facing.y);
     if (p.charge && this.time >= p.charge.until) {
-      const dir = p.charge.direction, bx = p.x + dir.x * 440, by = p.y + dir.y * 440;
-      this.emit('beam', { x: p.x, y: p.y, bx, by, playerId: p.id });
-      for (const m of this.mobs.values()) if (m.hp > 0 && this.mesmoLugar(p, m) && segmentDistance(m.x, m.y, p.x, p.y, bx, by) < 35) this.hit(p, m, p.stats.attack * (p.transformed ? 6 : 4.2) * (this.time < p.kaiokenUntil ? 1.4 : 1));
-      for (const other of this.players.values()) if (this.canPvp(p, other) && segmentDistance(other.x, other.y, p.x, p.y, bx, by) < 32) this.hit(p, other, p.stats.attack * (p.transformed ? 6 : 4.2) * (this.time < p.kaiokenUntil ? 1.4 : 1));
+      this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
+        direction: p.charge.direction, nivel: p.charge.nivel, started: p.charge.started,
+        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (this.time < p.kaiokenUntil ? 1.4 : 1), atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
       if (this.addItem(p, l.item)) { l.taken = true; this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
+  }
+  atualizarKamehamehas() {
+    this.kamehamehas = this.kamehamehas.filter(k => {
+      const p = this.players.get(k.owner), g = geometriaKame(k.nivel, this.time - k.started);
+      if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k) || naZonaSegura(p) || !g) return false;
+      k.direction = norm(p.facing.x, p.facing.y);
+      Object.assign(k, origemKame(p, k.direction));
+      for (const alvo of [...this.mobs.values(), ...this.players.values()]) {
+        if (k.atingidos.has(alvo.id) || alvo.hp <= 0 || !this.mesmoLugar(k, alvo)) continue;
+        if (this.players.has(alvo.id) && !this.canPvp(p, alvo)) continue;
+        if (atingidoPeloKame(alvo, k, k.direction, g) && this.hit(p, alvo, k.damage)) k.atingidos.add(alvo.id);
+      }
+      return true;
+    });
   }
   // ---- Aggro ----
   // Cada mob guarda uma tabela de ameaça { idDoJogador: { valor, em } }: dano soma ameaça; o mob agressivo também
@@ -577,6 +600,7 @@ export class Game {
     dt = clamp(dt, 0, 0.1); this.time += dt;
     this.events = this.events.filter(e => this.time - e.at < 2);
     for (const p of this.players.values()) this.updatePlayer(p, dt);
+    this.atualizarKamehamehas();
     for (const m of this.mobs.values()) this.updateMob(m, dt);
     for (const s of this.projectiles) {
       s.ttl -= dt; const oldX = s.x, oldY = s.y; s.x += s.dx * s.speed * dt; s.y += s.dy * s.speed * dt;
@@ -624,6 +648,7 @@ export class Game {
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
+      kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
       projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => (!e.playerId || e.playerId === id || e.type !== 'message') && (!e.planet || aqui(e))) };
   }
 }

@@ -1,0 +1,17 @@
+{
+  "skill": "kamehameha",
+  "stage": 2,
+  "level_min": 20,
+  "level_max": 49,
+  "range_tiles": 6,
+  "tile_size": 32,
+  "range_pixels": 192,
+  "direction": "right",
+  "frame_count": 16,
+  "frame_width": 443,
+  "frame_height": 221,
+  "frame_duration_ms": 80,
+  "spritesheet_columns": 4,
+  "spritesheet_rows": 4,
+  "note": "Sprites animados com 16 quadros. Alcance e hitbox devem ser implementados pelo motor do jogo; ajustar escala e ancoragem."
+}

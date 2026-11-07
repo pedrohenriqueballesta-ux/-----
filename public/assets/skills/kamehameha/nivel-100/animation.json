@@ -1,0 +1,16 @@
+{
+  "skill": "kamehameha",
+  "stage": 4,
+  "level_min": 100,
+  "level_max": 149,
+  "range_tiles": 10,
+  "tile_size": 32,
+  "direction": "right",
+  "frame_count": 16,
+  "frame_width": 443,
+  "frame_height": 221,
+  "frame_duration_ms": 80,
+  "spritesheet_columns": 4,
+  "spritesheet_rows": 4,
+  "note": "Alcance é configuração de gameplay; sprites devem ser escalados e ancorados no motor do jogo. Quadros de efeito completo, não partes modulares."
+}

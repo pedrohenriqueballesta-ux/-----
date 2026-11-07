@@ -2,6 +2,8 @@ import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
 import { desenharRachaduras } from '../render/safe-zone.mjs';
+import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
+import { origemKame } from '../shared/kamehameha.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -37,6 +39,7 @@ async function join(name, previousToken) {
   eventSource.onmessage = event => {
     try {
       snapshot = JSON.parse(event.data); receivedAt = performance.now();
+      carregarKame(snapshot.self?.level || 1);
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -158,22 +161,24 @@ function placa(x, y, texto, hp, max, cor, largura = 52) {
   ctx.fillStyle = cor; ctx.beginPath(); ctx.roundRect(x - largura / 2, y + 6, Math.max(0, largura * hp / max), 5, 3); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(p, pos, time) {
-  shadow(pos.x, pos.y, 20);
+function drawPlayer(p, pos, time, somenteCorpo = false) {
+  if (!somenteCorpo) shadow(pos.x, pos.y, 20);
   const back = p.facing.y < -0.3;
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
-  if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
-  if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
-  if (p.id === playerId && snapshot.self?.barrierActive) { const r = 33 + Math.sin(time * 12) * 2; ctx.strokeStyle = '#66dfffcc'; ctx.lineWidth = 2.5; ctx.fillStyle = '#4bc5ff18'; ctx.beginPath(); ctx.arc(pos.x, pos.y - 22, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  if (!somenteCorpo) {
+    if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
+    if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
+    if (p.id === playerId && snapshot.self?.barrierActive) { const r = 33 + Math.sin(time * 12) * 2; ctx.strokeStyle = '#66dfffcc'; ctx.lineWidth = 2.5; ctx.fillStyle = '#4bc5ff18'; ctx.beginPath(); ctx.arc(pos.x, pos.y - 22, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  }
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
-  if (p.dashing) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
+  if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
-  if (p.charge) { ctx.fillStyle = '#bdefff'; ctx.beginPath(); ctx.arc(pos.x + p.facing.x * 26, pos.y - 16 + p.facing.y * 18, 7 + Math.sin(time * 22) * 2, 0, Math.PI * 2); ctx.fill(); }
+  if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
 }
@@ -295,9 +300,7 @@ function effects(time) {
   floating = floating.filter(e => time - e.at < (e.type === 'pancada' ? 2.3 : 1.5));
   for (const e of floating) {
     const age = time - e.at; if (age < 0) continue;
-    if (e.type === 'beam' && age < 0.35) {
-      ctx.globalAlpha = Math.max(0, 1 - age / 0.35); ctx.lineCap = 'round'; ctx.strokeStyle = '#4bb9e899'; ctx.lineWidth = 32; ctx.beginPath(); ctx.moveTo(e.x, e.y - 12); ctx.lineTo(e.bx, e.by - 12); ctx.stroke(); ctx.strokeStyle = '#d7fbff'; ctx.lineWidth = 11; ctx.stroke(); ctx.globalAlpha = 1; ctx.lineCap = 'butt';
-    } else if (e.type === 'freezaNave' && age < 1.4) {   // clarão roxo e onda de energia pelo chão
+    if (e.type === 'freezaNave' && age < 1.4) {   // clarão roxo e onda de energia pelo chão
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - age / 1.4);
       ctx.strokeStyle = '#d78bff'; ctx.lineWidth = 10 * (1 - age / 1.4) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 40 + age * 380, (40 + age * 380) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       if (age > 1.0) { ctx.globalAlpha = (1.4 - age) / 0.4 * 0.8; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(e.x, e.y - 50, 140, 0, Math.PI * 2); ctx.fill(); }
@@ -409,6 +412,11 @@ function drawObjetoVegeta(o, escala) {
   const k = escala / VEGETA_OBJETOS_ESCALA, [x, y, w, h] = o.img;
   ctx.drawImage(img, x * k, y * k, w * k, h * k);
 }
+// Sempre cobre os inimigos; a direção decide a profundidade em relação ao lançador.
+function desenharKameSobreInimigos(efeito, tempo, lancador, pos) {
+  desenharKameComProfundidade(ctx, efeito, tempo,
+    lancador && pos ? () => drawPlayer(lancador, pos, tempo, true) : null);
+}
 function frame(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height); ctx.imageSmoothingEnabled = false;
@@ -470,6 +478,15 @@ function frame(now) {
     ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
+  // Sem recorte: para baixo o feixe cobre o lançador; para cima o sprite recompõe a oclusão.
+  for (const p of snapshot.players) if (p.charge) {
+    const pos = renderPositions.get(p.id) || p;
+    desenharKameSobreInimigos({ ...p.charge, ...origemKame(pos, p.charge.direction) }, Math.max(time, p.charge.started), p, pos);
+  }
+  for (const k of snapshot.kamehamehas || []) {
+    const pos = renderPositions.get(k.owner);
+    desenharKameSobreInimigos(pos ? { ...k, ...origemKame(pos, k.direction) } : k, time, snapshot.players.find(p => p.id === k.owner), pos);
+  }
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
     if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); continue; }

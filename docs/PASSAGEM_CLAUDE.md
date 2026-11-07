@@ -164,7 +164,7 @@ O XP é subtraído a cada nível dentro de um `while`; nível máximo atual 100.
 | --- | --- | --- | --- | --- | --- |
 | Combo básico | 1 | 0 | 0.45 s | ATK / 1.5×ATK | Um alvo até 70 unidades; dano imediato no servidor |
 | Rajada de Ki | 2 | 7 | 0.7 s | 1.4×ATK / 2.1×ATK | Velocidade 470, vida 0.95 s; colisão por distância ao segmento <19 |
-| Kamehameha | 3 | 23 | 5 s | 4.2×ATK / 6×ATK | Carrega 0.65 s; comprimento 440; distância do alvo à linha <35 para mob, <32 para jogador |
+| Kamehameha | 3 | 25 | 5 s | 4.2×ATK / 6×ATK | Carrega 0,65 s; alcance por estágio: 128/192/256/320/384 unidades; largura acompanha o sprite; um dano por alvo/disparo |
 | Imagem Residual | 2 | 0 | 4 s | Sem dano | Velocidade 620 por 0.18 s; imunidade a dano enquanto `time<dashUntil`; interrompe carga |
 
 Durante carga, movimento manual usa `0.35*VELOCIDADE`. A carga não impõe esse fator no ramo de condução automática: é comportamento do código, não promessa de regra final. Dash usa direção da entrada se seu módulo >0.1; senão usa mira/direção disponível. Não há treino de técnica por repetição, upgrades compráveis de técnicas ou árvore de talentos.
@@ -192,7 +192,7 @@ Automação atual:
 // Aproxima enquanto distância >49.
 if (autoAttack && target && distance < 70) cast('basic')
 if (autoSkills && target) {
-  if (level>=3 && ki>0.35*KImax && distance<400 && target.hp>1.6*ATK) cast('kame')
+  if (level>=3 && ki>0.35*KImax && distanciaAoCorpo<alcanceDoEstagio+20 && target.hp>1.6*ATK) cast('kame')
   else if (ki>0.15*KImax && distance<390) cast('ki')
 }
 ```

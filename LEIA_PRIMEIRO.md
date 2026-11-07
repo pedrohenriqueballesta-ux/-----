@@ -32,7 +32,7 @@ Para encerrar, pressione Ctrl+C no Terminal. O progresso fica no arquivo data/sa
 | Mover | WASD, setas, clique no chão ou direcional de toque |
 | Aproximar / afastar | Roda do mouse sobre o mapa ou botões + / − junto ao minimapa |
 | Selecionar alvo | Clique no mob ou em outro jogador |
-| Kamehameha | 1, disponível no nível 3 |
+| Kamehameha | Disponível no nível 3; estágios pelo nível do personagem: 1, 20, 50, 100 e 150 |
 | Kaioken | 2, disponível no nível 2; aumenta o dano por 6 s |
 | Barreira de Ki | 3, disponível no nível 2; reduz o dano recebido por 2,5 s |
 | Super Saiyajin | 4 ou T, disponível no nível 5 |

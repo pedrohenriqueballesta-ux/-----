@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia do Kamehameha</title>
+<style>
+body{margin:0;background:#0b1520;color:#eaf2fa;font:15px system-ui}main{max-width:1100px;margin:auto;padding:24px}h1{margin:0 0 8px}p{color:#abbccc}a{color:#7edbff}section{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0}button,select,input{font:inherit}button,select{padding:10px 16px;background:#192f43;color:#eef8ff;border:1px solid #41637e;border-radius:8px}button[aria-pressed=true]{background:#146c91;border-color:#82dfff}canvas{width:100%;background:#182c30;border:1px solid #3a545f;border-radius:12px}#quadro{width:240px}output{font-variant-numeric:tabular-nums}
+</style>
+<main>
+<h1>Kamehameha · prévia dos cinco estágios</h1>
+<p>Teste a arte, a direção e os 16 frames. Esta prévia não altera seu personagem nem o progresso salvo. <a href="/">Voltar ao jogo</a></p>
+<section id="niveis" aria-label="Estágio"></section>
+<section><label>Direção <select id="direcao"><option value="0">Leste →</option><option value="45">Sudeste ↘</option><option value="90">Sul ↓</option><option value="135">Sudoeste ↙</option><option value="180">Oeste ←</option><option value="225">Noroeste ↖</option><option value="270">Norte ↑</option><option value="315">Nordeste ↗</option></select></label><button id="tocar">Pausar</button><label>Frame <input id="quadro" type="range" min="0" max="15" value="0"></label><output id="info"></output></section>
+<canvas id="previa" width="1100" height="850" aria-label="Animação do Kamehameha"></canvas>
+<p>Escala: 32 unidades por tile. O contorno pontilhado é a distância máxima; o efeito cresce dentro dela. No jogo, o desbloqueio continua no nível 3 e o limite atual do personagem continua em 100; o estágio 150 está disponível nesta prévia.</p>
+</main>
+<script type="module" src="/render/kamehameha-previa.mjs"></script>
+</html>
