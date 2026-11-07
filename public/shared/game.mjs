@@ -193,7 +193,7 @@ export class Game {
       if (p.transformed) { p.transformed = false; this.notify(p, 'Forma base.'); return { ok: true }; }
       if (this.time < p.transformReady) return this.reject(p, 'Super Saiyajin em recarga: ' + Math.ceil(p.transformReady - this.time) + 's.');
       if (p.ki < CONFIG.skillCosts.transform) return this.reject(p, 'Ki insuficiente para transformar.');
-      p.transformed = true; p.ki -= CONFIG.skillCosts.transform; p.transformReady = this.time + CONFIG.skillCooldowns.transform;
+      p.transformed = true; p.ki -= CONFIG.skillCosts.transform; p.transformReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.transform);
       this.notify(p, 'Super Saiyajin ativado!'); return { ok: true };
     }
     if (kind === 'portal') return this.usePortal(p, data.destino);
@@ -259,7 +259,7 @@ export class Game {
     if (skill === 'dash') {
       if (p.level < CONFIG.skills.dash || this.time < p.dashReady) return automated ? { ok: false } : this.reject(p, 'Imagem Residual: nível 2 e recarga de 4s.');
       const dir = Math.hypot(p.input.x, p.input.y) > 0.1 ? norm(p.input.x, p.input.y) : this.aimDirection(p, null);
-      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + 4; p.charge = null;
+      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + (p.godmode ? 1 : 4); p.charge = null;
       this.emit('dash', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
     }
     if (skill === 'ki') {
@@ -277,7 +277,7 @@ export class Game {
       // Só a auto caça vira o corpo. Os atalhos de ataque/técnicas automáticas não tomam a direção manual.
       if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
       const dir = norm(p.facing.x, p.facing.y); p.facing = dir;
-      p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + CONFIG.skillCooldowns.kame;
+      p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
       const nivel = estagioKame(p.level).nivel;
       p.charge = { until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
       return { ok: true };
@@ -285,20 +285,20 @@ export class Game {
     if (skill === 'kaioken') {
       if (p.level < CONFIG.skills.kaioken) return automated ? { ok: false } : this.reject(p, 'Kaioken libera no nível 2.');
       if (this.time < p.kaiokenReady || this.time < p.kaiokenUntil || p.ki < CONFIG.skillCosts.kaioken) return automated ? { ok: false } : this.reject(p, 'Kaioken em recarga ou Ki insuficiente.');
-      p.ki -= CONFIG.skillCosts.kaioken; p.kaiokenUntil = this.time + 6; p.kaiokenReady = this.time + CONFIG.skillCooldowns.kaioken;
+      p.ki -= CONFIG.skillCosts.kaioken; p.kaiokenUntil = this.time + 6; p.kaiokenReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kaioken);
       this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Kaioken ativado por 6 segundos!'); return { ok: true };
     }
     if (skill === 'barrier') {
       if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível 2.');
       if (this.time < p.barrierReady || p.ki < CONFIG.skillCosts.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira em recarga ou Ki insuficiente.');
-      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + CONFIG.skillCooldowns.barrier;
+      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.barrier);
       p.barrierStarted = this.time; // Só sincroniza a animação nos clientes.
       this.emit('barrier', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Barreira de Ki ativada!'); return { ok: true };
     }
     if (skill === 'genki') {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível 10.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
-      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + CONFIG.skillCooldowns.genki;
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
         owner: p.id, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
@@ -369,7 +369,7 @@ export class Game {
     if (this.time + 1e-9 < p.healReady) return falha('Cura de Vida em recarga.');
     if (p.ki < cura.custo) return falha('Ki insuficiente para curar vida.');
     // Um único caminho para tecla, botão e automação: reserva a recarga antes de curar.
-    p.healReady = this.time + CURA.cooldown; p.ki -= cura.custo;
+    p.healReady = this.time + (p.godmode ? 1 : CURA.cooldown); p.ki -= cura.custo;
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
     p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual);
