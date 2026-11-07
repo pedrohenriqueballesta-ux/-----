@@ -65,7 +65,8 @@ button{cursor:pointer}
 .hud-recursos{display:grid;gap:calc(8 * var(--u));padding-left:calc(12 * var(--u));border-left:calc(1 * var(--u)) solid #f2b53a44}
 .hud-recursos div,.hud-recursos button{display:flex;align-items:center;gap:calc(8 * var(--u));font-size:calc(14 * var(--u))}
 .hud-recursos button{padding:0;border:0;background:none;text-align:left}
-.hud-recursos i{font-style:normal;font-size:calc(22 * var(--u))}
+.hud-recursos i{display:grid;place-items:center;flex:0 0 calc(26 * var(--u));width:calc(26 * var(--u));height:calc(26 * var(--u));font-style:normal}
+.hud-recursos i img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
 .hud-zeni b{margin-left:calc(8 * var(--u))}
 .hud-mochila span{display:grid;line-height:1.2}
 
