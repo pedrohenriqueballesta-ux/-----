@@ -136,8 +136,8 @@ export function atualizarHud(snapshot, playerId) {
   const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
   const skillState = {
     heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
-      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : '1,5') + 's',
-      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga 1,5s · tecla 1` },
+      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
+      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
     kaioken: { required: CONFIG.skills.kaioken, cost: CONFIG.skillCosts.kaioken, cooldown: CONFIG.skillCooldowns.kaioken, remaining: s.kaiokenRemaining || 0, text: s.level < CONFIG.skills.kaioken ? CONFIG.skillCooldowns.kaioken + 's' : s.kaiokenActive ? 'ATIVO' : s.kaiokenRemaining > 0 ? s.kaiokenRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kaioken + 's', active: s.kaiokenActive },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },

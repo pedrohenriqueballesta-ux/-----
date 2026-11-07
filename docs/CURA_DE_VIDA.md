@@ -8,11 +8,11 @@ Branch `feature/cura-de-vida`, criada da `origin/main` após o merge dos TPs.
 
 | Nível da habilidade | Nível do personagem | HP máximo recuperado | Ki | Recarga |
 | --- | --- | --- | --- | --- |
-| 1 | 1–19 | 2% | 10 | 1,5 s |
-| 2 | 20–49 | 2,5% | 12 | 1,5 s |
-| 3 | 50–99 | 3% | 14 | 1,5 s |
-| 4 | 100–149 | 3,5% | 16 | 1,5 s |
-| 5 | 150+ | 4% | 18 | 1,5 s |
+| 1 | 1–19 | 2% | 10 | 0,7 s |
+| 2 | 20–49 | 2,5% | 12 | 0,7 s |
+| 3 | 50–99 | 3% | 14 | 0,7 s |
+| 4 | 100–149 | 3,5% | 16 | 0,7 s |
+| 5 | 150+ | 4% | 18 | 0,7 s |
 
 Evolução automática pelos mesmos marcos do Kamehameha. O limite atual de criação
 e carregamento do personagem continua em 100; o estágio 150+ já está definido e
@@ -62,7 +62,7 @@ intenções; percentuais, custo, HP e recarga são calculados pelo servidor e ex
 na HUD por snapshot. A lógica não consulta o nome/classe do personagem.
 
 Testes específicos: todos os marcos e limites, custo, HP máximo, repetição a cada
-1,5 s, preferência e validação do limite, migração e persistência, isolamento entre
+0,7 s, preferência e validação do limite, migração e persistência, isolamento entre
 jogadores/lugares, movimento e ataque simultâneos, classe futura e oito requisições
 concorrentes pela API. As regras das outras técnicas foram mantidas.
 
