@@ -3,6 +3,11 @@ import { PEGADAS } from './pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from './decoracao-namek.mjs';
 import { OBJETOS_DECORACAO } from './decoracao-objetos.mjs';
 
+// Modo de teste GOD MODE (nivel 100 + HP/Ki infinitos). DESLIGADO por padrao.
+// Liga so no servidor local com a variavel de ambiente DBI_GODMODE=1.
+// Seguro no navegador: process nao existe la, entao fica false (nao afeta o jogo real nem os testes).
+export const GODMODE = typeof process !== 'undefined' && !!process.env && process.env.DBI_GODMODE === '1';
+
 // Escala do mundo de Namekusei: quantas unidades do jogo vale 1 px da imagem do solo
 // (as posições são medidas no solo de 4608x3072; o assets/namek/solo.webp hoje tem 8192x5461, o mapa de
 // 36 partes, e é esticado para o mesmo mundo). Ela amplia o terreno e tudo que está posto nele:

@@ -86,6 +86,8 @@ export function atualizarHud(snapshot, playerId) {
   }
   $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
   $('autoHuntButton').classList.toggle('ligado', s.autoHunt);
+  $('godmodeToggle').querySelector('b').textContent = s.godmode ? 'ON' : 'OFF';
+  $('godmodeToggle').classList.toggle('ligado', s.godmode);
   const hunt = areaPorId(s.area);
   $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
   $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
@@ -362,6 +364,7 @@ export function ligarHud(contexto) {
   $('seedButton').onclick = () => action({ type: 'seed', potency: Number($('seedSelect').value) });
   $('seedSelect').onchange = () => action({ type: 'selectSeed', potency: Number($('seedSelect').value) });
   $('transformButton').onclick = () => action({ type: 'transform' });
+  $('godmodeToggle').onclick = () => action({ type: 'godmode' });
   $('helpButton').onclick = () => { ctx.soltarTeclas(); $('helpDialog').showModal(); };
   $('panelButton').onclick = () => { const open = $('panel').classList.toggle('open'); $('panelButton').setAttribute('aria-expanded', String(open)); };
   $('quickHunt').onclick = alternarCaca;

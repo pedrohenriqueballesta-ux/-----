@@ -1,7 +1,7 @@
 // Personagem jogável (Goku) e sua progressão. Novos personagens jogáveis
 // podem ser descritos aqui no futuro, sem mexer na lógica de combate.
 import { clamp } from './math.mjs';
-import { CONFIG, PLANETS } from './config.mjs';
+import { CONFIG, PLANETS, GODMODE } from './config.mjs';
 import { CURA } from './cura.mjs';
 
 export function statsFor(level) {
@@ -9,6 +9,33 @@ export function statsFor(level) {
   return { hp: 120 + n * 22, ki: 80 + n * 10, attack: 12 + n * 2.8,
     defense: 2 + n * 0.65, healing: 1 + n * 0.08, capacity: 20 + n * 1.3,
     lootChance: Math.min(0.8, 0.35 + n * 0.008), mobility: 175 + Math.min(60, n * 2) };
+}
+
+// Valores "praticamente infinitos" usados pelo god mode de teste.
+export const GODMODE_ZENI = 999999999;
+export const GODMODE_CAPACITY = 999999999999;
+
+// Liga/desliga o god mode de um jogador: nível 100, HP/Ki sempre cheios (invencível),
+// peso máximo e Zeni praticamente infinitos. Ao ligar guarda nível, Zeni, HP e Ki REAIS;
+// ao desligar restaura tudo ao que estava antes (o inventário não é tocado pelo god mode).
+export function aplicarGodmode(p, on) {
+  if (on) {
+    if (p.levelReal == null) p.levelReal = p.level;
+    if (p.zeniReal == null) p.zeniReal = p.zeni;
+    if (p.hpReal == null) p.hpReal = p.hp;
+    if (p.kiReal == null) p.kiReal = p.ki;
+    p.godmode = true; p.level = 100;
+    p.stats = statsFor(100); p.stats.capacity = GODMODE_CAPACITY;
+    p.hp = p.stats.hp; p.ki = p.stats.ki; p.zeni = GODMODE_ZENI;
+  } else {
+    p.godmode = false;
+    if (p.levelReal != null) p.level = p.levelReal;
+    if (p.zeniReal != null) p.zeni = p.zeniReal;
+    p.stats = statsFor(p.level);
+    p.hp = Math.min(p.hpReal != null ? p.hpReal : p.hp, p.stats.hp);
+    p.ki = Math.min(p.kiReal != null ? p.kiReal : p.ki, p.stats.ki);
+    p.levelReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
+  }
 }
 export const xpForLevel = level => Math.round(30 * Math.pow(level, 1.35));
 export function bagWeight(inv) {
@@ -24,7 +51,8 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const stats = statsFor(level);
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
-  return { id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character: 'Goku', level,
+  const p = { id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character: 'Goku', level,
+    levelReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     xp: clamp(Number(saved?.xp) || 0, 0, xpForLevel(level) - 1), stats,
     x: PLANETS.terra.spawn.x, y: PLANETS.terra.spawn.y, planet: 'terra', area: null, seguroAte: 0,
     hp: clamp(saved?.hp == null ? stats.hp : Number(saved.hp), 1, stats.hp),
@@ -43,12 +71,16 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     kaiokenReady: 0, kaiokenUntil: 0, barrierReady: 0, barrierUntil: 0, genkiReady: 0, transformReady: 0,
     transformed: false, respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
+  if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
+  return p;
 }
 
 // Campos persistidos no save do servidor.
 export function exportPlayer(p) {
-  return { name: p.name, level: p.level, xp: p.xp, x: p.x, y: p.y, hp: p.hp, ki: p.ki,
-    zeni: p.zeni, inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
+  return { name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.xp, x: p.x, y: p.y,
+    hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
+    zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode,
+    inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
     kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,
