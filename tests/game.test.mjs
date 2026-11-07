@@ -6,7 +6,7 @@ import { createGameServer } from '../server.mjs';
 const world = () => new Game({ now: 1000, populate: false, random: () => 0.99 });
 function advance(game, seconds) { for (let i = 0; i < Math.ceil(seconds / 0.05); i++) game.tick(0.05); }
 // Põe o jogador na chegada de uma área, já sem a proteção de chegada (para testar combate).
-function naArea(game, p, area = 'inicial') { game.levar(p, lugar(area)); p.seguroAte = 0; return p; }
+function naArea(game, p, area = 'inicial') { game.levar(p, lugar(area)); p.x += 180; p.seguroAte = 0; return p; }
 
 test('sementes de potências diferentes compartilham a recarga, sem consumir item ao bloquear', () => {
   const game = world(), p = game.addPlayer('a'); p.hp = 10;
@@ -232,13 +232,14 @@ test('hunt da média tem Guerreiros de Namek, Veteranos de Namek e o subchefe; n
   assert.ok(media.filter(m => m.type === 'veterano').every(m => m.name === 'Veterano de Namek'));
 });
 
-test('chegada protegida por alguns segundos, depois os mobs atacam; morte volta ao começo da hunt', () => {
+test('chegada protegida permanentemente; sair permite combate e morte volta ao quadrado', () => {
   const game = world(), p = game.addPlayer('a');
   game.levar(p, lugar('inicial'));
   const mob = game.addMob('melee', p.x + 30, p.y); mob.attackReady = game.time;
   assert.equal(game.hit(mob, p, 30), false, 'protegido logo após chegar');
   advance(game, CONFIG.chegadaSegura + 0.1);
-  assert.equal(game.hit(mob, p, 30), true, 'depois da proteção leva dano');
+  assert.equal(game.hit(mob, p, 30), false, 'continua protegido no quadrado');
+  p.x += 100; assert.equal(game.hit(mob, p, 30), true, 'fora do quadrado leva dano');
   p.x += 600; p.hp = 1; game.hit(mob, p, 999);
   assert.equal(p.hp, 0);
   advance(game, CONFIG.respawnDelay + 0.1);
@@ -422,8 +423,8 @@ test('hunt difícil tem Porunga (de perto, voando) no lugar do Saibaman de elite
   const dificil = [...game.mobs.values()].filter(m => m.area === 'dificil');
   assert.ok(dificil.some(m => m.type === 'porunga' && m.name === 'Porunga'));
   assert.equal(dificil.filter(m => m.type === 'melee').length, 0);
-  const g = world(), p = naArea(g, g.addPlayer('a', 'Goku', { level: 20 }), 'dificil'); p.x = 6300; p.y = 2100;
-  const mob = g.addMob('porunga', 6340, 2100, 'dificil'); mob.attackReady = g.time; g.tick(0.05);
+  const g = world(), p = naArea(g, g.addPlayer('a', 'Goku', { level: 20 }), 'dificil'); p.x = 6300; p.y = 2000;
+  const mob = g.addMob('porunga', 6340, 2000, 'dificil'); mob.attackReady = g.time; g.tick(0.05);
   assert.equal(mob.telegraph?.kind, 'area', 'Porunga ataca de perto');
 });
 

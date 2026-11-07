@@ -1,6 +1,7 @@
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
-import { frenteDaCasa } from '../shared/config.mjs';
+import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
+import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -439,6 +440,8 @@ function frame(now) {
   if (comSolo) {
     if (drawGroundImage(ctx, soloDe(world), world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
     else { ctx.fillStyle = world.fundo; ctx.fillRect(0, 0, world.w, world.h); } // solo ainda carregando
+    const segura = zonaSeguraDaHunt(snapshot.area);
+    if (segura) desenharRachaduras(ctx, segura, snapshot.area);
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
     for (const d of decoVisivel) drawSombraDecoracao(ctx, d, DECORACAO_ESCALA);
     telegraphs(time);

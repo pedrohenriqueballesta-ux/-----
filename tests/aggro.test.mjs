@@ -43,7 +43,7 @@ test('aggro por ataque: mob atingido de longe reage, e mob neutro só reage quan
 
 test('limite de perseguição: passa do limite, larga o alvo, volta para casa e recupera a vida', () => {
   const { game, ps: [p], m } = cena();
-  game.hit(p, m, 400); const ferido = m.hp;
+  colocar(p, m, -100); game.hit(p, m, 400); const ferido = m.hp;
   m.x = m.homeX - m.perseguicao - 10; colocar(p, m, -100);
   passar(game, 0.1); assert.equal(m.voltando, true); assert.equal(m.alvoId, null);
   passar(game, 20);

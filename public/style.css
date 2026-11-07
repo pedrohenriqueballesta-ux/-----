@@ -37,6 +37,11 @@ button{cursor:pointer}
 .hud-menus span{font-weight:700;font-size:calc(14 * var(--u));white-space:nowrap}
 .hud-selo{position:absolute;top:calc(-6 * var(--u));right:calc(-12 * var(--u));display:grid;place-items:center;width:calc(18 * var(--u));height:calc(18 * var(--u));border-radius:50%;background:#e2261c;color:#fff;font-size:calc(12 * var(--u));font-style:normal;font-weight:900;box-shadow:0 0 0 calc(2 * var(--u)) #fff}
 .hud-menu-alternar{display:none}
+.hud-safe-zone{position:absolute;top:calc(98 * var(--u));left:50%;transform:translate(-50%,-6px);display:grid;gap:3px;text-align:center;padding:8px 20px;border-radius:8px;background:linear-gradient(90deg,transparent,#071b24d9 22%,#071b24d9 78%,transparent);color:#f0e7cb;text-shadow:0 2px 3px #000;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .75s ease,transform .75s ease,visibility 0s linear .75s}
+.hud-safe-zone strong{font-size:clamp(13px,calc(19 * var(--u)),22px);letter-spacing:.16em}
+.hud-safe-zone span{font-size:clamp(10px,calc(12 * var(--u)),14px);color:#d5dcd7;white-space:nowrap}
+.hud-safe-zone.visivel{opacity:1;visibility:visible;transform:translate(-50%,0);transition:opacity .3s ease,transform .3s ease,visibility 0s}
+@media(prefers-reduced-motion:reduce){.hud-safe-zone{transition:opacity .1s,visibility 0s linear .1s}.hud-safe-zone.visivel{transition:opacity .1s}}
 
 /* Cartão do jogador */
 .hud-jogador{position:absolute;top:calc(94 * var(--u));left:calc(12 * var(--u));display:flex;gap:calc(10 * var(--u));align-items:center;padding:calc(8 * var(--u)) calc(12 * var(--u))}
@@ -62,6 +67,10 @@ button{cursor:pointer}
 /* Alvo */
 .hud-alvo{position:absolute;top:calc(94 * var(--u));left:50%;transform:translateX(-50%);display:grid;gap:calc(4 * var(--u));width:calc(300 * var(--u));padding:calc(6 * var(--u)) calc(12 * var(--u));text-align:center;font-weight:700}
 .hud-alvo .barra{height:calc(18 * var(--u))}
+/* O alvo aguarda o fim do fade antes de voltar ao primeiro lugar. */
+.hud-alvo{transition:top .25s ease .75s}
+.hud-safe-zone.visivel~.hud-alvo{top:calc(98 * var(--u) + var(--altura-safe-zone,70px));transition:top .25s ease}
+@media(prefers-reduced-motion:reduce){.hud-alvo{transition:top .1s ease .1s}.hud-safe-zone.visivel~.hud-alvo{transition:top .1s ease}}
 
 /* Minimapa */
 .hud-mapa{position:absolute;top:calc(94 * var(--u));right:calc(12 * var(--u));display:grid;gap:calc(5 * var(--u));width:calc(214 * var(--u));padding:calc(7 * var(--u));text-align:center}
