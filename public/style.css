@@ -204,6 +204,7 @@ button{cursor:pointer}
 .mochila-abas button.ativa{border-color:var(--ouro);background:linear-gradient(#24418a,#13265a);box-shadow:0 0 calc(6 * var(--um)) #ff9d2a66}
 .mochila-grade{display:grid;grid-template-columns:repeat(6,1fr);gap:calc(6 * var(--um));margin:calc(8 * var(--um)) calc(16 * var(--um)) 0}
 .mochila-grade .slot{aspect-ratio:1;font-size:calc(26 * var(--um))}
+.mochila-item-icone{width:88%;height:88%;object-fit:contain;pointer-events:none;image-rendering:pixelated}
 .mochila-grade .slot:disabled{cursor:default}
 .mochila-grade .slot:disabled:hover{border-color:var(--borda-azul);box-shadow:none}
 .slot em{position:absolute;right:calc(3 * var(--um));bottom:calc(1 * var(--um));font:800 calc(12 * var(--um))/1 system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--um)) #000,0 0 calc(3 * var(--um)) #000}
