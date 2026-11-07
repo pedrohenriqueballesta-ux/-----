@@ -108,6 +108,10 @@ button{cursor:pointer}
 .tecnica-icone{position:relative;display:grid;place-items:center;width:calc(84 * var(--u));height:calc(70 * var(--u));border:calc(1.5 * var(--u)) solid #5a7ab8;border-radius:calc(8 * var(--u));background-color:rgba(10,20,48,.55);background-image:url('/assets/skills-anime-sheet.png');background-repeat:no-repeat;background-size:344% 236%;overflow:hidden}
 .sprite-kame{background-position:4.6% 8.2%}.sprite-kaioken{background-position:50.1% 8.2%}.sprite-barrier{background-position:95.8% 8.2%}
 .sprite-transform{background-position:26.3% 88.7%}.sprite-genki{background-position:73.4% 88.7%}
+.sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}
+.cura-config{display:grid;gap:calc(4 * var(--u));padding:calc(8 * var(--u));border:1px solid #59a86c;border-radius:calc(9 * var(--u));background:#0b231ed9;font-size:calc(13 * var(--u))}
+.cura-config label{display:flex;align-items:center;justify-content:center;gap:calc(5 * var(--u))}
+.cura-config input[type="number"]{width:calc(50 * var(--u));padding:calc(2 * var(--u));background:#081912;border:1px solid #649477;border-radius:4px;text-align:center}
 .item-icone{background-image:none;font-size:calc(38 * var(--u))}
 .tecnica strong{font-size:calc(13 * var(--u));white-space:nowrap}
 .tecnica small{display:none}

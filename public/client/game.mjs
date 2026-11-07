@@ -6,6 +6,7 @@ import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.
 import { origemKame } from '../shared/kamehameha.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
+import { carregarCura, desenharCura } from '../render/cura.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -64,6 +65,7 @@ async function join(name, previousToken) {
       snapshot = proximo; receivedAt = performance.now();
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira();
+      carregarCura();
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -101,13 +103,13 @@ document.addEventListener('keydown', e => {
   if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  const skills = { '1': 'kame', '2': 'kaioken', '3': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
-  // 6 e 7: semente e poção de Ki, na barra de atalhos da HUD nova (R e Q continuam valendo).
+  const skills = { '1': 'heal', '2': 'kame', '3': 'kaioken', '4': 'barrier', '6': 'genki', ' ': 'basic', 'shift': 'dash' };
+  // Cura universal ocupa a primeira posição; R, Q e T continuam como alternativas.
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
-  else if (key === '4' || key === 't') action({ type: 'transform' });
+  else if (key === '5' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'q' || key === '7') action({ type: 'potion' });
-  else if (key === 'r' || key === '6') action({ type: 'seed' });
+  else if (key === 'q' || key === '8') action({ type: 'potion' });
+  else if (key === 'r' || key === '7') action({ type: 'seed' });
   else if (key === 'h') alternarCaca();
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
@@ -205,6 +207,8 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
+  // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
+  if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
