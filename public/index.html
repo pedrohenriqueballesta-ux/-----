@@ -45,20 +45,20 @@
       </section>
       <button type="button" id="godmodeToggle" class="hud-godmode moldura-azul" title="Liga/desliga god mode (teste): nível 100, invencível, Zeni e peso infinitos. Ao desligar, tudo volta ao normal.">⚡ GOD MODE: <b>OFF</b></button>
       <section id="targetHud" class="hud-alvo moldura-azul hidden" aria-label="Alvo"><span id="targetName"></span><div class="barra barra-alvo"><i id="targetBar"></i><b id="targetHp"></b></div></section>
-      <section class="hud-mapa moldura" aria-label="Minimapa">
+      <section class="hud-mapa moldura" aria-label="Minimapa"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <strong id="regionName">—</strong>
         <canvas id="minimap" width="240" height="176" aria-label="Minimapa: clique para caminhar, arraste para explorar, use a roda para zoom" title="Clique para caminhar · Arraste para explorar · Scroll para zoom"></canvas>
         <div class="minimapa-controles"><button type="button" id="minimapShrink" aria-label="Diminuir tamanho do minimapa">−</button><output id="minimapSize">1×</output><button type="button" id="minimapGrow" aria-label="Aumentar tamanho do minimapa">+</button><button type="button" id="minimapCenter" aria-label="Centralizar minimapa no personagem" title="Centralizar no personagem">◎</button><output id="minimapZoomLabel" title="Zoom do minimapa com a roda do mouse">100%</output></div>
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
+        <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span><img class="zoom-ico" src="/assets/hud/zoom-mapa.png" alt=""> Zoom <b id="zoomLabel">100%</b></span></div>
       </section>
-      <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span>🔍 Zoom <b id="zoomLabel">100%</b></span></div>
       <div class="hud-pilulas"><span id="foodBuff" class="pilula moldura-azul">Comida inativa</span><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
-      <section class="hud-chat moldura-azul" aria-label="Chat">
+      <section class="hud-chat moldura-azul" aria-label="Chat"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <nav><button type="button" class="ativa">Local</button><button type="button" disabled title="Em breve">Global</button></nav>
         <div class="hud-chat-setas"><button type="button" id="chatCima" aria-label="Rolar para cima">▲</button><button type="button" id="chatBaixo" aria-label="Rolar para baixo">▼</button></div>
         <div id="chatLinhas" class="hud-chat-linhas" aria-live="polite"></div>
       </section>
-      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens">
+      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <button type="button" class="tecnica" data-skill="heal"><kbd>1</kbd><span class="tecnica-icone sprite-cura" aria-hidden="true"></span><strong>Cura de Vida</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kame"><kbd>2</kbd><span class="tecnica-icone sprite-kame" aria-hidden="true"></span><strong>Kamehameha</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kaioken"><kbd>3</kbd><span class="tecnica-icone sprite-kaioken" aria-hidden="true"></span><strong>Kaioken</strong><small></small></button>
@@ -68,8 +68,8 @@
         <button type="button" class="tecnica item" id="seedButton"><kbd>7</kbd><span class="tecnica-icone sprite-semente" aria-hidden="true"></span><em id="seedCount" class="contagem">0</em><span id="seedCooldown" class="recarga-item"></span><strong>Semente</strong></button>
         <button type="button" class="tecnica item" id="kiPotionButton"><kbd>8</kbd><span class="tecnica-icone sprite-pocao-ki" aria-hidden="true"></span><em id="kiCount" class="contagem">0</em><span id="kiCooldown" class="recarga-item"></span><strong>Recuperar Ki</strong></button>
       </section>
-      <section class="hud-auto" aria-label="Automação">
-        <button type="button" id="autoHuntButton" class="auto auto-caca" aria-controls="autoHuntDialog" aria-expanded="false" title="Configurar Auto Hunt · H liga ou pausa a caça"><i aria-hidden="true">🎯</i><span>Auto Hunt · <b id="autoHuntSummary">OFF</b></span><i aria-hidden="true">▴</i></button>
+      <section class="hud-auto" aria-label="Automação"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
+        <button type="button" id="autoHuntButton" class="auto auto-caca" aria-controls="autoHuntDialog" aria-expanded="false" title="Configurar Auto Hunt · H liga ou pausa a caça"><i aria-hidden="true"><img src="/assets/hud/auto-hunt.png" alt=""></i><span>Auto Hunt · <b id="autoHuntSummary">OFF</b></span><i aria-hidden="true">▴</i></button>
       </section>
       <footer class="hud-dica">WASD mover • Clique selecionar • B mochila • Scroll zoom</footer>
     </div>
@@ -96,7 +96,7 @@
     <div class="mochila-grade" id="mochilaGrade"></div>
   </dialog>
   <dialog id="autoHuntDialog" class="auto-hunt-panel" aria-labelledby="autoHuntTitle">
-    <header class="auto-hunt-head"><span class="auto-hunt-emblema" aria-hidden="true">🎯</span><div><small>AUTOMAÇÃO</small><h2 id="autoHuntTitle">Auto Hunt</h2></div><button type="button" class="mochila-x" data-close="autoHuntDialog" aria-label="Fechar Auto Hunt">×</button></header>
+    <header class="auto-hunt-head"><span class="auto-hunt-emblema" aria-hidden="true"><img src="/assets/hud/auto-hunt.png" alt=""></span><div><small>AUTOMAÇÃO</small><h2 id="autoHuntTitle">Auto Hunt</h2></div><button type="button" class="mochila-x" data-close="autoHuntDialog" aria-label="Fechar Auto Hunt">×</button></header>
     <div class="auto-hunt-body">
       <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa a caça. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>

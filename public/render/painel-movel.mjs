@@ -6,6 +6,43 @@ export function limitarPosicaoPainel(posicao, tamanho, tela) {
   };
 }
 
+// Arrasta um painel comum da HUD (<section>/<div>) pela alça; salva a posição no localStorage.
+// Duplo clique na alça reseta a posição (volta ao lugar padrão do CSS).
+export function instalarArrasto(painel, alca, chave) {
+  let pref = null, arr = null;
+  try { const s = JSON.parse(localStorage.getItem(chave)); if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) pref = s; } catch {}
+  const aplicar = pos => {
+    const caixa = painel.getBoundingClientRect();
+    const p = limitarPosicaoPainel(pos, { w: caixa.width, h: caixa.height }, { w: innerWidth, h: innerHeight });
+    Object.assign(painel.style, { left: p.x + 'px', top: p.y + 'px', right: 'auto', bottom: 'auto', transform: 'none' });
+    return p;
+  };
+  alca.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.isPrimary === false || arr) return;
+    const caixa = painel.getBoundingClientRect();
+    arr = { id: e.pointerId, ix: e.clientX, iy: e.clientY, left: caixa.left, top: caixa.top, moveu: false };
+    alca.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  alca.addEventListener('pointermove', e => {
+    if (!arr || arr.id !== e.pointerId) return;
+    const dx = e.clientX - arr.ix, dy = e.clientY - arr.iy;
+    if (!arr.moveu && Math.hypot(dx, dy) < 3) return;
+    arr.moveu = true; alca.classList.add('arrastando');
+    arr.pos = aplicar({ x: arr.left + dx, y: arr.top + dy });
+    e.preventDefault();
+  });
+  const terminar = e => {
+    if (!arr || arr.id !== e.pointerId) return;
+    const a = arr; arr = null; alca.classList.remove('arrastando');
+    if (a.moveu && a.pos) { pref = a.pos; try { localStorage.setItem(chave, JSON.stringify(pref)); } catch {} }
+    if (alca.hasPointerCapture?.(e.pointerId)) alca.releasePointerCapture(e.pointerId);
+  };
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) alca.addEventListener(ev, terminar);
+  alca.addEventListener('dblclick', () => { Object.assign(painel.style, { left: '', top: '', right: '', bottom: '', transform: '' }); pref = null; try { localStorage.removeItem(chave); } catch {} });
+  addEventListener('resize', () => { if (pref) aplicar(pref); });
+  if (pref) requestAnimationFrame(() => aplicar(pref));
+}
+
 export function instalarPainelMovel(painel, cabecalho, chave) {
   let preferida = null, arrasto = null;
   try {
