@@ -7,6 +7,7 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDe
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
+import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
@@ -30,6 +31,11 @@ export class Game {
   uid(prefix) { return prefix + (++this.serial); }
   emit(type, data = {}) { this.events.push({ id: this.uid('e'), type, at: this.time, ...data }); }
   notify(p, text) { this.emit('message', { playerId: p.id, text }); }
+  notificarNovidade(p, novidade) {
+    if (!p || !validarNovidade(novidade) || p.novidades.some(n => n.id === novidade.id)) return false;
+    p.novidades.push({ id:novidade.id, aba:novidade.aba, titulo:novidade.titulo, texto:novidade.texto, lida:false });
+    p.novidades = p.novidades.slice(-100); return true;
+  }
   addPlayer(id, name = 'Guerreiro', saved = null) {
     const p = createPlayer(id, name, saved, this.time);
     this.players.set(id, p); return p;
@@ -151,6 +157,11 @@ export class Game {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
       if (candidate && candidate.id !== p.id) p.targetId = candidate.id;
       return { ok: true };
+    }
+    if (kind === 'lerNovidades') {
+      if (!Array.isArray(data.ids) || data.ids.length > 100 || data.ids.some(id => typeof id !== 'string')) return { ok:false };
+      for (const n of p.novidades) if (data.ids.includes(n.id)) n.lida = true;
+      return { ok:true };
     }
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
@@ -801,6 +812,7 @@ export class Game {
         kaiokenRemaining: Math.max(0, self.kaiokenReady - this.time), kaiokenActive: this.time < self.kaiokenUntil,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
+        novidades: self.novidades.map(n => ({...n})),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
