@@ -170,13 +170,14 @@ export const RAIO_PORTAL = 55;
 const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
 // Portais de um planeta de hunt: a volta para a Terra acima da chegada da Vila, um portal da Vila para
 // cada hunt (`entradas`: posição em px da imagem do solo, por id de hunt) e a saída de cada hunt, com a
-// Vila e as outras hunts do mesmo planeta (`saidas`, px da imagem; sem ela, logo acima da chegada).
-function portaisDoPlaneta(planet, entradas, saidas = {}) {
+// Vila e as outras hunts do mesmo planeta. Saídas ficam dentro do quadrado seguro da chegada.
+function portaisDoPlaneta(planet, entradas) {
   const { vila, hunts, escala } = PLANETS[planet];
   return [
     { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: ['terra'] },
     ...hunts.map(id => ({ id: vila + '-' + id, planet, area: vila, x: entradas[id].x * escala, y: entradas[id].y * escala, destinos: [id] })),
-    ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, ...(saidas[id] ? { x: saidas[id].x * escala, y: saidas[id].y * escala } : acimaDaChegada(id)),
+    // Canto superior esquerdo: chegada fora do gatilho de 55, sem reabrir o menu ao viajar.
+    ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, x: areaPorId(id).chegada.x - 60, y: areaPorId(id).chegada.y - 60,
       destinos: [vila, ...hunts.filter(h => h !== id)] }))
   ];
 }
@@ -184,11 +185,9 @@ export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
   ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
-  // estrada, perto da praça; em cada hunt, a saída onde a estrada chega, com a chegada ao lado, para dentro.
+  // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } },
-  { 'vegeta-planicies': { x: 1420, y: 1335 }, 'vegeta-canions': { x: 1790, y: 828 }, 'vegeta-floresta': { x: 2880, y: 850 },
-    'vegeta-lava': { x: 2960, y: 1540 }, 'vegeta-cratera': { x: 2205, y: 2175 } })
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por

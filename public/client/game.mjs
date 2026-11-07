@@ -5,6 +5,7 @@ import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 import { origemKame } from '../shared/kamehameha.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
+import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -15,13 +16,30 @@ const keys = new Set(), renderPositions = new Map(), seenEvents = new Set();
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
+const transicaoTeleport = criarTransicaoTeleport({
+  viajar: destino => api('action', { type: 'portal', destino }),
+  pronto: id => {
+    const destino = lugar(id);
+    if (!snapshot || snapshot.planet !== destino.planet || snapshot.area !== destino.area) return false;
+    const mundo = PLANETS[destino.planet], solo = mundo.solo ? soloDe(mundo) : null;
+    return !solo || Boolean(solo.complete && solo.naturalWidth);
+  },
+  concluir: () => { keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null; },
+  avisar: mensagem => notify(mensagem)
+});
 async function api(path, data = {}) {
   const res = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session }, body: JSON.stringify(data) });
   if (!res.ok) throw new Error(res.status === 401 ? 'Sessão desconectada. Recarregue a página.' : 'Não foi possível executar a ação.');
   return res.json();
 }
 function action(data) {
-  if (!session || !snapshot) return;
+  if (!session || !snapshot || transicaoTeleport.ativa) return;
+  if (data.type === 'portal') {
+    keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null;
+    transicaoTeleport.iniciar(data.destino);
+    sendInput();
+    return;
+  }
   api('action', data).catch(e => notify(e.message));
 }
 function connected(ok) {
@@ -39,7 +57,11 @@ async function join(name, previousToken) {
   eventSource.onerror = () => connected(false);
   eventSource.onmessage = event => {
     try {
-      snapshot = JSON.parse(event.data); receivedAt = performance.now();
+      const proximo = JSON.parse(event.data);
+      if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
+        renderPositions.clear(); floating = []; pointerAim = null;
+      }
+      snapshot = proximo; receivedAt = performance.now();
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira();
       for (const effect of snapshot.events) {
@@ -58,6 +80,7 @@ async function join(name, previousToken) {
 
 
 function inputVector() {
+  if (transicaoTeleport.ativa) return { x: 0, y: 0 };
   let x = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0) + touchVector.x;
   let y = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0) + touchVector.y;
   const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
@@ -70,6 +93,7 @@ async function sendInput() {
 }
 setInterval(sendInput, 70);
 document.addEventListener('keydown', e => {
+  if (transicaoTeleport.ativa) { e.preventDefault(); return; }
   // A Mochila não trava o jogo: com ela aberta o personagem continua andando e usando técnicas.
   if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila)')) return;
   const key = e.key.toLowerCase();
@@ -108,6 +132,7 @@ $('zoomIn').onclick = () => setZoom(zoom * 1.2);
 const toWorld = event => worldFromPointer(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera);
 canvas.addEventListener('pointermove', e => { if (e.pointerType !== 'touch') pointerAim = toWorld(e); });
 canvas.addEventListener('pointerdown', e => {
+  if (transicaoTeleport.ativa) return;
   if (!snapshot) return; canvas.focus(); const point = toWorld(e);
   const targets = [...snapshot.mobs, ...snapshot.players.filter(p => p.id !== playerId)];
   const target = targets.find(t => Math.hypot(t.x - point.x, t.y - point.y) < (grande(t) ? 45 : 30));
@@ -119,6 +144,7 @@ $('joinForm').onsubmit = async event => { event.preventDefault(); const button =
 let joystickPointer = null;
 const joystick = $('joystick'), knob = $('joystickKnob');
 function joystickMove(e) {
+  if (transicaoTeleport.ativa) return;
   const r = joystick.getBoundingClientRect(), dx = e.clientX - r.left - 50, dy = e.clientY - r.top - 50, d = Math.max(35, Math.hypot(dx, dy));
   touchVector = { x: dx / d, y: dy / d }; knob.style.transform = 'translate(' + touchVector.x * 28 + 'px,' + touchVector.y * 28 + 'px)';
   pointerAim = null; sendInput();
@@ -389,6 +415,7 @@ function textoDoPortal(o) {
 // Com a caça automática ligada não abre: passar por cima da saída perseguindo um mob não é querer sair.
 let portalEncostado = null;
 function verificarPortal(pos) {
+  if (transicaoTeleport.ativa) return;
   const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
   if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;

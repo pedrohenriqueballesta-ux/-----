@@ -15,6 +15,7 @@ const loadImage = url => {
   return imageCache.get(url);
 };
 export const art = {
+  nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),
   tree: loadImage('/assets/tree.png'),
   rock: loadImage('/assets/rock.png'),

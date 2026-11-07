@@ -1,11 +1,27 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/game.mjs';
-import { ZONES, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/config.mjs';
+import { ZONES, PORTAIS, RAIO_PORTAL, zonaSeguraDaHunt, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/config.mjs';
 import { caminhoPorTerra, pesLivres, deslocar } from '../public/shared/passagem.mjs';
 import { pontoNoCirculo, spawnPoints } from '../public/shared/enemies.mjs';
 import { statsFor } from '../public/shared/characters.mjs';
 const passar = (g, s) => { for (let t = 0; t < s; t += .05) g.tick(.05); };
+test('saídas de todas as hunts ficam dentro da safe zone e permitem viajar protegido', () => {
+  const g = new Game({ populate: false }), p = g.addPlayer('viajante');
+  for (const z of ZONES.filter(z => !z.segura)) {
+    const portal = PORTAIS.find(o => o.area === z.id), q = zonaSeguraDaHunt(z.id);
+    assert.ok(portal);
+    assert.ok(portal.x >= q.x && portal.x <= q.x + q.w);
+    assert.ok(portal.y >= q.y && portal.y <= q.y + q.h);
+    assert.ok(Math.hypot(portal.x - z.chegada.x, portal.y - z.chegada.y) > RAIO_PORTAL + 15,
+      'spawn fica fora do gatilho do menu, com margem para interpolação');
+    assert.ok(pesLivres(z.planet, portal.x, portal.y, 15, z.id));
+    g.levar(p, lugar(z.id)); p.seguroAte = 0;
+    assert.ok(naZonaSegura(p));
+    assert.equal(g.usePortal(p, portal.destinos[0]).ok, true, z.id);
+    assert.equal(p.area, portal.destinos[0]);
+  }
+});
 for (const z of ZONES.filter(z => !z.segura)) {
   test(z.id + ': auto caça contorna o quadrado para alcançar um mob do outro lado, sem entrar nem travar', () => {
     const a = z.id === 'inicial' ? Math.PI * 3 / 8 : 0;
