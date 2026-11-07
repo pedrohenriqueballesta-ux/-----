@@ -139,22 +139,17 @@ export function drawHouse(ctx, house) {
   ctx.restore(); return true;
 }
 
-// Portal provisório (o desenho final ainda vai ser escolhido): círculo luminoso no chão, anel girando
-// e o destino escrito em cima. `cor` vem do destino (verde, laranja, vermelho para as hunts).
+// Todos os TPs usam a nuvem fornecida pelo usuário (07/11/2026), sem mudar o raio de interação.
 export function drawPortal(ctx, portal, time, cor, texto, raio) {
-  const { x, y } = portal, giro = time * 1.6;
+  const { x, y } = portal;
   ctx.save();
-  const brilho = ctx.createRadialGradient(x, y, 4, x, y, raio * 1.25);
-  brilho.addColorStop(0, cor + 'cc'); brilho.addColorStop(0.55, cor + '55'); brilho.addColorStop(1, cor + '00');
-  ctx.fillStyle = brilho; ctx.beginPath(); ctx.ellipse(x, y, raio * 1.25, raio * 0.62, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.lineWidth = 4; ctx.strokeStyle = cor;
-  ctx.beginPath(); ctx.ellipse(x, y, raio, raio * 0.48, 0, 0, Math.PI * 2); ctx.stroke();
-  ctx.lineWidth = 3; ctx.strokeStyle = '#ffffffcc'; ctx.setLineDash([14, 12]); ctx.lineDashOffset = -giro * 30;
-  ctx.beginPath(); ctx.ellipse(x, y, raio * 0.72, raio * 0.34, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-  // Coluna de luz subindo do círculo.
-  const coluna = ctx.createLinearGradient(x, y, x, y - raio * 2.2);
-  coluna.addColorStop(0, cor + '88'); coluna.addColorStop(1, cor + '00');
-  ctx.fillStyle = coluna; ctx.fillRect(x - raio * 0.55, y - raio * 2.2, raio * 1.1, raio * 2.2);
+  ctx.fillStyle = '#15291e44'; ctx.beginPath(); ctx.ellipse(x, y + 9, raio * 0.85, raio * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+  if (loaded(art.nuvemTeleport)) {
+    // A folha mantém seu alfa original. O movimento suave já faz parte dos 16 quadros.
+    const quadro = Math.floor(time * 10) % 16, w = raio * 2.8, h = w * 221 / 443;
+    ctx.drawImage(art.nuvemTeleport, quadro % 4 * 443, Math.floor(quadro / 4) * 221,
+      443, 221, x - w / 2, y - h / 2 - 12, w, h);
+  }
   ctx.font = 'bold 15px system-ui, -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
   ctx.lineWidth = 4; ctx.strokeStyle = '#000d'; ctx.strokeText(texto, x, y - raio * 1.5); ctx.fillStyle = '#fff'; ctx.fillText(texto, x, y - raio * 1.5);
   ctx.restore();

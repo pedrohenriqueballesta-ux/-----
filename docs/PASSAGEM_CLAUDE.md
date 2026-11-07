@@ -21,6 +21,30 @@ do navegador. Prévia sem save em `/barreira-ki.html`; detalhes em `docs/BARREIR
 Usuário revisou e aprovou o resultado, autorizando o commit em 07/11/2026.
 Push e merge aguardam autorização.
 
+## Nuvens nos teleports — 07/11/2026
+
+Pedido do usuário: substituir todos os círculos de TP pela Nuvem Voadora fornecida
+em `nuvem_voadora_16_frames.zip`. Implementado em `art/terrain.mjs` e `art/assets.mjs`:
+PNG RGBA original em `assets/teleports/nuvem.png`, grade 4×4, células 443×221,
+16 frames em loop a 100 ms/frame. Largura provisória de 2,8 vezes o raio do TP,
+proporção preservada, sombra no chão e texto do destino mantido.
+Destinos e raio de interação não mudaram. A nuvem vale para Terra, vilas e hunts.
+Pedido adicional: saídas das oito hunts movidas para dentro da safe zone,
+no canto superior esquerdo, 60 unidades à esquerda e 60 acima da chegada.
+Isso deixa o spawn a cerca de 85 unidades, fora do gatilho de 55 que abre o menu,
+evitando reabertura automática após viajar. Os TPs da Terra e das vilas mantêm
+suas posições. Teste cobre o centro do TP dentro do quadrado, spawn fora do gatilho, chão caminhável
+e viagem a partir da chegada protegida em todas as hunts.
+Transição atualizada com os 16 quadros de 414×231 extraídos de
+`Animação da Nuvem Nimbus e Logo Dragon Ball.gif`; os arquivos anteriores foram removidos.
+Ajustado para teste a 1,5 s no total, 93,75 ms/frame, sem loop.
+Envia a viagem no frame 9 (0,84375 s), segura no 12 até
+confirmar destino/solo e revela o mapa com saída suave. Preserva o servidor e as
+regras atuais. Detalhes e tratamento de erros em `docs/TELEPORTES.md`.
+175 testes e verificação de sintaxe passaram. Revisão visual no navegador pendente;
+Servidor reiniciado para teste do usuário. Commit autorizado em 07/11/2026;
+push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.
