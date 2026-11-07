@@ -48,7 +48,8 @@
       <section id="targetHud" class="hud-alvo moldura-azul hidden" aria-label="Alvo"><span id="targetName"></span><div class="barra barra-alvo"><i id="targetBar"></i><b id="targetHp"></b></div></section>
       <section class="hud-mapa moldura" aria-label="Minimapa">
         <strong id="regionName">—</strong>
-        <canvas id="minimap" width="240" height="176"></canvas>
+        <canvas id="minimap" width="240" height="176" aria-label="Minimapa: clique para caminhar, arraste para explorar, use a roda para zoom" title="Clique para caminhar · Arraste para explorar · Scroll para zoom"></canvas>
+        <div class="minimapa-controles"><button type="button" id="minimapShrink" aria-label="Diminuir tamanho do minimapa">−</button><output id="minimapSize">1×</output><button type="button" id="minimapGrow" aria-label="Aumentar tamanho do minimapa">+</button><button type="button" id="minimapCenter" aria-label="Centralizar minimapa no personagem" title="Centralizar no personagem">◎</button><output id="minimapZoomLabel" title="Zoom do minimapa com a roda do mouse">100%</output></div>
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
       </section>
       <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span>🔍 Zoom <b id="zoomLabel">100%</b></span></div>

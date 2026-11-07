@@ -211,6 +211,61 @@ function buscar(g, de, ate, alcanca, alcanceFinal) {
   return rota;
 }
 
+// Cliques inválidos terminam na margem alcançável, em vez de perseguir eternamente a água.
+export function planejarClique(planet, de, ate, area = null) {
+  const mundo = PLANETS[planet];
+  const livre = (x, y) => x >= 15 && y >= 15 && x <= mundo.w - 15 && y <= mundo.h - 15
+    && pesLivres(planet, x, y, 15, area)
+    && !OBSTACLES.some(o => o.planet === planet && Math.hypot(o.x - x, o.y - y) < o.r + 15);
+  const refinar = origem => {
+    let fim = { x: origem.x, y: origem.y };
+    const n = Math.max(1, Math.ceil(Math.hypot(ate.x - origem.x, ate.y - origem.y) / 2));
+    for (let i = 1; i <= n; i++) {
+      const x = origem.x + (ate.x - origem.x) * i / n, y = origem.y + (ate.y - origem.y) * i / n;
+      if (!livre(x, y)) break;
+      fim = { x, y };
+    }
+    return fim;
+  };
+  if (!MASCARAS[planet]) {
+    if (livre(ate.x, ate.y)) return { destino: ate, pontos: null };
+    const destino = refinar(de); return { destino, pontos: [destino] };
+  }
+  if (livre(ate.x, ate.y)) {
+    const rota = caminhoPorTerra(planet, de, ate, area);
+    const ultimo = rota?.at(-1);
+    if (ultimo && retaLivre(planet, area, ultimo, ate.x, ate.y)) return { destino: ate, pontos: null };
+  }
+  const g = gradeBusca(planet, area, 15);
+  const ini = celulaLivreMaisProxima(g, Math.floor(de.x / g.cw), Math.floor(de.y / g.ch),
+    (x, y) => retaLivre(planet, area, de, x, y));
+  const veio = new Int32Array(g.livre.length).fill(-1), fila = new Int32Array(g.livre.length);
+  let melhor = { x: de.x, y: de.y }, distancia = Math.hypot(de.x - ate.x, de.y - ate.y), fim = -1;
+  let a = 0, b = 0;
+  if (ini >= 0) { veio[ini] = ini; fila[b++] = ini; }
+  while (a < b) {
+    const c = fila[a++], p = centro(g, c), d = Math.hypot(p.x - ate.x, p.y - ate.y);
+    if (d < distancia) { distancia = d; melhor = p; fim = c; }
+    // Só aceita a componente realmente ligada ao jogador, sem cortar quinas/água.
+    for (const n of vizinhosLivres(g, c)) if (veio[n] < 0) { veio[n] = c; fila[b++] = n; }
+  }
+  const destino = refinar(melhor), pontos = [];
+  if (fim >= 0) {
+    for (let c = fim; ; c = veio[c]) { pontos.push(centro(g, c)); if (c === ini) break; }
+    pontos.reverse();
+  }
+  pontos.push(destino);
+  const rota = []; let origem = de, inicio = 0;
+  while (inicio < pontos.length) {
+    let proximo = inicio;
+    for (let i = pontos.length - 1; i >= inicio; i--) {
+      if (retaLivre(planet, area, origem, pontos[i].x, pontos[i].y)) { proximo = i; break; }
+    }
+    origem = pontos[proximo]; rota.push(origem); inicio = proximo + 1;
+  }
+  return { destino, pontos: rota };
+}
+
 // Conectividade estática da hunt a partir da chegada. Também impede que mobs surjam em ilhas
 // de terra isoladas pela água/penhasco, onde a caça automática nunca poderia alcançá-los.
 const componentesCache = new Map();
