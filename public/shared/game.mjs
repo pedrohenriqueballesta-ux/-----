@@ -152,9 +152,11 @@ export class Game {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
     }
-    if (kind === 'healThreshold') {
-      if (!Number.isInteger(data.value) || data.value < 1 || data.value > 100) return this.reject(p, 'Escolha um limite de cura entre 1% e 100%.');
-      p.healThreshold = data.value; return { ok: true };
+    if (kind === 'healThreshold' || kind === 'automationThreshold') {
+      const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
+      if (!['healThreshold', 'kiThreshold', 'seedThreshold'].includes(key)) return { ok: false };
+      if (!Number.isInteger(data.value) || data.value < 1 || data.value > 100) return this.reject(p, 'Escolha um limite entre 1% e 100%.');
+      p[key] = data.value; return { ok: true };
     }
     // Caça automática: roda a hunt inteira onde o jogador está (sem escolher região).
     if (kind === 'hunt') {
@@ -489,8 +491,8 @@ export class Game {
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
-    if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
-    if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
+    if (p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
@@ -712,6 +714,7 @@ export class Game {
         hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
+        kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
