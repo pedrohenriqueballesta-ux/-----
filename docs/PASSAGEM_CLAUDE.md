@@ -2,6 +2,12 @@
 
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
+## Auto Hunt: controle principal da automação — 07/11/2026
+
+- **DECIDIDO:** com Auto Hunt OFF, ataque, técnicas, cura, poção de Ki, semente e comida automáticos ficam pausados, mesmo com suas opções marcadas.
+- Preferências e porcentagens são mantidas. Uso manual continua disponível; efeitos já aplicados e projéteis já lançados terminam normalmente.
+- Carga de Kamehameha iniciada automaticamente é cancelada ao desligar; carga manual é preservada. Movimento manual e clique em destino, que já desligavam a caça, também pausam as automações.
+
 ## Colisão dos inimigos — 07/11/2026
 
 - **DECIDIDO:** Pedro pediu corpos próprios para os inimigos, sem atravessar estruturas nem empilhar mobs.
