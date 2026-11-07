@@ -6,8 +6,10 @@ import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.
 import { origemKame } from '../shared/kamehameha.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
+import { carregarCura, desenharCura } from '../render/cura.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
-import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO } from './hud.mjs';
+import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
+import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
@@ -16,6 +18,8 @@ const keys = new Set(), renderPositions = new Map(), seenEvents = new Set();
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
+let tamanhoMini = 1, zoomMini = 1, vistaMini = null, destinoMini = null;
+let centroMini = null, arrastoMini = null;
 const transicaoTeleport = criarTransicaoTeleport({
   viajar: destino => api('action', { type: 'portal', destino }),
   pronto: id => {
@@ -64,6 +68,7 @@ async function join(name, previousToken) {
       snapshot = proximo; receivedAt = performance.now();
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira();
+      carregarCura();
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -94,20 +99,20 @@ async function sendInput() {
 setInterval(sendInput, 70);
 document.addEventListener('keydown', e => {
   if (transicaoTeleport.ativa) { e.preventDefault(); return; }
-  // A Mochila não trava o jogo: com ela aberta o personagem continua andando e usando técnicas.
-  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila)')) return;
+  // Mochila e Auto Hunt são painéis não modais: não pausam movimento ou técnicas.
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) return;
   const key = e.key.toLowerCase();
   if (key === 'b' && !e.repeat) { alternarMochila(); return; }
   if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  const skills = { '1': 'kame', '2': 'kaioken', '3': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
-  // 6 e 7: semente e poção de Ki, na barra de atalhos da HUD nova (R e Q continuam valendo).
+  const skills = { '1': 'heal', '2': 'kame', '3': 'kaioken', '4': 'barrier', '6': 'genki', ' ': 'basic', 'shift': 'dash' };
+  // Cura universal ocupa a primeira posição; R, Q e T continuam como alternativas.
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
-  else if (key === '4' || key === 't') action({ type: 'transform' });
+  else if (key === '5' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'q' || key === '7') action({ type: 'potion' });
-  else if (key === 'r' || key === '6') action({ type: 'seed' });
+  else if (key === 'q' || key === '8') action({ type: 'potion' });
+  else if (key === 'r' || key === '7') action({ type: 'seed' });
   else if (key === 'h') alternarCaca();
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
@@ -127,6 +132,78 @@ canvas.addEventListener('wheel', event => {
   event.preventDefault();
   setZoom(zoomFromWheel(zoom, event.deltaY, event.deltaMode));
 }, { passive: false });
+function redesenharMini() {
+  if (!snapshot || !mctx) return;
+  const mundo = PLANETS[snapshot.planet] || PLANETS.namek;
+  drawMinimap(mundo, mundo.solo ? areaPorId(snapshot.area) : null);
+}
+function ajustarHudMinimapa() {
+  if (!mini) return;
+  const painel = mini.closest('.hud-mapa'), info = document.querySelector('.hud-zoom');
+  if (painel && info) {
+    const u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--e')) || 1;
+    info.style.top = painel.getBoundingClientRect().bottom + 6 * u + 'px';
+  }
+  const w = Math.max(1, mini.clientWidth), h = Math.max(1, mini.clientHeight);
+  if (mini.width !== w || mini.height !== h) { mini.width = w; mini.height = h; }
+  redesenharMini(); encaixarAutoHunt();
+}
+function definirTamanhoMini(valor) {
+  tamanhoMini = tamanhoMinimapa(valor);
+  mini?.closest('.hud-mapa')?.style.setProperty('--minimapa-tamanho', tamanhoMini);
+  $('minimapSize').textContent = tamanhoMini.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '×';
+  $('minimapShrink').disabled = tamanhoMini <= MINIMAPA.tamanhoMinimo;
+  $('minimapGrow').disabled = tamanhoMini >= MINIMAPA.tamanhoMaximo;
+  ajustarHudMinimapa();
+}
+$('minimapShrink').onclick = () => definirTamanhoMini(tamanhoMini - MINIMAPA.passoTamanho);
+$('minimapGrow').onclick = () => definirTamanhoMini(tamanhoMini + MINIMAPA.passoTamanho);
+mini?.closest('.hud-mapa')?.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
+mini?.addEventListener('wheel', e => {
+  e.preventDefault(); e.stopPropagation();
+  if (arrastoMini) return;
+  zoomMini = zoomMinimapa(zoomMini, e.deltaY, e.deltaMode);
+  $('minimapZoomLabel').textContent = Math.round(zoomMini * 100) + '%';
+  redesenharMini();
+}, { passive: false });
+mini?.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || !snapshot || snapshot.self?.hp <= 0 || transicaoTeleport.ativa ||
+      !vistaMini || vistaMini.planet !== snapshot.planet || vistaMini.area !== snapshot.area) return;
+  if (arrastoMini || e.isPrimary === false) return;
+  arrastoMini = { id: e.pointerId, x: e.clientX, y: e.clientY, vista: { ...vistaMini },
+    caixa: { width: mini.clientWidth, height: mini.clientHeight }, moveu: false };
+  mini.setPointerCapture(e.pointerId); e.preventDefault();
+});
+mini?.addEventListener('pointermove', e => {
+  if (!arrastoMini || arrastoMini.id !== e.pointerId || transicaoTeleport.ativa ||
+      arrastoMini.vista.planet !== snapshot?.planet || arrastoMini.vista.area !== snapshot?.area) return;
+  const dx = e.clientX - arrastoMini.x, dy = e.clientY - arrastoMini.y;
+  if (!arrastoMini.moveu && Math.hypot(dx, dy) < 4) return;
+  arrastoMini.moveu = true; mini.classList.add('arrastando');
+  const mundo = PLANETS[snapshot.planet], limite = areaPorId(snapshot.area) || { x: 0, y: 0, w: mundo.w, h: mundo.h };
+  centroMini = { ...arrastarMinimapa(arrastoMini.vista, dx, dy, arrastoMini.caixa, limite), planet: snapshot.planet, area: snapshot.area };
+  e.preventDefault(); redesenharMini();
+});
+function terminarArrastoMini(e) {
+  if (!arrastoMini || arrastoMini.id !== e.pointerId) return;
+  const gesto = arrastoMini; arrastoMini = null; mini.classList.remove('arrastando');
+  if (mini.hasPointerCapture(e.pointerId)) mini.releasePointerCapture(e.pointerId);
+  if (e.type !== 'pointerup' || gesto.moveu || !snapshot || transicaoTeleport.ativa || snapshot.self?.hp <= 0 ||
+      gesto.vista.planet !== snapshot.planet || gesto.vista.area !== snapshot.area) return;
+  const caixa = mini.getBoundingClientRect();
+  const ponto = pontoDoMinimapa(e.clientX, e.clientY,
+    { left: caixa.left + mini.clientLeft, top: caixa.top + mini.clientTop, width: mini.clientWidth, height: mini.clientHeight }, vistaMini);
+  if (!ponto) return;
+  e.preventDefault(); keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null;
+  canvas.focus({ preventScroll: true }); sendInput();
+  action({ type: 'moveTo', ...ponto });
+  destinoMini = { ...ponto, planet: snapshot.planet, area: snapshot.area, em: performance.now() };
+  redesenharMini();
+}
+for (const tipo of ['pointerup', 'pointercancel', 'lostpointercapture']) mini?.addEventListener(tipo, terminarArrastoMini);
+$('minimapCenter').onclick = () => { centroMini = null; redesenharMini(); };
+if (mini) new ResizeObserver(ajustarHudMinimapa).observe(mini.closest('.hud-mapa'));
+definirTamanhoMini(1);
 $('zoomOut').onclick = () => setZoom(zoom / 1.2);
 $('zoomIn').onclick = () => setZoom(zoom * 1.2);
 const toWorld = event => worldFromPointer(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera);
@@ -205,6 +282,8 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
+  // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
+  if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
@@ -377,15 +456,14 @@ function drawMiniSelf(x, y, facing) {
 }
 // Minimapa da região em volta do jogador (decisão do Pedro, 29/10): mostra um pedaço do mundo
 // centrado nele, preso às bordas do mapa; mobs, outros jogadores e o que a câmera vê, no mesmo recorte.
-const MINIMAPA_VISTA = 2400; // largura do pedaço de mundo mostrado (a altura segue a proporção do minimapa)
 function drawMinimap(world = PLANETS.namek, area = null) {
   if (!mctx) return; // sem minimapa na página
   const mapW = mini.width, mapH = mini.height, self = snapshot.players.find(p => p.id === playerId);
   // Preso à área fechada, como a câmera: o minimapa mostra só onde dá para ir.
-  const lim = area || { x: 0, y: 0, w: world.w, h: world.h };
-  const vw = Math.min(MINIMAPA_VISTA, lim.w), vh = Math.min(vw * mapH / mapW, lim.h);
-  const cx = self ? self.x : lim.x + lim.w / 2, cy = self ? self.y : lim.y + lim.h / 2;
-  const ox = Math.max(lim.x, Math.min(lim.x + lim.w - vw, cx - vw / 2)), oy = Math.max(lim.y, Math.min(lim.y + lim.h - vh, cy - vh / 2));
+  if (centroMini && (centroMini.planet !== snapshot.planet || centroMini.area !== snapshot.area)) centroMini = null;
+  const vista = vistaMinimapa(world, area, centroMini || self, mapW, mapH, zoomMini);
+  vistaMini = { ...vista, planet: snapshot.planet, area: snapshot.area };
+  const { x: ox, y: oy, w: vw, h: vh } = vista;
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
   mctx.fillStyle = world.fundo || '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
   const solo = world.solo && soloDe(world);
@@ -399,6 +477,13 @@ function drawMinimap(world = PLANETS.namek, area = null) {
   for (const p of snapshot.players) if (p.id !== playerId) miniMarker(X(p.x), Y(p.y), 2.5, '#5fd8ff');
   mctx.strokeStyle = '#fff0c488'; mctx.lineWidth = 1; mctx.strokeRect(X(camera.x), Y(camera.y), width / camera.scale * sx, height / camera.scale * sy);
   if (self) drawMiniSelf(X(self.x), Y(self.y), self.facing);
+  if (destinoMini && destinoMini.planet === snapshot.planet && destinoMini.area === snapshot.area) {
+    const idade = (performance.now() - destinoMini.em) / 1000;
+    if (idade < 1.2) {
+      mctx.save(); mctx.globalAlpha = 1 - idade / 1.2; mctx.strokeStyle = '#7dff9e'; mctx.lineWidth = 2;
+      mctx.beginPath(); mctx.arc(X(destinoMini.x), Y(destinoMini.y), 5 + idade * 12, 0, Math.PI * 2); mctx.stroke(); mctx.restore();
+    } else destinoMini = null;
+  }
 }
 // Portais do lugar onde o jogador está. Cor e texto pelo destino: portal de uma hunt leva a cor dela;
 // portal com vários destinos (saída de hunt) e o caminho Terra ↔ Vila ficam azuis.
@@ -417,7 +502,7 @@ let portalEncostado = null;
 function verificarPortal(pos) {
   if (transicaoTeleport.ativa) return;
   const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
-  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
+  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;
 }
 

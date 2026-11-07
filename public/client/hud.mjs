@@ -3,6 +3,8 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { CURA, curaPorNivel } from '../shared/cura.mjs';
+import { instalarPainelMovel } from '../render/painel-movel.mjs';
 
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -78,6 +80,17 @@ export function atualizarHud(snapshot, playerId) {
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
+  $('autoHeal').checked = s.autoHeal;
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
+    if (document.activeElement !== $(key)) $(key).value = s[key];
+  }
+  $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
+  $('autoHuntButton').classList.toggle('ligado', s.autoHunt);
+  const hunt = areaPorId(s.area);
+  $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
+  $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
+  $('autoKiInfo').textContent = `${s.inventory.ki} poções · ${!s.inventory.ki ? 'sem estoque' : s.kiRemaining > 0 ? 'recarga ' + s.kiRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
+  $('autoSeedInfo').textContent = `${s.inventory['seed' + s.seedSelected]} sementes de ${s.seedSelected}% · ${!s.inventory['seed' + s.seedSelected] ? 'sem estoque' : s.seedRemaining > 0 ? 'recarga ' + s.seedRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food; $('kiCount').textContent = s.inventory.ki;
@@ -85,7 +98,7 @@ export function atualizarHud(snapshot, playerId) {
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);
-  $('seedSelect').value = String(s.seedSelected);
+  if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
   $('seedButton').disabled = s.seedRemaining > 0 || !s.inventory['seed' + s.seedSelected];
   $('seedCount').textContent = s.inventory['seed' + s.seedSelected] || 0;
@@ -118,7 +131,11 @@ export function atualizarHud(snapshot, playerId) {
   const target = snapshot.mobs.find(m => m.id === s.targetId) || snapshot.players.find(v => v.id === s.targetId);
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
   if (target) { $('targetName').textContent = target.name + (target.level ? ' • Nv. ' + target.level : ''); $('targetBar').style.width = 100 * target.hp / target.maxHp + '%'; $('targetHp').textContent = integer(target.hp) + ' / ' + integer(target.maxHp); }
+  const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
   const skillState = {
+    heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
+      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : '1,5') + 's',
+      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga 1,5s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
     kaioken: { required: CONFIG.skills.kaioken, cost: CONFIG.skillCosts.kaioken, cooldown: CONFIG.skillCooldowns.kaioken, remaining: s.kaiokenRemaining || 0, text: s.level < CONFIG.skills.kaioken ? CONFIG.skillCooldowns.kaioken + 's' : s.kaiokenActive ? 'ATIVO' : s.kaiokenRemaining > 0 ? s.kaiokenRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kaioken + 's', active: s.kaiokenActive },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
@@ -128,6 +145,7 @@ export function atualizarHud(snapshot, playerId) {
     const skill = button.dataset.skill, state = skillState[skill]; if (!state) continue;
     const locked = s.level < state.required;
     button.classList.toggle('locked', locked); button.disabled = locked || state.remaining > 0 || (skill === 'kaioken' && s.kaiokenActive) || (skill === 'barrier' && s.barrierActive);
+    if (skill === 'heal') button.disabled ||= s.hp <= 0 || s.hp >= s.stats.hp || s.ki < cura.custo;
     button.classList.toggle('active', Boolean(state.active));
     const label = button.querySelector('small');
     renderSkillMeta(label, state.cost, state.text);
@@ -136,7 +154,7 @@ export function atualizarHud(snapshot, playerId) {
     const remaining = state.remaining;
     cooldown.textContent = remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
     button.classList.toggle('cooling', remaining > 0);
-    button.title = (button.querySelector('strong')?.textContent || skill) + ' · ' + state.text + (button.querySelector('kbd') ? ' · tecla ' + button.querySelector('kbd').textContent : '');
+    button.title = state.detail || (button.querySelector('strong')?.textContent || skill) + ' · ' + state.text + (button.querySelector('kbd') ? ' · tecla ' + button.querySelector('kbd').textContent : '');
   }
   const transformLocked = s.level < CONFIG.skills.transform;
   $('transformButton').disabled = transformLocked || (!s.transformed && (s.transformRemaining || 0) > 0);
@@ -289,6 +307,25 @@ export function alternarCaca() {
   action({ type: 'hunt', enabled: !ctx?.snapshot()?.self?.autoHunt });
 }
 
+let autoHuntMovel = null;
+export function encaixarAutoHunt() {
+  const painel = $('autoHuntDialog'); if (!painel.open) return;
+  if (autoHuntMovel?.restaurar()) return;
+  const caixa = seletor => document.querySelector?.(seletor)?.getBoundingClientRect();
+  const topo = Math.max(caixa('.hud-topo')?.bottom || 0, caixa('.hud-mapa')?.bottom || 0, caixa('.hud-zoom')?.bottom || 0) + 8;
+  const fim = Math.min(caixa('.hud-tecnicas')?.top ?? innerHeight - 16, caixa('.hud-auto')?.top ?? innerHeight - 16) - 8;
+  painel.style.bottom = Math.max(8, innerHeight - fim) + 'px';
+  painel.style.maxHeight = Math.max(0, Math.min(380, fim - topo)) + 'px';
+}
+addEventListener('resize', encaixarAutoHunt);
+
+export function alternarAutoHunt() {
+  const painel = $('autoHuntDialog');
+  if (painel.open) painel.close(); else painel.show();
+  $('autoHuntButton').setAttribute('aria-expanded', String(painel.open));
+  encaixarAutoHunt();
+}
+
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
@@ -305,6 +342,20 @@ export function ligarHud(contexto) {
   for (const btn of document.querySelectorAll('[data-toggle]')) btn.onclick = () => action({ type: 'toggle', key: btn.dataset.toggle, value: !ctx.snapshot()?.self?.[btn.dataset.toggle] });
   for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
+  $('autoHeal').onchange = () => action({ type: 'toggle', key: 'autoHeal', value: $('autoHeal').checked });
+  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) $(key).onchange = () => {
+    const input = $(key), value = Number(input.value);
+    if (!input.checkValidity() || !Number.isInteger(value)) { input.reportValidity(); return; }
+    action({ type: 'automationThreshold', key, value });
+  };
+  $('autoHuntButton').onclick = alternarAutoHunt;
+  autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
+  $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
+  $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
+  $('autoHuntDialog').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); $('autoHuntDialog').close(); }
+    else if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+  });
   $('huntButton').addEventListener('click', alternarCaca);
   $('foodButton').onclick = () => action({ type: 'food' });
   $('kiPotionButton').onclick = () => action({ type: 'potion' });

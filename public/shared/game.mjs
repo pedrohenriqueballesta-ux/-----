@@ -4,8 +4,9 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
-import { deslocar, caminhoPorTerra, temMascara, pesLivres } from './passagem.mjs';
+import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
+import { CURA, curaPorNivel } from './cura.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
@@ -148,8 +149,14 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'toggle') {
-      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed'].includes(data.key)) return { ok: false };
+      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
+    }
+    if (kind === 'healThreshold' || kind === 'automationThreshold') {
+      const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
+      if (!['healThreshold', 'kiThreshold', 'seedThreshold'].includes(key)) return { ok: false };
+      if (!Number.isInteger(data.value) || data.value < 1 || data.value > 100) return this.reject(p, 'Escolha um limite entre 1% e 100%.');
+      p[key] = data.value; return { ok: true };
     }
     // Caça automática: roda a hunt inteira onde o jogador está (sem escolher região).
     if (kind === 'hunt') {
@@ -160,7 +167,11 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'moveTo' && Number.isFinite(data.x) && Number.isFinite(data.y)) {
-      p.autoHunt = false; const w = PLANETS[p.planet] || PLANETS.namek; p.moveTo = { x: clamp(data.x, 30, w.w - 30), y: clamp(data.y, 30, w.h - 30) }; return { ok: true };
+      p.autoHunt = false; const w = PLANETS[p.planet] || PLANETS.namek;
+      const plano = planejarClique(p.planet, p, { x: clamp(data.x, 30, w.w - 30), y: clamp(data.y, 30, w.h - 30) }, p.area);
+      p.rota = null;
+      p.moveTo = { ...plano.destino, pontos: plano.pontos, progresso: { x: p.x, y: p.y, em: this.time } };
+      return { ok: true };
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
     if (kind === 'food') return this.useFood(p);
@@ -225,6 +236,7 @@ export class Game {
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
   cast(p, skill, automated = false) {
+    if (skill === 'heal') return this.curarVida(p, automated);
     if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
@@ -283,6 +295,22 @@ export class Game {
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
     }
     return { ok: false };
+  }
+  curarVida(p, automated = false) {
+    const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
+    if (!p.connected || p.hp <= 0) return { ok: false };
+    const cura = curaPorNivel(p.level);
+    if (p.hp >= p.stats.hp) return falha('Sua vida já está cheia.');
+    if (this.time + 1e-9 < p.healReady) return falha('Cura de Vida em recarga.');
+    if (p.ki < cura.custo) return falha('Ki insuficiente para curar vida.');
+    // Um único caminho para tecla, botão e automação: reserva a recarga antes de curar.
+    p.healReady = this.time + CURA.cooldown; p.ki -= cura.custo;
+    p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
+    const antes = p.hp;
+    p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual);
+    this.emit('heal', { x: p.x, y: p.y, playerId: p.id, planet: p.planet, area: p.area,
+      amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
+    return { ok: true };
   }
   hit(attacker, target, raw) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
@@ -421,6 +449,7 @@ export class Game {
       return;
     }
     if (p.foodUntil > this.time) p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);
+    if (p.autoHeal && (p.autoHunt || p.autoSkills) && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
     // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
     if (!p.transformed && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
     if (p.transformed) { p.ki = Math.max(0, p.ki - dt * 3.5); if (p.ki <= 0) { p.transformed = false; this.notify(p, 'Ki esgotado. Forma base.'); } }
@@ -461,13 +490,22 @@ export class Game {
         }
       }
     } else if (p.moveTo) {
-      if (distance(p, p.moveTo) < 16) p.moveTo = null;
-      else this.steer(p, p.moveTo, dt, p.stats.mobility);
+      const destino = p.moveTo;
+      if (distance(p, destino) < (destino.pontos ? 2 : 16)) { p.moveTo = null; p.rota = null; }
+      else {
+        if (destino.pontos) {
+          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 1) destino.pontos.shift();
+          const alvo = destino.pontos[0], d = distance(p, alvo), dir = norm(alvo.x - p.x, alvo.y - p.y);
+          this.move(p, dir.x, dir.y, Math.min(dt, d / p.stats.mobility), p.stats.mobility); p.facing = dir;
+        } else this.steer(p, destino, dt, p.stats.mobility);
+        if (!destino.progresso || distance(p, destino.progresso) > 4) destino.progresso = { x: p.x, y: p.y, em: this.time };
+        else if (this.time - destino.progresso.em > 1) { p.moveTo = null; p.rota = null; p.moving = false; }
+      }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
-    if (p.autoKi && p.ki / p.stats.ki < 0.25 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
-    if (p.autoSeed && p.hp / p.stats.hp < 0.3 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
+    if (p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
@@ -683,10 +721,14 @@ export class Game {
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
         level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
+        heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
+        autoHeal: self.autoHeal, healThreshold: self.healThreshold,
+        kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
+        cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,

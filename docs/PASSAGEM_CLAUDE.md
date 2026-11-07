@@ -45,6 +45,57 @@ regras atuais. Detalhes e tratamento de erros em `docs/TELEPORTES.md`.
 Servidor reiniciado para teste do usuário. Commit autorizado em 07/11/2026;
 push e merge aguardam autorização.
 
+## Cura de Vida universal — implementação local (07/11/2026)
+
+Branch `feature/cura-de-vida`, baseada na `origin/main` com os TPs mergeados.
+Pedido esclarecido: cura **HP** usando Ki; evolução nos níveis 1/20/50/100/150+,
+respectivamente 2%/2,5%/3%/3,5%/4% do HP máximo por 10/12/14/16/18 Ki.
+Recarga universal de 1,5 s, limitada ao HP máximo. Uso manual e automático passam
+pelo mesmo fluxo autoritativo; preferência e recarga persistidas no save.
+Autocura habilitada por padrão durante caça ou técnicas automáticas, abaixo de
+70% HP; jogador pode desligar e configurar o limite (1–100%).
+HUD com ícone fornecido, custo e recarga. Cura na tecla 1; habilidades anteriores
+passam para 2–6; semente 7/R e poção de Ki 8/Q; transformação 5/T.
+Sem alterar as regras das outras habilidades ou elevar o limite atual de nível 100.
+Detalhes e cobertura dos testes em `docs/CURA_DE_VIDA.md`.
+Animação simplificada do pacote `cura_de_ki_simplificada.zip` integrada:
+24 frames 256×256 em grade 8×3, 40 FPS, 0,6 s sem loop, escala 0,34 e alfa 0,55.
+Segue os pés e sobrepõe o corpo como uma aura, com timestamp autoritativo por
+ativação para não duplicar. Marcas numéricas dos cantos removidas na cópia de render.
+190 testes passaram; `npm run check` passou.
+Captura automatizada pendente por indisponibilidade do host do navegador.
+Usuário testou e aprovou o resultado, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
+## HUD Auto Hunt — implementação local (07/11/2026)
+
+Branch `feature/hud-auto-hunt`, criada de `origin/main` após merge da cura.
+Um botão Auto Hunt no canto inferior direito abre painel não modal com caça,
+ataque, técnicas, cura, poção de Ki, semente/potência e comida automáticos.
+Limites de recuperação configuráveis no servidor (inteiros 1–100%): cura 70% HP,
+poção 25% Ki e semente 30% HP por padrão. Compara estritamente abaixo do limite.
+Preferências de recuperação, limites e potência persistem; caça não reativa ao
+reconectar. Custos, estoques e recargas anteriores preservados.
+197 testes e `npm run check` passaram. Detalhes em `docs/AUTO_HUNT.md`. Captura visual pendente por indisponibilidade
+do navegador. Painel compacto com rolagem e arrasto pelo cabeçalho; posição final
+persistida no navegador. Usuário revisou e aprovou, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
+## Minimapa interativo — implementação local (07/11/2026)
+
+Branch `feature/ajustes-minimapa`. Clique envia destino ao movimento existente do
+servidor; −/+ ajustam o tamanho da HUD entre 1× e 2×, crescendo para baixo/esquerda.
+Zoom do minimapa via scroll é independente da câmera (100–400%, sem faixas inertes).
+Arrasto pelo botão esquerdo explora a visão; clique simples move o personagem.
+Botão ◎ restaura o acompanhamento do personagem.
+Informação de zoom do jogador acompanha a altura real da HUD do mapa. Clique usa
+o recorte exibido, respeita o lugar atual e ignora transição ou imagem de outro lugar.
+Cliques inacessíveis agora têm destino e rota corrigidos no servidor para a margem
+alcançável; a ordem termina ao chegar, sem insistir na água ou em estruturas.
+209 testes e `npm run check` passaram. Detalhes em `docs/MINIMAPA.md`.
+Conferência visual automatizada pendente: host do navegador indisponível.
+Commit autorizado em 07/11/2026; push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.

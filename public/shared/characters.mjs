@@ -2,6 +2,7 @@
 // podem ser descritos aqui no futuro, sem mexer na lógica de combate.
 import { clamp } from './math.mjs';
 import { CONFIG, PLANETS } from './config.mjs';
+import { CURA } from './cura.mjs';
 
 export function statsFor(level) {
   const n = Math.max(0, level - 1);
@@ -31,11 +32,16 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     zeni: clamp(Number(saved?.zeni ?? 200), 0, 9999999), inventory, kills: Number(saved?.kills) || 0,
     input: { x: 0, y: 0 }, facing: { x: 1, y: 0 }, aim: null, inputAt: now,
     autoAttack: false, autoSkills: false, autoHunt: false, targetId: null,
-    moving: false, moveTo: null, seedSelected: 15, foodUntil: Number(saved?.foodUntil) || 0,
+    moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
     basicReady: 0, shotReady: 0, kameReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
+    autoHeal: saved?.autoHeal !== false,
+    healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,
+    kiThreshold: Number.isInteger(saved?.kiThreshold) && saved.kiThreshold >= 1 && saved.kiThreshold <= 100 ? saved.kiThreshold : 25,
+    seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     kaiokenReady: 0, kaiokenUntil: 0, barrierReady: 0, barrierUntil: 0, genkiReady: 0, transformReady: 0,
-    transformed: false, respawnAt: 0, connected: true, autoFood: true, autoKi: false, autoSeed: false,
+    transformed: false, respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
 }
 
@@ -43,5 +49,8 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
 export function exportPlayer(p) {
   return { name: p.name, level: p.level, xp: p.xp, x: p.x, y: p.y, hp: p.hp, ki: p.ki,
     zeni: p.zeni, inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
-    foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady };
+    foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
+    healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
+    kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,
+    autoFood: p.autoFood, autoKi: p.autoKi, autoSeed: p.autoSeed };
 }
