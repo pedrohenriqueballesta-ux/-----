@@ -309,3 +309,14 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .detalhes-habilidade dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 #foodBuff{display:inline-flex;align-items:center;gap:calc(6 * var(--u))}
 #foodBuff .icone-comida{display:block;flex:0 0 calc(24 * var(--u));width:calc(24 * var(--u));height:calc(24 * var(--u));object-fit:contain;pointer-events:none}
+
+.hud-menus .hud-novidade{position:absolute;top:calc(-2 * var(--u));right:calc(-2 * var(--u));width:calc(18 * var(--u));height:calc(18 * var(--u));object-fit:contain;pointer-events:none;z-index:2}
+.novidades-hud{position:fixed;top:calc(100 * var(--u));left:50%;transform:translateX(-50%);margin:0;z-index:100;box-sizing:border-box;width:min(420px,calc(100vw - 24px));max-height:calc(100vh - 120 * var(--u));padding:16px;border:1px solid var(--ouro);border-radius:12px;background:#0d1b30;color:var(--texto);box-shadow:0 8px 30px #0009}
+.novidades-hud header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.novidades-hud h2{margin:0;color:var(--ouro-claro);font-size:18px}
+.novidades-hud header button{border:0;background:none;padding:6px;font-size:18px}
+.novidades-lista{max-height:50vh;overflow:auto;margin:12px 0}
+.novidades-lista article{padding:12px 0;border-bottom:1px solid #ffffff25}
+.novidades-lista h3{margin:0 0 6px;font-size:15px}
+.novidades-lista p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.novidades-lidas{padding:8px 14px;background:#203f65;border:1px solid #5778a0;border-radius:7px}

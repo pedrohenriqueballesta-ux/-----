@@ -2,6 +2,7 @@
 // podem ser descritos aqui no futuro, sem mexer na lógica de combate.
 import { clamp } from './math.mjs';
 import { CONFIG, PLANETS, GODMODE } from './config.mjs';
+import { restaurarNovidades } from './novidades.mjs';
 import { CURA } from './cura.mjs';
 
 export function statsFor(level) {
@@ -70,6 +71,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     kaiokenReady: 0, kaiokenUntil: 0, barrierReady: 0, barrierUntil: 0, genkiReady: 0, transformReady: 0,
     transformed: false, respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
+    novidades: restaurarNovidades(saved?.novidades),
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
   return p;
@@ -80,6 +82,7 @@ export function exportPlayer(p) {
   return { name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode,
+    novidades: restaurarNovidades(p.novidades),
     inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,

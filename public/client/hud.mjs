@@ -3,11 +3,13 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
 import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
 let atualizarDetalhes = () => {};
+let novidadesHud = null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -169,6 +171,7 @@ export function atualizarHud(snapshot, playerId) {
   transformCooldown.textContent = !s.transformed && s.transformRemaining > 0 ? s.transformRemaining.toFixed(1) + 's' : '';
   renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
   atualizarDetalhes(s);
+  novidadesHud?.atualizar(s);
   $('respawn').classList.toggle('hidden', s.hp > 0);
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
@@ -339,11 +342,12 @@ export function alternarAutoHunt() {
 export function ligarHud(contexto) {
   ctx = contexto;
   atualizarDetalhes = instalarDetalhesHabilidades();
+  novidadesHud = instalarNovidadesHud(action);
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
   const telas = { loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
-  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
+  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
   $('menuAlternar').onclick = () => { const aberto = $('hudMenus').classList.toggle('aberto'); $('menuAlternar').setAttribute('aria-expanded', String(aberto)); };
   // Setas do chat rolam as mensagens.
   $('chatCima').onclick = () => $('chatLinhas').scrollBy({ top: -40, behavior: 'smooth' });
