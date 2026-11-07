@@ -232,13 +232,13 @@ function abrirMapa() {
 
 // Mochila: janela não modal (o jogo segue por trás). Cada tipo de item ocupa um espaço, com a quantidade;
 // clicar num consumível usa. Equipamento ainda não existe no jogo: os espaços em volta da silhueta ficam
-// vazios, com o ícone fantasma do tipo. Ícones dos itens em emoji, provisórios (como na barra de atalhos).
+// vazios, com o ícone fantasma do tipo. Itens usam as imagens do pacote de inventário fornecido.
 const ITENS_MOCHILA = [
-  { key: 'food', nome: 'Presunto', icone: '🍖', tipo: 'consumivel', usar: { type: 'food' } },
-  { key: 'ki', nome: 'Poção de Ki', icone: '🧪', tipo: 'consumivel', usar: { type: 'potion' } },
-  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '🌱', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
-  { key: 'scrap', nome: 'Sucata', icone: '⚙️', tipo: 'material' },
-  { key: 'crystal', nome: 'Cristal', icone: '💎', tipo: 'material' }
+  { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
+  { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
+  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '/assets/inventario/semente_dos_deuses.png', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
+  { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
+  { key: 'crystal', nome: 'Cristal', icone: '/assets/inventario/cristal.png', tipo: 'material' }
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).
 const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
@@ -278,7 +278,10 @@ function atualizarMochila(s) {
     const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
     if (!item) { slot.disabled = true; return slot; }
     const qtd = s.inventory[item.key];
-    slot.textContent = item.icone; slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
+    imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
+    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    slot.setAttribute('aria-label', slot.title);
     if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
     const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
     slot.onclick = () => { slot.blur(); if (item.usar) action(item.usar); };
