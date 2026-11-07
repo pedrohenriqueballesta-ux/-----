@@ -96,8 +96,8 @@ test('teclado e condução automática mantêm velocidade igual nas quatro diago
 
 test('Saibaman, sentinela, subchefe e chefe transmitem direção e recuperação sem antecipar o dano', () => {
   for (const type of ['melee', 'ranged', 'subboss', 'boss']) {
-    const game = world(), p = naArea(game, game.addPlayer('a')); p.x = 2650; p.y = 2000;
-    const mob = game.addMob(type, 2625, 2025); mob.attackReady = game.time;
+    const game = world(), p = naArea(game, game.addPlayer('a')); p.x = 2800; p.y = 2000;
+    const mob = game.addMob(type, 2775, 2025); mob.attackReady = game.time;
     game.tick(0.05);
     const view = game.snapshot(p.id).mobs[0];
     assert.ok(view.facing.x > 0 && view.facing.y < 0);

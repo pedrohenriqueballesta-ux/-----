@@ -2,7 +2,7 @@
 // (namek-passagem.mjs para Namekusei); planeta sem máscara (a Terra) é livre.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
 import { VEGETA_PASSAGEM } from './vegeta-passagem.mjs';
-import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia } from './config.mjs';
+import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia, pontoNaZonaSegura } from './config.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -80,11 +80,12 @@ export function pesLivres(planet, x, y, radius, area = null) {
 // longe dos obstáculos e com os pés em terra. Servidor (Game.move) e predição do cliente usam
 // esta mesma regra; se divergirem, o cliente anda onde o servidor não deixa e o personagem treme.
 // `area` prende o passo à área fechada onde a entidade está (null: sem área, como na Terra).
-export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null) {
+export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null, evitarZonaSegura = false) {
   const world = PLANETS[planet] || PLANETS.namek;
   // Quem já está num ponto bloqueado (save antigo, mob nascido na água) pode sair dele.
   const preso = !pesLivres(planet, x, y, radius, area);
   const livre = (nx, ny) => nx >= radius && ny >= radius && nx <= world.w - radius && ny <= world.h - radius
+    && !(evitarZonaSegura && pontoNaZonaSegura(planet, area, nx, ny))
     && !OBSTACLES.some(o => o.planet === planet && Math.hypot(o.x - nx, o.y - ny) < o.r + radius)
     && (preso || pesLivres(planet, nx, ny, radius, area));
   const nx = x + dx * dist, ny = y + dy * dist;
@@ -100,15 +101,16 @@ const PASSO_GRADE = 4;   // células da máscara por célula de busca (24 px da 
 // e travava (quina de casa na Vila, recorte de penhasco no Planalto). Sem caminho com folga, usa o raio do pé.
 const FOLGA_CAMINHO = 24;
 const cacheGrade = new Map();
-function gradeBusca(planet, area, raio = 15) {
-  const chave = planet + ':' + area + ':' + raio;
+function gradeBusca(planet, area, raio = 15, evitarZonaSegura = false) {
+  const chave = planet + ':' + area + ':' + raio + ':' + evitarZonaSegura;
   if (cacheGrade.has(chave)) return cacheGrade.get(chave);
   const m = MASCARAS[planet];
   const cols = Math.floor(m.cols / PASSO_GRADE), rows = Math.floor(m.rows / PASSO_GRADE);
   const livre = new Uint8Array(cols * rows), cw = m.cellW * PASSO_GRADE, ch = m.cellH * PASSO_GRADE;
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++)
-    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, raio, area) ? 1 : 0;
-  const g = { planet, area, raio, cols, rows, cw, ch, livre, arestas: new Map() };
+    livre[y * cols + x] = pesLivres(planet, (x + 0.5) * cw, (y + 0.5) * ch, raio, area)
+      && !(evitarZonaSegura && pontoNaZonaSegura(planet, area, (x + .5) * cw, (y + .5) * ch, raio)) ? 1 : 0;
+  const g = { planet, area, raio, evitarZonaSegura, cols, rows, cw, ch, livre, arestas: new Map() };
   cacheGrade.set(chave, g); return g;
 }
 // Célula livre mais próxima de (cx, cy). Com `alcanca`, só vale a que dá para alcançar andando em linha
@@ -123,9 +125,19 @@ function celulaLivreMaisProxima(g, cx, cy, alcanca = null) {
   return -1;
 }
 // Dá para ir de `de` até (x, y) em linha reta com os pés livres (amostras a cada 6 unidades)?
-function retaLivre(planet, area, de, x, y, raio = 15) {
+function retaLivre(planet, area, de, x, y, raio = 15, evitarZonaSegura = false) {
   const n = Math.max(1, Math.ceil(Math.hypot(x - de.x, y - de.y) / 6));
-  for (let i = 1; i <= n; i++) if (!pesLivres(planet, de.x + (x - de.x) * i / n, de.y + (y - de.y) * i / n, raio, area)) return false;
+  let saiuDaMargem = !pontoNaZonaSegura(planet, area, de.x, de.y, raio);
+  for (let i = 1; i <= n; i++) {
+    const px = de.x + (x - de.x) * i / n, py = de.y + (y - de.y) * i / n;
+    if (!pesLivres(planet, px, py, raio, area)) return false;
+    if (evitarZonaSegura) {
+      if (pontoNaZonaSegura(planet, area, px, py)) return false;
+      const naMargem = pontoNaZonaSegura(planet, area, px, py, raio);
+      if (saiuDaMargem && naMargem) return false;
+      if (!naMargem) saiuDaMargem = true;
+    }
+  }
   return true;
 }
 function centro(g, i) { return { x: (i % g.cols + 0.5) * g.cw, y: (Math.floor(i / g.cols) + 0.5) * g.ch }; }
@@ -139,18 +151,20 @@ function vizinhosLivres(g, c, validarArestas = true) {
     const q = centro(g, n);
     if (validarArestas) {
       const chave = c < n ? c * g.livre.length + n : n * g.livre.length + c;
-      if (!g.arestas.has(chave)) g.arestas.set(chave, retaLivre(g.planet, g.area, p, q.x, q.y, g.raio));
+      if (!g.arestas.has(chave)) g.arestas.set(chave, retaLivre(g.planet, g.area, p, q.x, q.y, g.raio, g.evitarZonaSegura));
       if (!g.arestas.get(chave)) continue;
     }
     livres.push(n);
   }
   return livres;
 }
-export function caminhoPorTerra(planet, de, ate, area = null, alcanceFinal = 0) {
+export function caminhoPorTerra(planet, de, ate, area = null, alcanceFinal = 0, evitarZonaSegura = false) {
   if (!MASCARAS[planet]) return null;
-  const alcanca = pesLivres(planet, de.x, de.y, 15, area) ? (x, y) => retaLivre(planet, area, de, x, y) : null;
-  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO), de, ate, alcanca, alcanceFinal)
-    || buscar(gradeBusca(planet, area), de, ate, alcanca, alcanceFinal);
+  // Ativar a caça dentro do quadrado permite sair. Depois disso a rota usa o bloqueio completo.
+  evitarZonaSegura = evitarZonaSegura && !pontoNaZonaSegura(planet, area, de.x, de.y);
+  const alcanca = pesLivres(planet, de.x, de.y, 15, area) ? (x, y) => retaLivre(planet, area, de, x, y, 15, evitarZonaSegura) : null;
+  return buscar(gradeBusca(planet, area, FOLGA_CAMINHO, evitarZonaSegura), de, ate, alcanca, alcanceFinal)
+    || buscar(gradeBusca(planet, area, 15, evitarZonaSegura), de, ate, alcanca, alcanceFinal);
 }
 function celulasObjetivo(g, ate, alcance) {
   if (!alcance) {
@@ -190,7 +204,7 @@ function buscar(g, de, ate, alcanca, alcanceFinal) {
   while (inicio < pontos.length) {
     let proximo = inicio;
     for (let i = inicio; i < pontos.length; i++) {
-      if (retaLivre(g.planet, g.area, origem, pontos[i].x, pontos[i].y, g.raio)) proximo = i;
+      if (retaLivre(g.planet, g.area, origem, pontos[i].x, pontos[i].y, g.raio, g.evitarZonaSegura)) proximo = i;
     }
     origem = pontos[proximo]; rota.push(origem); inicio = proximo + 1;
   }
