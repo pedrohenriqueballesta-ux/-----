@@ -306,3 +306,5 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .detalhes-habilidade dl{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;margin:0}
 .detalhes-habilidade dt{color:#afc1d8}
 .detalhes-habilidade dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+#foodBuff{display:inline-flex;align-items:center;gap:calc(6 * var(--u))}
+#foodBuff .icone-comida{display:block;flex:0 0 calc(24 * var(--u));width:calc(24 * var(--u));height:calc(24 * var(--u));object-fit:contain;pointer-events:none}
