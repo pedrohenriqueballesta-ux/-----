@@ -112,7 +112,7 @@ export function atualizarHud(snapshot, playerId) {
   $('seedStatus').textContent = s.seedRemaining > 0 ? 'Todas as sementes em recarga · ' + Math.ceil(s.seedRemaining) + 's' : 'Cura instantânea · recarga compartilhada de 20s';
   $('seedStatus').classList.toggle('waiting', s.seedRemaining > 0);
   $('kiPotionText').textContent = s.kiRemaining > 0 ? 'Recarga: ' + Math.ceil(s.kiRemaining) + 's' : 'Recupera 45% · Q';
-  $('foodBuff').textContent = s.foodRemaining > 0 ? '🍖 Comida • ' + clock(s.foodRemaining) : '🍖 Sem comida • F';
+  $('foodBuffText').textContent = s.foodRemaining > 0 ? 'Comida • ' + clock(s.foodRemaining) : 'Sem comida • F';
   $('foodBuff').classList.toggle('inactive', s.foodRemaining <= 0);
   $('huntStatus').textContent = s.autoHunt ? 'CAÇA AUTOMÁTICA ATIVA' : 'Exploração manual';
   for (const [botao, ligado] of [[$('quickHunt'), s.autoHunt], ...[...document.querySelectorAll('[data-toggle]')].map(b => [b, s[b.dataset.toggle]])]) {
