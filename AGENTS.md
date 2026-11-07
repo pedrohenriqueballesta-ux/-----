@@ -3,7 +3,7 @@
 - Inimigos têm colisão própria: não devem atravessar estruturas nem sobrepor outros inimigos vivos no mesmo lugar (pedido de 07/11/2026).
 - Jogadores atravessam os corpos dos mobs para evitar cercos sem saída; a colisão entre mobs não bloqueia nem empurra jogadores (pedido de 07/11/2026).
 - TPs de saída das hunts ficam dentro das respectivas safe zones de chegada (pedido de 07/11/2026).
-- Cura de Vida é universal: cura HP gastando Ki, recarga de 1,5 s e estágios nos níveis 1/20/50/100/150+. Autocura usa limite configurável, padrão abaixo de 70% (pedido de 07/11/2026).
+- Cura de Vida é universal: cura HP gastando Ki, recarga de 0,7 s e estágios nos níveis 1/20/50/100/150+. Autocura usa limite configurável, padrão abaixo de 70% (pedido de 07/11/2026).
 
 Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 

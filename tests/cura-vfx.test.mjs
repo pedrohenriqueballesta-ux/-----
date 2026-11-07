@@ -67,8 +67,8 @@ test('somente cura aceita gera timestamp; snapshots e ativações consecutivas n
   }
   g.time = 1000.6;
   assert.equal(quadroCura(g.snapshot(p.id).players[0].heal, g.time), -1);
-  g.time = 1001.5; assert.equal(g.cast(p, 'heal').ok, true);
-  assert.deepEqual(g.snapshot(p.id).players[0].heal, { started: 1001.5 });
+  g.time = 1000.7; assert.equal(g.cast(p, 'heal').ok, true);
+  assert.deepEqual(g.snapshot(p.id).players[0].heal, { started: 1000.7 });
   assert.equal(quadroCura(g.snapshot(p.id).players[0].heal, g.time), 0);
   assert.equal(p.ki, 60); assert.ok(Math.abs(p.hp - 24.8) < 1e-9);
 });

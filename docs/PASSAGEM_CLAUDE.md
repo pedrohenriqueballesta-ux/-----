@@ -50,7 +50,7 @@ push e merge aguardam autorização.
 Branch `feature/cura-de-vida`, baseada na `origin/main` com os TPs mergeados.
 Pedido esclarecido: cura **HP** usando Ki; evolução nos níveis 1/20/50/100/150+,
 respectivamente 2%/2,5%/3%/3,5%/4% do HP máximo por 10/12/14/16/18 Ki.
-Recarga universal de 1,5 s, limitada ao HP máximo. Uso manual e automático passam
+Recarga universal de 0,7 s, limitada ao HP máximo. Uso manual e automático passam
 pelo mesmo fluxo autoritativo; preferência e recarga persistidas no save.
 Autocura habilitada por padrão durante caça ou técnicas automáticas, abaixo de
 70% HP; jogador pode desligar e configurar o limite (1–100%).
