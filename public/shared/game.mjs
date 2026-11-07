@@ -7,6 +7,7 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDe
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
+import { GENKI } from './genki.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
@@ -23,6 +24,7 @@ export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
+    this.genkiCharges = []; this.genkiExplosions = [];
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -59,6 +61,8 @@ export class Game {
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
+    this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
+    this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
     p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.rota = null; p.input = { x: 0, y: 0 };
@@ -288,13 +292,69 @@ export class Game {
     }
     if (skill === 'genki') {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível 10.');
-      if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
+      if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + CONFIG.skillCooldowns.genki;
-      this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y - 22, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 265,
-        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 14 : 10), ttl: 2.35, kind: 'genki', radius: 72 });
+      this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
+        owner: p.id, targetId: target?.id || null, direction: dir,
+        aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
+        damage: p.stats.attack * (p.transformed ? 14 : 10) });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
     }
     return { ok: false };
+  }
+  atualizarGenkis(dt) {
+    this.genkiExplosions = this.genkiExplosions.filter(g => this.time - g.started < GENKI.explosao);
+    const ativo = (p, g) => p && p.connected && p.hp > 0 && this.mesmoLugar(p, g) && !naZonaSegura(p);
+    const alvoValido = (alvo, g) => alvo && alvo.hp > 0 && this.mesmoLugar(alvo, g) && !naZonaSegura(alvo)
+      && (!this.players.has(alvo.id) || (alvo.connected && this.canPvp(this.players.get(g.owner), alvo)));
+    this.genkiCharges = this.genkiCharges.filter(g => {
+      const p = this.players.get(g.owner);
+      if (!ativo(p, g)) return false;
+      const alvo = this.mobs.get(g.targetId) || this.players.get(g.targetId);
+      if (g.targetId && !alvoValido(alvo, g)) return false;
+      g.x = p.x; g.y = p.y;
+      if (this.time + 1e-9 < g.until) return true;
+      const origem = { x: p.x, y: p.y - (g.targetId || g.aim ? GENKI.alturaOrigem : GENKI.alturaAlvo) };
+      const direcao = !g.targetId && g.aim ? norm(g.aim.x - origem.x, g.aim.y - origem.y) : g.direction;
+      this.projectiles.push({ id: this.uid('s'), kind: 'genki', owner: p.id, ownerType: 'player',
+        ...origem, planet: g.planet, area: g.area,
+        dx: direcao.x, dy: direcao.y, speed: GENKI.velocidade, targetId: g.targetId,
+        damage: g.damage, radius: GENKI.area, started: this.time, ttl: 1 });
+      return false;
+    });
+    for (const s of this.projectiles) {
+      if (s.kind !== 'genki' || s.ttl <= 0) continue;
+      const p = this.players.get(s.owner);
+      if (!ativo(p, s)) { s.ttl = 0; continue; }
+      const alvo = this.mobs.get(s.targetId) || this.players.get(s.targetId);
+      if (s.targetId && !alvoValido(alvo, s)) { s.ttl = 0; continue; }
+      const antes = { x: s.x, y: s.y };
+      let passo = s.speed * dt;
+      if (alvo) {
+        const direcao = norm(alvo.x - s.x, alvo.y - GENKI.alturaAlvo - s.y);
+        s.dx = direcao.x; s.dy = direcao.y;
+        passo = Math.min(passo, Math.hypot(alvo.x - s.x, alvo.y - GENKI.alturaAlvo - s.y));
+      }
+      const fim = { x: s.x + s.dx * passo, y: s.y + s.dy * passo };
+      const candidatos = [...this.mobs.values(), ...this.players.values()].filter(t => t.id !== p.id && alvoValido(t, s)
+        && !naZonaSegura(t) && segmentDistance(t.x, t.y, antes.x, antes.y, fim.x, fim.y) < GENKI.colisao);
+      candidatos.sort((a, b) => distance(antes, a) - distance(antes, b));
+      const atingido = candidatos.find(t => this.hit(p, t, s.damage));
+      if (atingido) {
+        const dx = fim.x - antes.x, dy = fim.y - antes.y, quadrado = dx * dx + dy * dy;
+        const t = quadrado ? clamp(((atingido.x - antes.x) * dx + (atingido.y - antes.y) * dy) / quadrado, 0, 1) : 0;
+        s.x = antes.x + dx * t; s.y = antes.y + dy * t;
+        for (const extra of [...this.mobs.values(), ...this.players.values()]) {
+          if (extra.id !== atingido.id && extra.id !== p.id && alvoValido(extra, s) && distance(extra, atingido) <= s.radius) this.hit(p, extra, s.damage * 0.45);
+        }
+        this.genkiExplosions.push({ id: this.uid('gx'), x: s.x, y: s.y, planet: s.planet, area: s.area, started: this.time });
+        s.ttl = 0;
+      } else {
+        s.x = fim.x; s.y = fim.y;
+        const lim = areaPorId(s.area) || { x: 0, y: 0, w: PLANETS[s.planet].w, h: PLANETS[s.planet].h };
+        if (!alvo && (s.x < lim.x || s.x > lim.x + lim.w || s.y < lim.y || s.y > lim.y + lim.h)) s.ttl = 0;
+      }
+    }
   }
   curarVida(p, automated = false) {
     const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
@@ -688,7 +748,9 @@ export class Game {
     this.atualizarKamehamehas();
     for (const m of this.mobs.values()) this.updateMob(m, dt);
     this.separarMobs();
+    this.atualizarGenkis(dt);
     for (const s of this.projectiles) {
+      if (s.kind === 'genki') continue;
       s.ttl -= dt; const oldX = s.x, oldY = s.y; s.x += s.dx * s.speed * dt; s.y += s.dy * s.speed * dt;
       if (s.ttl <= 0) continue;
       const owner = s.ownerType === 'player' ? this.players.get(s.owner) : this.mobs.get(s.owner);
@@ -696,14 +758,9 @@ export class Game {
       const targets = [...(s.ownerType === 'player' ? this.mobs.values() : []), ...this.players.values()]
         .filter(t => t.id !== owner.id && this.mesmoLugar(s, t) && (!this.players.has(t.id) || t.connected));
       for (const t of targets) {
-        const hitRadius = s.kind === 'genki' ? 38 : 19;
+        const hitRadius = 19;
         if (t.hp > 0 && segmentDistance(t.x, t.y, oldX, oldY, s.x, s.y) < hitRadius) {
           if (this.hit(owner, t, s.damage)) {
-            if (s.kind === 'genki') {
-              for (const splash of targets) {
-                if (splash.id !== t.id && splash.hp > 0 && distance(splash, t) <= (s.radius || 72)) this.hit(owner, splash, s.damage * 0.45);
-              }
-            }
             s.ttl = 0; break;
           }
         }
@@ -740,6 +797,8 @@ export class Game {
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
+      genkiCharges: this.genkiCharges.filter(aqui).map(({ damage, ...g }) => g),
+      genkiExplosions: this.genkiExplosions.filter(aqui),
       projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => (!e.playerId || e.playerId === id || e.type !== 'message') && (!e.planet || aqui(e))) };
   }
 }

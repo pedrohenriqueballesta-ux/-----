@@ -96,6 +96,20 @@ alcançável; a ordem termina ao chegar, sem insistir na água ou em estruturas.
 Conferência visual automatizada pendente: host do navegador indisponível.
 Commit autorizado em 07/11/2026; push e merge aguardam autorização.
 
+## Genki-Dama Ultimate — implementação local (07/11/2026)
+
+Branch `feature/genki-dama-vfx`. Três folhas do pacote final: canalização de 16
+frames em 1,92 s, voo em loop de 16 frames até impacto, explosão de 16 frames em
+1,76 s. Render independente do personagem, rotação com célula inteira e ancoragem
+da esfera. Custo 60 Ki, cooldown 45 s, dano ×10/×14 e área secundária de 45% no
+raio 72 preservados. Removida expiração de voo por 2,35 s para permitir distância
+longa; alvo acompanha posição atual no mesmo lugar. Cancelamentos impedem efeitos
+órfãos, dano em safe zone ou entre lugares. Detalhes em `docs/GENKI_DAMA.md`.
+Suíte de 217 testes e sintaxe passaram. Captura visual
+pendente por indisponibilidade do navegador. Canalização atualizada com o GIF
+`Carga de Energia Azul Suprema.gif`, energia em V ancorada na cabeça; voo e
+explosão preservados. Commit autorizado em 07/11/2026; push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.
