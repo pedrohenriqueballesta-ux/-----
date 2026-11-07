@@ -15,20 +15,18 @@
     <!-- HUD nova (modelo do Pedro, 29/10). Ícones em emoji são provisórios até chegarem os desenhados.
          Tamanhos escalam com a janela (--e, calculado em client/hud.mjs); faixas de largura no style.css. -->
     <div class="hud">
+      <div class="hud-logo"><img class="hud-esfera" src="/assets/hud/esfera-6estrelas.png" alt="" aria-hidden="true"><span class="hud-marca">DRAGON BALL<b>IDLE</b></span></div>
       <header class="hud-topo">
-        <div class="hud-logo"><span class="hud-esfera" aria-hidden="true">★</span><span class="hud-marca">DRAGON BALL<b>IDLE</b></span></div>
         <button type="button" class="hud-menu-alternar" id="menuAlternar" aria-label="Abrir menu" aria-expanded="false">≡</button>
         <nav class="hud-menus" id="hudMenus" aria-label="Menus do jogo">
-        <button type="button" data-menu="personagem" title="Personagem"><i aria-hidden="true">🧒</i><span>Personagem</span></button>
-        <button type="button" data-menu="tecnicas" title="Técnicas"><i aria-hidden="true">🔵</i><span>Técnicas</span></button>
-        <button type="button" data-menu="mochila" title="Mochila"><i aria-hidden="true">🎒</i><span>Mochila</span></button>
-        <button type="button" data-menu="missoes" title="Missões"><i aria-hidden="true">📜<em class="hud-selo" id="missoesSelo">!</em></i><span>Missões</span></button>
-        <button type="button" data-menu="mapa" title="Mapa"><i aria-hidden="true">🗺️</i><span>Mapa</span></button>
-        <button type="button" data-menu="loja" title="Loja"><i aria-hidden="true">🏪</i><span>Loja</span></button>
-        <button type="button" data-menu="ranking" title="Ranking"><i aria-hidden="true">🏆</i><span>Ranking</span></button>
-        <button type="button" data-menu="guilda" title="Guilda"><i aria-hidden="true">🛡️</i><span>Guilda</span></button>
-        <button type="button" data-menu="correio" title="Correio"><i aria-hidden="true">✉️</i><span>Correio</span></button>
-        <button type="button" data-menu="ajustes" title="Ajustes"><i aria-hidden="true">⚙️</i><span>Ajustes</span></button>
+        <button type="button" data-menu="personagem" title="Personagem"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/personagem.png" alt=""></i><span>Personagem</span></button>        <button type="button" data-menu="mochila" title="Mochila"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mochila.png" alt=""></i><span>Mochila</span></button>
+        <button type="button" data-menu="missoes" title="Missões"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/missoes.png" alt=""><em class="hud-selo" id="missoesSelo">!</em></i><span>Missões</span></button>
+        <button type="button" data-menu="mapa" title="Mapa"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mapa.png" alt=""></i><span>Mapa</span></button>
+        <button type="button" data-menu="loja" title="Loja"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/loja.png" alt=""></i><span>Loja</span></button>
+        <button type="button" data-menu="ranking" title="Ranking"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/ranking.png" alt=""></i><span>Ranking</span></button>
+        <button type="button" data-menu="guilda" title="Guilda"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/guilda.png" alt=""></i><span>Guilda</span></button>
+        <button type="button" data-menu="correio" title="Correio"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/correio.png" alt=""></i><span>Correio</span></button>
+        <button type="button" data-menu="ajustes" title="Ajustes"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/ajustes.png" alt=""></i><span>Ajustes</span></button>
         </nav>
       </header>
       <div id="safeZoneAviso" class="hud-safe-zone" role="status" aria-hidden="true"><strong>SAFE ZONE</strong><span>Você está protegido · Saia para caçar</span></div>
