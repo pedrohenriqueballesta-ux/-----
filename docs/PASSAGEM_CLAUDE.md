@@ -45,6 +45,28 @@ regras atuais. Detalhes e tratamento de erros em `docs/TELEPORTES.md`.
 Servidor reiniciado para teste do usuário. Commit autorizado em 07/11/2026;
 push e merge aguardam autorização.
 
+## Cura de Vida universal — implementação local (07/11/2026)
+
+Branch `feature/cura-de-vida`, baseada na `origin/main` com os TPs mergeados.
+Pedido esclarecido: cura **HP** usando Ki; evolução nos níveis 1/20/50/100/150+,
+respectivamente 2%/2,5%/3%/3,5%/4% do HP máximo por 10/12/14/16/18 Ki.
+Recarga universal de 1,5 s, limitada ao HP máximo. Uso manual e automático passam
+pelo mesmo fluxo autoritativo; preferência e recarga persistidas no save.
+Autocura habilitada por padrão durante caça ou técnicas automáticas, abaixo de
+70% HP; jogador pode desligar e configurar o limite (1–100%).
+HUD com ícone fornecido, custo e recarga. Cura na tecla 1; habilidades anteriores
+passam para 2–6; semente 7/R e poção de Ki 8/Q; transformação 5/T.
+Sem alterar as regras das outras habilidades ou elevar o limite atual de nível 100.
+Detalhes e cobertura dos testes em `docs/CURA_DE_VIDA.md`.
+Animação simplificada do pacote `cura_de_ki_simplificada.zip` integrada:
+24 frames 256×256 em grade 8×3, 40 FPS, 0,6 s sem loop, escala 0,34 e alfa 0,55.
+Segue os pés e sobrepõe o corpo como uma aura, com timestamp autoritativo por
+ativação para não duplicar. Marcas numéricas dos cantos removidas na cópia de render.
+190 testes passaram; `npm run check` passou.
+Captura automatizada pendente por indisponibilidade do host do navegador.
+Usuário testou e aprovou o resultado, autorizando o commit em 07/11/2026.
+Push e merge aguardam autorização.
+
 ## Como interpretar este documento
 
 - **DECIDIDO:** pedido explícito do usuário; preservar até nova orientação.
