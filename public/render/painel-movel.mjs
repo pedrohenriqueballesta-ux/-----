@@ -8,18 +8,13 @@ export function limitarPosicaoPainel(posicao, tamanho, tela) {
 
 // Arrasta um painel comum da HUD (<section>/<div>) pela alça; salva a posição no localStorage.
 // Duplo clique na alça reseta a posição (volta ao lugar padrão do CSS).
-export function instalarArrasto(painel, alca, chave, { ancoraDireita = false } = {}) {
+export function instalarArrasto(painel, alca, chave) {
   let pref = null, arr = null;
   try { const s = JSON.parse(localStorage.getItem(chave)); if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) pref = s; } catch {}
-  // ancoraDireita: fixa a borda DIREITA (o painel cresce para a esquerda e o canto superior-direito
-  // fica parado) — assim os botões +/- do minimapa não saem do lugar ao redimensionar.
-  const posicionar = (p, largura) => ancoraDireita
-    ? Object.assign(painel.style, { right: Math.max(8, innerWidth - p.x - largura) + 'px', top: p.y + 'px', left: 'auto', bottom: 'auto', transform: 'none' })
-    : Object.assign(painel.style, { left: p.x + 'px', top: p.y + 'px', right: 'auto', bottom: 'auto', transform: 'none' });
   const aplicar = pos => {
     const caixa = painel.getBoundingClientRect();
     const p = limitarPosicaoPainel(pos, { w: caixa.width, h: caixa.height }, { w: innerWidth, h: innerHeight });
-    posicionar(p, caixa.width);
+    Object.assign(painel.style, { left: p.x + 'px', top: p.y + 'px', right: 'auto', bottom: 'auto', transform: 'none' });
     return p;
   };
   alca.addEventListener('pointerdown', e => {
@@ -45,14 +40,6 @@ export function instalarArrasto(painel, alca, chave, { ancoraDireita = false } =
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) alca.addEventListener(ev, terminar);
   alca.addEventListener('dblclick', () => { Object.assign(painel.style, { left: '', top: '', right: '', bottom: '', transform: '' }); pref = null; try { localStorage.removeItem(chave); } catch {} });
   addEventListener('resize', () => { if (pref) aplicar(pref); });
-  // Ao mudar de tamanho (ex.: botão + do minimapa), mantém o painel dentro da tela:
-  // se passar de alguma borda, reposiciona de volta; se já cabe, não mexe.
-  new ResizeObserver(() => {
-    const c = painel.getBoundingClientRect();
-    if (!c.width) return;
-    const alvo = limitarPosicaoPainel({ x: c.left, y: c.top }, { w: c.width, h: c.height }, { w: innerWidth, h: innerHeight });
-    if (Math.abs(alvo.x - c.left) > 0.5 || Math.abs(alvo.y - c.top) > 0.5) posicionar(alvo, c.width);
-  }).observe(painel);
   if (pref) requestAnimationFrame(() => aplicar(pref));
 }
 
