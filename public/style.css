@@ -85,10 +85,6 @@ button{cursor:pointer}
 /* Minimapa */
 .hud-mapa{position:absolute;top:calc(12 * var(--u));right:calc(12 * var(--u));display:grid;gap:calc(5 * var(--u));width:calc(214 * var(--u) * var(--minimapa-tamanho,1));padding:calc(7 * var(--u));text-align:center}
 .hud-mapa strong{font-size:calc(14 * var(--u))}
-/* Topo do minimapa: nome à esquerda + controles à direita, acima do canvas (não se movem ao crescer o mapa). */
-.hud-mapa-topo{display:flex;align-items:center;gap:calc(6 * var(--u))}
-.hud-mapa-topo #regionName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
-.hud-mapa-topo .minimapa-controles{flex-shrink:0;justify-content:flex-end}
 .hud-mapa canvas{width:100%;height:auto;aspect-ratio:240/176;border-radius:calc(6 * var(--u));border:calc(1 * var(--u)) solid #ffffff33}
 .hud-mapa canvas{cursor:grab;touch-action:none}
 .hud-mapa canvas.arrastando{cursor:grabbing}

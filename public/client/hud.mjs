@@ -353,9 +353,9 @@ export function ligarHud(contexto) {
   $('autoHuntButton').onclick = alternarAutoHunt;
   autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
   // Painéis arrastáveis pela alça (⠿): minimapa, skills, chat e automação. Posição salva por painel no localStorage.
-  for (const [sel, chave, opc] of [['.hud-mapa', 'dbi-pos-mapa', { ancoraDireita: true }], ['.hud-tecnicas', 'dbi-pos-skills'], ['.hud-chat', 'dbi-pos-chat'], ['.hud-auto', 'dbi-pos-auto']]) {
+  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-tecnicas', 'dbi-pos-skills'], ['.hud-chat', 'dbi-pos-chat'], ['.hud-auto', 'dbi-pos-auto']]) {
     const painel = document.querySelector(sel), alca = painel?.querySelector('.arrasto-alca');
-    if (painel && alca) instalarArrasto(painel, alca, chave, opc);
+    if (painel && alca) instalarArrasto(painel, alca, chave);
   }
   $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
   $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
