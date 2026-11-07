@@ -32,6 +32,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 - Inventário tem limite de peso que cresce com o nível.
 - A sessão desconectada não continua caçando.
 - Cada hunt tem um pequeno quadrado seguro na chegada: o jogador não causa nem recebe dano dentro dele. A caça automática sai do quadrado antes de selecionar alvos (pedido de 07/11/2026).
+- Inimigos não nascem nem renascem dentro da safe zone. Depois de sair dela, a auto caça contorna o quadrado em perseguições e patrulhas; entrada manual continua permitida (pedido de 07/11/2026).
 
 Os números, marcos de nível e decisões provisórias estão explicados em LEIA_PRIMEIRO.md. O conceito e o estado da entrega estão em docs/. Requisitos confirmados devem permanecer separados de novas propostas.
 

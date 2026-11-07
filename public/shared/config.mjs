@@ -74,8 +74,11 @@ export function zonaSeguraDaHunt(area) {
   return z && !z.segura ? { x: z.chegada.x - 90, y: z.chegada.y - 90, w: 180, h: 180 } : null;
 }
 export function naZonaSegura(p) {
-  const z = areaPorId(p.area), q = zonaSeguraDaHunt(p.area);
-  return Boolean(q && p.planet === z.planet && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h);
+  return pontoNaZonaSegura(p.planet, p.area, p.x, p.y);
+}
+export function pontoNaZonaSegura(planet, area, x, y, margem = 0) {
+  const z = areaPorId(area), q = zonaSeguraDaHunt(area);
+  return Boolean(q && planet === z.planet && x >= q.x - margem && x <= q.x + q.w + margem && y >= q.y - margem && y <= q.y + q.h + margem);
 }
 export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor

@@ -1,7 +1,7 @@
 // Inimigos do protótipo e onde eles aparecem no mapa.
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
-import { PLANETS, areaPorId, naEscala } from './config.mjs';
+import { PLANETS, areaPorId, naEscala, pontoNaZonaSegura } from './config.mjs';
 import { podeAndar, pontoAlcancavelDesde } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
@@ -128,7 +128,7 @@ export function pontoNoCirculo(random, area = 'dificil') {
     const x = z.x + random() * z.w, y = z.y + random() * z.h;
     if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
   }
-  if (c.todaHunt) return { ...z.chegada };
+  if (c.todaHunt) return pontoDeSpawnForaDaSafeZone(area, z.chegada);
   for (let i = 0; i < 40; i++) {
     const a = random() * Math.PI * 2, d = Math.sqrt(random()) * c.r;
     const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
@@ -138,14 +138,25 @@ export function pontoNoCirculo(random, area = 'dificil') {
     const a = i * Math.PI / 12, x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
     if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
   }
-  return { ...z.chegada };
+  return pontoDeSpawnForaDaSafeZone(area, z.chegada);
 }
 
 // Pontos de nascimento dos inimigos: uma grade dentro de cada área, ficando só os pontos
 // em terra firme (máscara de passagem) e com folga da água. O sorteio só desloca cada ponto
 // um pouco, então funciona até com aleatoriedade fixa (testes). A grade acompanha a escala do
 // mundo (do planeta da área); a folga da água (24) é do tamanho do mob e não cresce.
-const em_terra = (area, x, y) => [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar(areaPorId(area).planet, x + dx, y + dy, area));
+const em_terra = (area, x, y) => !pontoNaZonaSegura(areaPorId(area).planet, area, x, y, 24)
+  && [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].every(([dx, dy]) => podeAndar(areaPorId(area).planet, x + dx, y + dy, area));
+// Defesa também para pontos fixos/antigos e fallback de sorteios: nunca usar a chegada segura.
+export function pontoDeSpawnForaDaSafeZone(area, ponto) {
+  const z = areaPorId(area);
+  if (!z || !pontoNaZonaSegura(z.planet, area, ponto.x, ponto.y, 24)) return { x: ponto.x, y: ponto.y };
+  for (let r = 36; r <= Math.max(z.w, z.h); r += 36) for (let i = 0; i < 32; i++) {
+    const a = i * Math.PI / 16, x = ponto.x + Math.cos(a) * r, y = ponto.y + Math.sin(a) * r;
+    if (em_terra(area, x, y) && pontoAlcancavelDesde(z.planet, z.chegada, { x, y }, area)) return { x, y };
+  }
+  throw new Error('Sem ponto de spawn fora da safe zone: ' + area);
+}
 function espalhar(random, area, n, tipo) {
   const z = areaPorId(area), k = PLANETS[z.planet].escala, candidatos = [];
   const passo = 170 * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;

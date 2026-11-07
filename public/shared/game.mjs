@@ -3,7 +3,7 @@
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer } from './characters.mjs';
-import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS } from './enemies.mjs';
+import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres } from './passagem.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
@@ -32,6 +32,7 @@ export class Game {
   }
   exportPlayer(p) { return serializePlayer(p); }
   addMob(type, x, y, area = 'inicial') {
+    ({ x, y } = pontoDeSpawnForaDaSafeZone(area, { x, y }));
     const info = mobStats(type, area);
     const m = { id: this.uid('m'), type, area, x, y, homeX: x, homeY: y, ...info, maxHp: info.hp,
       attackReady: this.time + 1, telegraph: null, deadUntil: 0, moving: false,
@@ -100,10 +101,10 @@ export class Game {
   }
   // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
   alvoMaisProximo(p, raio = 350) {
-    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && this.mesmoLugar(p, m)
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && !naZonaSegura(m) && this.mesmoLugar(p, m)
       && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
       .sort((a, b) => distance(p, a) - distance(p, b));
-    const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40);
+    const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40, true);
     const atual = this.mobs.get(p.targetId);
     if (atual && vivos.includes(atual) && alcançavel(atual)) {
       const maisPerto = vivos.find(m => m !== atual && distance(p, m) + 35 < distance(p, atual) && alcançavel(m));
@@ -316,7 +317,7 @@ export class Game {
     }
   }
   move(entity, dx, dy, dt, speed, radius = 15) {
-    [entity.x, entity.y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area);
+    [entity.x, entity.y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area, Boolean(entity.autoHunt && !naZonaSegura(entity)));
     entity.moving = Math.hypot(dx, dy) > 0.05;
   }
   // Em planetas com máscara, segue pontos da rota livre (recalculados quando o alvo se move ou a cada 1,5 s).
@@ -325,14 +326,15 @@ export class Game {
     let alcancavel = true;
     if (temMascara(entity.planet)) {
       const rota = entity.rota;
-      const velha = !rota || this.time - rota.em > 1.5 || rota.alcance !== alcanceFinal || Math.hypot(rota.alvo.x - target.x, rota.alvo.y - target.y) > 60;
+      const evitarZonaSegura = Boolean(entity.autoHunt && !naZonaSegura(entity));
+      const velha = !rota || this.time - rota.em > 1.5 || rota.alcance !== alcanceFinal || rota.evitarZonaSegura !== evitarZonaSegura || Math.hypot(rota.alvo.x - target.x, rota.alvo.y - target.y) > 60;
       if (velha) {
-        const pontos = caminhoPorTerra(entity.planet, entity, target, entity.area, alcanceFinal);
-        entity.rota = { alvo: { x: target.x, y: target.y }, em: this.time, alcance: alcanceFinal, pontos: pontos || [], encontrada: pontos !== null };
+        const pontos = caminhoPorTerra(entity.planet, entity, target, entity.area, alcanceFinal, evitarZonaSegura);
+        entity.rota = { alvo: { x: target.x, y: target.y }, em: this.time, alcance: alcanceFinal, evitarZonaSegura, pontos: pontos || [], encontrada: pontos !== null };
         alcancavel = Boolean(pontos);
       }
       alcancavel = alcancavel && entity.rota.encontrada;
-      if (!alcancavel && alcanceFinal > 0) return false;
+      if (!alcancavel && (alcanceFinal > 0 || evitarZonaSegura)) return false;
       const pontos = entity.rota.pontos;
       while (pontos.length > 1 && Math.hypot(pontos[0].x - entity.x, pontos[0].y - entity.y) < 5) pontos.shift();
       if (pontos.length && (alcanceFinal > 0 || pontos.length > 1 || Math.hypot(pontos[0].x - entity.x, pontos[0].y - entity.y) > 12)) target = pontos[0];
@@ -518,7 +520,7 @@ export class Game {
   }
   updateMob(m, dt) {
     m.moving = false;
-    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
+    if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } const nascimento = pontoDeSpawnForaDaSafeZone(m.area, { x: m.homeX, y: m.homeY }); m.homeX = nascimento.x; m.homeY = nascimento.y; m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = CHEFES.has(m.type);
     const casa = { x: m.homeX, y: m.homeY }, longeDeCasa = distance(m, casa);
