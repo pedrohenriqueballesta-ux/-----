@@ -27,20 +27,21 @@ button{cursor:pointer}
 .moldura{border:calc(2 * var(--u)) solid var(--ouro);border-radius:calc(12 * var(--u));background:linear-gradient(180deg,var(--painel) 0%,var(--painel-2) 100%);box-shadow:var(--brilho),inset 0 0 calc(10 * var(--u)) #0006;backdrop-filter:blur(calc(1.5 * var(--u)))}
 .moldura-azul{border:calc(1.5 * var(--u)) solid var(--borda-azul);border-radius:calc(10 * var(--u));background:linear-gradient(180deg,var(--painel) 0%,var(--painel-2) 100%);box-shadow:0 0 calc(6 * var(--u)) #0009,inset 0 0 calc(8 * var(--u)) #0006;backdrop-filter:blur(calc(1.5 * var(--u)))}
 
-/* Topo: logo + menus */
-.hud-topo{--bh:calc(82 * var(--u));position:absolute;top:calc(2 * var(--u));left:50%;transform:translateX(-50%);max-width:calc(100% - 16 * var(--u));height:var(--bh);display:flex;align-items:center;padding:calc(var(--bh) * .227) calc(var(--bh) * 1.55) calc(var(--bh) * .258);background:url('/assets/hud/barra-cap-esq.png') left center/auto 100% no-repeat,url('/assets/hud/barra-cap-dir.png') right center/auto 100% no-repeat,url('/assets/hud/barra-trilho.png') center/calc(100% - var(--bh) * 3.1) 100% no-repeat,linear-gradient(180deg,#102a44,#06111f) center calc(var(--bh) * .136)/calc(100% - var(--bh) * 1.09) calc(var(--bh) * .697) no-repeat}
+/* Topo: ponteiras 334x216; trilho sobreposto 2px por lado evita frestas em escalas fracionárias. */
+.hud-topo{--bh:calc(82 * var(--u));--cap:calc(var(--bh) * 1.5462962963);position:absolute;top:calc(2 * var(--u));left:50%;transform:translateX(-50%);max-width:calc(100% - 16 * var(--u));height:var(--bh);display:flex;align-items:center;padding:calc(var(--bh) * .227) var(--cap) calc(var(--bh) * .258);background:url('/assets/hud/barra-cap-esq.png') left center/var(--cap) 100% no-repeat,url('/assets/hud/barra-cap-dir.png') right center/var(--cap) 100% no-repeat,url('/assets/hud/barra-trilho.png') center/calc(100% - var(--cap) * 2 + 4px) 100% no-repeat,linear-gradient(180deg,#102a44,#06111f) center calc(var(--bh) * .136)/calc(100% - var(--bh) * 1.09) calc(var(--bh) * .697) no-repeat}
 .hud-logo{position:absolute;top:calc(12 * var(--u));left:calc(14 * var(--u));display:flex;align-items:center;gap:calc(8 * var(--u));z-index:4}
 .hud-esfera{width:calc(34 * var(--u));height:calc(34 * var(--u));object-fit:contain;filter:drop-shadow(0 0 calc(5 * var(--u)) #f28a1266)}
 .hud-marca{display:grid;line-height:.9;font-weight:900;font-size:calc(15 * var(--u));color:#ffcf3a;text-shadow:0 calc(2 * var(--u)) 0 #8a3b00}
 .hud-marca b{font-size:calc(19 * var(--u));color:#5fb8ff;text-shadow:0 calc(2 * var(--u)) 0 #0b2f7a}
-.hud-menus{display:flex}
+.hud-menus{--tamanho-icone:calc(44 * var(--u));display:flex;align-items:center}
 .hud-menus button{display:grid;place-items:center;align-content:center;gap:calc(1 * var(--u));padding:calc(2 * var(--u)) calc(4 * var(--u));border:0;background:none;color:#fff}
 .hud-menus button:last-child{border-right:0}
 .hud-menus button:hover{background:#ffffff12}
-.hud-menus i{position:relative;font-style:normal;font-size:calc(32 * var(--u));line-height:1}
-.hud-menus i .hud-ico{display:block;width:calc(44 * var(--u));height:calc(44 * var(--u));object-fit:contain}
+.hud-menus i{display:grid;place-items:center;width:var(--tamanho-icone);height:var(--tamanho-icone);position:relative;font-style:normal;font-size:calc(32 * var(--u));line-height:1}
+.hud-menus i .hud-ico{display:block;width:var(--tamanho-icone);height:var(--tamanho-icone);object-fit:contain}
+/* O desenho da mochila fica 63px abaixo do centro na imagem de 1400px. */
+.hud-menus [data-menu="mochila"] .hud-ico{transform:translateY(-4.5%)}
 .hud-menus span{display:none}
-.hud-selo{position:absolute;top:calc(-6 * var(--u));right:calc(-12 * var(--u));display:grid;place-items:center;width:calc(18 * var(--u));height:calc(18 * var(--u));border-radius:50%;background:#e2261c;color:#fff;font-size:calc(12 * var(--u));font-style:normal;font-weight:900;box-shadow:0 0 0 calc(2 * var(--u)) #fff}
 .hud-menu-alternar{display:none}
 .hud-safe-zone{position:absolute;top:calc(98 * var(--u));left:50%;transform:translate(-50%,-6px);display:grid;gap:3px;text-align:center;padding:8px 20px;border-radius:8px;background:linear-gradient(90deg,transparent,#071b24d9 22%,#071b24d9 78%,transparent);color:#f0e7cb;text-shadow:0 2px 3px #000;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .75s ease,transform .75s ease,visibility 0s linear .75s}
 .hud-safe-zone strong{font-size:clamp(13px,calc(19 * var(--u)),22px);letter-spacing:.16em}
@@ -215,7 +216,7 @@ button{cursor:pointer}
 @media (max-width:1400px){
   .hud-menus span{display:none}
   .hud-menus i{font-size:calc(38 * var(--u))}
-  .hud-menus i .hud-ico{width:calc(52 * var(--u));height:calc(52 * var(--u))}
+  .hud-menus{--tamanho-icone:calc(52 * var(--u))}
   .hud-dica{display:none}
 }
 @media (max-width:1100px){
