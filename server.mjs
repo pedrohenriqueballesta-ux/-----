@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { criarBestiario } from './public/shared/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -41,6 +42,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     try {
       const url = new URL(req.url, 'http://localhost');
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, version: '0.6.0', players: [...game.players.values()].filter(p => p.connected).length });
+      if (req.method === 'GET' && url.pathname === '/api/bestiario') return json(res, 200, { inimigos:criarBestiario(game.mobs.values()) });
       if (req.method === 'POST' && url.pathname === '/api/join') {
         const input = await body(req);
         let token = typeof input.token === 'string' && /^[a-f0-9]{40}$/.test(input.token) ? input.token : null;
