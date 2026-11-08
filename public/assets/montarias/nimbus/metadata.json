@@ -1,0 +1,23 @@
+{
+  "directions": [
+    "n",
+    "ne",
+    "e",
+    "se",
+    "s",
+    "sw",
+    "w",
+    "nw"
+  ],
+  "frames_per_direction": 5,
+  "frame_size": [
+    256,
+    256
+  ],
+  "cloud_anchor": [
+    128,
+    110
+  ],
+  "frame_duration_ms": 130,
+  "note": "Cloud sprites only. Composite standing character using a shared ground anchor; fine-tune offsets."
+}

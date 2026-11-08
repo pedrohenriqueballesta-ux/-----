@@ -11,7 +11,7 @@ export function instalarBattlePass(ctx){
   previa?.remove();previa=el('section',null,'passe-previa');previa.setAttribute('role','region');previa.setAttribute('aria-label','Prévia da recompensa');
   previa.append(icone(r),el('h3',trilha+' · nível '+nivel),el('p',textoRecompensa(r)));
   if(r.bau)previa.append(el('small','Baú de conteúdo fixo. Todos os recursos descritos são entregues diretamente à mochila no resgate.'));
-  if(r.colecao)previa.append(el('small','Colecionável da conta. Arte ilustrativa: equipar e exibir os cosméticos no personagem ainda será disponibilizado. Sem bônus de combate.'));
+  if(r.colecao)previa.append(el('small',r.colecao.includes('nimbus-dourada')?'Colecionável da conta. A montaria Nimbus já pode ser ativada gratuitamente na aba Personagem, sem bônus de combate.':'Colecionável da conta. Arte ilustrativa: equipar e exibir os cosméticos no personagem ainda será disponibilizado. Sem bônus de combate.'));
   previa.append(botao('Fechar prévia',()=>{previa.remove();previa=null;}));ui.corpo.prepend(previa);
  }
  function desenhar(s){

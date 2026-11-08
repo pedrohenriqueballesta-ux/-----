@@ -1,3 +1,5 @@
+import {desenharNimbus,nimbusCarregada} from '../render/nimbus.mjs';
+import {geometriaNimbus} from '../shared/montarias.mjs';
 import {montarEntrada,requisitarAuth} from './entrada.mjs';
 import {instalarTutorial} from './tutorial.mjs';
 import {instalarTrilhaSonora} from './audio.mjs';
@@ -267,6 +269,9 @@ function placa(x, y, texto, hp, max, cor, largura = 52) {
 }
 function drawPlayer(p, pos, time, somenteCorpo = false) {
   if (!somenteCorpo) shadow(pos.x, pos.y, 20);
+  const opcoesNimbus={flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes};
+  const montado=somenteCorpo?(p.montaria==='nimbus'&&!p.dead&&nimbusCarregada()?geometriaNimbus(p,pos,time,opcoesNimbus):null):desenharNimbus(ctx,p,pos,time,opcoesNimbus);
+  if(montado){pos=montado.personagem;p={...p,moving:false};}
   const back = p.facing.y < -0.3;
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
