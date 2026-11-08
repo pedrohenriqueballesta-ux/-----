@@ -1,3 +1,4 @@
+import {registrarAtividadePasse} from './battle-pass.mjs';
 import {bagWeight} from './characters.mjs';
 import {CONFIG} from './config.mjs';
 import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from './itens-negociaveis.mjs';
@@ -25,6 +26,7 @@ export function renovarMissoes(p,agora=Date.now()){
  const chaves=periodos(agora);for(const c of ['diaria','semanal'])if(p.missoes[c].chave!==chaves[c])p.missoes[c]={chave:chaves[c],contagens:contagens(),resgatadas:[]};
 }
 export function registrarMissao(p,evento,valor=1,agora=Date.now()){
+ registrarAtividadePasse(p,evento,valor,agora);
  renovarMissoes(p,agora);if(p.godmode||!Object.hasOwn(p.missoes.total,evento)||!Number.isSafeInteger(valor)||valor<1)return;
  for(const c of [p.missoes.total,p.missoes.diaria.contagens,p.missoes.semanal.contagens])c[evento]=Math.min(1e9,c[evento]+valor);
 }

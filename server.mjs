@@ -1,3 +1,4 @@
+import {EconomiaPremium} from './server/premium.mjs';
 import {Autenticacao,FalhaAuth,AUTH_CONFIG,digest} from './server/auth.mjs';
 import {conteudoEntrada} from './server/entrada-conteudo.mjs';
 import {preferenciasValidas} from './public/shared/preferencias.mjs';
@@ -13,10 +14,11 @@ import { Game } from './public/shared/index.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
-const types = { '.mp3':'audio/mpeg', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webp': 'image/webp' };
+const types = { '.gif':'image/gif', '.mp3':'audio/mpeg', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webp': 'image/webp' };
 
-export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data') } = {}) {
+export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data'), ambiente=process.env.NODE_ENV||'production' } = {}) {
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
+  const economiaPremium=new EconomiaPremium({ambiente});
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1' });
   const sessions = new Map(), streams = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
@@ -114,7 +116,8 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         });
         return;
       }
-      if (req.method === 'POST' && ['/api/input', '/api/action', '/api/save','/api/hud'].includes(url.pathname)) {
+      if(req.method==='GET'&&url.pathname==='/api/premium'){const a=mundo(req);return json(res,200,economiaPremium.estado(a.conta,a.p));}
+      if (req.method === 'POST' && ['/api/premium','/api/input', '/api/action', '/api/save','/api/hud'].includes(url.pathname)) {
         const acesso=mundo(req),token=acesso.id,p=acesso.p;
         if (!p) return json(res, 401, { error: 'Sessão inválida.' });
         const now = Date.now(), last = rates.get(token) || { since: now, count: 0 };
@@ -123,6 +126,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if (last.count > 65) return json(res, 429, { error: 'Aguarde um instante.' });
         if (url.pathname === '/api/save') { await save(); return json(res, 200, { ok: true }); }
         const data = await body(req);
+        if(url.pathname==='/api/premium'){const r=economiaPremium.processar(acesso.conta,p,data);if(r.ok)await save();return json(res,200,r);}
         if(url.pathname==='/api/hud'){
           const contas=contasPublicas();
           if(data.aba==='ranking')return json(res,200,rankingServidor(contas,p.mercadoId,data,game.guildas));
@@ -173,7 +177,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     for (const connections of streams.values()) for (const response of connections) response.end();
     await new Promise(ok => server.close(ok));
   };
-  return { server, game, sessions, autenticacao, close, port: server.address().port };
+  return { server, game, sessions, autenticacao, economiaPremium, close, port: server.address().port };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

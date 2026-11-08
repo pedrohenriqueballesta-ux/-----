@@ -1,3 +1,5 @@
+import {instalarStore} from '../render/store.mjs';
+import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
 import {instalarConsumiveisHud,atualizarConsumiveisHud} from '../render/consumiveis-hud.mjs';
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/janelas-hud.mjs';
@@ -419,7 +421,7 @@ export function ligarHud(contexto) {
   lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify});
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
   const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
-  const telas = { bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
+  const telas = {store:instalarStore(ctx),battlepass:instalarBattlePass(ctx), bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const mochila=$('mochilaDialog'),minimizar=$('mochilaMinimizar');
   const exibirMochilaCompacta=compacta=>{
