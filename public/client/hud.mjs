@@ -41,19 +41,43 @@ function renderSkillMeta(element, cost, detail) {
   element.replaceChildren(costBadge, detailLabel);
 }
 
+// Chat com canais: global (todos), local (mesma área) e comércio (todos). As mensagens ficam
+// guardadas por canal; a aba ativa decide o que se vê e para onde se envia. [Sistema] aparece em toda aba.
+const chatMsgs = [];
+let canalChat = 'local';
+function linhaChat(msg) {
+  const linha = document.createElement('p'), tag = document.createElement('b');
+  if (msg.canal === 'sistema') tag.textContent = '[Sistema] ';
+  else { tag.className = 'chat-nome'; tag.textContent = msg.nome + ': '; }
+  linha.append(tag, msg.texto); return linha;
+}
+const chatVisivel = msg => msg.canal === 'sistema' || msg.canal === canalChat;
+function pushChat(msg) {
+  chatMsgs.push(msg); if (chatMsgs.length > 200) chatMsgs.shift();
+  const linhas = document.getElementById('chatLinhas');
+  if (linhas && chatVisivel(msg)) {
+    linhas.append(linhaChat(msg));
+    while (linhas.children.length > 60) linhas.firstChild.remove();
+    linhas.scrollTop = linhas.scrollHeight;
+  }
+}
+function renderChat() {
+  const linhas = document.getElementById('chatLinhas'); if (!linhas) return;
+  linhas.replaceChildren(...chatMsgs.filter(chatVisivel).map(linhaChat));
+  linhas.scrollTop = linhas.scrollHeight;
+}
+
 export function notify(text) {
   if ($('shopDialog').open) $('shopNotice').textContent = text;
   const element = document.createElement('div'); element.className = 'toast'; element.textContent = text;
   $('notifications').append(element); setTimeout(() => element.remove(), 4200);
   while ($('notifications').children.length > 3) $('notifications').firstChild.remove();
-  // O chat da HUD mostra os avisos como mensagens do sistema (o chat entre jogadores ainda não existe).
-  const linhas = document.getElementById('chatLinhas');
-  if (linhas) {
-    const linha = document.createElement('p'), tag = document.createElement('b');
-    tag.textContent = '[Sistema] '; linha.append(tag, text); linhas.append(linha);
-    while (linhas.children.length > 40) linhas.firstChild.remove();
-    linhas.scrollTop = linhas.scrollHeight;
-  }
+  pushChat({ canal: 'sistema', texto: text }); // aviso do sistema aparece em qualquer aba do chat
+}
+
+// Mensagem de um jogador num canal do chat. Mostra "Nome: texto" com destaque no nome.
+export function mensagemChat(nome, texto, canal = 'local') {
+  pushChat({ canal: ['global', 'local', 'trade'].includes(canal) ? canal : 'local', nome, texto });
 }
 
 // Escala da HUD: tudo é medido em múltiplos de --e (1 = janela de 1600×950). Acompanha o tamanho da
@@ -340,6 +364,18 @@ export function ligarHud(contexto) {
   // Setas do chat rolam as mensagens.
   $('chatCima').onclick = () => $('chatLinhas').scrollBy({ top: -40, behavior: 'smooth' });
   $('chatBaixo').onclick = () => $('chatLinhas').scrollBy({ top: 40, behavior: 'smooth' });
+  // Abas do chat (Global/Local/Comércio): trocam o que se vê e para onde se envia.
+  for (const botao of document.querySelectorAll('.hud-chat nav [data-canal]')) {
+    botao.onclick = () => {
+      canalChat = botao.dataset.canal;
+      for (const b of document.querySelectorAll('.hud-chat nav [data-canal]')) b.classList.toggle('ativa', b === botao);
+      $('chatInput').placeholder = botao.textContent + ' — Enter para conversar…';
+      renderChat();
+    };
+  }
+  // Chat: Enter envia no canal ativo; Escape devolve o foco ao jogo. Teclas no campo não acionam o jogo.
+  $('chatForm').addEventListener('submit', e => { e.preventDefault(); const txt = $('chatInput').value.trim(); if (txt) action({ type: 'chat', texto: txt.slice(0, 120), canal: canalChat }); $('chatInput').value = ''; });
+  $('chatInput').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') $('chatInput').blur(); });
   // Ataque e técnicas automáticos (a caça automática é o botão quickHunt).
   for (const btn of document.querySelectorAll('[data-toggle]')) btn.onclick = () => action({ type: 'toggle', key: btn.dataset.toggle, value: !ctx.snapshot()?.self?.[btn.dataset.toggle] });
   for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));

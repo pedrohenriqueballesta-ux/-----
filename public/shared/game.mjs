@@ -152,6 +152,16 @@ export class Game {
       if (candidate && candidate.id !== p.id) p.targetId = candidate.id;
       return { ok: true };
     }
+    if (kind === 'chat') {
+      const texto = String(data.texto ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+      if (!texto) return { ok: false };
+      const canal = ['global', 'local', 'trade'].includes(data.canal) ? data.canal : 'local';
+      // Local: só a mesma área (o evento leva planet+area → o filtro do snapshot restringe).
+      // Global e Comércio: todo mundo (sem planet no evento → o filtro deixa passar para todos).
+      const lugar = canal === 'local' ? { planet: p.planet, area: p.area || null } : {};
+      this.emit('chat', { nome: p.name, texto, canal, ...lugar });
+      return { ok: true };
+    }
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
