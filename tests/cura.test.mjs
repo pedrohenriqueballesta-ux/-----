@@ -1,3 +1,4 @@
+import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/game.mjs';
@@ -125,7 +126,7 @@ test('API concorrente aceita apenas uma cura e não confia em cura/custo enviado
   const app = await createGameServer({ port: 0, dataDir: null, populate: false });
   try {
     const base = 'http://127.0.0.1:' + app.port;
-    const entrada = await (await fetch(base + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Teste' }) })).json();
+    const entrada = await criarSessaoTeste(base,'Teste');
     const p = app.game.players.get(entrada.playerId); p.hp = 60; p.autoHeal = false;
     // Sem regeneração provisória de Ki interferindo na medição da API.
     p.basicReady = app.game.time + 100;

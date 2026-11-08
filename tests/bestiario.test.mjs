@@ -1,3 +1,4 @@
+import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/game.mjs';
@@ -38,7 +39,7 @@ test('API de bestiário é somente leitura e não expõe posições, jogadores o
   const app=await createGameServer({port:0,dataDir:null});
   try{
     const mobs=JSON.stringify([...app.game.mobs.values()]);
-    const r=await fetch('http://127.0.0.1:'+app.port+'/api/bestiario');assert.equal(r.status,200);
+    const sessao=await criarSessaoTeste('http://127.0.0.1:'+app.port,'Bestiario');const r=await fetch('http://127.0.0.1:'+app.port+'/api/bestiario',{headers:{Authorization:'Bearer '+sessao.token}});assert.equal(r.status,200);
     const {inimigos}=await r.json();assert.equal(inimigos.length,21);
     for(const m of inimigos){assert.equal(m.x,undefined);assert.equal(m.y,undefined);assert.equal(m.inventory,undefined);}
     assert.equal(JSON.stringify([...app.game.mobs.values()]),mobs);

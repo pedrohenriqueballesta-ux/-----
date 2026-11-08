@@ -1,0 +1,5 @@
+export const LINK_KEYS=['regras','termos','privacidade','suporte','discord','instagram','youtube'];
+export function conteudoEntrada(v={}){
+ const noticias=(Array.isArray(v.noticias)?v.noticias:[]).filter(n=>n&&typeof n.id==='string'&&n.id.length<=80&&['atualizacao','evento','manutencao','aviso'].includes(n.categoria)&&Number.isFinite(Date.parse(n.data))&&n.titulo&&n.descricao).slice(0,100).map(n=>({id:n.id,titulo:n.titulo,descricao:n.descricao,conteudo:n.conteudo||n.descricao,data:n.data,categoria:n.categoria})).sort((a,b)=>Date.parse(b.data)-Date.parse(a.data));
+ const links=Object.fromEntries(LINK_KEYS.map(k=>{const x=v.links?.[k];if(typeof x!=='string')return[k,null];try{const url=new URL(x);return[k,url.protocol==='https:'?url.href:null];}catch{return[k,null];}}));return{noticias,links};
+}

@@ -12,7 +12,7 @@ export function instalarAbasHud(ctx,{autoHunt,avisar}){
  janela.id='hudFuncionalDialog';janela.setAttribute('aria-labelledby','hudFuncionalTitulo');titulo.id='hudFuncionalTitulo';fechar.type='button';fechar.setAttribute('aria-label','Fechar janela');cabecalho.append(titulo,fechar);janela.append(cabecalho,status,corpo);document.body.append(janela,rastreio);
  let aba=null,atualizador=null,modulo=null,ultimaPreferencia='',origem=null;
  const executar=async dados=>{try{const r=await ctx.api('action',dados);status.textContent=r.ok?'Alteração salva.':r.reason||'Não foi possível concluir.';return r;}catch(e){status.textContent=e.message;return{ok:false,reason:e.message};}};
- const opcoes={acao:executar,api:ctx.api,consultar:d=>ctx.api('hud',d),avisar,autoHunt:()=>{janela.close();autoHunt();},abrirGuilda:()=>abrir('guilda')};
+ const opcoes={sairConta:ctx.sairConta,selecionarPersonagem:ctx.selecionarPersonagem,reverTutorial:ctx.reverTutorial,acao:executar,api:ctx.api,consultar:d=>ctx.api('hud',d),avisar,autoHunt:()=>{janela.close();autoHunt();},abrirGuilda:()=>abrir('guilda')};
  const limpar=()=>{modulo?.fechar?.();modulo=null;atualizador=null;};
  janela.addEventListener('close',()=>{if(janela.open)return;limpar();ctx.soltarTeclas();origem?.focus({preventScroll:true});});fechar.onclick=()=>janela.close();
  janela.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();janela.close();}e.stopPropagation();});

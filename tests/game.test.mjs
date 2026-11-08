@@ -1,3 +1,4 @@
+import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, CONFIG, PLANETS, PORTAIS, statsFor, xpForLevel, bagWeight, lugar } from '../public/shared/index.mjs';
@@ -279,13 +280,13 @@ test('duas sessões HTTP reais recebem o mundo compartilhado e entradas não alt
   };
   const controllers = [];
   try {
-    const a = (await post('/api/join', { name: 'Jogador A' })).value;
-    const b = (await post('/api/join', { name: 'Jogador B' })).value;
+    const a = await criarSessaoTeste(base,'Jogador A');
+    const b = await criarSessaoTeste(base,'Jogador B');
     assert.notEqual(a.playerId, b.playerId);
     assert.notEqual(a.token, b.token);
     for (const session of [a, b]) {
       const controller = new AbortController(); controllers.push(controller);
-      const res = await fetch(base + '/api/events?session=' + session.token, { signal: controller.signal });
+      const res = await fetch(base + '/api/events', {headers:{Authorization:'Bearer '+session.token},signal:controller.signal});
       assert.equal(res.status, 200); const reader = res.body.getReader(); let text = '';
       while (!text.includes('data: ')) text += new TextDecoder().decode((await reader.read()).value);
       const first = JSON.parse(text.split('data: ')[1].split('\n')[0]);
