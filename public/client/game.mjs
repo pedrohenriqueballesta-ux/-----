@@ -49,7 +49,9 @@ function action(data) {
   api('action', data).catch(e => notify(e.message));
 }
 function connected(ok) {
-  connectionError = !ok; $('connection').textContent = ok ? 'Servidor conectado' : 'Reconectando…';
+  // Conectado não mostra nada (sem a pílula "Servidor conectado"); só avisa se a conexão cair.
+  connectionError = !ok; $('connection').textContent = ok ? '' : 'Reconectando…';
+  $('connection').classList.toggle('hidden', ok);
   $('connection').classList.toggle('offline', !ok);
 }
 async function join(name, previousToken) {

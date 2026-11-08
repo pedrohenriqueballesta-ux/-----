@@ -127,6 +127,10 @@ button{cursor:pointer}
 
 /* Técnicas e itens */
 .hud-tecnicas{position:absolute;left:50%;bottom:calc(18 * var(--u));transform:translateX(-50%);display:flex;gap:calc(8 * var(--u));padding:calc(10 * var(--u)) calc(12 * var(--u))}
+/* Buff da comida: indicador acima da barra de skills (ícone + tempo restante). */
+.hud-buff{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:calc(8 * var(--u));display:flex;align-items:center;gap:calc(6 * var(--u));padding:calc(4 * var(--u)) calc(12 * var(--u));border-radius:calc(12 * var(--u));background:#07122ee0;border:calc(1.5 * var(--u)) solid var(--borda-azul);box-shadow:0 0 calc(8 * var(--u)) #0008;font-weight:800;font-size:calc(13 * var(--u));white-space:nowrap}
+.hud-buff img{width:calc(26 * var(--u));height:calc(26 * var(--u));object-fit:contain}
+.hud-buff b{color:var(--ouro-claro)}
 .tecnica{position:relative;display:grid;justify-items:center;gap:calc(4 * var(--u));width:calc(96 * var(--u));padding:0;border:0;background:none}
 .tecnica kbd{position:absolute;top:calc(-4 * var(--u));left:calc(4 * var(--u));z-index:2;min-width:calc(18 * var(--u));padding:0 calc(3 * var(--u));border:calc(1 * var(--u)) solid #fff;border-radius:calc(3 * var(--u));background:#000c;font:700 calc(12 * var(--u))/1.3 system-ui}
 .tecnica-icone{position:relative;display:grid;place-items:center;width:calc(84 * var(--u));height:calc(70 * var(--u));border:calc(1.5 * var(--u)) solid #5a7ab8;border-radius:calc(8 * var(--u));background-color:rgba(10,20,48,.55);background-image:url('/assets/skills-anime-sheet.png');background-repeat:no-repeat;background-size:344% 236%;overflow:hidden}
@@ -312,8 +316,6 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .detalhes-habilidade dl{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;margin:0}
 .detalhes-habilidade dt{color:#afc1d8}
 .detalhes-habilidade dd{margin:0;font-weight:600;overflow-wrap:anywhere}
-#foodBuff{display:inline-flex;align-items:center;gap:calc(6 * var(--u))}
-#foodBuff .icone-comida{display:block;flex:0 0 calc(24 * var(--u));width:calc(24 * var(--u));height:calc(24 * var(--u));object-fit:contain;pointer-events:none}
 
 .hud-menus .hud-novidade{position:absolute;top:calc(-2 * var(--u));right:calc(-2 * var(--u));width:calc(18 * var(--u));height:calc(18 * var(--u));object-fit:contain;pointer-events:none;z-index:2}
 .novidades-hud{position:fixed;top:calc(100 * var(--u));left:50%;transform:translateX(-50%);margin:0;z-index:100;box-sizing:border-box;width:min(420px,calc(100vw - 24px));max-height:calc(100vh - 120 * var(--u));padding:16px;border:1px solid var(--ouro);border-radius:12px;background:#0d1b30;color:var(--texto);box-shadow:0 8px 30px #0009}

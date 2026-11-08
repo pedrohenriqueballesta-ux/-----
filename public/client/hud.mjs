@@ -140,8 +140,10 @@ export function atualizarHud(snapshot, playerId) {
   $('seedStatus').textContent = s.seedRemaining > 0 ? 'Todas as sementes em recarga · ' + Math.ceil(s.seedRemaining) + 's' : 'Cura instantânea · recarga compartilhada de 20s';
   $('seedStatus').classList.toggle('waiting', s.seedRemaining > 0);
   $('kiPotionText').textContent = s.kiRemaining > 0 ? 'Recarga: ' + Math.ceil(s.kiRemaining) + 's' : 'Recupera 45% · Q';
-  $('foodBuffText').textContent = s.foodRemaining > 0 ? 'Comida • ' + clock(s.foodRemaining) : 'Sem comida • F';
-  $('foodBuff').classList.toggle('inactive', s.foodRemaining <= 0);
+  // Buff da comida acima da barra de skills: aparece ao comer e conta o tempo restante.
+  const comidaAtiva = s.foodRemaining > 0;
+  $('buffComida').classList.toggle('hidden', !comidaAtiva);
+  if (comidaAtiva) $('buffComidaTempo').textContent = clock(s.foodRemaining);
   $('huntStatus').textContent = s.autoHunt ? 'CAÇA AUTOMÁTICA ATIVA' : 'Exploração manual';
   for (const [botao, ligado] of [[$('quickHunt'), s.autoHunt], ...[...document.querySelectorAll('[data-toggle]')].map(b => [b, s[b.dataset.toggle]])]) {
     botao.classList.toggle('ligado', Boolean(ligado)); const estado = botao.querySelector('b'); if (estado) estado.textContent = ligado ? 'ON' : 'OFF';

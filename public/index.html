@@ -53,14 +53,14 @@
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
         <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span><img class="zoom-ico" src="/assets/hud/zoom-mapa.png" alt=""> Zoom <b id="zoomLabel">100%</b></span></div>
       </section>
-      <div class="hud-pilulas"><span id="foodBuff" class="pilula moldura-azul"><img class="icone-comida" src="/assets/hud/comida/presunto.png" alt="" aria-hidden="true"><span id="foodBuffText">Sem comida • F</span></span><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
+      <div class="hud-pilulas"><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
       <section class="hud-chat moldura-azul" aria-label="Chat"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <nav><button type="button" data-canal="global" title="Todos os jogadores, em qualquer lugar">Global</button><button type="button" class="ativa" data-canal="local" title="Só quem está na sua área">Local</button><button type="button" data-canal="trade" title="Chat de comércio (todos)">Comércio</button></nav>
         <div class="hud-chat-setas"><button type="button" id="chatCima" aria-label="Rolar para cima">▲</button><button type="button" id="chatBaixo" aria-label="Rolar para baixo">▼</button></div>
         <div id="chatLinhas" class="hud-chat-linhas" aria-live="polite"></div>
         <form id="chatForm" class="hud-chat-form" autocomplete="off"><input id="chatInput" type="text" maxlength="120" placeholder="Enter para conversar…" aria-label="Mensagem do chat"><button type="submit" aria-label="Enviar">➤</button></form>
       </section>
-      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
+      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span><div id="buffComida" class="hud-buff hidden" aria-live="polite" title="Comida ativa"><img src="/assets/hud/comida/presunto.png" alt="" aria-hidden="true"><span>Presunto</span><b id="buffComidaTempo"></b></div>
         <button type="button" class="tecnica" data-skill="heal"><kbd>1</kbd><span class="tecnica-icone sprite-cura" aria-hidden="true"></span><strong>Cura de Vida</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kame"><kbd>2</kbd><span class="tecnica-icone sprite-kame" aria-hidden="true"></span><strong>Kamehameha</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kaioken"><kbd>3</kbd><span class="tecnica-icone sprite-kaioken" aria-hidden="true"></span><strong>Kaioken</strong><small></small></button>
