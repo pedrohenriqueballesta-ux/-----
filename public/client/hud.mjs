@@ -1,3 +1,4 @@
+import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
 import {instalarConsumiveisHud,atualizarConsumiveisHud} from '../render/consumiveis-hud.mjs';
@@ -414,6 +415,7 @@ export function alternarAutoHunt() {
 export function ligarHud(contexto) {
   document.getElementById('huntAnalyzerReset')?.addEventListener('click',()=>action({type:'huntAnalyzerReset'}));
   ctx = contexto;
+  instalarIconesAnimados();
   instalarHuntAnalyzer(alternarAutoHunt);
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
