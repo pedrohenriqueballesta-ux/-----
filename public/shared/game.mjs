@@ -1,3 +1,4 @@
+import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from './hunt-analyzer.mjs';
 import {preferenciasValidas} from './preferencias.mjs';
 import {perfilPersonagem} from './perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao} from './missoes.mjs';
@@ -164,6 +165,7 @@ export class Game {
   action(id, data) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if(kind === 'huntAnalyzerReset'){p.huntAnalyzer=novaSessao();return {ok:true};}
     if (kind === 'target') {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
       if (candidate && candidate.id !== p.id) p.targetId = candidate.id;
@@ -254,7 +256,7 @@ export class Game {
   useFood(p) {
     if (!p.inventory.food) return this.reject(p, 'Você está sem comida. Visite o mercado da vila.');
     if (p.foodUntil > this.time + 1) return this.reject(p, 'A comida ainda está ativa.');
-    p.inventory.food--; p.foodUntil = this.time + CONFIG.foodDuration;
+    analisar(p,'supplies',1,'food'); p.inventory.food--; p.foodUntil = this.time + CONFIG.foodDuration;
     this.notify(p, 'Presunto: regeneração por 5 minutos.'); return { ok: true };
   }
   useSeed(p, potency) {
@@ -263,8 +265,8 @@ export class Game {
     const key = 'seed' + potency;
     if (!p.inventory[key]) return this.reject(p, 'Sem semente de ' + potency + '%.');
     if (p.hp >= p.stats.hp) return this.reject(p, 'Sua vida já está cheia.');
-    p.inventory[key]--; p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * potency / 100);
-    p.seedReady = this.time + CONFIG.seedCooldown;
+    analisar(p,'supplies',1,key); const hpAntes=p.hp; p.inventory[key]--; p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * potency / 100);
+    analisar(p,'cura',p.hp-hpAntes); p.seedReady = this.time + CONFIG.seedCooldown;
     this.emit('heal', { x: p.x, y: p.y, text: '+' + potency + '%', playerId: p.id });
     this.notify(p, 'Semente usada. Todas as potências em recarga por ' + CONFIG.seedCooldown + 's.'); return { ok: true };
   }
@@ -272,7 +274,7 @@ export class Game {
     if (this.time < p.kiReady) return this.reject(p, 'Poção de Ki em recarga.');
     if (!p.inventory.ki) return this.reject(p, 'Você está sem poções de Ki.');
     if (p.ki >= p.stats.ki) return this.reject(p, 'Seu Ki já está cheio.');
-    p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
+    analisar(p,'supplies',1,'ki'); p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
     this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
   }
   buy(p, item, quantidade = 1) {
@@ -445,6 +447,7 @@ export class Game {
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
     p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual);
+    analisar(p,'cura',p.hp-antes);
     this.emit('heal', { x: p.x, y: p.y, playerId: p.id, planet: p.planet, area: p.area,
       amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
     return { ok: true };
@@ -460,6 +463,13 @@ export class Game {
     const defense = playerTarget ? target.stats.defense : target.defesa ?? 1;
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
     const damage = Math.max(1, Math.round(guardedRaw * 100 / (100 + defense * 3)));
+    const hpAntes=target.hp;
+    if(playerTarget) analisar(target,'danoRecebido',Math.min(hpAntes,damage));
+    if(attacker && this.players.has(attacker.id)) analisar(attacker,'danoCausado',Math.min(hpAntes,damage));
+    if(damage>=hpAntes){
+      if(playerTarget) registrarEncontro(target,'mortes',attacker,Boolean(attacker && (attacker.raro||CHEFES.has(attacker.type))));
+      else if(attacker && this.players.has(attacker.id)) registrarEncontro(attacker,'abates',target,Boolean(target.raro||CHEFES.has(target.type)));
+    }
     target.hp = Math.max(0, target.hp - damage);
     // Ameaça: quem bate num mob vira (ou reforça) o alvo dele, mesmo de longe e mesmo sendo mob neutro.
     if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
@@ -469,7 +479,8 @@ export class Game {
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          this.awardXp(attacker, target.xp); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          analisar(attacker,'xp',target.xp);const zeniAntes=attacker.zeni; this.awardXp(attacker, target.xp); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < RECOMPENSAS_MOBS.fracaoCristal ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
@@ -578,6 +589,7 @@ export class Game {
     return alcancavel;
   }
   updatePlayer(p, dt) {
+    analisar(p,'segundos',dt);
     p.moving = false;
     if (!p.connected) return;
     if (p.godmode) { p.hp = p.stats.hp; p.ki = p.stats.ki; }
@@ -588,7 +600,7 @@ export class Game {
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;
-    if (p.foodUntil > this.time) p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);
+    if (p.foodUntil > this.time) {const antes=p.hp;p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);analisar(p,'cura',p.hp-antes);}
     if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
     // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
     if (!p.transformed && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
@@ -662,7 +674,7 @@ export class Game {
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
-      if (this.addItem(p, l.item)) { l.taken = true;registrarMissao(p,'coleta',1,this.agora()); this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
+      if (this.addItem(p, l.item)) { l.taken = true;analisar(p,'loot',1,l.item);registrarMissao(p,'coleta',1,this.agora()); this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
@@ -878,7 +890,7 @@ export class Game {
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,

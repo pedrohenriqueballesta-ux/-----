@@ -1,3 +1,4 @@
+import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/janelas-hud.mjs';
 import {instalarAbasHud} from '../render/abas-hud.mjs';
 // HUD: tudo o que o jogo mostra e liga na página (barras, botões, painéis, notificações, loja,
@@ -134,6 +135,7 @@ ajustarEscala(); addEventListener('resize', ajustarEscala);
 
 export function atualizarHud(snapshot, playerId) {
   const s = snapshot?.self, p = snapshot?.players.find(v => v.id === playerId); if (!s || !p) return;
+  atualizarHuntAnalyzer(s.huntAnalyzer,playerId);
   $('playerName').textContent = p.name; $('levelBadge').textContent = 'Nv. ' + s.level;
   $('hpBar').style.width = Math.max(0, 100 * s.hp / s.stats.hp) + '%';
   $('kiBar').style.width = Math.max(0, 100 * s.ki / s.stats.ki) + '%';
@@ -407,7 +409,9 @@ export function alternarAutoHunt() {
 
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
+  document.getElementById('huntAnalyzerReset')?.addEventListener('click',()=>action({type:'huntAnalyzerReset'}));
   ctx = contexto;
+  instalarHuntAnalyzer(alternarAutoHunt);
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);

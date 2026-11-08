@@ -103,6 +103,17 @@
   <dialog id="autoHuntDialog" class="auto-hunt-panel" aria-labelledby="autoHuntTitle">
     <header class="auto-hunt-head"><span class="auto-hunt-emblema" aria-hidden="true"><img src="/assets/hud/auto-hunt.png" alt=""></span><div><small>AUTOMAÇÃO</small><h2 id="autoHuntTitle">Auto Hunt</h2></div><button type="button" class="mochila-x" data-close="autoHuntDialog" aria-label="Fechar Auto Hunt">×</button></header>
     <div class="auto-hunt-body">
+      <details id="huntAnalyzer" class="hunt-analyzer"><summary>Hunt Analyzer <span class="hunt-analyzer-toggle">Expandir / minimizar</span></summary>
+        <button id="huntAnalyzerReset" type="button">Iniciar nova sessão</button>
+        <nav class="hunt-analyzer-abas" aria-label="Seções do Hunt Analyzer">
+          <button type="button" data-hunt-aba="resumo" aria-pressed="true">Resumo e loot</button>
+          <button type="button" data-hunt-aba="abates" aria-pressed="false">Abates</button>
+          <button type="button" data-hunt-aba="mortes" aria-pressed="false">Mortes</button>
+        </nav>
+        <div class="hunt-analyzer-dados" aria-live="off"></div>
+        <p><small>Conta enquanto o Auto Hunt estiver ativo. Saldo = Zeni + loot ao preço de venda ao NPC − consumíveis ao preço de compra. Raridades não cadastradas aparecem como “Não definida”.</small></p>
+        <p><small>Os totais permanecem ao pausar; uma nova conexão ao personagem inicia outra sessão.</small></p>
+      </details>
       <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa toda a automação. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>
         <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca os alvos próximos.</small></span><input id="autoAttack" type="checkbox"></label>
@@ -121,6 +132,13 @@
       <p class="auto-hunt-note">Com Auto Hunt OFF, combate e recuperação automáticos ficam pausados. As configurações são mantidas. As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
     </div>
   </dialog>
+  <section id="huntAnalyzerMini" class="hunt-analyzer-mini" aria-label="Hunt Analyzer minimizado" hidden>
+    <header><strong>Hunt Analyzer</strong><button id="huntAnalyzerExpand" type="button" aria-label="Expandir Hunt Analyzer" title="Expandir Hunt Analyzer">↗</button></header>
+    <div class="hunt-mini-status"></div>
+    <svg viewBox="0 0 240 52" role="img" aria-label="XP por hora nas últimas amostras da sessão"><path d="M0 51H240" stroke="#526b89"/><polyline fill="none" stroke="#ffda72" stroke-width="2" points=""/></svg>
+    <small>XP/h · últimas 60 amostras (5 s)</small>
+    <dl><dt>Tempo</dt><dd data-hunt="tempo">00:00:00</dd><dt>XP/h</dt><dd data-hunt="xp">0</dd><dt>Saldo estimado</dt><dd data-hunt="saldo">0 Z</dd></dl>
+  </section>
   <script type="module" src="/client/game.mjs"></script>
 </body>
 </html>
