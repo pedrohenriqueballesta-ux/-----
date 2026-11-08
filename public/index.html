@@ -53,7 +53,7 @@
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
         <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span><img class="zoom-ico" src="/assets/hud/zoom-mapa.png" alt=""> Zoom <b id="zoomLabel">100%</b></span></div>
       </section>
-      <div class="hud-pilulas"><span id="foodBuff" class="pilula moldura-azul"><img class="icone-comida" src="/assets/hud/comida/presunto.png" alt="" aria-hidden="true"><span id="foodBuffText">Sem comida • F</span></span><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
+      <div class="hud-pilulas"><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
       <section class="hud-chat moldura-azul" aria-label="Chat"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <nav id="chatAbas" aria-label="Canais do chat"></nav>
         <p id="chatIntro" class="hud-chat-intro"></p>
@@ -62,7 +62,7 @@
         <form id="chatForm" class="hud-chat-form" autocomplete="off"><input id="chatInput" type="text" maxlength="120" placeholder="Enter para conversar…" aria-label="Mensagem do chat"><button type="submit" aria-label="Enviar">➤</button></form>
         <div id="chatMenu" class="chat-menu hidden" role="menu" aria-label="Adicionar canal"></div>
       </section>
-      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
+      <section class="hud-tecnicas moldura" aria-label="Técnicas e itens"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span><div id="buffComida" class="hud-buff hidden" aria-live="polite" title="Comida ativa"><img src="/assets/hud/comida/presunto.png" alt="" aria-hidden="true"><span>Presunto</span><b id="buffComidaTempo"></b></div>
         <button type="button" class="tecnica" data-skill="heal"><kbd>1</kbd><span class="tecnica-icone sprite-cura" aria-hidden="true"></span><strong>Cura de Vida</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kame"><kbd>2</kbd><span class="tecnica-icone sprite-kame" aria-hidden="true"></span><strong>Kamehameha</strong><small></small></button>
         <button type="button" class="tecnica" data-skill="kaioken"><kbd>3</kbd><span class="tecnica-icone sprite-kaioken" aria-hidden="true"></span><strong>Kaioken</strong><small></small></button>
