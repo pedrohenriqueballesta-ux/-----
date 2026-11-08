@@ -1,3 +1,4 @@
+import {instalarAtalhosInterface} from './atalhos.mjs';
 import {desenharNimbus,nimbusCarregada} from '../render/nimbus.mjs';
 import {geometriaNimbus} from '../shared/montarias.mjs';
 import {montarEntrada,requisitarAuth} from './entrada.mjs';
@@ -16,7 +17,7 @@ import { carregarCura, desenharCura } from '../render/cura.mjs';
 import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob.mjs';
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
-import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
+import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -113,14 +114,18 @@ async function sendInput() {
   try { await api('input', inputVector()); } catch {} finally { sendingInput = false; }
 }
 setInterval(sendInput, 70);
+instalarAtalhosInterface({
+ ativo:()=>Boolean(session&&snapshot?.self&&!document.querySelector('#welcomeDialog[open],#tutorialDialog[open]')),
+ bloqueado:()=>transicaoTeleport.ativa,abrirMenu:menu=>document.querySelector('[data-menu="'+menu+'"]')?.click(),
+ caca:alternarCaca,painelCaca:alternarAutoHunt,montaria:()=>action({type:'montaria',valor:snapshot.self.montaria==='nimbus'?null:'nimbus'}),
+ soltarTeclas:()=>{keys.clear();touchVector={x:0,y:0};sendInput();}
+});
 document.addEventListener('keydown', e => {
+  if(e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
   if (transicaoTeleport.ativa) { e.preventDefault(); return; }
   // Mochila e Auto Hunt são painéis não modais: não pausam movimento ou técnicas.
-  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) return;
+  if (e.target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) return;
   const key = e.key.toLowerCase();
-  if (key === 'enter' && !e.repeat) { const ci = document.getElementById('chatInput'); if (ci) { ci.focus(); e.preventDefault(); return; } }
-  if (key === 'b' && !e.repeat) { alternarMochila(); return; }
-  if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
   const skills = { '1': 'heal', '2': 'kame', '3': 'kaioken', '4': 'barrier', '6': 'genki', ' ': 'basic', 'shift': 'dash' };
@@ -130,7 +135,6 @@ document.addEventListener('keydown', e => {
   else if (key === 'f') action({ type: 'food' });
   else if (key === 'q' || key === '8') action({ type: 'usarConsumivelHotkey',slot:8 });
   else if (key === 'r' || key === '7') action({ type: 'usarConsumivelHotkey',slot:7 });
-  else if (key === 'h') alternarCaca();
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
 window.addEventListener('blur', () => { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); });

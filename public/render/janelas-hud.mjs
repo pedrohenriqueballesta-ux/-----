@@ -6,7 +6,7 @@ export function fecharOutrasJanelas(atual){
 }
 export function instalarJanelasHud(){
  if(instalado)return;instalado=true;
- document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const aberta=document.querySelector('dialog[open]:not(#welcomeDialog):not(#tutorialDialog)');if(aberta){aberta.close();e.preventDefault();e.stopPropagation();}},true);
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.isComposing)return;const aberta=document.querySelector('dialog[open]:not(#welcomeDialog):not(#tutorialDialog)');if(aberta){aberta.close();e.preventDefault();e.stopImmediatePropagation();}},true);
  const preparar=janela=>{
   if(controles.has(janela)||janela.id==='welcomeDialog')return;
   let cabecalho=janela.querySelector('header,.worlds-head,.mochila-topo,.auto-hunt-head');

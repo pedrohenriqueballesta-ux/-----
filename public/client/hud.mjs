@@ -275,6 +275,7 @@ export function abrirPortal(portal) {
 // jogador está (na Terra, o primeiro planeta de hunt) com as áreas, os portais e onde ele está;
 // viajar é sempre pelos portais.
 function abrirMapa() {
+  if($('mapaDialog').open){$('mapaDialog').close();return;}
   const snapshot = ctx?.snapshot(), aqui = snapshot?.self?.area, tela = $('mapaTela');
   const mundo = PLANETS[snapshot?.planet]?.hunts ? PLANETS[snapshot.planet] : PLANETAS_DE_HUNT[0], zonas = zonasDe(mundo.id);
   $('mapaTitulo').textContent = 'MAPA — ' + mundo.name.toUpperCase();
@@ -380,7 +381,7 @@ function encaixarMochila() {
   janela.style.setProperty('--m', m.toFixed(3));
 }
 addEventListener('resize', encaixarMochila);
-// Abre/fecha a Mochila (menu Mochila, cartão de peso da HUD e tecla B).
+// Abre/fecha a Mochila (menu Mochila, cartão de peso da HUD e tecla I).
 export function alternarMochila() {
   const janela = $('mochilaDialog');
   if (janela.open) { janela.close(); return; }
