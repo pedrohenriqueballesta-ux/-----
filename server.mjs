@@ -10,7 +10,7 @@ import { Game } from './public/shared/index.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webp': 'image/webp' };
+const types = { '.mp3':'audio/mpeg', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webp': 'image/webp' };
 
 export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data') } = {}) {
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
@@ -104,7 +104,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       const path = resolve(publicRoot, '.' + pathname);
       if (!path.startsWith(publicRoot + sep) || !existsSync(path)) return json(res, 404, { error: 'Arquivo não encontrado.' });
       const data = await readFile(path);
-      res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
+      res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff','Content-Length':data.length });
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (e) { if (!res.headersSent) json(res, 400, { error: e.message || 'Requisição inválida.' }); else res.end(); }
   });
