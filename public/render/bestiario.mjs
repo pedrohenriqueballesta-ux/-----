@@ -3,8 +3,15 @@ const numero = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
 const tempo = segundos => segundos>=3600 ? numero(segundos/3600)+' h' : segundos>=60 ? numero(segundos/60)+' min' : numero(segundos)+' s';
 const intervalo = (valores,formatar=numero) => valores[0]===valores[1] ? formatar(valores[0]) : formatar(valores[0])+'–'+formatar(valores[1]);
 const limpar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-function retrato(tipo) {
-  const canvas=criar('canvas',null,'bestiario-retrato');canvas.width=150;canvas.height=150;
+const retratos=new Map();
+export function retrato(tipo) {
+  if(retratos.has(tipo)){
+    const original=retratos.get(tipo),copia=original.cloneNode();
+    const copiar=()=>{copia.getContext('2d').drawImage(original,0,0);copia.dataset.carregado=original.dataset.carregado||'false';};
+    if(original.dataset.carregado==='true')copiar();else original.addEventListener('retrato-pronto',copiar,{once:true});
+    return copia;
+  }
+  const canvas=criar('canvas',null,'bestiario-retrato');canvas.width=150;canvas.height=150;retratos.set(tipo,canvas);
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Retrato do inimigo');
   const desenhar=async()=>{
     // A arte só é carregada ao abrir uma ficha, sem prender a inicialização da HUD.
@@ -16,7 +23,7 @@ function retrato(tipo) {
     const img=new Image();img.src=folha.file;await img.decode();
     const [x,y,w,h]=folha.frames[0][0],escala=Math.min(134/w,134/h);
     const c=canvas.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
-    c.drawImage(img,x,y,w,h,(150-w*escala)/2,(150-h*escala)/2,w*escala,h*escala);canvas.dataset.carregado='true';
+    c.drawImage(img,x,y,w,h,(150-w*escala)/2,(150-h*escala)/2,w*escala,h*escala);canvas.dataset.carregado='true';canvas.dispatchEvent(new Event('retrato-pronto'));
   };
   desenhar().catch(()=>canvas.setAttribute('aria-label','Retrato indisponível'));
   return canvas;
