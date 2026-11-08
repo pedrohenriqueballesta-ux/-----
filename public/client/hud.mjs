@@ -3,9 +3,16 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { instalarLoja } from '../render/loja.mjs';
+import { instalarBestiario } from '../render/bestiario.mjs';
+import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
+import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
+let atualizarDetalhes = () => {};
+let novidadesHud = null;
+let lojaHud = null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -25,7 +32,6 @@ const action = data => ctx?.action(data);
 
 const integer = v => Math.round(v).toLocaleString('pt-BR');
 const clock = seconds => { const n = Math.max(0, Math.ceil(seconds)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); };
-const itemNames = { food: 'Presunto', ki: 'Poção de Ki', seed15: 'Semente 15%', seed30: 'Semente 30%', seed50: 'Semente 50%', seed100: 'Semente 100%' };
 
 function renderSkillMeta(element, cost, detail) {
   if (!element) return;
@@ -134,7 +140,7 @@ export function atualizarHud(snapshot, playerId) {
   $('seedStatus').textContent = s.seedRemaining > 0 ? 'Todas as sementes em recarga · ' + Math.ceil(s.seedRemaining) + 's' : 'Cura instantânea · recarga compartilhada de 20s';
   $('seedStatus').classList.toggle('waiting', s.seedRemaining > 0);
   $('kiPotionText').textContent = s.kiRemaining > 0 ? 'Recarga: ' + Math.ceil(s.kiRemaining) + 's' : 'Recupera 45% · Q';
-  $('foodBuff').textContent = s.foodRemaining > 0 ? '🍖 Comida • ' + clock(s.foodRemaining) : '🍖 Sem comida • F';
+  $('foodBuffText').textContent = s.foodRemaining > 0 ? 'Comida • ' + clock(s.foodRemaining) : 'Sem comida • F';
   $('foodBuff').classList.toggle('inactive', s.foodRemaining <= 0);
   $('huntStatus').textContent = s.autoHunt ? 'CAÇA AUTOMÁTICA ATIVA' : 'Exploração manual';
   for (const [botao, ligado] of [[$('quickHunt'), s.autoHunt], ...[...document.querySelectorAll('[data-toggle]')].map(b => [b, s[b.dataset.toggle]])]) {
@@ -160,8 +166,8 @@ export function atualizarHud(snapshot, playerId) {
   const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
   const skillState = {
     heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
-      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : '1,5') + 's',
-      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga 1,5s · tecla 1` },
+      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
+      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
     kaioken: { required: CONFIG.skills.kaioken, cost: CONFIG.skillCosts.kaioken, cooldown: CONFIG.skillCooldowns.kaioken, remaining: s.kaiokenRemaining || 0, text: s.level < CONFIG.skills.kaioken ? CONFIG.skillCooldowns.kaioken + 's' : s.kaiokenActive ? 'ATIVO' : s.kaiokenRemaining > 0 ? s.kaiokenRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kaioken + 's', active: s.kaiokenActive },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
@@ -190,6 +196,9 @@ export function atualizarHud(snapshot, playerId) {
   if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; transformCooldown.setAttribute('aria-hidden', 'true'); $('transformButton').append(transformCooldown); }
   transformCooldown.textContent = !s.transformed && s.transformRemaining > 0 ? s.transformRemaining.toFixed(1) + 's' : '';
   renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
+  atualizarDetalhes(s);
+  novidadesHud?.atualizar(s);
+  lojaHud?.atualizar();
   $('respawn').classList.toggle('hidden', s.hp > 0);
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
@@ -256,13 +265,13 @@ function abrirMapa() {
 
 // Mochila: janela não modal (o jogo segue por trás). Cada tipo de item ocupa um espaço, com a quantidade;
 // clicar num consumível usa. Equipamento ainda não existe no jogo: os espaços em volta da silhueta ficam
-// vazios, com o ícone fantasma do tipo. Ícones dos itens em emoji, provisórios (como na barra de atalhos).
+// vazios, com o ícone fantasma do tipo. Itens usam as imagens do pacote de inventário fornecido.
 const ITENS_MOCHILA = [
-  { key: 'food', nome: 'Presunto', icone: '🍖', tipo: 'consumivel', usar: { type: 'food' } },
-  { key: 'ki', nome: 'Poção de Ki', icone: '🧪', tipo: 'consumivel', usar: { type: 'potion' } },
-  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '🌱', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
-  { key: 'scrap', nome: 'Sucata', icone: '⚙️', tipo: 'material' },
-  { key: 'crystal', nome: 'Cristal', icone: '💎', tipo: 'material' }
+  { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
+  { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
+  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '/assets/inventario/semente_dos_deuses.png', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
+  { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
+  { key: 'crystal', nome: 'Cristal', icone: '/assets/inventario/cristal.png', tipo: 'material' }
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).
 const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
@@ -301,8 +310,12 @@ function atualizarMochila(s) {
   $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
     const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
     if (!item) { slot.disabled = true; return slot; }
+    if (item.usar) slot.dataset.item = item.key;
     const qtd = s.inventory[item.key];
-    slot.textContent = item.icone; slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
+    imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
+    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    slot.setAttribute('aria-label', slot.title);
     if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
     const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
     slot.onclick = () => { slot.blur(); if (item.usar) action(item.usar); };
@@ -355,11 +368,15 @@ export function alternarAutoHunt() {
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
+  atualizarDetalhes = instalarDetalhesHabilidades();
+  novidadesHud = instalarNovidadesHud(action);
+  lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify});
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
-  const telas = { loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
+  const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
+  const telas = { bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
-  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
+  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
   $('menuAlternar').onclick = () => { const aberto = $('hudMenus').classList.toggle('aberto'); $('menuAlternar').setAttribute('aria-expanded', String(aberto)); };
   // Setas do chat rolam as mensagens.
   $('chatCima').onclick = () => $('chatLinhas').scrollBy({ top: -40, behavior: 'smooth' });
@@ -409,14 +426,8 @@ export function ligarHud(contexto) {
   $('helpButton').onclick = () => { ctx.soltarTeclas(); $('helpDialog').showModal(); };
   $('panelButton').onclick = () => { const open = $('panel').classList.toggle('open'); $('panelButton').setAttribute('aria-expanded', String(open)); };
   $('quickHunt').onclick = alternarCaca;
-  $('shopButton').onclick = () => $('shopDialog').showModal();
+  $('shopButton').onclick = () => lojaHud.abrir();
   for (const btn of document.querySelectorAll('[data-close]')) btn.onclick = () => $(btn.dataset.close).close();
   $('saveButton').onclick = async () => { try { await ctx.api('save'); notify('Progresso salvo no servidor.'); } catch (e) { notify(e.message); } };
-  for (const [key, price] of Object.entries(CONFIG.prices)) {
-    const row = document.createElement('div'); row.className = 'shop-item';
-    const label = document.createElement('span'); label.textContent = itemNames[key];
-    const btn = document.createElement('button'); btn.textContent = price + ' Z · comprar'; btn.onclick = () => action({ type: 'buy', item: key });
-    row.append(label, btn); $('shopItems').append(row);
-  }
   $('sellButton').onclick = () => action({ type: 'sell' });
 }

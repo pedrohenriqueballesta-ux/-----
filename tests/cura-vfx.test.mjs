@@ -67,8 +67,8 @@ test('somente cura aceita gera timestamp; snapshots e ativações consecutivas n
   }
   g.time = 1000.6;
   assert.equal(quadroCura(g.snapshot(p.id).players[0].heal, g.time), -1);
-  g.time = 1001.5; assert.equal(g.cast(p, 'heal').ok, true);
-  assert.deepEqual(g.snapshot(p.id).players[0].heal, { started: 1001.5 });
+  g.time = 1000.7; assert.equal(g.cast(p, 'heal').ok, true);
+  assert.deepEqual(g.snapshot(p.id).players[0].heal, { started: 1000.7 });
   assert.equal(quadroCura(g.snapshot(p.id).players[0].heal, g.time), 0);
   assert.equal(p.ki, 60); assert.ok(Math.abs(p.hp - 24.8) < 1e-9);
 });
@@ -77,10 +77,10 @@ test('autocura anima em movimento e junto ao ataque; outros lugares não recebem
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p'), distante = g.addPlayer('longe');
   p.level = 20; p.stats = statsFor(20); p.hp = 100; p.ki = 200;
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
-  p.autoHeal = true; p.autoSkills = true; p.autoAttack = true; p.autoFood = false;
-  const m = g.addMob('melee', p.x + 40, p.y, p.area); m.hp = m.maxHp = 10000; m.agressivo = false;
+  p.autoHeal = true; p.autoSkills = true; p.autoAttack = true; p.autoHunt = true; p.autoFood = false;
+  const m = g.addMob('melee', p.x + 60, p.y, p.area); m.hp = m.maxHp = 10000; m.agressivo = false;
   p.targetId = m.id;
-  const x = p.x; g.setInput(p.id, { x: 1, y: 0 }); g.tick(.05);
+  const x = p.x; g.tick(.05);
   assert.ok(p.x > x); assert.ok(m.hp < m.maxHp); assert.ok(p.hp > 100);
   const jogador = g.snapshot(p.id).players.find(a => a.id === p.id);
   assert.equal(jogador.heal.started, g.time);

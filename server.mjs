@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { criarBestiario } from './public/shared/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -14,11 +15,12 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1' });
   const sessions = new Map(), streams = new Map(), rates = new Map();
-  let stored = {}, closing = false, pendingSave = false;
+  let stored = {}, closing = false, filaSave = Promise.resolve();
   if (dataDir) {
     await mkdir(dataDir, { recursive: true });
     try { stored = JSON.parse(await readFile(resolve(dataDir, 'save.json'), 'utf8')); } catch {}
   }
+  game.mercado.restaurar(stored.__mercado);
   const json = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   const body = req => new Promise((resolveBody, reject) => {
     let text = '';
@@ -27,20 +29,23 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     req.on('error', reject);
   });
   const auth = req => String(req.headers.authorization || '').replace(/^Bearer /, '');
-  const save = async () => {
-    if (!dataDir || pendingSave) return;
-    pendingSave = true;
-    try {
-      for (const [token, p] of sessions) stored[token] = game.exportPlayer(p);
-      await writeFile(resolve(dataDir, 'save.tmp'), JSON.stringify(stored), 'utf8');
-      await rename(resolve(dataDir, 'save.tmp'), resolve(dataDir, 'save.json'));
-    } catch (e) { console.error('Não foi possível salvar o progresso:', e.message); }
-    finally { pendingSave = false; }
+  // Um único arquivo guarda contas, itens reservados e créditos: não há meia negociação salva.
+  const save = () => {
+    if(!dataDir)return Promise.resolve();
+    const tarefa=filaSave.catch(()=>{}).then(async()=>{
+      for(const[token,p]of sessions)stored[token]=game.exportPlayer(p);
+      stored.__mercado=game.mercado.exportar();
+      await writeFile(resolve(dataDir,'save.tmp'),JSON.stringify(stored),'utf8');
+      await rename(resolve(dataDir,'save.tmp'),resolve(dataDir,'save.json'));
+    });
+    filaSave=tarefa;return tarefa;
   };
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, version: '0.6.0', players: [...game.players.values()].filter(p => p.connected).length });
+      if (req.method === 'GET' && url.pathname === '/api/bestiario') return json(res, 200, { inimigos:criarBestiario(game.mobs.values()) });
+      if (req.method === 'GET' && url.pathname === '/api/mercado') return json(res,200,game.mercado.publico());
       if (req.method === 'POST' && url.pathname === '/api/join') {
         const input = await body(req);
         let token = typeof input.token === 'string' && /^[a-f0-9]{40}$/.test(input.token) ? input.token : null;
@@ -80,7 +85,9 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if (url.pathname === '/api/save') { await save(); return json(res, 200, { ok: true }); }
         const data = await body(req);
         if (url.pathname === '/api/input') { game.setInput(p.id, data); return json(res, 200, { ok: true }); }
-        return json(res, 200, game.action(p.id, data));
+        const resultado=game.action(p.id,data);
+        if(resultado.ok && ['buy','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(data.type))await save();
+        return json(res,200,resultado);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Método não permitido.' });
       const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
@@ -110,7 +117,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     timer = setTimeout(tickLoop, 16);
   };
   let timer = setTimeout(tickLoop, 16);
-  const saveTimer = setInterval(save, 5000);
+  const saveTimer = setInterval(()=>save().catch(e=>console.error('Não foi possível salvar o progresso:',e.message)),5000);
   await new Promise((ok, fail) => { server.once('error', fail); server.listen(port, host, ok); });
   const close = async () => {
     closing = true; clearInterval(timer); clearInterval(saveTimer); await save();
@@ -123,7 +130,9 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const option = (name, fallback) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : fallback; };
   const port = Number(option('--port', process.env.PORT || 3000));
-  const host = option('--host', '127.0.0.1');
+  // Em hospedagem (Render/Railway/etc.) a plataforma define PORT e espera o servico ouvindo em 0.0.0.0.
+  // Local sem PORT continua em 127.0.0.1 (privado). --host ou HOST sobrescrevem.
+  const host = option('--host', process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1'));
   createGameServer({ port, host }).then(app => {
     console.log('\nDragon Ball Idle — protótipo 0.6');
     console.log('Abra no navegador: http://localhost:' + app.port);

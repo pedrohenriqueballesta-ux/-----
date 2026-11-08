@@ -21,7 +21,7 @@ test('cura evolui nos marcos 1, 20, 50, 100 e 150+, conforme tabela', () => {
     assert.equal(curaPorNivel(nivel).nivel, rank);
     assert.equal(g.action(p.id, { type: 'skill', skill: 'heal' }).ok, true);
     perto(p.hp - hp, p.stats.hp * percentual);
-    assert.equal(ki - p.ki, custo); assert.equal(p.healReady, g.time + 1.5);
+    assert.equal(ki - p.ki, custo); assert.equal(p.healReady, g.time + 0.7);
   }
 });
 
@@ -37,24 +37,24 @@ test('limita HP ao máximo e não gasta Ki nem cooldown em vida cheia, falta de 
   }
 });
 
-test('tecla, automação e pedidos repetidos compartilham a mesma recarga de 1,5s', () => {
+test('tecla, automação e pedidos repetidos compartilham a mesma recarga de 0,7s', () => {
   const { g, p } = cena(100), hp = p.hp, ki = p.ki;
   for (let i = 0; i < 20; i++) g.cast(p, 'heal', i % 2 === 0);
   perto(p.hp - hp, p.stats.hp * .035); assert.equal(ki - p.ki, 16);
-  g.time += 1.499; assert.equal(g.cast(p, 'heal').ok, false);
-  g.time += .001; assert.equal(g.cast(p, 'heal').ok, true);
+  g.time = p.healReady - .001; assert.equal(g.cast(p, 'heal').ok, false);
+  g.time = p.healReady; assert.equal(g.cast(p, 'heal').ok, true);
   assert.equal(ki - p.ki, 32);
 });
 
 test('autocura usa limite estrito de 70%, respeita configuração e pode ser desligada', () => {
-  for (const modo of ['autoHunt', 'autoSkills']) {
-    const { g, p } = cena(50); p.autoHeal = true; p[modo] = true;
+  for (const tecnicas of [true, false]) {
+    const { g, p } = cena(50); p.autoHeal = true; p.autoHunt = true; p.autoSkills = tecnicas;
     p.hp = p.stats.hp * .7; g.updatePlayer(p, 0);
     assert.equal(p.healReady, 0, '70% exatos não ativa');
     p.hp -= 1; const ki = p.ki;
     g.updatePlayer(p, 0); assert.equal(p.ki, ki - 14);
     const hp = p.hp; g.updatePlayer(p, 0); assert.equal(p.hp, hp);
-    g.time += 1.5; p.hp = p.stats.hp * .4;
+    g.time += 0.7; p.hp = p.stats.hp * .4;
     g.action(p.id, { type: 'healThreshold', value: 40 }); g.updatePlayer(p, 0);
     assert.equal(p.hp, p.stats.hp * .4);
     g.action(p.id, { type: 'healThreshold', value: 80 });
@@ -95,7 +95,7 @@ test('cura é universal, não muda direção, movimento, alvo, ataques, carga ou
 test('autocura não depende de alvo e funciona durante ataque sem curar outro jogador ou lugar', () => {
   const { g, p } = cena(20), outro = g.addPlayer('outro'), distante = g.addPlayer('distante');
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
-  p.autoHeal = true; p.autoSkills = true; p.autoAttack = true;
+  p.autoHeal = true; p.autoSkills = true; p.autoHunt = true; p.autoAttack = true;
   const m = g.addMob('melee', p.x + 40, p.y, p.area); m.hp = m.maxHp = 10000; m.agressivo = false;
   p.targetId = m.id; const vidaOutro = outro.hp;
   g.levar(outro, lugar('inicial')); g.tick(.05);
@@ -111,13 +111,14 @@ test('jogador desconectado não continua se curando', () => {
   const antes = [p.hp, p.ki]; g.tick(.1); assert.deepEqual([p.hp, p.ki], antes);
 });
 
-test('autocura repete a cada 1,5s sem regeneração gratuita, sem alvo e sem pausar ataques', () => {
-  const { g, p } = cena(50); p.autoHeal = true; p.autoSkills = true;
+test('autocura repete a cada 0,7s sem regeneração gratuita, sem alvo e sem pausar ataques', () => {
+  const { g, p } = cena(50); p.autoHeal = true; p.autoSkills = true; p.autoHunt = true;
   p.basicReady = g.time + 100; // impede a recuperação provisória de Ki durante a medição
+  g.action(p.id, { type: 'healThreshold', value: 100 });
   const hp = p.hp, ki = p.ki;
   for (let i = 0; i < 120; i++) g.tick(.05);
-  perto(p.hp - hp, 4 * p.stats.hp * .03);
-  assert.equal(ki - p.ki, 4 * 14);
+  perto(p.hp - hp, 9 * p.stats.hp * .03);
+  assert.equal(ki - p.ki, 9 * 14);
 });
 
 test('API concorrente aceita apenas uma cura e não confia em cura/custo enviados pelo cliente', async () => {

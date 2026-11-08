@@ -1,5 +1,5 @@
 // Habilidade universal: não depende da classe nem dos ataques do personagem.
-export const CURA = Object.freeze({ cooldown: 1.5, limitePadrao: 70 });
+export const CURA = Object.freeze({ cooldown: 0.7, limitePadrao: 70 });
 export const ESTAGIOS_CURA = Object.freeze([
   { nivel: 1, marco: 1, percentual: 0.02, custo: 10 },
   { nivel: 2, marco: 20, percentual: 0.025, custo: 12 },

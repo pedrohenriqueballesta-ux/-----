@@ -2,6 +2,12 @@
 
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
+## Auto Hunt: controle principal da automação — 07/11/2026
+
+- **DECIDIDO:** com Auto Hunt OFF, ataque, técnicas, cura, poção de Ki, semente e comida automáticos ficam pausados, mesmo com suas opções marcadas.
+- Preferências e porcentagens são mantidas. Uso manual continua disponível; efeitos já aplicados e projéteis já lançados terminam normalmente.
+- Carga de Kamehameha iniciada automaticamente é cancelada ao desligar; carga manual é preservada. Movimento manual e clique em destino, que já desligavam a caça, também pausam as automações.
+
 ## Colisão dos inimigos — 07/11/2026
 
 - **DECIDIDO:** Pedro pediu corpos próprios para os inimigos, sem atravessar estruturas nem empilhar mobs.
@@ -50,7 +56,7 @@ push e merge aguardam autorização.
 Branch `feature/cura-de-vida`, baseada na `origin/main` com os TPs mergeados.
 Pedido esclarecido: cura **HP** usando Ki; evolução nos níveis 1/20/50/100/150+,
 respectivamente 2%/2,5%/3%/3,5%/4% do HP máximo por 10/12/14/16/18 Ki.
-Recarga universal de 1,5 s, limitada ao HP máximo. Uso manual e automático passam
+Recarga universal de 0,7 s, limitada ao HP máximo. Uso manual e automático passam
 pelo mesmo fluxo autoritativo; preferência e recarga persistidas no save.
 Autocura habilitada por padrão durante caça ou técnicas automáticas, abaixo de
 70% HP; jogador pode desligar e configurar o limite (1–100%).

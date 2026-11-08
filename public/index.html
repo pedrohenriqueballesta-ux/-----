@@ -20,7 +20,8 @@
         <button type="button" class="hud-menu-alternar" id="menuAlternar" aria-label="Abrir menu" aria-expanded="false">≡</button>
         <nav class="hud-menus" id="hudMenus" aria-label="Menus do jogo">
         <button type="button" data-menu="personagem" title="Personagem"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/personagem.png" alt=""></i><span>Personagem</span></button>        <button type="button" data-menu="mochila" title="Mochila"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mochila.png" alt=""></i><span>Mochila</span></button>
-        <button type="button" data-menu="missoes" title="Missões"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/missoes.png" alt=""><em class="hud-selo" id="missoesSelo">!</em></i><span>Missões</span></button>
+        <button type="button" data-menu="missoes" title="Missões"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/missoes.png" alt=""></i><span>Missões</span></button>
+        <button type="button" data-menu="bestiario" title="Bestiário" aria-controls="bestiarioDialog"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/bestiario.png" alt=""></i><span>Bestiário</span></button>
         <button type="button" data-menu="mapa" title="Mapa"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mapa.png" alt=""></i><span>Mapa</span></button>
         <button type="button" data-menu="loja" title="Loja"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/loja.png" alt=""></i><span>Loja</span></button>
         <button type="button" data-menu="ranking" title="Ranking"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/ranking.png" alt=""></i><span>Ranking</span></button>
@@ -39,8 +40,8 @@
           <div class="barra barra-exp"><i id="hudXpBar"></i><b id="hudXpText">EXP 0%</b></div>
         </div>
         <div class="hud-recursos">
-          <div class="hud-zeni"><i aria-hidden="true">🪙</i><span>Zeni</span><b id="hudZeni">0</b></div>
-          <button type="button" class="hud-mochila" data-menu="mochila" title="Mochila"><i aria-hidden="true">🎒</i><span>Mochila<b id="bagLabel">0 / 0 kg</b></span></button>
+          <div class="hud-zeni"><i aria-hidden="true"><img src="/assets/hud/personagem/zeni.png" alt=""></i><span>Zeni</span><b id="hudZeni">0</b></div>
+          <button type="button" class="hud-mochila" data-menu="mochila" title="Mochila"><i aria-hidden="true"><img src="/assets/hud/personagem/mochila.png" alt=""></i><span>Mochila<b id="bagLabel">0 / 0 kg</b></span></button>
         </div>
       </section>
       <button type="button" id="godmodeToggle" class="hud-godmode moldura-azul" title="Liga/desliga god mode (teste): nível 100, invencível, Zeni e peso infinitos. Ao desligar, tudo volta ao normal.">⚡ GOD MODE: <b>OFF</b></button>
@@ -52,7 +53,7 @@
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
         <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span><img class="zoom-ico" src="/assets/hud/zoom-mapa.png" alt=""> Zoom <b id="zoomLabel">100%</b></span></div>
       </section>
-      <div class="hud-pilulas"><span id="foodBuff" class="pilula moldura-azul">Comida inativa</span><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
+      <div class="hud-pilulas"><span id="foodBuff" class="pilula moldura-azul"><img class="icone-comida" src="/assets/hud/comida/presunto.png" alt="" aria-hidden="true"><span id="foodBuffText">Sem comida • F</span></span><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
       <section class="hud-chat moldura-azul" aria-label="Chat"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <nav><button type="button" data-canal="global" title="Todos os jogadores, em qualquer lugar">Global</button><button type="button" class="ativa" data-canal="local" title="Só quem está na sua área">Local</button><button type="button" data-canal="trade" title="Chat de comércio (todos)">Comércio</button></nav>
         <div class="hud-chat-setas"><button type="button" id="chatCima" aria-label="Rolar para cima">▲</button><button type="button" id="chatBaixo" aria-label="Rolar para baixo">▼</button></div>
@@ -79,7 +80,7 @@
     <div id="notifications" class="notifications" aria-live="polite"></div>
   </main>
   <dialog id="welcomeDialog"><form id="joinForm"><span class="eyebrow">PRIMEIRA EXPEDIÇÃO</span><h2>Seu caminho começa aqui.</h2><p>Explore os campos, evolua o Goku e teste sua configuração de caça. Outros jogadores conectados a este servidor aparecem no mesmo mapa.</p><label for="nickname">Nome do jogador</label><input id="nickname" maxlength="18" value="Guerreiro" autocomplete="nickname" required><button class="primary" type="submit">Entrar no mundo <span>→</span></button><small>Progresso salvo automaticamente no servidor local.</small></form></dialog>
-  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><span class="eyebrow">VILA DO LAGO</span><h2>Mercado de suprimentos</h2><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><div id="shopItems" class="shop-items"></div><button id="sellButton" class="primary">Vender sucatas e cristais</button><small>Todos os preços são provisórios para o protótipo.</small></dialog>
+  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><span class="eyebrow">VILA DO LAGO</span><h2>Mercado de suprimentos</h2><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button id="sellButton" class="primary">Vender todos os materiais</button><small>Todos os preços são provisórios para o protótipo.</small></dialog>
   <!-- Portal: abre ao encostar num portal do mapa; cada cartão é um destino (client/hud.mjs). -->
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></dialog>
   <!-- Mapa: só consulta (onde estou, as áreas e os portais); viajar é pelos portais. -->
@@ -99,13 +100,13 @@
   <dialog id="autoHuntDialog" class="auto-hunt-panel" aria-labelledby="autoHuntTitle">
     <header class="auto-hunt-head"><span class="auto-hunt-emblema" aria-hidden="true"><img src="/assets/hud/auto-hunt.png" alt=""></span><div><small>AUTOMAÇÃO</small><h2 id="autoHuntTitle">Auto Hunt</h2></div><button type="button" class="mochila-x" data-close="autoHuntDialog" aria-label="Fechar Auto Hunt">×</button></header>
     <div class="auto-hunt-body">
-      <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa a caça. Ao iniciar, ataque e técnicas são ativados.</small></section>
+      <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa toda a automação. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>
         <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca os alvos próximos.</small></span><input id="autoAttack" type="checkbox"></label>
         <label class="auto-hunt-option"><span><strong>Técnicas automáticas</strong><small>Usa as técnicas de combate disponíveis.</small></span><input id="autoSkills" type="checkbox"></label>
       </fieldset>
       <fieldset><legend>Recuperação</legend>
-        <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Durante a caça ou técnicas automáticas.</small></span><input id="autoHeal" type="checkbox" checked></label>
+        <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Funciona somente com Auto Hunt ligado.</small></span><input id="autoHeal" type="checkbox" checked></label>
         <label class="auto-hunt-threshold">Curar abaixo de <span><input id="healThreshold" type="number" min="1" max="100" step="1" value="70" inputmode="numeric" aria-label="Limite de HP para autocura">% HP</span></label>
         <label class="auto-hunt-option"><span><strong>Poção de Ki automática</strong><small id="autoKiInfo">Usa poções do inventário.</small></span><input id="autoKi" type="checkbox"></label>
         <label class="auto-hunt-threshold">Usar poção abaixo de <span><input id="kiThreshold" type="number" min="1" max="100" step="1" value="25" inputmode="numeric" aria-label="Limite de Ki para usar poção">% Ki</span></label>
@@ -114,7 +115,7 @@
         <label class="auto-hunt-threshold">Potência da semente <select id="seedSelect" aria-label="Potência da semente"><option value="15">15%</option><option value="30">30%</option><option value="50">50%</option><option value="100">100%</option></select></label>
         <label class="auto-hunt-option"><span><strong>Comida automática</strong><small>Renova o efeito da comida durante a caça.</small></span><input id="autoFood" type="checkbox" checked></label>
       </fieldset>
-      <p class="auto-hunt-note">As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
+      <p class="auto-hunt-note">Com Auto Hunt OFF, combate e recuperação automáticos ficam pausados. As configurações são mantidas. As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
     </div>
   </dialog>
   <script type="module" src="/client/game.mjs"></script>

@@ -6,11 +6,17 @@ import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializ
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
+import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
+import { Mercado } from './mercado.mjs';
+import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
+import { LIMITE_ESTOQUE_LOJA } from './loja.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
+import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
+import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
+export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
 export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
 // Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
@@ -24,12 +30,17 @@ export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
-    this.genkiCharges = []; this.genkiExplosions = [];
+    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
   emit(type, data = {}) { this.events.push({ id: this.uid('e'), type, at: this.time, ...data }); }
   notify(p, text) { this.emit('message', { playerId: p.id, text }); }
+  notificarNovidade(p, novidade) {
+    if (!p || !validarNovidade(novidade) || p.novidades.some(n => n.id === novidade.id)) return false;
+    p.novidades.push({ id:novidade.id, aba:novidade.aba, titulo:novidade.titulo, texto:novidade.texto, lida:false });
+    p.novidades = p.novidades.slice(-100); return true;
+  }
   addPlayer(id, name = 'Guerreiro', saved = null) {
     const p = createPlayer(id, name, saved, this.time);
     this.players.set(id, p); return p;
@@ -162,6 +173,11 @@ export class Game {
       this.emit('chat', { nome: p.name, texto, canal, ...lugar });
       return { ok: true };
     }
+    if (kind === 'lerNovidades') {
+      if (!Array.isArray(data.ids) || data.ids.length > 100 || data.ids.some(id => typeof id !== 'string')) return { ok:false };
+      for (const n of p.novidades) if (data.ids.includes(n.id)) n.lida = true;
+      return { ok:true };
+    }
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
@@ -196,8 +212,16 @@ export class Game {
     if (kind === 'food') return this.useFood(p);
     if (kind === 'seed') return this.useSeed(p, Number(data.potency) || p.seedSelected);
     if (kind === 'potion') return this.usePotion(p);
-    if (kind === 'buy') return this.buy(p, data.item);
+    if (kind === 'buy') return this.buy(p, data.item, data.quantidade);
     if (kind === 'sell') return this.sell(p);
+    if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
+    if (['mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(kind)) {
+      const metodo={mercadoAnunciar:'anunciar',mercadoComprar:'comprar',mercadoCancelar:'cancelar',mercadoReceber:'receber'}[kind];
+      const resultado=this.mercado[metodo](p,data,this.time);
+      if(!resultado.ok)return this.reject(p,resultado.reason);
+      this.notify(p,({mercadoAnunciar:'Anúncio publicado. Os itens estão reservados no mercado.',mercadoComprar:'Compra no mercado concluída.',mercadoCancelar:'Anúncio cancelado. Itens devolvidos.',mercadoReceber:'Saldo de vendas recebido.'})[kind]);
+      return resultado;
+    }
     if (kind === 'transform') {
       if (p.level < CONFIG.skills.transform) return this.reject(p, 'Super Saiyajin libera no nível ' + CONFIG.skills.transform + '.');
       if (p.transformed) { p.transformed = false; this.notify(p, 'Forma base.'); return { ok: true }; }
@@ -240,18 +264,34 @@ export class Game {
     p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
     this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
   }
-  buy(p, item) {
+  buy(p, item, quantidade = 1) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na Vila.');
-    const price = CONFIG.prices[item]; if (!price) return { ok: false };
-    if (p.zeni < price) return this.reject(p, 'Zeni insuficiente.');
-    if (!this.addItem(p, item)) return this.reject(p, 'A mochila está sem capacidade.');
-    p.zeni -= price; this.notify(p, 'Compra concluída.'); return { ok: true };
+    if (!Object.hasOwn(CONFIG.prices,item)) return { ok:false };
+    if (!Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > LIMITE_ESTOQUE_LOJA)
+      return this.reject(p, 'Escolha uma quantidade inteira entre 1 e ' + LIMITE_ESTOQUE_LOJA + '.');
+    const total = CONFIG.prices[item] * quantidade;
+    if (p.zeni < total) return this.reject(p, 'Zeni insuficiente para essa quantidade.');
+    if ((p.inventory[item] || 0) + quantidade > LIMITE_ESTOQUE_LOJA) return this.reject(p, 'Limite de estoque desse item atingido.');
+    // A compra inteira é validada antes de descontar Zeni; nunca entrega um lote parcial.
+    if (!this.addItem(p, item, quantidade)) return this.reject(p, 'A mochila está sem capacidade para essa quantidade.');
+    p.zeni -= total; this.notify(p, 'Compra concluída: ' + quantidade + (quantidade === 1 ? ' item.' : ' itens.'));
+    return { ok:true, item, quantidade, total };
+  }
+  venderItem(p,item,quantidade) {
+    if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercador para vender.');
+    if(!Object.hasOwn(ITENS_NEGOCIAVEIS,item)||!Number.isSafeInteger(quantidade)||quantidade<1||quantidade>LIMITE_ESTOQUE_LOJA)return this.reject(p,'Item ou quantidade inválidos.');
+    if((p.inventory[item]||0)<quantidade)return this.reject(p,'Você não possui essa quantidade.');
+    const total=ITENS_NEGOCIAVEIS[item].precoNpc*quantidade;
+    if(!creditarZeni(p,total))return this.reject(p,'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
+    p.inventory[item]-=quantidade;this.notify(p,'Venda ao NPC concluída: '+quantidade+' por '+total+' Z.');
+    return{ok:true,item,quantidade,total};
   }
   sell(p) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na vila.');
     const value = p.inventory.scrap * 8 + p.inventory.crystal * 15;
     if (!value) return this.reject(p, 'Sem materiais para vender.');
-    p.inventory.scrap = 0; p.inventory.crystal = 0; p.zeni += value;
+    if(!creditarZeni(p,value))return this.reject(p,'Seu saldo de Zeni está no limite.');
+    p.inventory.scrap = 0; p.inventory.crystal = 0;
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
   cast(p, skill, automated = false) {
@@ -289,7 +329,7 @@ export class Game {
       const dir = norm(p.facing.x, p.facing.y); p.facing = dir;
       p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
       const nivel = estagioKame(p.level).nivel;
-      p.charge = { until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
+      p.charge = { automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
       return { ok: true };
     }
     if (skill === 'kaioken') {
@@ -387,13 +427,13 @@ export class Game {
       amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
     return { ok: true };
   }
-  hit(attacker, target, raw) {
+  hit(attacker, target, raw, { ignorarEsquiva = false } = {}) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
     if (attacker && this.players.has(attacker.id) && naZonaSegura(attacker)) return false;
     const playerTarget = this.players.has(target.id);
     if (playerTarget) {
       if (attacker && this.players.has(attacker.id) && !this.canPvp(attacker, target)) return false;
-      if (this.time < target.dashUntil || this.protegido(target)) return false;
+      if ((!ignorarEsquiva && this.time < target.dashUntil) || this.protegido(target)) return false;
     }
     const defense = playerTarget ? target.stats.defense : target.defesa ?? 1;
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
@@ -407,11 +447,11 @@ export class Game {
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? 100 : 5 + Math.floor(this.random() * 5);
+          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
           if (target.raro) { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
-          if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < 0.3 ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
-          if (this.random() < 0.008) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
+          if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < RECOMPENSAS_MOBS.fracaoCristal ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
+          if (this.random() < RECOMPENSAS_MOBS.chanceSemente15) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
         }
       }
     }
@@ -524,8 +564,10 @@ export class Game {
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
     }
+    // O botão principal pausa toda a automação, sem apagar as preferências.
+    if (!p.autoHunt && p.charge?.automated) p.charge = null;
     if (p.foodUntil > this.time) p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);
-    if (p.autoHeal && (p.autoHunt || p.autoSkills) && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
+    if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
     // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
     if (!p.transformed && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
     if (p.transformed) { p.ki = Math.max(0, p.ki - dt * 3.5); if (p.ki <= 0) { p.transformed = false; this.notify(p, 'Ki esgotado. Forma base.'); } }
@@ -580,13 +622,13 @@ export class Game {
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
-    if (p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
-    if (p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
+    if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
-    if (p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
-    if (p.autoSkills && target) {
+    if (p.autoHunt && p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
+    if (p.autoHunt && p.autoSkills && target) {
       if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && this.distanciaAoCorpo(p, target) < estagioKame(p.level).alcance + KAME.mao && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
       else if (p.ki > p.stats.ki * 0.15 && distance(p, target) < 390) this.cast(p, 'ki', true);
     }
@@ -700,6 +742,14 @@ export class Game {
     }
     return true;
   }
+  dispararProjetilMob(m, alvoId) {
+    const alvo=this.players.get(alvoId),config=m.projetil;
+    if(!config || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(m,alvo) || this.protegido(alvo))return false;
+    if(!(config.velocidade>0) || !Number.isFinite(config.velocidade))return false;
+    this.projectiles.push({id:this.uid('s'),kind:'mobKiTarget',owner:m.id,ownerType:'mob',alvoId:alvo.id,
+      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,config,this.time)});
+    return true;
+  }
   updateMob(m, dt) {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } const nascimento = pontoDeSpawnForaDaSafeZone(m.area, { x: m.homeX, y: m.homeY }); m.homeX = nascimento.x; m.homeY = nascimento.y; m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
@@ -717,7 +767,8 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
+        if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
+        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
@@ -730,7 +781,7 @@ export class Game {
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }
@@ -745,12 +796,12 @@ export class Game {
     // Mob grande soca de mais longe (o braço é maior) e para antes de encostar no centro do alvo.
     const corpo = m.corpo || 0, soco = 62 + corpo;
     const atira = m.type === 'ranged' || (socaEAtira && closest > soco);
-    const range = m.type === 'ranged' || socaEAtira ? 235 + corpo : grande ? 150 : soco;
+    const range = m.type === 'ranged' || socaEAtira ? m.projetil?.alcance ?? 235 + corpo : grande ? 150 : soco;
     // E não fica parado atirando: continua se aproximando até a distância do soco.
     if (socaEAtira && closest > soco - 7 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
-      if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
+      if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', alvoId:target.id, x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
       else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'oozaruSuper' ? 115 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
       m.facing = norm(target.x - m.x, target.y - m.y);
       // Presentation timestamps only: impact, warning duration and cooldown are unchanged.
@@ -767,6 +818,15 @@ export class Game {
     this.atualizarGenkis(dt);
     for (const s of this.projectiles) {
       if (s.kind === 'genki') continue;
+      if (s.kind === 'mobKiTarget') {
+        const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
+        if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
+        if(avancarVooTarget(s,alvo,this.time)) {
+          s.ttl=0;
+          this.hit(dono,alvo,s.damage,{ignorarEsquiva:true});
+        }
+        continue;
+      }
       s.ttl -= dt; const oldX = s.x, oldY = s.y; s.x += s.dx * s.speed * dt; s.y += s.dy * s.speed * dt;
       if (s.ttl <= 0) continue;
       const owner = s.ownerType === 'player' ? this.players.get(s.owner) : this.mobs.get(s.owner);
@@ -809,6 +869,7 @@ export class Game {
         kaiokenRemaining: Math.max(0, self.kaiokenReady - this.time), kaiokenActive: this.time < self.kaiokenUntil,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
+        novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),

@@ -7,6 +7,7 @@ import { origemKame } from '../shared/kamehameha.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/cura.mjs';
+import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob.mjs';
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
@@ -103,7 +104,7 @@ setInterval(sendInput, 70);
 document.addEventListener('keydown', e => {
   if (transicaoTeleport.ativa) { e.preventDefault(); return; }
   // Mochila e Auto Hunt são painéis não modais: não pausam movimento ou técnicas.
-  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) return;
   const key = e.key.toLowerCase();
   if (key === 'enter' && !e.repeat) { const ci = document.getElementById('chatInput'); if (ci) { ci.focus(); e.preventDefault(); return; } }
   if (key === 'b' && !e.repeat) { alternarMochila(); return; }
@@ -403,7 +404,8 @@ function telegraphs(time) {
     }
     if (t.kind === 'shot' && t.beam) { ctx.strokeStyle = '#e06cff90'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(t.x, t.y - 30); ctx.lineTo(t.x + t.dx * 520, t.y - 30 + t.dy * 520); ctx.stroke(); ctx.setLineDash([]); continue; }
     const progress = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started)));
-    if (t.kind === 'shot') { ctx.strokeStyle = '#f5a37ca0'; ctx.lineWidth = 7; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + t.dx * 240, t.y + t.dy * 240); ctx.stroke(); ctx.setLineDash([]); }
+    // Projéteis TARGET não exibem linha de mira, pois não são desviáveis.
+    if (t.kind === 'shot') continue;
     else { ctx.fillStyle = '#a9423340'; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d6745460'; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius * progress, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#f3b089'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.stroke(); }
   }
 }
@@ -506,7 +508,7 @@ let portalEncostado = null;
 function verificarPortal(pos) {
   if (transicaoTeleport.ativa) return;
   const o = portaisAqui().find(o => Math.hypot(o.x - pos.x, o.y - pos.y) <= RAIO_PORTAL);
-  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
+  if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;
 }
 
@@ -608,6 +610,12 @@ function frame(now) {
   for (const g of snapshot.genkiCharges || []) desenharGenki(ctx, 'carga', g, time, renderPositions.get(g.owner) || g);
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
+    if (s.kind === 'mobKiTarget') {
+      const alvo=renderPositions.get(s.alvoId),distancia=alvo?Math.hypot(alvo.x-s.x,alvo.y-s.y):Infinity;
+      const avanco=Math.min(s.speed*Math.min(.07,(now-receivedAt)/1000),distancia);
+      const pos={x:s.x+s.dx*avanco,y:s.y+s.dy*avanco};
+      if(desenharProjetilMob(ctx,s,pos,time,camera.scale))continue;
+    }
     if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); continue; }
     if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, { x: px, y: py });
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
@@ -618,6 +626,7 @@ function frame(now) {
   effects(time);
   ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
 }
+carregarProjetilMob();
 resize(); requestAnimationFrame(frame);
 const previousToken = sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');
 if (previousToken) join(localStorage.getItem('dbi-name') || 'Guerreiro', previousToken).catch(e => { notify(e.message); $('welcomeDialog').showModal(); });
