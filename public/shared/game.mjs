@@ -167,6 +167,7 @@ export class Game {
   action(id, data) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};p.montaria=data.valor;return{ok:true};}
     if(kind==='atribuirConsumivelHotkey'){
       if(![7,8].includes(data.slot)||!consumivelValido(data.item)||!(p.inventory[data.item]>0))return {ok:false,reason:'Arraste um consumível da mochila para os slots 7 ou 8.'};
       p.hotkeysConsumiveis[data.slot]=data.item;return {ok:true};
@@ -901,11 +902,11 @@ export class Game {
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
-        level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
+        montaria:p.montaria,level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hotkeysConsumiveis:{...self.hotkeysConsumiveis},hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,

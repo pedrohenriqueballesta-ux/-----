@@ -456,3 +456,4 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 @media(max-width:600px){#battlePassDialog .passe-ver{flex-basis:36px;height:36px}#battlePassDialog .passe-ver .passe-icone{width:36px;height:36px}}
 
 .mochila-zeni i{display:grid;place-items:center;width:calc(26 * var(--um));height:calc(26 * var(--um));flex-shrink:0}.mochila-zeni i img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.perfil-montaria{margin-top:18px;padding:16px;border:1px solid #cba34780;border-radius:10px;background:#163046}.perfil-montaria p{font-size:12px}.perfil-montaria a{display:inline-block;margin:12px;color:#a7dcff}.perfil-montaria button{padding:10px 16px}

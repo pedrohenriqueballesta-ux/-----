@@ -64,7 +64,7 @@ function prepararCatalogo(img){
  }).catch(()=>{});
 }
 function preparar(img){
- if(/^\/assets\/premium\/catalogo\/.*\.png$/.test(new URL(img.src,location.href).pathname)){prepararCatalogo(img);return;}
+ if(/^\/assets\/premium\/catalogo\/.*\.png$/.test(new URL(img.src,location.href).pathname)||new URL(img.src,location.href).pathname==='/assets/montarias/nimbus/sprites/nimbus_s_01.png'){prepararCatalogo(img);return;}
  if(tratadas.has(img)||!/^\/assets\/premium\/(store|battle-pass)\.gif$/.test(new URL(img.src,location.href).pathname))return;tratadas.add(img);
  // Fallback mantém o GIF animado em navegadores sem ImageDecoder.
  img.classList.add('premium-gif-fallback');

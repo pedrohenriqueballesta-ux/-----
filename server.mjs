@@ -141,7 +141,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if (url.pathname === '/api/input') { game.setInput(p.id, data); return json(res, 200, { ok: true }); }
         const resultado=game.action(p.id,data);
         if(resultado.ok&&data.type==='preferencias')acesso.conta.audio={musicaAtiva:p.preferencias.musicaAtiva,volumeMusica:p.preferencias.volumeMusica};
-        if(resultado.ok && ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','preferencias','resgatarMissao','acompanharMissao','correio','lerNovidades'].includes(data.type))await save();
+        if(resultado.ok && ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','montaria','preferencias','resgatarMissao','acompanharMissao','correio','lerNovidades'].includes(data.type))await save();
         return json(res,200,resultado);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Método não permitido.' });

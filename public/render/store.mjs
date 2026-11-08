@@ -15,7 +15,7 @@ export function instalarStore(ctx){
   }
   const grade=el('div',null,'premium-grade');ui.corpo.append(grade);
   if(categoria==='colecao'){
-   ui.corpo.prepend(el('p','Itens pertencem à conta. Equipar skins, efeitos e montarias depende dos sistemas visuais futuros.','premium-nota'));
+   ui.corpo.prepend(el('p','Itens pertencem à conta. A Nimbus pode ser ativada gratuitamente na aba Personagem. Equipar os demais cosméticos depende dos sistemas visuais futuros.','premium-nota'));
    if(!s.colecao.length)grade.append(el('p','Sua coleção está vazia.'));
    for(const item of s.colecao){const card=el('article',null,'premium-card'),img=el('img');img.src=item.imagem;img.alt='';card.append(img,el('h3',item.nome),el('p',item.tipo+' · adquirido'));grade.append(card);}return;
   }
