@@ -1,0 +1,21 @@
+# Render Blueprint — sobe o servidor Node do jogo no plano FREE.
+# Como usar: no painel do Render (render.com) escolha New > Blueprint, conecte este
+# repositorio e ele le este arquivo. A URL publica sera algo como
+# https://dragon-ball-idle.onrender.com (seu amigo acessa e voces jogam juntos).
+#
+# Observacoes do tier FREE:
+#   - dorme apos ~15 min sem acesso (o proximo acesso tem cold start de ~30-60s);
+#   - disco efemero: data/save.json ZERA a cada redeploy/restart (ok para testes;
+#     para progresso persistente, adicionar um disco pago ou um banco externo depois);
+#   - auto-deploy: a cada push no branch conectado (main) ele rebuilda e publica sozinho.
+services:
+  - type: web
+    name: dragon-ball-idle
+    runtime: node
+    plan: free
+    region: virginia
+    branch: main
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    autoDeploy: true
