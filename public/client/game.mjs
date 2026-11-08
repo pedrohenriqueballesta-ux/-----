@@ -10,7 +10,7 @@ import { carregarCura, desenharCura } from '../render/cura.mjs';
 import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob.mjs';
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
-import { $, notify, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
+import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
@@ -76,6 +76,7 @@ async function join(name, previousToken) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
         if (effect.type === 'message') notify(effect.text);
+        else if (effect.type === 'chat') mensagemChat(effect.nome, effect.texto, effect.canal);
         else floating.push(effect);
       }
       if (seenEvents.size > 2000) { const items = [...seenEvents]; items.slice(0, 1000).forEach(id => seenEvents.delete(id)); }
@@ -105,6 +106,7 @@ document.addEventListener('keydown', e => {
   // Mochila e Auto Hunt são painéis não modais: não pausam movimento ou técnicas.
   if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) return;
   const key = e.key.toLowerCase();
+  if (key === 'enter' && !e.repeat) { const ci = document.getElementById('chatInput'); if (ci) { ci.focus(); e.preventDefault(); return; } }
   if (key === 'b' && !e.repeat) { alternarMochila(); return; }
   if (key === 'escape' && $('mochilaDialog').open) { $('mochilaDialog').close(); return; }
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();

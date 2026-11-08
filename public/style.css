@@ -108,17 +108,22 @@ button{cursor:pointer}
 .conexao.offline::before{background:#e2261c;box-shadow:0 0 calc(6 * var(--u)) #e2261c}
 
 /* Chat (por enquanto só os avisos do sistema) */
-.hud-chat{position:absolute;left:calc(12 * var(--u));bottom:calc(12 * var(--u));display:grid;grid-template-rows:auto 1fr;width:calc(330 * var(--u));height:calc(150 * var(--u));padding:calc(6 * var(--u)) calc(8 * var(--u))}
-.hud-chat nav{display:flex;gap:calc(6 * var(--u))}
-.hud-chat-setas{position:absolute;top:calc(8 * var(--u));right:calc(8 * var(--u));bottom:calc(8 * var(--u));display:flex;flex-direction:column;justify-content:space-between}
+.hud-chat{position:absolute;left:calc(12 * var(--u));bottom:calc(12 * var(--u));display:grid;grid-template-rows:auto 1fr auto;width:calc(330 * var(--u));height:calc(164 * var(--u));padding:calc(6 * var(--u)) calc(8 * var(--u))}
+.hud-chat nav{display:flex;gap:calc(4 * var(--u));padding-right:calc(22 * var(--u))}
+.hud-chat-setas{position:absolute;top:calc(8 * var(--u));right:calc(8 * var(--u));bottom:calc(38 * var(--u));display:flex;flex-direction:column;justify-content:space-between}
 .hud-chat-setas button{padding:0;border:0;background:none;color:#fff;font-size:calc(14 * var(--u))}
 .hud-chat-linhas{padding-right:calc(20 * var(--u))}
-.hud-chat nav button{padding:calc(3 * var(--u)) calc(12 * var(--u));border:0;border-radius:calc(6 * var(--u));background:#ffffff12;font-size:calc(13 * var(--u))}
+.hud-chat nav button{flex:1;min-width:0;padding:calc(3 * var(--u)) calc(4 * var(--u));border:0;border-radius:calc(6 * var(--u));background:#ffffff12;font-size:calc(12 * var(--u));white-space:nowrap}
 .hud-chat nav button.ativa{background:#1f3c7a;box-shadow:inset 0 calc(-2 * var(--u)) 0 var(--ouro)}
 .hud-chat nav button:disabled{opacity:.45;cursor:default}
 .hud-chat-linhas{overflow:auto;margin-top:calc(4 * var(--u));font-size:calc(13 * var(--u))}
 .hud-chat-linhas p{margin:0 0 calc(2 * var(--u))}
 .hud-chat-linhas b{color:var(--ouro)}
+.hud-chat-linhas b.chat-nome{color:#5fd0ff}
+/* Campo de digitar do chat (local). Enter envia; teclas aqui não acionam o jogo. */
+.hud-chat-form{display:flex;gap:calc(4 * var(--u));margin-top:calc(4 * var(--u))}
+.hud-chat-form input{flex:1;min-width:0;padding:calc(4 * var(--u)) calc(8 * var(--u));border-radius:calc(6 * var(--u));border:calc(1 * var(--u)) solid var(--borda-azul);background:#07122699;color:#fff;font-size:calc(12 * var(--u))}
+.hud-chat-form button{flex:none;padding:0 calc(10 * var(--u));border:0;border-radius:calc(6 * var(--u));background:#1f3c7a;color:#fff;font-size:calc(12 * var(--u))}
 
 /* Técnicas e itens */
 .hud-tecnicas{position:absolute;left:50%;bottom:calc(18 * var(--u));transform:translateX(-50%);display:flex;gap:calc(8 * var(--u));padding:calc(10 * var(--u)) calc(12 * var(--u))}
