@@ -23,11 +23,8 @@ export function recompensaPasse(nivel,trilha){
  return nivel%5===0?{moedas:10}:nivel%4===0?{itens:{seed15:1}}:nivel%3===0?{itens:{food:3}}:nivel%2===0?{itens:{ki:2}}:{zeni:50};
 }
 export const PRODUTOS_STORE=Object.freeze([
- {id:'moedas-100',categoria:'moedas',nome:'100 moedas premium',descricao:'Recarga de teste; nenhum valor real é cobrado.',precoCentavos:490,moedas:100,imagem:'/assets/hud/personagem/zeni.png'},
- {id:'moedas-550',categoria:'moedas',nome:'550 moedas premium',descricao:'Pacote de desenvolvimento; pagamento futuro.',precoCentavos:1990,moedas:550,imagem:'/assets/hud/personagem/zeni.png'},
- {id:'moedas-1200',categoria:'moedas',nome:'1.200 moedas premium',descricao:'Recarga simulada disponível somente em desenvolvimento.',precoCentavos:3990,moedas:1200,imagem:'/assets/premium/store.gif'},
- {id:'vip-30',categoria:'vip',nome:'VIP · 30 dias',descricao:'Identificação VIP e acesso à compra de cosméticos exclusivos VIP. Sem bônus de combate.',preco:250,dias:30,imagem:'/assets/premium/store.gif'},
- {id:'vip-90',categoria:'vip',nome:'VIP · 90 dias',descricao:'Mesmos benefícios VIP por 90 dias. Duração acumulada ao renovar.',preco:650,dias:90,imagem:'/assets/premium/store.gif'},
+ ...[[50,249],[100,490],[250,990],[500,1990],[1000,3490],[2500,7990]].map(([moedas,precoCentavos])=>({id:'moedas-'+moedas,categoria:'moedas',nome:moedas.toLocaleString('pt-BR')+' moedas premium',descricao:'Recarga de teste, sem cobrança real.',precoCentavos,moedas,imagem:'/assets/premium/catalogo/moedas_'+moedas+'_limpo.png'})),
+ ...[[15,150],[30,250],[90,650]].map(([dias,preco])=>({id:'vip-'+dias,categoria:'vip',nome:'VIP · '+dias+' dias',descricao:'Identificação VIP e acesso à compra de cosméticos exclusivos VIP. Sem bônus de combate. Duração acumulada ao renovar.',preco,dias,imagem:'/assets/premium/catalogo/vip_'+dias+'_dias_limpo.png'})),
  ...['traje-escarlate','aura-azul','aura-vip','nimbus-dourada'].map((id,i)=>({id,categoria:'itens',nome:COLECIONAVEIS[id].nome,descricao:'Colecionável da conta. Equipar e efeitos visuais serão disponibilizados em versão futura.',preco:[150,100,120,300][i],colecao:id,requerVip:id==='aura-vip',imagem:COLECIONAVEIS[id].imagem})),
- {id:'passe-s1',categoria:'passe',nome:'Battle Pass Premium · Temporada 1',descricao:'Libera a trilha premium deste personagem, inclusive níveis já alcançados. Não compra níveis.',preco:TEMPORADA.precoPremium,temporada:TEMPORADA.id,imagem:'/assets/premium/battle-pass.gif'}
+ {id:'passe-'+TEMPORADA.id,categoria:'passe',nome:'Battle Pass Premium · '+TEMPORADA.nome,descricao:'Libera a trilha premium deste personagem, inclusive níveis já alcançados. Não compra níveis.',preco:TEMPORADA.precoPremium,temporada:TEMPORADA.id,imagem:'/assets/premium/battle-pass.gif'}
 ]);
