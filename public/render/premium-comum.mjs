@@ -2,7 +2,7 @@ import {el,botao,numero} from './hud-elementos.mjs';
 import {fecharOutrasJanelas} from './janelas-hud.mjs';
 import {COLECIONAVEIS} from '../shared/premium-config.mjs';
 export const precoReais=centavos=>(centavos/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-export function textoRecompensa(r){return [...(r.zeni?[numero(r.zeni)+' Zeni']:[]),...(r.moedas?[numero(r.moedas)+' moedas premium']:[]),...Object.entries(r.itens||{}).map(([id,q])=>q+' × '+({food:'Presunto',ki:'Poção de Ki',seed15:'Semente 15%',seed30:'Semente 30%'}[id]||id)),...(r.colecao||[]).map(id=>COLECIONAVEIS[id]?.nome||id)].join(' · ');}
+export function textoRecompensa(r){return [...(r.zeni?[numero(r.zeni)+' Zeni']:[]),...(r.moedas?[numero(r.moedas)+' moedas premium']:[]),...Object.entries(r.itens||{}).map(([id,q])=>q+' × '+({food:'Presunto',ki:'Poção de Ki',seed15:'Semente 15%',seed30:'Semente 30%'}[id]||({crystal:'Cristal',scrap:'Material de evolução (sucata)'}[id])||id)),...(r.colecao||[]).map(id=>COLECIONAVEIS[id]?.nome||id)].join(' · ');}
 export function criarPainelPremium(id,titulo,ctx){
  const janela=el('dialog',null,'hud-funcional premium-janela');janela.id=id;janela.setAttribute('aria-label',titulo);
  const header=el('header'),h=el('h2',titulo),fechar=botao('×',()=>janela.close());fechar.setAttribute('aria-label','Fechar '+titulo);header.append(h,fechar);

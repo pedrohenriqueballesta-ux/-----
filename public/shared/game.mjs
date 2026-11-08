@@ -1,3 +1,4 @@
+import {registrarAtividadePasse} from './battle-pass.mjs';
 import {consumivelValido,acaoConsumivel} from './consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from './hunt-analyzer.mjs';
 import {preferenciasValidas} from './preferencias.mjs';
@@ -494,6 +495,7 @@ export class Game {
         if (attacker && this.players.has(attacker.id)) {
           analisar(attacker,'xp',target.xp);const zeniAntes=attacker.zeni; this.awardXp(attacker, target.xp); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
+          if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < RECOMPENSAS_MOBS.fracaoCristal ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
