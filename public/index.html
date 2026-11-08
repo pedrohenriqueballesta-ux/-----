@@ -50,9 +50,8 @@
       <section class="hud-mapa moldura" aria-label="Minimapa"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <strong id="regionName">—</strong>
         <canvas id="minimap" width="240" height="176" aria-label="Minimapa: clique para caminhar, arraste para explorar, use a roda para zoom" title="Clique para caminhar · Arraste para explorar · Scroll para zoom"></canvas>
-        <div class="minimapa-controles"><button type="button" id="minimapShrink" aria-label="Diminuir tamanho do minimapa">−</button><output id="minimapSize">1×</output><button type="button" id="minimapGrow" aria-label="Aumentar tamanho do minimapa">+</button><button type="button" id="minimapCenter" aria-label="Centralizar minimapa no personagem" title="Centralizar no personagem">◎</button><output id="minimapZoomLabel" title="Zoom do minimapa com a roda do mouse">100%</output></div>
+        <div class="minimapa-controles"><button type="button" id="minimapCenter" aria-label="Centralizar minimapa no personagem" title="Centralizar no personagem">◎</button><output id="minimapZoomLabel" title="Zoom do minimapa com a roda do mouse">Zoom 100%</output></div>
         <span id="regionType" class="hud-area">ÁREA SEGURA</span>
-        <div class="hud-zoom moldura-azul" aria-label="Zoom (roda do mouse)"><span><img class="zoom-ico" src="/assets/hud/zoom-mapa.png" alt=""> Zoom <b id="zoomLabel">100%</b></span></div>
       </section>
       <div class="hud-pilulas"><span id="connection" class="pilula conexao moldura-azul">Conectando</span></div>
       <section class="hud-chat moldura-azul" aria-label="Chat"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
@@ -91,9 +90,9 @@
   <!-- Mochila (B ou menu Mochila): equipamento em volta da silhueta, peso e Zeni, abas e 30 slots. Não é modal:
        o jogo continua andando por trás (client/hud.mjs). Visual: modelo do ChatGPT aprovado pelo Pedro (04/11). -->
   <dialog id="mochilaDialog" class="mochila" aria-label="Mochila">
-    <header class="mochila-topo"><span class="mochila-esfera" aria-hidden="true">★</span><h2>MOCHILA</h2><button type="button" class="mochila-x" data-close="mochilaDialog" aria-label="Fechar">✕</button></header>
+    <header class="mochila-topo"><span class="mochila-esfera" aria-hidden="true">★</span><h2>MOCHILA</h2><button type="button" id="mochilaMinimizar" class="mochila-x" aria-label="Minimizar mochila" aria-expanded="true" aria-controls="mochilaEquip mochilaInfo" title="Ocultar equipamentos e informações">−</button><button type="button" class="mochila-x" data-close="mochilaDialog" aria-label="Fechar">✕</button></header>
     <div class="mochila-equip" id="mochilaEquip"><img class="mochila-silhueta" src="/assets/hud/mochila/silhueta.png" alt=""></div>
-    <div class="mochila-info">
+    <div class="mochila-info" id="mochilaInfo">
       <div class="mochila-peso"><span>Peso <b id="mochilaPeso">0 / 0 kg</b></span><div class="barra barra-peso"><i id="mochilaPesoBarra"></i></div></div>
       <div class="mochila-zeni"><i aria-hidden="true">🪙</i><span>Zeni</span><b id="mochilaZeni">0</b></div>
     </div>

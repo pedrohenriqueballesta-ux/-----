@@ -1,3 +1,4 @@
+import {hotkeysConsumiveisValidas} from './consumiveis-hotkeys.mjs';
 import {vocacaoDoPersonagem} from './vocacoes.mjs';
 import {preferenciasValidas} from './preferencias.mjs';
 import {restaurarMissoes} from './missoes.mjs';
@@ -64,6 +65,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     zeni: clamp(Number(saved?.zeni ?? 200), 0, 9999999), inventory, kills: Number(saved?.kills) || 0,
     input: { x: 0, y: 0 }, facing: { x: 1, y: 0 }, aim: null, inputAt: now,
     autoAttack: false, autoSkills: false, autoHunt: false, targetId: null,
+    hotkeysConsumiveis:hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected),
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
     basicReady: 0, shotReady: 0, kameReady: 0, dashReady: 0, dashUntil: 0, charge: null,
@@ -88,7 +90,7 @@ export function exportPlayer(p) {
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode,
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
     novidades: restaurarNovidades(p.novidades),
-    inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
+    hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
     kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,

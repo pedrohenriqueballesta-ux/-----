@@ -48,7 +48,7 @@ export function instalarDetalhesHabilidades() {
   document.body.append(janela);
   let estado = null, alvo = null, dispensado = null, assinatura = '';
   const seletor = '[data-skill], #transformButton, #seedButton, #kiPotionButton, #foodBuff, #foodButton, [data-item]';
-  const chave = el => el.dataset.skill || el.dataset.item || ({ transformButton: 'transform', seedButton: 'seed' + (estado?.seedSelected || 15), kiPotionButton: 'ki', foodBuff: 'food', foodButton: 'food' })[el.id];
+  const chave = el => el.dataset.hotkeyConsumivel ? el.dataset.item || null : el.dataset.skill || el.dataset.item || ({ transformButton: 'transform', seedButton: 'seed' + (estado?.seedSelected || 15), kiPotionButton: 'ki', foodBuff: 'food', foodButton: 'food' })[el.id];
   const esconder = () => {
     alvo?.removeAttribute('aria-describedby'); alvo = null; assinatura = ''; janela.hidden = true;
   };
@@ -85,6 +85,7 @@ export function instalarDetalhesHabilidades() {
   document.addEventListener('pointerout', e => { if (!e.relatedTarget) esconder(); }, true);
   document.addEventListener('focusin', e => { const el = e.target.closest?.(seletor); if (el) mostrar(el); });
   document.addEventListener('focusout', esconder);
+  document.addEventListener('dragstart', esconder);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { dispensado = alvo; esconder(); } });
   addEventListener('blur', esconder);
   addEventListener('resize', esconder);

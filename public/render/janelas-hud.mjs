@@ -1,3 +1,4 @@
+import {instalarRedimensionamento} from './redimensionar-hud.mjs';
 import {instalarArrasto} from './painel-movel.mjs';
 const controles=new WeakMap();let instalado=false;
 export function fecharOutrasJanelas(atual){
@@ -14,6 +15,7 @@ export function instalarJanelasHud(){
    cabecalho=document.createElement('header');cabecalho.className='janela-loja-cabecalho';titulo.before(cabecalho);cabecalho.append(titulo,fechar);
   }
   if(!cabecalho)return;
+  if(janela.id!=='tutorialDialog')instalarRedimensionamento(janela,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]));
   cabecalho.classList.add('janela-arrastavel');cabecalho.title='Arraste para mover · duplo clique para restaurar a posição';
   // Auto Hunt já possui seu controlador de arrasto e altura próprios.
   if(janela.id==='autoHuntDialog'){controles.set(janela,null);return;}

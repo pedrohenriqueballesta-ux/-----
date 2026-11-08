@@ -15,7 +15,7 @@ import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarMochila, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
-import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
+import { zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
@@ -25,7 +25,7 @@ let entrada=null,tutorial=null;
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
-let tamanhoMini = 1, zoomMini = 1, vistaMini = null, destinoMini = null;
+let zoomMini = 1, vistaMini = null, destinoMini = null;
 let centroMini = null, arrastoMini = null;
 const trilhaSonora=instalarTrilhaSonora({obterEstado:()=>snapshot});
 const transicaoTeleport = criarTransicaoTeleport({
@@ -126,8 +126,8 @@ document.addEventListener('keydown', e => {
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
   else if (key === '5' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'q' || key === '8') action({ type: 'potion' });
-  else if (key === 'r' || key === '7') action({ type: 'seed' });
+  else if (key === 'q' || key === '8') action({ type: 'usarConsumivelHotkey',slot:8 });
+  else if (key === 'r' || key === '7') action({ type: 'usarConsumivelHotkey',slot:7 });
   else if (key === 'h') alternarCaca();
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
@@ -137,7 +137,6 @@ window.addEventListener('pagehide', () => {
 });
 function setZoom(value) {
   zoom = clampZoom(value);
-  $('zoomLabel').textContent = Math.round(zoom * 100) + '%';
   $('zoomOut').disabled = zoom <= CAMERA.zoomMinimo;
   $('zoomIn').disabled = zoom >= CAMERA.zoomMaximo;
   // Do not keep an aim point derived from the old camera scale.
@@ -154,31 +153,16 @@ function redesenharMini() {
 }
 function ajustarHudMinimapa() {
   if (!mini) return;
-  const painel = mini.closest('.hud-mapa'), info = document.querySelector('.hud-zoom');
-  if (painel && info) {
-    const u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--e')) || 1;
-    info.style.top = painel.getBoundingClientRect().bottom + 6 * u + 'px';
-  }
   const w = Math.max(1, mini.clientWidth), h = Math.max(1, mini.clientHeight);
   if (mini.width !== w || mini.height !== h) { mini.width = w; mini.height = h; }
   redesenharMini(); encaixarAutoHunt();
 }
-function definirTamanhoMini(valor) {
-  tamanhoMini = tamanhoMinimapa(valor);
-  mini?.closest('.hud-mapa')?.style.setProperty('--minimapa-tamanho', tamanhoMini);
-  $('minimapSize').textContent = tamanhoMini.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '×';
-  $('minimapShrink').disabled = tamanhoMini <= MINIMAPA.tamanhoMinimo;
-  $('minimapGrow').disabled = tamanhoMini >= MINIMAPA.tamanhoMaximo;
-  ajustarHudMinimapa();
-}
-$('minimapShrink').onclick = () => definirTamanhoMini(tamanhoMini - MINIMAPA.passoTamanho);
-$('minimapGrow').onclick = () => definirTamanhoMini(tamanhoMini + MINIMAPA.passoTamanho);
 mini?.closest('.hud-mapa')?.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
 mini?.addEventListener('wheel', e => {
   e.preventDefault(); e.stopPropagation();
   if (arrastoMini) return;
   zoomMini = zoomMinimapa(zoomMini, e.deltaY, e.deltaMode);
-  $('minimapZoomLabel').textContent = Math.round(zoomMini * 100) + '%';
+  $('minimapZoomLabel').textContent = 'Zoom ' + Math.round(zoomMini * 100) + '%';
   redesenharMini();
 }, { passive: false });
 mini?.addEventListener('pointerdown', e => {
@@ -218,7 +202,7 @@ function terminarArrastoMini(e) {
 for (const tipo of ['pointerup', 'pointercancel', 'lostpointercapture']) mini?.addEventListener(tipo, terminarArrastoMini);
 $('minimapCenter').onclick = () => { centroMini = null; redesenharMini(); };
 if (mini) new ResizeObserver(ajustarHudMinimapa).observe(mini.closest('.hud-mapa'));
-definirTamanhoMini(1);
+ajustarHudMinimapa();
 $('zoomOut').onclick = () => setZoom(zoom / 1.2);
 $('zoomIn').onclick = () => setZoom(zoom * 1.2);
 const toWorld = event => worldFromPointer(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera);

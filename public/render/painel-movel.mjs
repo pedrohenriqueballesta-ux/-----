@@ -1,3 +1,4 @@
+import {instalarRedimensionamento} from './redimensionar-hud.mjs';
 export function limitarPosicaoPainel(posicao, tamanho, tela) {
   const margem = 8;
   return {
@@ -9,6 +10,7 @@ export function limitarPosicaoPainel(posicao, tamanho, tela) {
 // Arrasta um painel comum da HUD (<section>/<div>) pela alça; salva a posição no localStorage.
 // Duplo clique na alça reseta a posição (volta ao lugar padrão do CSS).
 export function instalarArrasto(painel, alca, chave) {
+  if(typeof document!=='undefined')instalarRedimensionamento(painel,chave);
   let pref = null, arr = null;
   try { const s = JSON.parse(localStorage.getItem(chave)); if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) pref = s; } catch {}
   const aplicar = pos => {
@@ -18,7 +20,7 @@ export function instalarArrasto(painel, alca, chave) {
     return p;
   };
   alca.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || e.isPrimary === false || arr || e.target.closest?.('button,input,select,textarea,a')) return;
+    if (e.button !== 0 || e.isPrimary === false || arr || (e.target.closest?.('button,input,select,textarea,a') && e.target.closest?.('button,input,select,textarea,a') !== painel)) return;
     const caixa = painel.getBoundingClientRect();
     arr = { id: e.pointerId, ix: e.clientX, iy: e.clientY, left: caixa.left, top: caixa.top, moveu: false };
     alca.setPointerCapture(e.pointerId); e.preventDefault();
@@ -46,6 +48,7 @@ export function instalarArrasto(painel, alca, chave) {
 }
 
 export function instalarPainelMovel(painel, cabecalho, chave) {
+  if(typeof document!=='undefined')instalarRedimensionamento(painel,chave);
   let preferida = null, arrasto = null;
   try {
     const salva = JSON.parse(localStorage.getItem(chave));
@@ -53,8 +56,9 @@ export function instalarPainelMovel(painel, cabecalho, chave) {
   } catch {} // Armazenamento bloqueado não impede mover a janela nesta sessão.
 
   const aplicar = posicao => {
-    const altura = Math.min(posicao.altura, Math.max(60, innerHeight - 16));
-    painel.style.maxHeight = altura + 'px';
+    const manual=painel.classList?.contains('hud-tamanho-manual');
+    const altura = manual ? painel.getBoundingClientRect().height : Math.min(posicao.altura, Math.max(60, innerHeight - 16));
+    if(!manual)painel.style.maxHeight = altura + 'px';
     const caixa = painel.getBoundingClientRect();
     const ponto = limitarPosicaoPainel(posicao, { w: caixa.width, h: altura }, { w: innerWidth, h: innerHeight });
     Object.assign(painel.style, { left: ponto.x + 'px', top: ponto.y + 'px', right: 'auto', bottom: 'auto' });

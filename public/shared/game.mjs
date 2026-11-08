@@ -1,3 +1,4 @@
+import {consumivelValido,acaoConsumivel} from './consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from './hunt-analyzer.mjs';
 import {preferenciasValidas} from './preferencias.mjs';
 import {perfilPersonagem} from './perfil.mjs';
@@ -165,6 +166,18 @@ export class Game {
   action(id, data) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if(kind==='atribuirConsumivelHotkey'){
+      if(![7,8].includes(data.slot)||!consumivelValido(data.item)||!(p.inventory[data.item]>0))return {ok:false,reason:'Arraste um consumível da mochila para os slots 7 ou 8.'};
+      p.hotkeysConsumiveis[data.slot]=data.item;return {ok:true};
+    }
+    if(kind==='removerConsumivelHotkey'){
+      if(![7,8].includes(data.slot)||p.hotkeysConsumiveis[data.slot]!==data.item||!consumivelValido(data.item))return {ok:false};
+      p.hotkeysConsumiveis[data.slot]=null;return {ok:true};
+    }
+    if(kind==='usarConsumivelHotkey'){
+      if(![7,8].includes(data.slot))return {ok:false};
+      const uso=acaoConsumivel(p.hotkeysConsumiveis[data.slot]);return uso?this.action(id,uso):{ok:false};
+    }
     if(kind === 'huntAnalyzerReset'){p.huntAnalyzer=novaSessao();return {ok:true};}
     if (kind === 'target') {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
@@ -892,7 +905,7 @@ export class Game {
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
-        hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
         kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
