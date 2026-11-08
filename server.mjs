@@ -1,3 +1,4 @@
+import {vincularPasseConta} from './public/shared/battle-pass.mjs';
 import {EconomiaPremium} from './server/premium.mjs';
 import {Autenticacao,FalhaAuth,AUTH_CONFIG,digest} from './server/auth.mjs';
 import {conteudoEntrada} from './server/entrada-conteudo.mjs';
@@ -88,7 +89,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if(rota==='selecionar'){autenticacao.dono(a.conta,d.id);congelar(a.id);a.registro.selecionado=d.id;return json(res,200,{ok:true});}
         if(rota==='entrar'){
           const c=autenticacao.dono(a.conta,a.registro.selecionado);congelarConta(a.conta.id);a.registro.selecionado=c.id;a.registro.ativo=c.id;
-          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);await save();return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
+          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;vincularPasseConta(a.conta,p);if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);await save();return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
         }
         if(rota==='preferencias'){
           if(d.idioma!==undefined){if(!['pt-BR','en','es'].includes(d.idioma))throw new FalhaAuth('idiomaInvalido');a.conta.idioma=d.idioma;}

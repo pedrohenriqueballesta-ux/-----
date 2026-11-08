@@ -44,5 +44,6 @@ export function resgatarMissao(g,p,id){
  if(saldoReal(p)+(r.zeni||0)>MAX_ZENI_NORMAL||bagWeight(p.inventory)+peso>p.stats.capacity+.0001||Object.entries(itens).some(([k,q])=>(p.inventory[k]||0)+q>99999))return{ok:false,reason:'Libere espaço na mochila ou na carteira para receber a recompensa.'};
  (p.missoes[m.categoria]?.resgatadas||p.missoes.resgatadas).push(id);
  if(r.zeni)creditarZeni(p,r.zeni);for(const[k,q]of Object.entries(itens))p.inventory[k]=(p.inventory[k]||0)+q;
+ registrarAtividadePasse(p,'missoes',1,g.agora());
  if(r.xp)g.awardXp(p,r.xp);g.notify(p,'Recompensa recebida: '+m.nome+'.');return{ok:true};
 }
