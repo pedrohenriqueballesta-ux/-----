@@ -1,3 +1,4 @@
+import {PADRAO_PREFERENCIAS} from '../shared/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
@@ -264,11 +265,12 @@ function screenPosition(entity, dt) {
   const p = advancePose(renderPositions.get(entity.id), entity, dt, entity.id === playerId);
   renderPositions.set(entity.id, p); return p;
 }
-function shadow(x, y, size = 16) { ctx.fillStyle = '#15291e66'; ctx.beginPath(); ctx.ellipse(x, y + 4, size, size * 0.35, 0, 0, Math.PI * 2); ctx.fill(); }
+function shadow(x, y, size = 16) { if(snapshot?.self?.preferencias?.qualidade==='economica')return; ctx.fillStyle = '#15291e66'; ctx.beginPath(); ctx.ellipse(x, y + 4, size, size * 0.35, 0, 0, Math.PI * 2); ctx.fill(); }
 // Placa de nome e vida sobre o personagem (modelo da HUD): texto forte com contorno e barra arredondada.
 function placa(x, y, texto, hp, max, cor, largura = 52) {
   ctx.save(); ctx.font = 'bold 13px system-ui, -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
   ctx.lineWidth = 3; ctx.strokeStyle = '#000c'; ctx.strokeText(texto, x, y); ctx.fillStyle = '#fff'; ctx.fillText(texto, x, y);
+  if(snapshot?.self?.preferencias?.barrasVida===false){ctx.restore();return;}
   ctx.fillStyle = '#060b18d9'; ctx.beginPath(); ctx.roundRect(x - largura / 2 - 2, y + 4, largura + 4, 9, 4); ctx.fill();
   ctx.fillStyle = cor; ctx.beginPath(); ctx.roundRect(x - largura / 2, y + 6, Math.max(0, largura * hp / max), 5, 3); ctx.fill();
   ctx.restore();
@@ -279,9 +281,11 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
   if (!somenteCorpo) {
+    ctx.save();ctx.globalAlpha=snapshot.self.preferencias.particulas&&!snapshot.self.preferencias.reduzirAnimacoes?snapshot.self.preferencias.intensidade:0;
     if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
     if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
   }
+  if(!somenteCorpo)ctx.restore();
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -415,6 +419,9 @@ function effects(time) {
   floating = floating.filter(e => time - e.at < (e.type === 'pancada' ? 2.3 : 1.5));
   for (const e of floating) {
     const age = time - e.at; if (age < 0) continue;
+    const pref=snapshot?.self?.preferencias||PADRAO_PREFERENCIAS;
+    if(e.type==='damage'&&!pref.numerosDano)continue;
+    if(!['damage','heal','level'].includes(e.type)&&(!pref.particulas||pref.reduzirAnimacoes))continue;
     if (e.type === 'freezaNave' && age < 1.4) {   // clarão roxo e onda de energia pelo chão
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - age / 1.4);
       ctx.strokeStyle = '#d78bff'; ctx.lineWidth = 10 * (1 - age / 1.4) + 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 40 + age * 380, (40 + age * 380) * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
@@ -540,6 +547,8 @@ function desenharKameSobreInimigos(efeito, tempo, lancador, pos) {
     lancador && pos ? () => drawPlayer(lancador, pos, tempo, true) : null);
 }
 function frame(now) {
+  const fps=snapshot?.self?.preferencias?.fps||60;
+  if(now-lastFrame<1000/fps-.5){requestAnimationFrame(frame);return;}
   const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height); ctx.imageSmoothingEnabled = false;
   if (!snapshot) {

@@ -28,7 +28,7 @@ export function instalarNovidadesHud(acao) {
     atualizar(estado) {
       lista = estado?.novidades || [];
       for (const botao of document.querySelectorAll('.hud-menus [data-menu]')) {
-        const quantidade = novidadesDaAba(lista, botao.dataset.menu).length;
+        const quantidade = novidadesDaAba(lista, botao.dataset.menu).length+(botao.dataset.menu==='missoes'?(estado?.missoes||[]).filter(m=>m.estado==='concluida').length:botao.dataset.menu==='guilda'?(estado?.guildasPendentes||0):botao.dataset.menu==='correio'?(estado?.guildasPendentes||0)+lista.filter(n=>n.aba!=='correio'&&!n.lida&&!n.arquivada).length:0);
         let selo = botao.querySelector('.hud-novidade');
         if (quantidade && !selo) {
           selo = document.createElement('img'); selo.className = 'hud-novidade'; selo.src = '/assets/hud/alerta-novidade.png'; selo.alt = ''; selo.setAttribute('aria-hidden','true');

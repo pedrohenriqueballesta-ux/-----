@@ -1,3 +1,4 @@
+import {recompensaValida} from './correio.mjs';
 // Somente conteúdo publicado pelos sistemas do servidor gera alertas de abas.
 export const ABAS_NOVIDADES = Object.freeze(['personagem','mochila','missoes','bestiario','mapa','loja','ranking','guilda','correio','ajustes']);
 export function validarNovidade(n) {
@@ -8,8 +9,8 @@ export function validarNovidade(n) {
 export function restaurarNovidades(lista) {
   const ids = new Set();
   return (Array.isArray(lista) ? lista : []).filter(n => validarNovidade(n) && !ids.has(n.id) && ids.add(n.id)).slice(-100)
-    .map(n => ({id:n.id,aba:n.aba,titulo:n.titulo,texto:n.texto,lida:n.lida === true}));
+    .map(n => ({id:n.id,aba:n.aba,titulo:n.titulo,texto:n.texto,lida:n.lida === true,...(Number.isFinite(n.data)?{data:n.data}:{}),...(n.categoria?{categoria:['entrada','novidades','recompensas'].includes(n.categoria)?n.categoria:'entrada'}:{}),...(n.remetente?{remetente:String(n.remetente).slice(0,60)}:{}),...(n.arquivada?{arquivada:true}:{}),...(recompensaValida(n.recompensa)?{recompensa:structuredClone(n.recompensa),resgatada:n.resgatada===true}:{})}));
 }
 export function novidadesDaAba(lista, aba) {
-  return (Array.isArray(lista) ? lista : []).filter(n => validarNovidade(n) && n.aba === aba && !n.lida);
+  return (Array.isArray(lista) ? lista : []).filter(n => validarNovidade(n) && n.aba === aba && !n.lida && !n.arquivada);
 }
