@@ -123,7 +123,9 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const option = (name, fallback) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : fallback; };
   const port = Number(option('--port', process.env.PORT || 3000));
-  const host = option('--host', '127.0.0.1');
+  // Em hospedagem (Render/Railway/etc.) a plataforma define PORT e espera o servico ouvindo em 0.0.0.0.
+  // Local sem PORT continua em 127.0.0.1 (privado). --host ou HOST sobrescrevem.
+  const host = option('--host', process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1'));
   createGameServer({ port, host }).then(app => {
     console.log('\nDragon Ball Idle — protótipo 0.6');
     console.log('Abra no navegador: http://localhost:' + app.port);
