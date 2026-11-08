@@ -1,0 +1,47 @@
+[
+  {
+    "id": "217c2778c2f586eb52c25e009bf1444e68f07427",
+    "titulo": "Atualização #67",
+    "descricao": "Diferencia Zeni com moeda prateada transparente.",
+    "conteudo": "diferencia Zeni com moeda prateada transparente.",
+    "data": "2026-11-08T15:35:31-03:00",
+    "categoria": "atualizacao",
+    "url": "https://github.com/pedrohenriqueballesta-ux/-----/commit/217c2778c2f586eb52c25e009bf1444e68f07427"
+  },
+  {
+    "id": "15297103eb7f9e28f750bd74498b0f30ef16f013",
+    "titulo": "Atualização #66",
+    "descricao": "Implementa passe de batalha horizontal compartilhado por conta.",
+    "conteudo": "implementa passe de batalha horizontal compartilhado por conta.",
+    "data": "2026-11-08T15:28:21-03:00",
+    "categoria": "atualizacao",
+    "url": "https://github.com/pedrohenriqueballesta-ux/-----/commit/15297103eb7f9e28f750bd74498b0f30ef16f013"
+  },
+  {
+    "id": "b624fe3f7eaffc1b53d996a4c6c708ba62bd54e3",
+    "titulo": "Atualização #65",
+    "descricao": "Destaca Store e Battle Pass e atualiza catálogo e ícones.",
+    "conteudo": "destaca Store e Battle Pass e atualiza catálogo e ícones.",
+    "data": "2026-11-08T14:57:22-03:00",
+    "categoria": "atualizacao",
+    "url": "https://github.com/pedrohenriqueballesta-ux/-----/commit/b624fe3f7eaffc1b53d996a4c6c708ba62bd54e3"
+  },
+  {
+    "id": "8ce3001ba1cdb8ef91bfcf48ba9e591525918f61",
+    "titulo": "store e battle pass",
+    "descricao": "Store e battle pass.",
+    "conteudo": "store e battle pass.",
+    "data": "2026-11-08T11:33:29-03:00",
+    "categoria": "atualizacao",
+    "url": "https://github.com/pedrohenriqueballesta-ux/-----/commit/8ce3001ba1cdb8ef91bfcf48ba9e591525918f61"
+  },
+  {
+    "id": "e590da9b879a765758b3399af4fab9efc53d47c4",
+    "titulo": "Atualização #64",
+    "descricao": "Ajusta HUDs e permite configurar consumíveis por arrasto.",
+    "conteudo": "ajusta HUDs e permite configurar consumíveis por arrasto.",
+    "data": "2026-11-08T11:16:10-03:00",
+    "categoria": "atualizacao",
+    "url": "https://github.com/pedrohenriqueballesta-ux/-----/commit/e590da9b879a765758b3399af4fab9efc53d47c4"
+  }
+]
