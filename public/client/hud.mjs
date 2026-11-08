@@ -1,3 +1,4 @@
+import {instalarConsumiveisHud,atualizarConsumiveisHud} from '../render/consumiveis-hud.mjs';
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/janelas-hud.mjs';
 import {instalarAbasHud} from '../render/abas-hud.mjs';
@@ -165,18 +166,14 @@ export function atualizarHud(snapshot, playerId) {
   $('autoSeedInfo').textContent = `${s.inventory['seed' + s.seedSelected]} sementes de ${s.seedSelected}% · ${!s.inventory['seed' + s.seedSelected] ? 'sem estoque' : s.seedRemaining > 0 ? 'recarga ' + s.seedRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
-  $('foodCount').textContent = s.inventory.food; $('kiCount').textContent = s.inventory.ki;
+  $('foodCount').textContent = s.inventory.food;
   $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + s.inventory.crystal + ' cristais';
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);abasHud?.atualizar(snapshot);
   if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
-  $('seedButton').disabled = s.seedRemaining > 0 || !s.inventory['seed' + s.seedSelected];
-  $('seedCount').textContent = s.inventory['seed' + s.seedSelected] || 0;
-  $('seedCooldown').textContent = s.seedRemaining > 0 ? Math.ceil(s.seedRemaining) + 's' : '';
-  $('kiPotionButton').disabled = s.kiRemaining > 0 || !s.inventory.ki;
-  $('kiCooldown').textContent = s.kiRemaining > 0 ? Math.ceil(s.kiRemaining) + 's' : '';
+  atualizarConsumiveisHud(s);
   $('seedStatus').textContent = s.seedRemaining > 0 ? 'Todas as sementes em recarga · ' + Math.ceil(s.seedRemaining) + 's' : 'Cura instantânea · recarga compartilhada de 20s';
   $('seedStatus').classList.toggle('waiting', s.seedRemaining > 0);
   $('kiPotionText').textContent = s.kiRemaining > 0 ? 'Recarga: ' + Math.ceil(s.kiRemaining) + 's' : 'Recupera 45% · Q';
@@ -320,7 +317,7 @@ const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
 const SLOTS_EQUIP = [['mochila', 'Mochila', 212, 189, 306, 276], ['cabeca', 'Cabeça', 377, 152, 476, 231], ['colar', 'Colar', 547, 189, 641, 276],
   ['anel', 'Anel', 212, 301, 306, 387], ['peito', 'Roupa', 379, 305, 475, 387], ['braco', 'Munhequeira', 547, 301, 641, 387],
   ['arma', 'Arma', 212, 411, 306, 497], ['calca', 'Calça', 379, 407, 475, 489], ['cinto', 'Faixa', 547, 411, 641, 497], ['botas', 'Botas', 379, 499, 475, 573]];
-let abaMochila = 'tudo', mochilaDesenhada = '';
+let abaMochila = 'tudo', mochilaDesenhada = '', arrastandoConsumivel=false, evitarCliqueConsumivel=0;
 const naArea = (el, x0, y0, x1, y1) => {
   const [ax, ay, al, aa] = AREA_EQUIP;
   Object.assign(el.style, { left: (x0 - ax) / al * 100 + '%', top: (y0 - ay) / aa * 100 + '%', width: (x1 - x0) / al * 100 + '%', height: (y1 - y0) / aa * 100 + '%' });
@@ -339,7 +336,7 @@ function montarMochila() {
   };
 }
 function atualizarMochila(s) {
-  if (!s || !$('mochilaDialog').open) return;
+  if (!s || !$('mochilaDialog').open || arrastandoConsumivel) return;
   const pesoCheio = s.weight >= s.stats.capacity - 0.01;
   $('mochilaPeso').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('mochilaPesoBarra').style.width = Math.min(100, 100 * s.weight / Math.max(1, s.stats.capacity)) + '%';
@@ -352,22 +349,26 @@ function atualizarMochila(s) {
   $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
     const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
     if (!item) { slot.disabled = true; return slot; }
-    if (item.usar) slot.dataset.item = item.key;
+    if (item.usar) {
+      slot.dataset.item = item.key;slot.draggable=true;
+      slot.addEventListener('dragstart',e=>{arrastandoConsumivel=true;evitarCliqueConsumivel=performance.now()+300;e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('application/x-dbi-consumivel',item.key);e.dataTransfer.setData('text/plain',item.key);});
+      slot.addEventListener('dragend',()=>{arrastandoConsumivel=false;evitarCliqueConsumivel=performance.now()+300;mochilaDesenhada='';atualizarMochila(ctx?.snapshot()?.self);});
+    }
     const qtd = s.inventory[item.key];
     const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
     imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
-    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar' : '');
+    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar ou arraste para a hotkey 7/8' : '');
     slot.setAttribute('aria-label', slot.title);
     if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
     const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
-    slot.onclick = () => { slot.blur(); if (item.usar) action(item.usar); };
+    slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && performance.now()>evitarCliqueConsumivel) action(item.usar); };
     return slot;
   }));
 }
 // Encaixa a Mochila no vão entre o cartão do jogador e as pílulas (comida/conexão): começa logo abaixo do
 // cartão e, se não couber inteira, encolhe tudo por igual (--m) até terminar acima das pílulas.
 function encaixarMochila() {
-  const janela = $('mochilaDialog'); if (!janela.open) return;
+  const janela = $('mochilaDialog'); if (!janela.open || janela.classList.contains('hud-tamanho-manual')) return;
   const u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--e')) || 1, folga = 8 * u;
   const cartao = document.querySelector('.hud-jogador')?.getBoundingClientRect(), pilulas = document.querySelector('.hud-pilulas')?.getBoundingClientRect();
   const topo = (cartao?.bottom ?? 0) + folga, fim = pilulas?.height ? pilulas.top - folga : innerHeight - folga;
@@ -393,7 +394,7 @@ export function encaixarAutoHunt() {
   const painel = $('autoHuntDialog'); if (!painel.open) return;
   if (autoHuntMovel?.restaurar()) return;
   const caixa = seletor => document.querySelector?.(seletor)?.getBoundingClientRect();
-  const topo = Math.max(caixa('.hud-topo')?.bottom || 0, caixa('.hud-mapa')?.bottom || 0, caixa('.hud-zoom')?.bottom || 0) + 8;
+  const topo = Math.max(caixa('.hud-topo')?.bottom || 0, caixa('.hud-mapa')?.bottom || 0, 0) + 8;
   const fim = Math.min(caixa('.hud-tecnicas')?.top ?? innerHeight - 16, caixa('.hud-auto')?.top ?? innerHeight - 16) - 8;
   painel.style.bottom = Math.max(8, innerHeight - fim) + 'px';
   painel.style.maxHeight = Math.max(0, Math.min(380, fim - topo)) + 'px';
@@ -420,6 +421,20 @@ export function ligarHud(contexto) {
   const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
   const telas = { bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
+  const mochila=$('mochilaDialog'),minimizar=$('mochilaMinimizar');
+  const exibirMochilaCompacta=compacta=>{
+    mochila.classList.toggle('mochila-compacta',compacta);
+    $('mochilaEquip').hidden=compacta;$('mochilaInfo').hidden=compacta;
+    minimizar.textContent=compacta?'▢':'−';minimizar.setAttribute('aria-expanded',String(!compacta));
+    minimizar.setAttribute('aria-label',compacta?'Expandir mochila':'Minimizar mochila');
+    minimizar.title=compacta?'Mostrar equipamentos e informações':'Ocultar equipamentos e informações';
+  };
+  try{exibirMochilaCompacta(localStorage.getItem('dbi-mochila-compacta')==='true');}catch{}
+  minimizar.onclick=()=>{
+    const compacta=!mochila.classList.contains('mochila-compacta');exibirMochilaCompacta(compacta);
+    try{localStorage.setItem('dbi-mochila-compacta',String(compacta));}catch{}
+    encaixarMochila();
+  };
   instalarJanelasHud();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
   for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if(abasHud.abrir(btn.dataset.menu))return; if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
@@ -445,10 +460,18 @@ export function ligarHud(contexto) {
   };
   $('autoHuntButton').onclick = alternarAutoHunt;
   autoHuntMovel = instalarPainelMovel($('autoHuntDialog'), $('autoHuntDialog').querySelector('.auto-hunt-head'), 'dbi-auto-hunt-posicao');
-  // Painéis arrastáveis pela alça (⠿): minimapa, skills, chat e automação. Posição salva por painel no localStorage.
-  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-tecnicas', 'dbi-pos-skills'], ['.hud-chat', 'dbi-pos-chat'], ['.hud-auto', 'dbi-pos-auto']]) {
+  // Apenas os painéis configuráveis recebem alças; HUDs fixas ignoram posições antigas.
+  for(const seletor of ['.hud-chat','.hud-tecnicas','.hud-topo','.hud-logo','.hud-pilulas','.hud-dica']){
+    document.querySelector(seletor)?.querySelectorAll('.arrasto-alca,.hud-redimensionar').forEach(alca=>alca.remove());
+  }
+  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-auto', 'dbi-pos-auto']]) {
     const painel = document.querySelector(sel), alca = painel?.querySelector('.arrasto-alca');
     if (painel && alca) instalarArrasto(painel, alca, chave);
+  }
+  for(const sel of ['.hud-jogador','.hud-alvo','.hud-godmode','.hud-missao']){
+    const painel=document.querySelector(sel);if(!painel)continue;
+    const alca=document.createElement('span');alca.className='arrasto-alca';alca.textContent='⠿';alca.title='Arrastar HUD · duplo clique restaura posição';painel.append(alca);
+    instalarArrasto(painel,alca,'dbi-pos-'+sel.slice(1));
   }
   $('autoHuntButton').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
   $('autoHuntDialog').addEventListener('close', () => $('autoHuntButton').setAttribute('aria-expanded', 'false'));
@@ -458,8 +481,7 @@ export function ligarHud(contexto) {
   });
   $('huntButton').addEventListener('click', alternarCaca);
   $('foodButton').onclick = () => action({ type: 'food' });
-  $('kiPotionButton').onclick = () => action({ type: 'potion' });
-  $('seedButton').onclick = () => action({ type: 'seed', potency: Number($('seedSelect').value) });
+  instalarConsumiveisHud(action);
   $('seedSelect').onchange = () => action({ type: 'selectSeed', potency: Number($('seedSelect').value) });
   $('transformButton').onclick = () => action({ type: 'transform' });
   $('godmodeToggle').onclick = () => action({ type: 'godmode' });
