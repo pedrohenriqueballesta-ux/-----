@@ -257,9 +257,9 @@ dialog h2{margin:2px 0 6px}
 dialog input{padding:8px;border:1px solid var(--linha);border-radius:6px;background:#0b1719}
 .primary{padding:9px 12px;border:1px solid var(--laranja);border-radius:6px;background:#3a2410;font-weight:600}
 .close-dialog{float:right;border:0;background:none;font-size:22px;line-height:1}
-.shop-items{display:grid;gap:6px;margin:10px 0}
-.shop-item{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.shop-item button{padding:5px 8px;border:1px solid var(--linha);border-radius:6px;background:#0b1719}
+.shop-items{display:grid;gap:10px;margin:14px 0}
+.shop-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:12px;border:1px solid #35516c;border-radius:10px;background:#11253b}
+.shop-item button{padding:8px 12px;border:1px solid #99722b;border-radius:7px;background:#533810;font-weight:700;min-width:138px}.shop-item button:disabled{opacity:.45;cursor:not-allowed}
 dialog small{display:block;margin-top:8px;color:var(--suave)}
 
 /* Visual das janelas de mundo (PR #15): hoje usado pela janela do portal e pelo mapa. */
@@ -349,3 +349,37 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .bestiario-nota{font-size:12px;color:#afc1d5}
 .bestiario-aviso{padding:10px;border-left:3px solid var(--ouro);background:#9e611522;font-size:13px}
 @media(max-width:650px){.bestiario{top:72px;padding:12px;height:auto;overflow:auto;max-height:calc(100vh - 84px)}.bestiario-filtros{grid-template-columns:1fr 1fr}.bestiario-filtros input{grid-column:1/-1}.bestiario-corpo{grid-template-columns:1fr;gap:12px;flex:none}.bestiario-lista{max-height:155px}.bestiario-detalhe{max-height:none;overflow:visible}.bestiario-apresentacao h3{font-size:19px}.bestiario dl{font-size:12px}.bestiario-drops li{grid-template-columns:26px 1fr}.bestiario-drops b{grid-column:2}}
+#shopDialog{width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 32px);overflow:auto;background:#0d1c2fee;border-color:var(--ouro);border-radius:14px}
+#shopDialog h2{color:#ffda80;padding-right:26px}
+#shopNotice{font-size:13px;margin:8px 0;color:#d2deea}
+.shop-resources{padding:8px 10px;margin:8px 0;background:#ffffff09;border-radius:7px;color:#b8cde0;font-size:12px}
+.shop-item-figura{position:relative;grid-row:1/4;width:52px;height:60px;display:grid;place-items:center}
+.shop-item-figura img{width:52px;height:52px;object-fit:contain}
+.shop-item-figura small{position:absolute;right:0;bottom:0;margin:0;font-size:11px;font-weight:800;color:#ffdc7e;text-shadow:0 1px 3px #000,0 0 4px #000}
+.shop-item-nome{display:grid;gap:2px}.shop-item-nome small{margin:0;font-size:12px;color:#a5bfd6}
+.shop-quantidade{grid-column:2/4;display:grid;grid-template-columns:minmax(0,1fr) 75px;align-items:center;gap:12px}
+.shop-quantidade input[type=range]{width:100%;min-width:0;padding:0;accent-color:#f5bb4c;cursor:pointer}
+.shop-quantidade input[type=number]{width:75px;padding:6px 8px;border-color:#547496;text-align:center;background:#0c1a2e}
+.shop-item .shop-item-limite{grid-column:2/4;margin:0;font-size:11px;color:#abc0d2}
+@media(max-width:480px){#shopDialog{padding:14px}.shop-item{grid-template-columns:42px minmax(0,1fr);gap:7px 10px;padding:10px}.shop-item-figura{width:42px;height:50px;grid-row:1/3}.shop-item-figura img{width:42px;height:42px}.shop-item button{grid-column:2;min-width:0;width:100%}.shop-quantidade{grid-column:1/-1;grid-template-columns:minmax(0,1fr) 68px}.shop-quantidade input[type=number]{width:68px}.shop-item .shop-item-limite{grid-column:1/-1}}
+.shop-abas,.venda-modos{display:flex;gap:8px;margin:12px 0}
+.shop-abas button,.venda-modos button{flex:1;padding:9px;border:1px solid #4d6985;border-radius:7px;background:#12283f;font-weight:700}
+.shop-abas button.ativa,.venda-modos button.ativa{border-color:var(--ouro);background:#3d3420;color:#ffdc83}
+#shopVender[hidden],#shopComprar[hidden],#shopVender section[hidden],.venda-item[hidden]{display:none}
+.venda-nota,.venda-status{font-size:12px;color:#b7cbdc;margin:10px 0}.venda-status{color:#ffdc83}
+.venda-grade,.mercado-lista{display:grid;gap:10px;margin:12px 0}
+.venda-item,.mercado-oferta{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:10px;border:1px solid #35516c;border-radius:9px;background:#11253b}
+.venda-icone{width:42px;height:42px;object-fit:contain}
+.venda-item strong,.mercado-oferta strong{display:block}.venda-item small,.mercado-oferta small{margin:3px 0;font-size:11px;color:#b7cbdc}
+.venda-item button,.mercado-oferta button,.mercado-saldo button,.mercado-anunciar button,.mercado-filtros button{padding:8px;border:1px solid #6b8e68;border-radius:7px;background:#23472a;font-weight:700}
+#shopVender button:disabled{opacity:.45;cursor:not-allowed}
+.venda-quantidade{grid-column:2/4;display:grid;grid-template-columns:1fr 70px;align-items:center;gap:10px}
+#shopVender input,#shopVender select{min-width:0;padding:7px;border:1px solid #547496;border-radius:6px;background:#0c1a2e;width:100%}
+#shopVender input[type=range]{padding:0;accent-color:#f5bb4c}
+.mercado-saldo{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--ouro);border-radius:8px;font-size:12px}
+.mercado-anunciar{display:grid;grid-template-columns:1.4fr .7fr 1fr;gap:10px;padding:12px;margin:14px 0;border:1px solid #35516c;border-radius:9px}
+.mercado-anunciar h3{grid-column:1/-1;margin:0;color:#ffdc83;font-size:15px}
+.mercado-anunciar label{display:grid;gap:5px;font-size:11px;color:#b7cbdc}.mercado-anunciar button{grid-column:1/-1}
+.mercado-filtros{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+.mercado-comprar{display:grid;grid-template-columns:60px auto;gap:8px}
+@media(max-width:480px){.venda-item,.mercado-oferta{grid-template-columns:36px minmax(0,1fr)}.venda-item>button,.mercado-oferta>button,.mercado-comprar{grid-column:2}.venda-quantidade{grid-column:1/-1}.mercado-anunciar{grid-template-columns:1fr 1fr}.mercado-anunciar label:first-of-type{grid-column:1/-1}.mercado-filtros{grid-template-columns:1fr 1fr}.mercado-filtros input{grid-column:1/-1}.mercado-saldo{align-items:flex-start;flex-direction:column}.venda-icone{width:36px;height:36px}}
