@@ -1,0 +1,6 @@
+import {randomBytes} from 'node:crypto';
+export async function postTeste(base,rota,dados,token){const r=await fetch(base+'/api/'+rota,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(dados)});return{res:r,dados:await r.json()};}
+export async function reentrarSessaoTeste(base,token){const r=await fetch(base+'/api/auth/sessao',{headers:{Authorization:'Bearer '+token}}),d=await r.json();if(!r.ok)throw Error('Sessão de teste inválida: '+JSON.stringify(d));const c=d.conta.personagens[0];if(!c)throw Error('Personagem de teste ausente');await postTeste(base,'auth/selecionar',{id:c.id},token);const entrar=await postTeste(base,'auth/entrar',{},token);if(!entrar.res.ok)throw Error(JSON.stringify(entrar.dados));return{...entrar.dados,token,characterId:c.id};}
+export async function criarSessaoTeste(base,nome='Teste'){
+ const cadastro=await postTeste(base,'auth/cadastro',{usuario:'teste_'+randomBytes(5).toString('hex'),senha:'TesteSeguro!123',idioma:'pt-BR'});if(!cadastro.res.ok)throw Error(JSON.stringify(cadastro.dados));const token=cadastro.res.headers.get('set-cookie').split(';')[0].split('=')[1];const c=await postTeste(base,'auth/criar-personagem',{nome,vocacao:'goku'},token);if(!c.res.ok)throw Error(JSON.stringify(c.dados));return reentrarSessaoTeste(base,token);
+}

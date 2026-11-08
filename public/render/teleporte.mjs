@@ -51,7 +51,7 @@ export function desenharTransicao(ctx, imagem, largura, altura, tempo) {
   ctx.restore();
 }
 
-export function criarTransicaoTeleport({ viajar, pronto, concluir, avisar }) {
+export function criarTransicaoTeleport({ viajar, pronto, concluir, avisar, container }) {
   const relogio = new RelogioTeleport(), imagens = TELEPORTE.imagens.map(src => {
     const imagem = new Image(); imagem.src = src; return imagem;
   });
@@ -73,7 +73,7 @@ export function criarTransicaoTeleport({ viajar, pronto, concluir, avisar }) {
         tela = document.createElement('canvas');
         tela.setAttribute('aria-label', 'Viajando para o destino'); tela.setAttribute('role', 'status');
         tela.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:10000;pointer-events:auto;touch-action:none';
-        document.body.append(tela);
+        (container||document.body).append(tela);
         const pintura = tela.getContext('2d');
         relogio.iniciar(destino); preparando = false;
         let anterior = performance.now();

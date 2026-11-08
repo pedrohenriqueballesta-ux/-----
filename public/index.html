@@ -7,8 +7,9 @@
   <meta name="description" content="Protótipo jogável de RPG idle de Dragon Ball: explore, evolua e configure sua caça automática.">
   <title>Dragon Ball Idle — v0.6</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/entrada.css">
 </head>
-<body>
+<body class="em-login">
   <!-- O mapa do jogo ocupa a tela; a HUD fica por cima, ligada por client/hud.mjs. -->
   <main class="jogo">
     <canvas id="world" aria-label="Mapa do jogo. Use WASD ou as setas para movimentar." tabindex="0"></canvas>
@@ -81,7 +82,7 @@
     <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><span id="respawnText">Retornando à vila...</span></div>
     <div id="notifications" class="notifications" aria-live="polite"></div>
   </main>
-  <dialog id="welcomeDialog"><form id="joinForm"><span class="eyebrow">PRIMEIRA EXPEDIÇÃO</span><h2>Seu caminho começa aqui.</h2><p>Explore os campos, evolua o Goku e teste sua configuração de caça. Outros jogadores conectados a este servidor aparecem no mesmo mapa.</p><label for="nickname">Nome do jogador</label><input id="nickname" maxlength="18" value="Guerreiro" autocomplete="nickname" required><button class="primary" type="submit">Entrar no mundo <span>→</span></button><small>Progresso salvo automaticamente no servidor local.</small></form></dialog>
+  <dialog id="welcomeDialog" class="entrada" aria-label="Dragon Ball Idle"></dialog>
   <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><span class="eyebrow">VILA DO LAGO</span><h2>Mercado de suprimentos</h2><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button id="sellButton" class="primary">Vender todos os materiais</button><small>Todos os preços são provisórios para o protótipo.</small></dialog>
   <!-- Portal: abre ao encostar num portal do mapa; cada cartão é um destino (client/hud.mjs). -->
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></dialog>

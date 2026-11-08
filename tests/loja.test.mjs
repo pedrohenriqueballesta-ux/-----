@@ -1,3 +1,4 @@
+import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../public/shared/game.mjs';
@@ -51,7 +52,7 @@ test('pedidos concorrentes não gastam saldo inexistente nem entregam lote parci
  const app=await createGameServer({port:0,dataDir:null});
  try{
   const url='http://127.0.0.1:'+app.port;
-  const sessao=await(await fetch(url+'/api/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Compra concorrente'})})).json();
+  const sessao=await criarSessaoTeste(url,'Compra concorrente');
   const p=app.game.players.get(sessao.playerId);Object.assign(p,MERCHANT);p.zeni=24;const n=p.inventory.food;
   const comprar=()=>fetch(url+'/api/action',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessao.token},body:JSON.stringify({type:'buy',item:'food',quantidade:2})}).then(r=>r.json());
   const resultados=await Promise.all([comprar(),comprar()]);assert.equal(resultados.filter(r=>r.ok).length,1);assert.equal(p.zeni,0);assert.equal(p.inventory.food,n+2);

@@ -1,3 +1,4 @@
+import {tradutor} from './i18n.mjs';
 import {areaPorId} from '../shared/config.mjs';
 import {preferenciasValidas} from '../shared/preferencias.mjs';
 let instancia=null;
@@ -64,11 +65,11 @@ export function instalarTrilhaSonora({obterEstado,documento=document,armazenamen
  const saida=seguirSaidaPadrao({audio});
  const login=documento.getElementById('welcomeDialog'),dica=documento.createElement('p');dica.className='hud-nota';dica.hidden=true;dica.setAttribute('role','status');login?.append(dica);
  let cache=preferenciasValidas(),assinatura='';try{cache=preferenciasValidas(JSON.parse(armazenamento?.getItem('dbi-audio-preferencias')||'{}'));}catch{}
- const player=criarTrilhaSonora({audio,antesDeTocar:()=>saida.sincronizar(),aoEstado:s=>{dica.hidden=!login?.open||!s.ativa||!s.volume||(!s.bloqueado&&!s.erro);dica.textContent=s.erro?'A música não pôde ser carregada. As demais funções continuam disponíveis.':'Clique ou pressione uma tecla para iniciar a música.';}});
+ const player=criarTrilhaSonora({audio,antesDeTocar:()=>saida.sincronizar(),aoEstado:s=>{dica.hidden=!login?.open||!s.ativa||!s.volume||(!s.bloqueado&&!s.erro);dica.textContent=tradutor(documento.documentElement.lang)(s.erro?'audioFalha':'audioBloqueado');}});
  const atualizar=()=>{const snapshot=obterEstado();if(snapshot?.self?.preferencias){const p=snapshot.self.preferencias,sig=JSON.stringify([p.musicaAtiva,p.volumeMusica]);cache=preferenciasValidas(p);if(sig!==assinatura){assinatura=sig;try{armazenamento?.setItem('dbi-audio-preferencias',JSON.stringify({musicaAtiva:cache.musicaAtiva,volumeMusica:cache.volumeMusica}));}catch{}}}player.atualizar(snapshot,Boolean(login?.open),cache);};
  instancia=player;
  const interagir=e=>{if(!e.isTrusted)return;if(player.estado().erro)player.testar();else player.desbloquear();};documento.addEventListener('pointerdown',interagir,true);documento.addEventListener('pointerup',interagir,true);documento.addEventListener('click',interagir,true);documento.addEventListener('keydown',interagir,true);
  const observer=new MutationObserver(atualizar);if(login)observer.observe(login,{attributes:true,attributeFilter:['open']});
  const aoSair=()=>player.suspender(),aoVoltar=()=>{atualizar();player.retomar();};globalThis.addEventListener('focus',saida.sincronizar);globalThis.addEventListener('pagehide',aoSair);globalThis.addEventListener('pageshow',aoVoltar);atualizar();
- return{atualizar,destruir(){observer.disconnect();documento.removeEventListener('pointerdown',interagir,true);documento.removeEventListener('pointerup',interagir,true);documento.removeEventListener('click',interagir,true);documento.removeEventListener('keydown',interagir,true);globalThis.removeEventListener('focus',saida.sincronizar);saida.destruir();globalThis.removeEventListener('pagehide',aoSair);globalThis.removeEventListener('pageshow',aoVoltar);player.destruir();if(instancia===player)instancia=null;audio.remove();dica.remove();}};
+ return{atualizar,get preferencias(){return cache;},configurar(valor){cache=preferenciasValidas(valor);try{armazenamento?.setItem('dbi-audio-preferencias',JSON.stringify({musicaAtiva:cache.musicaAtiva,volumeMusica:cache.volumeMusica}));}catch{}player.atualizar(obterEstado(),Boolean(login?.open),cache);},destruir(){observer.disconnect();documento.removeEventListener('pointerdown',interagir,true);documento.removeEventListener('pointerup',interagir,true);documento.removeEventListener('click',interagir,true);documento.removeEventListener('keydown',interagir,true);globalThis.removeEventListener('focus',saida.sincronizar);saida.destruir();globalThis.removeEventListener('pagehide',aoSair);globalThis.removeEventListener('pageshow',aoVoltar);player.destruir();if(instancia===player)instancia=null;audio.remove();dica.remove();}};
 }

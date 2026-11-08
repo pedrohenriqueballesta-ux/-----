@@ -1,3 +1,5 @@
+import {montarEntrada,requisitarAuth} from './entrada.mjs';
+import {instalarTutorial} from './tutorial.mjs';
 import {instalarTrilhaSonora} from './audio.mjs';
 import {PADRAO_PREFERENCIAS} from '../shared/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
@@ -19,6 +21,7 @@ import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advance
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
 const canvas = document.getElementById('world'), ctx = canvas.getContext('2d'), mini = document.getElementById('minimap'), mctx = mini?.getContext('2d');
 const keys = new Set(), renderPositions = new Map(), seenEvents = new Set();
+let entrada=null,tutorial=null;
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
@@ -37,8 +40,8 @@ const transicaoTeleport = criarTransicaoTeleport({
   avisar: mensagem => notify(mensagem)
 });
 async function api(path, data = {}) {
-  const res = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error(res.status === 401 ? 'Sessão desconectada. Recarregue a página.' : 'Não foi possível executar a ação.');
+  const res = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials:'same-origin',body: JSON.stringify(data) });
+  if(!res.ok){if([401,403].includes(res.status))entrada?.sessaoExpirada();throw new Error(entrada?.t([401,403].includes(res.status)?'sessaoExpirada':'requisicaoInvalida')||'Falha de conexão.');}
   return res.json();
 }
 function action(data) {
@@ -57,15 +60,12 @@ function connected(ok) {
   $('connection').classList.toggle('hidden', ok);
   $('connection').classList.toggle('offline', !ok);
 }
-async function join(name, previousToken) {
-  const res = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, token: previousToken }) });
-  if (!res.ok) throw new Error('Não foi possível entrar. Confirme se o servidor está rodando.');
-  const data = await res.json(); session = data.token; playerId = data.playerId;
-  sessionStorage.setItem('dbi-session', session); localStorage.setItem('dbi-last-session', session); localStorage.setItem('dbi-name', name);
-  if (eventSource) eventSource.close();
-  eventSource = new EventSource('/api/events?session=' + encodeURIComponent(session));
-  eventSource.onopen = () => connected(true);
-  eventSource.onerror = () => connected(false);
+function sairDoMundo(){if(eventSource){eventSource.close();eventSource=null;}session='';snapshot=null;playerId='';keys.clear();touchVector={x:0,y:0};pointerAim=null;floating=[];renderPositions.clear();seenEvents.clear();tutorial?.fechar();for(const d of document.querySelectorAll('dialog[open]'))if(d.id!=='welcomeDialog')d.close();trilhaSonora.atualizar();}
+function conectarMundo(data){
+ if(eventSource)eventSource.close();session='autenticado';playerId=data.playerId;snapshot=null;
+ return new Promise((resolve,reject)=>{let primeiro=true;const prazo=setTimeout(()=>{eventSource?.close();session='';reject(new Error('conexao'));},12000);
+ eventSource=new EventSource('/api/events');eventSource.onopen=()=>connected(true);
+ eventSource.onerror=()=>{connected(false);if(primeiro){clearTimeout(prazo);eventSource?.close();session='';reject(new Error('conexao'));}else entrada?.sessaoExpirada();};
   eventSource.onmessage = event => {
     try {
       const proximo = JSON.parse(event.data);
@@ -85,14 +85,18 @@ async function join(name, previousToken) {
         else floating.push(effect);
       }
       if (seenEvents.size > 2000) { const items = [...seenEvents]; items.slice(0, 1000).forEach(id => seenEvents.delete(id)); }
+      if(primeiro){primeiro=false;clearTimeout(prazo);resolve();}
       if (performance.now() - lastUI > 90) { atualizarHud(snapshot, playerId); lastUI = performance.now(); }
     } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
   };
-  if ($('welcomeDialog').open) $('welcomeDialog').close();
-  if(new URLSearchParams(location.search).get('criar')==='1'){const url=new URL(location.href);url.searchParams.delete('criar');history.replaceState(null,'',url);}
-  notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para viajar aos planetas.');
-}
 
+ });
+}
+async function entrarNoMundo(){
+ let pronto=false,carregado=false;
+ const ok=await new Promise(resolve=>{const animacao=criarTransicaoTeleport({container:document.getElementById('welcomeDialog'),viajar:async()=>{const r=await requisitarAuth('entrar',{});entrada.atualizarConta(r.conta);await conectarMundo(r);pronto=true;return{ok:true};},pronto:()=>{if(!snapshot?.self)return false;const mundo=PLANETS[snapshot.planet],solo=mundo.solo?soloDe(mundo):null;carregado=!solo||Boolean(solo.complete&&solo.naturalWidth);return carregado;},concluir:()=>resolve(pronto&&carregado),avisar:()=>{}});animacao.iniciar('entrada');});
+ if(!ok)sairDoMundo();else setTimeout(()=>tutorial?.iniciar(),0);return ok;
+}
 
 function inputVector() {
   if (transicaoTeleport.ativa) return { x: 0, y: 0 };
@@ -129,7 +133,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
 window.addEventListener('blur', () => { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); });
 window.addEventListener('pagehide', () => {
-  if (session) fetch('/api/save', { method: 'POST', headers: { Authorization: 'Bearer ' + session }, keepalive: true }).catch(() => {});
+  if (session) fetch('/api/save', { method: 'POST', credentials:'same-origin',keepalive:true }).catch(() => {});
 });
 function setZoom(value) {
   zoom = clampZoom(value);
@@ -226,8 +230,7 @@ canvas.addEventListener('pointerdown', e => {
   const target = targets.find(t => Math.hypot(t.x - point.x, t.y - point.y) < (grande(t) ? 45 : 30));
   if (target) action({ type: 'target', id: target.id }); else action({ type: 'moveTo', x: point.x, y: point.y });
 });
-ligarHud({ action, api, snapshot: () => snapshot, soltarTeclas: () => { keys.clear(); sendInput(); } });
-$('joinForm').onsubmit = async event => { event.preventDefault(); const button = event.target.querySelector('button'); button.disabled = true; try { await join($('nickname').value); } catch (e) { notify(e.message); } finally { button.disabled = false; } };
+ligarHud({action,api,snapshot:()=>snapshot,soltarTeclas:()=>{keys.clear();sendInput();},sairConta:()=>entrada?.sair(),selecionarPersonagem:()=>entrada?.voltar(),reverTutorial:()=>tutorial?.iniciar(true)});
 
 let joystickPointer = null;
 const joystick = $('joystick'), knob = $('joystickKnob');
@@ -642,8 +645,6 @@ function frame(now) {
 }
 carregarProjetilMob();
 resize(); requestAnimationFrame(frame);
-// Permite testar a criação/login sem apagar o progresso da sessão anterior.
-const criarPersonagem=new URLSearchParams(location.search).get('criar')==='1';
-const previousToken = criarPersonagem ? null : sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');
-if (previousToken) join(localStorage.getItem('dbi-name') || 'Guerreiro', previousToken).catch(e => { notify(e.message); $('welcomeDialog').showModal(); });
-else { $('nickname').value = localStorage.getItem('dbi-name') || 'Guerreiro'; $('welcomeDialog').showModal(); }
+entrada=montarEntrada({entrarNoMundo,sairDoMundo,ajustarAudio:p=>trilhaSonora.configurar(p),preferenciasAudio:()=>trilhaSonora.preferencias});
+tutorial=instalarTutorial({entrada,liberarTeclas:()=>{keys.clear();touchVector={x:0,y:0};sendInput();}});
+window.addEventListener('pageshow',e=>{if(e.persisted)entrada.voltar();});
