@@ -1,6 +1,7 @@
 // Inimigos do protótipo e onde eles aparecem no mapa.
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
+import { configurarProjetilMob } from './projetil-mob.mjs';
 import { PLANETS, areaPorId, naEscala, pontoNaZonaSegura } from './config.mjs';
 import { podeAndar, pontoAlcancavelDesde } from './passagem.mjs';
 
@@ -100,7 +101,7 @@ export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
   const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
-  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base };
+  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base, projetil:configurarProjetilMob(type,base) };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
