@@ -57,3 +57,30 @@ test('pedidos concorrentes não gastam saldo inexistente nem entregam lote parci
   const resultados=await Promise.all([comprar(),comprar()]);assert.equal(resultados.filter(r=>r.ok).length,1);assert.equal(p.zeni,0);assert.equal(p.inventory.food,n+2);
  }finally{await app.close();}
 });
+
+test('compra conjunta soma itens diferentes, ignora zeros e desconta apenas uma vez',()=>{
+ const {g,p}=cena(),antes=structuredClone([p.zeni,p.inventory]);
+ const r=g.action(p.id,{type:'buyAll',itens:{food:2,ki:3,seed15:0}});
+ assert.ok(r.ok);assert.equal(r.total,78);assert.equal(r.quantidade,5);
+ assert.equal(p.zeni,antes[0]-78);assert.equal(p.inventory.food,antes[1].food+2);assert.equal(p.inventory.ki,antes[1].ki+3);assert.equal(p.inventory.seed15,antes[1].seed15);
+});
+test('compra conjunta rejeita custo ou peso total excessivo sem entregar lote parcial',()=>{
+ for(const motivo of ['dinheiro','peso','estoque','distancia']){
+  const {g,p}=cena();p.zeni=1000;p.stats.capacity=1000;
+  if(motivo==='dinheiro')p.zeni=25;
+  if(motivo==='peso')p.stats.capacity=bagWeight(p.inventory)+.4;
+  if(motivo==='estoque')p.inventory.ki=99999;
+  if(motivo==='distancia')p.x+=1000;
+  const antes=structuredClone([p.zeni,p.inventory]);
+  assert.equal(g.action(p.id,{type:'buyAll',itens:{food:1,ki:1}}).ok,false,motivo);assert.deepEqual([p.zeni,p.inventory],antes);
+ }
+});
+test('carrinho vazio ou adulterado não altera o inventário',()=>{
+ for(const itens of [null,[],{}, {food:0,ki:0},{food:-1},{food:1.5},{food:'2'},{food:null},{food:NaN},{food:100000},{constructor:1},{food:1,inexistente:0}]){
+  const {g,p}=cena(),antes=structuredClone([p.zeni,p.inventory]);assert.equal(g.action(p.id,{type:'buyAll',itens}).ok,false);assert.deepEqual([p.zeni,p.inventory],antes);
+ }
+});
+test('compra conjunta permite limites exatos de saldo e peso',()=>{
+ const {g,p}=cena();p.zeni=30;p.stats.capacity=bagWeight(p.inventory)+.55;
+ assert.ok(g.action(p.id,{type:'buyAll',itens:{food:1,ki:1}}).ok);assert.equal(p.zeni,0);
+});

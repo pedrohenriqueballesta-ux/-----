@@ -9,7 +9,7 @@ import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from '
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
 import { Mercado } from './mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
-import { LIMITE_ESTOQUE_LOJA } from './loja.mjs';
+import { LIMITE_ESTOQUE_LOJA, avaliarCarrinho } from './loja.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
@@ -202,6 +202,7 @@ export class Game {
     if (kind === 'food') return this.useFood(p);
     if (kind === 'seed') return this.useSeed(p, Number(data.potency) || p.seedSelected);
     if (kind === 'potion') return this.usePotion(p);
+    if (kind === 'buyAll') return this.buyAll(p,data.itens);
     if (kind === 'buy') return this.buy(p, data.item, data.quantidade);
     if (kind === 'sell') return this.sell(p);
     if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
@@ -266,6 +267,12 @@ export class Game {
     if (!this.addItem(p, item, quantidade)) return this.reject(p, 'A mochila está sem capacidade para essa quantidade.');
     p.zeni -= total; this.notify(p, 'Compra concluída: ' + quantidade + (quantidade === 1 ? ' item.' : ' itens.'));
     return { ok:true, item, quantidade, total };
+  }
+  buyAll(p,itens) {
+    if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercado na Vila.');
+    const resultado=avaliarCarrinho(p,itens);if(!resultado.ok)return this.reject(p,resultado.reason);
+    for(const[item,q]of Object.entries(itens))if(q)p.inventory[item]=(p.inventory[item]||0)+q;
+    p.zeni-=resultado.total;this.notify(p,'Compra conjunta concluída: '+resultado.quantidade+' itens por '+resultado.total+' Z.');return resultado;
   }
   venderItem(p,item,quantidade) {
     if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercador para vender.');
