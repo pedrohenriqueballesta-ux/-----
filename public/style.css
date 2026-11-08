@@ -398,3 +398,4 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .mercado-filtros{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
 .mercado-comprar{display:grid;grid-template-columns:60px auto;gap:8px}
 @media(max-width:480px){.venda-item,.mercado-oferta{grid-template-columns:36px minmax(0,1fr)}.venda-item>button,.mercado-oferta>button,.mercado-comprar{grid-column:2}.venda-quantidade{grid-column:1/-1}.mercado-anunciar{grid-template-columns:1fr 1fr}.mercado-anunciar label:first-of-type{grid-column:1/-1}.mercado-filtros{grid-template-columns:1fr 1fr}.mercado-filtros input{grid-column:1/-1}.mercado-saldo{align-items:flex-start;flex-direction:column}.venda-icone{width:36px;height:36px}}
+#shopBuyAll:disabled{opacity:.45;cursor:not-allowed}
