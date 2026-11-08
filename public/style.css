@@ -33,8 +33,8 @@ button{cursor:pointer}
 .hud-esfera{width:calc(34 * var(--u));height:calc(34 * var(--u));object-fit:contain;filter:drop-shadow(0 0 calc(5 * var(--u)) #f28a1266)}
 .hud-marca{display:grid;line-height:.9;font-weight:900;font-size:calc(15 * var(--u));color:#ffcf3a;text-shadow:0 calc(2 * var(--u)) 0 #8a3b00}
 .hud-marca b{font-size:calc(19 * var(--u));color:#5fb8ff;text-shadow:0 calc(2 * var(--u)) 0 #0b2f7a}
-.hud-menus{--tamanho-icone:calc(44 * var(--u));display:flex;align-items:center}
-.hud-menus button{display:grid;place-items:center;align-content:center;gap:calc(1 * var(--u));padding:calc(2 * var(--u)) calc(4 * var(--u));border:0;background:none;color:#fff}
+.hud-menus{--tamanho-icone:calc(42 * var(--u));display:flex;align-items:center}
+.hud-menus button{display:grid;place-items:center;align-content:center;gap:calc(1 * var(--u));padding:calc(2 * var(--u)) calc(3 * var(--u));border:0;background:none;color:#fff}
 .hud-menus button:last-child{border-right:0}
 .hud-menus button:hover{background:#ffffff12}
 .hud-menus i{display:grid;place-items:center;width:var(--tamanho-icone);height:var(--tamanho-icone);position:relative;font-style:normal;font-size:calc(32 * var(--u));line-height:1}
@@ -216,7 +216,7 @@ button{cursor:pointer}
 @media (max-width:1400px){
   .hud-menus span{display:none}
   .hud-menus i{font-size:calc(38 * var(--u))}
-  .hud-menus{--tamanho-icone:calc(52 * var(--u))}
+  .hud-menus{--tamanho-icone:calc(48 * var(--u))}
   .hud-dica{display:none}
 }
 @media (max-width:1100px){
@@ -320,3 +320,32 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .novidades-lista h3{margin:0 0 6px;font-size:15px}
 .novidades-lista p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .novidades-lidas{padding:8px 14px;background:#203f65;border:1px solid #5778a0;border-radius:7px}
+.bestiario{position:fixed;left:50%;top:90px;transform:translateX(-50%);margin:0;padding:18px;z-index:90;width:min(900px,calc(100vw - 24px));height:min(740px,calc(100vh - 110px));max-height:calc(100vh - 110px);border:1px solid var(--ouro);border-radius:14px;background:#0c1a2d;color:var(--texto);box-shadow:0 10px 35px #0009;overflow:hidden}
+.bestiario[open]{display:flex;flex-direction:column}
+.bestiario>header{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.bestiario h2{margin:0;color:var(--ouro-claro);font-size:23px}
+.bestiario>header button{border:0;background:none;font-size:22px;padding:4px 8px}
+.bestiario-filtros{flex-shrink:0;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;margin-top:14px}
+.bestiario input,.bestiario select{min-width:0;width:100%;padding:8px;border:1px solid #466486;border-radius:7px;background:#10243c}
+.bestiario-resumo{color:#b7c6d9;margin:10px 0;font-size:12px}
+.bestiario-corpo{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;flex:1;min-height:0}
+.bestiario-lista,.bestiario-detalhe{min-height:0;overflow:auto;overscroll-behavior:contain}
+.bestiario-lista{display:flex;flex-direction:column;gap:7px;padding-right:5px}
+.bestiario-lista button{text-align:left;display:grid;gap:3px;padding:10px;border:1px solid #365677;border-radius:8px;background:#13283c}
+.bestiario-lista button[aria-pressed=true]{border-color:var(--ouro);background:#27405b}
+.bestiario-lista small{color:#b8c7d6}
+.bestiario-detalhe{padding-right:7px}
+.bestiario-apresentacao{display:flex;align-items:center;gap:12px}
+.bestiario-retrato{width:120px;height:120px;flex-shrink:0;background:radial-gradient(#37566d88,transparent 70%)}
+.bestiario-apresentacao h3{font-size:23px;color:#ffda80;margin:4px 0}
+.bestiario-apresentacao p{margin:3px 0}
+.bestiario-categoria{color:#aacaf0;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.bestiario dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding:14px 0;margin:0;border-bottom:1px solid #ffffff25}
+.bestiario dt{color:#b5c7da}.bestiario dd{margin:0;font-weight:600}
+.bestiario h4{font-size:16px;margin:16px 0 8px;color:var(--ouro-claro)}
+.bestiario-drops{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.bestiario-drops li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;font-size:12px}
+.bestiario-drops img{width:30px;height:30px;object-fit:contain}
+.bestiario-nota{font-size:12px;color:#afc1d5}
+.bestiario-aviso{padding:10px;border-left:3px solid var(--ouro);background:#9e611522;font-size:13px}
+@media(max-width:650px){.bestiario{top:72px;padding:12px;height:auto;overflow:auto;max-height:calc(100vh - 84px)}.bestiario-filtros{grid-template-columns:1fr 1fr}.bestiario-filtros input{grid-column:1/-1}.bestiario-corpo{grid-template-columns:1fr;gap:12px;flex:none}.bestiario-lista{max-height:155px}.bestiario-detalhe{max-height:none;overflow:visible}.bestiario-apresentacao h3{font-size:19px}.bestiario dl{font-size:12px}.bestiario-drops li{grid-template-columns:26px 1fr}.bestiario-drops b{grid-column:2}}

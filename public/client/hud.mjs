@@ -3,6 +3,7 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { instalarBestiario } from '../render/bestiario.mjs';
 import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
 import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
@@ -344,7 +345,8 @@ export function ligarHud(contexto) {
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
-  const telas = { loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
+  const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
+  const telas = { bestiario:abrirBestiario, loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
   for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };

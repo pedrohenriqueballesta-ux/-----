@@ -1,5 +1,5 @@
-﻿// Somente conteúdo publicado pelos sistemas do servidor gera alertas de abas.
-export const ABAS_NOVIDADES = Object.freeze(['personagem','mochila','missoes','mapa','loja','ranking','guilda','correio','ajustes']);
+// Somente conteúdo publicado pelos sistemas do servidor gera alertas de abas.
+export const ABAS_NOVIDADES = Object.freeze(['personagem','mochila','missoes','bestiario','mapa','loja','ranking','guilda','correio','ajustes']);
 export function validarNovidade(n) {
   return Boolean(n && typeof n.id === 'string' && n.id.length > 0 && n.id.length <= 120 &&
     ABAS_NOVIDADES.includes(n.aba) && typeof n.titulo === 'string' && n.titulo.trim().length > 0 && n.titulo.length <= 120 &&
