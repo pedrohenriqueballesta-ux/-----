@@ -1,3 +1,4 @@
+import {instalarTrilhaSonora} from './audio.mjs';
 import {PADRAO_PREFERENCIAS} from '../shared/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/passagem.mjs';
@@ -23,6 +24,7 @@ let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = nu
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
 let tamanhoMini = 1, zoomMini = 1, vistaMini = null, destinoMini = null;
 let centroMini = null, arrastoMini = null;
+const trilhaSonora=instalarTrilhaSonora({obterEstado:()=>snapshot});
 const transicaoTeleport = criarTransicaoTeleport({
   viajar: destino => api('action', { type: 'portal', destino }),
   pronto: id => {
@@ -70,7 +72,7 @@ async function join(name, previousToken) {
       if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
         renderPositions.clear(); floating = []; pointerAim = null;
       }
-      snapshot = proximo; receivedAt = performance.now();
+      snapshot = proximo; receivedAt = performance.now();trilhaSonora.atualizar();
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira();
       carregarCura();
@@ -87,6 +89,7 @@ async function join(name, previousToken) {
     } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
   };
   if ($('welcomeDialog').open) $('welcomeDialog').close();
+  if(new URLSearchParams(location.search).get('criar')==='1'){const url=new URL(location.href);url.searchParams.delete('criar');history.replaceState(null,'',url);}
   notify(data.resumed ? 'Seu personagem foi recuperado.' : 'Bem-vindo! Entre no portal para viajar aos planetas.');
 }
 
@@ -639,6 +642,8 @@ function frame(now) {
 }
 carregarProjetilMob();
 resize(); requestAnimationFrame(frame);
-const previousToken = sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');
+// Permite testar a criação/login sem apagar o progresso da sessão anterior.
+const criarPersonagem=new URLSearchParams(location.search).get('criar')==='1';
+const previousToken = criarPersonagem ? null : sessionStorage.getItem('dbi-session') || localStorage.getItem('dbi-last-session');
 if (previousToken) join(localStorage.getItem('dbi-name') || 'Guerreiro', previousToken).catch(e => { notify(e.message); $('welcomeDialog').showModal(); });
 else { $('nickname').value = localStorage.getItem('dbi-name') || 'Guerreiro'; $('welcomeDialog').showModal(); }
