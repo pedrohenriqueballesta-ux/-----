@@ -72,5 +72,5 @@ export function instalarLoja({janela,obterEstado,comprar,avisar}) {
     resumo.textContent=carrinho.ok?'Total: '+numero(carrinho.total)+' Z · '+numero(carrinho.peso)+' kg':carrinho.reason;
     vendas.atualizar();
   };
-  return {atualizar,abrir(){if(!janela.open)janela.show();atualizar();}};
+  return {atualizar,abrir(){if(janela.open){janela.close();return;}janela.show();atualizar();}};
 }

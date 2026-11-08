@@ -41,6 +41,7 @@ export function instalarNovidadesHud(acao) {
       if (janela.open) renderizar();
     },
     abrir(aba) {
+      if(janela.open&&abaAberta===aba){janela.close();return true;}
       if (!novidadesDaAba(lista,aba).length) return false;
       abaAberta = aba; assinatura = ''; renderizar();
       if (!janela.open) janela.show(); return true;
