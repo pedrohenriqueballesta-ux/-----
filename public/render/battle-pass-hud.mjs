@@ -2,7 +2,7 @@ import {el,botao,numero,barra} from './hud-elementos.mjs';
 import {criarPainelPremium,textoRecompensa} from './premium-comum.mjs';
 import {COLECIONAVEIS} from '../shared/premium-config.mjs';
 const imagens={ki:'pocao_ki',food:'comida',crystal:'cristal',scrap:'sucata',seed15:'semente_dos_deuses'};
-function imagemRecompensa(r){return r.colecao?.length?COLECIONAVEIS[r.colecao[0]].imagem:r.bau?'/assets/premium/caixa-espolios.png':r.moedas?'/assets/hud/personagem/zeni.png':r.zeni?'/assets/hud/personagem/zeni.png':'/assets/inventario/'+imagens[Object.keys(r.itens||{})[0]]+'.png';}
+function imagemRecompensa(r){return r.colecao?.length?COLECIONAVEIS[r.colecao[0]].imagem:r.bau?'/assets/premium/caixa-espolios.png':r.moedas?'/assets/hud/personagem/zeni.png':r.zeni?'/assets/hud/personagem/zeni-prateado.png':'/assets/inventario/'+imagens[Object.keys(r.itens||{})[0]]+'.png';}
 function icone(r){const img=el('img',null,'passe-icone');img.src=imagemRecompensa(r);img.alt=textoRecompensa(r);img.draggable=false;return img;}
 export function instalarBattlePass(ctx){
  const ui=criarPainelPremium('battlePassDialog','Passe de Batalha',ctx);let aba='trilhas',scroll=0,anterior=null,previa=null,assinatura='';

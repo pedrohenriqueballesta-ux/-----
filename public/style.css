@@ -454,3 +454,5 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 #battlePassDialog .passe-recompensa p{width:100%;min-height:0;overflow:auto;overflow-wrap:anywhere}
 #battlePassDialog .passe-recompensa>strong,#battlePassDialog .passe-recompensa>button{flex-shrink:0}
 @media(max-width:600px){#battlePassDialog .passe-ver{flex-basis:36px;height:36px}#battlePassDialog .passe-ver .passe-icone{width:36px;height:36px}}
+
+.mochila-zeni i{display:grid;place-items:center;width:calc(26 * var(--um));height:calc(26 * var(--um));flex-shrink:0}.mochila-zeni i img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
