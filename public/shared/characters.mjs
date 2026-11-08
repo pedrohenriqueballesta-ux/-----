@@ -52,7 +52,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const stats = statsFor(level);
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
-  const p = { id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character: 'Goku', level,
+  const p = { id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character: 'Goku', level,
     levelReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     xp: clamp(Number(saved?.xp) || 0, 0, xpForLevel(level) - 1), stats,
     x: PLANETS.terra.spawn.x, y: PLANETS.terra.spawn.y, planet: 'terra', area: null, seguroAte: 0,
@@ -79,7 +79,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
 
 // Campos persistidos no save do servidor.
 export function exportPlayer(p) {
-  return { name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.xp, x: p.x, y: p.y,
+  return { mercadoId:p.mercadoId, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode,
     novidades: restaurarNovidades(p.novidades),

@@ -3,6 +3,7 @@
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { instalarLoja } from '../render/loja.mjs';
 import { instalarBestiario } from '../render/bestiario.mjs';
 import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
 import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
@@ -11,6 +12,7 @@ import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs
 
 let atualizarDetalhes = () => {};
 let novidadesHud = null;
+let lojaHud = null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -30,7 +32,6 @@ const action = data => ctx?.action(data);
 
 const integer = v => Math.round(v).toLocaleString('pt-BR');
 const clock = seconds => { const n = Math.max(0, Math.ceil(seconds)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); };
-const itemNames = { food: 'Presunto', ki: 'Poção de Ki', seed15: 'Semente 15%', seed30: 'Semente 30%', seed50: 'Semente 50%', seed100: 'Semente 100%' };
 
 function renderSkillMeta(element, cost, detail) {
   if (!element) return;
@@ -173,6 +174,7 @@ export function atualizarHud(snapshot, playerId) {
   renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
   atualizarDetalhes(s);
   novidadesHud?.atualizar(s);
+  lojaHud?.atualizar();
   $('respawn').classList.toggle('hidden', s.hp > 0);
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
@@ -344,9 +346,10 @@ export function ligarHud(contexto) {
   ctx = contexto;
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);
+  lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify});
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
   const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
-  const telas = { bestiario:abrirBestiario, loja: () => $('shopDialog').showModal(), mapa: abrirMapa, mochila: alternarMochila };
+  const telas = { bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
   for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
@@ -387,14 +390,8 @@ export function ligarHud(contexto) {
   $('helpButton').onclick = () => { ctx.soltarTeclas(); $('helpDialog').showModal(); };
   $('panelButton').onclick = () => { const open = $('panel').classList.toggle('open'); $('panelButton').setAttribute('aria-expanded', String(open)); };
   $('quickHunt').onclick = alternarCaca;
-  $('shopButton').onclick = () => $('shopDialog').showModal();
+  $('shopButton').onclick = () => lojaHud.abrir();
   for (const btn of document.querySelectorAll('[data-close]')) btn.onclick = () => $(btn.dataset.close).close();
   $('saveButton').onclick = async () => { try { await ctx.api('save'); notify('Progresso salvo no servidor.'); } catch (e) { notify(e.message); } };
-  for (const [key, price] of Object.entries(CONFIG.prices)) {
-    const row = document.createElement('div'); row.className = 'shop-item';
-    const label = document.createElement('span'); label.textContent = itemNames[key];
-    const btn = document.createElement('button'); btn.textContent = price + ' Z · comprar'; btn.onclick = () => action({ type: 'buy', item: key });
-    row.append(label, btn); $('shopItems').append(row);
-  }
   $('sellButton').onclick = () => action({ type: 'sell' });
 }

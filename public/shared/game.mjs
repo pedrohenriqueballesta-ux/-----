@@ -7,6 +7,9 @@ import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDe
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
+import { Mercado } from './mercado.mjs';
+import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
+import { LIMITE_ESTOQUE_LOJA } from './loja.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
@@ -27,7 +30,7 @@ export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
-    this.genkiCharges = []; this.genkiExplosions = [];
+    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -199,8 +202,16 @@ export class Game {
     if (kind === 'food') return this.useFood(p);
     if (kind === 'seed') return this.useSeed(p, Number(data.potency) || p.seedSelected);
     if (kind === 'potion') return this.usePotion(p);
-    if (kind === 'buy') return this.buy(p, data.item);
+    if (kind === 'buy') return this.buy(p, data.item, data.quantidade);
     if (kind === 'sell') return this.sell(p);
+    if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
+    if (['mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(kind)) {
+      const metodo={mercadoAnunciar:'anunciar',mercadoComprar:'comprar',mercadoCancelar:'cancelar',mercadoReceber:'receber'}[kind];
+      const resultado=this.mercado[metodo](p,data,this.time);
+      if(!resultado.ok)return this.reject(p,resultado.reason);
+      this.notify(p,({mercadoAnunciar:'Anúncio publicado. Os itens estão reservados no mercado.',mercadoComprar:'Compra no mercado concluída.',mercadoCancelar:'Anúncio cancelado. Itens devolvidos.',mercadoReceber:'Saldo de vendas recebido.'})[kind]);
+      return resultado;
+    }
     if (kind === 'transform') {
       if (p.level < CONFIG.skills.transform) return this.reject(p, 'Super Saiyajin libera no nível ' + CONFIG.skills.transform + '.');
       if (p.transformed) { p.transformed = false; this.notify(p, 'Forma base.'); return { ok: true }; }
@@ -243,18 +254,34 @@ export class Game {
     p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
     this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
   }
-  buy(p, item) {
+  buy(p, item, quantidade = 1) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na Vila.');
-    const price = CONFIG.prices[item]; if (!price) return { ok: false };
-    if (p.zeni < price) return this.reject(p, 'Zeni insuficiente.');
-    if (!this.addItem(p, item)) return this.reject(p, 'A mochila está sem capacidade.');
-    p.zeni -= price; this.notify(p, 'Compra concluída.'); return { ok: true };
+    if (!Object.hasOwn(CONFIG.prices,item)) return { ok:false };
+    if (!Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > LIMITE_ESTOQUE_LOJA)
+      return this.reject(p, 'Escolha uma quantidade inteira entre 1 e ' + LIMITE_ESTOQUE_LOJA + '.');
+    const total = CONFIG.prices[item] * quantidade;
+    if (p.zeni < total) return this.reject(p, 'Zeni insuficiente para essa quantidade.');
+    if ((p.inventory[item] || 0) + quantidade > LIMITE_ESTOQUE_LOJA) return this.reject(p, 'Limite de estoque desse item atingido.');
+    // A compra inteira é validada antes de descontar Zeni; nunca entrega um lote parcial.
+    if (!this.addItem(p, item, quantidade)) return this.reject(p, 'A mochila está sem capacidade para essa quantidade.');
+    p.zeni -= total; this.notify(p, 'Compra concluída: ' + quantidade + (quantidade === 1 ? ' item.' : ' itens.'));
+    return { ok:true, item, quantidade, total };
+  }
+  venderItem(p,item,quantidade) {
+    if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercador para vender.');
+    if(!Object.hasOwn(ITENS_NEGOCIAVEIS,item)||!Number.isSafeInteger(quantidade)||quantidade<1||quantidade>LIMITE_ESTOQUE_LOJA)return this.reject(p,'Item ou quantidade inválidos.');
+    if((p.inventory[item]||0)<quantidade)return this.reject(p,'Você não possui essa quantidade.');
+    const total=ITENS_NEGOCIAVEIS[item].precoNpc*quantidade;
+    if(!creditarZeni(p,total))return this.reject(p,'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
+    p.inventory[item]-=quantidade;this.notify(p,'Venda ao NPC concluída: '+quantidade+' por '+total+' Z.');
+    return{ok:true,item,quantidade,total};
   }
   sell(p) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na vila.');
     const value = p.inventory.scrap * 8 + p.inventory.crystal * 15;
     if (!value) return this.reject(p, 'Sem materiais para vender.');
-    p.inventory.scrap = 0; p.inventory.crystal = 0; p.zeni += value;
+    if(!creditarZeni(p,value))return this.reject(p,'Seu saldo de Zeni está no limite.');
+    p.inventory.scrap = 0; p.inventory.crystal = 0;
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
   cast(p, skill, automated = false) {
@@ -832,7 +859,7 @@ export class Game {
         kaiokenRemaining: Math.max(0, self.kaiokenReady - this.time), kaiokenActive: this.time < self.kaiokenUntil,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
-        novidades: self.novidades.map(n => ({...n})),
+        novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
