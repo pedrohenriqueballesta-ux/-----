@@ -6,13 +6,14 @@ import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializ
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame } from './kamehameha.mjs';
+import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
 import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
-export const SOCA_E_ATIRA = new Set(['veterano', 'tsufuruGuerreiro', 'tsufuruGeneral', 'hatchiyack', 'nappa', 'raditz', 'bardock', 'oozaru', 'oozaruGuerreiro', 'oozaruSuper', 'reiVegeta', 'broly', 'zarbon', 'dodoria']);
+export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
 export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
 // Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
@@ -389,13 +390,13 @@ export class Game {
       amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
     return { ok: true };
   }
-  hit(attacker, target, raw) {
+  hit(attacker, target, raw, { ignorarEsquiva = false } = {}) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
     if (attacker && this.players.has(attacker.id) && naZonaSegura(attacker)) return false;
     const playerTarget = this.players.has(target.id);
     if (playerTarget) {
       if (attacker && this.players.has(attacker.id) && !this.canPvp(attacker, target)) return false;
-      if (this.time < target.dashUntil || this.protegido(target)) return false;
+      if ((!ignorarEsquiva && this.time < target.dashUntil) || this.protegido(target)) return false;
     }
     const defense = playerTarget ? target.stats.defense : target.defesa ?? 1;
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
@@ -704,6 +705,14 @@ export class Game {
     }
     return true;
   }
+  dispararProjetilMob(m, alvoId) {
+    const alvo=this.players.get(alvoId),config=m.projetil;
+    if(!config || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(m,alvo) || this.protegido(alvo))return false;
+    if(!(config.velocidade>0) || !Number.isFinite(config.velocidade))return false;
+    this.projectiles.push({id:this.uid('s'),kind:'mobKiTarget',owner:m.id,ownerType:'mob',alvoId:alvo.id,
+      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,config,this.time)});
+    return true;
+  }
   updateMob(m, dt) {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } const nascimento = pontoDeSpawnForaDaSafeZone(m.area, { x: m.homeX, y: m.homeY }); m.homeX = nascimento.x; m.homeY = nascimento.y; m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
@@ -721,7 +730,8 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
+        if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
+        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
@@ -734,7 +744,7 @@ export class Game {
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }
@@ -749,12 +759,12 @@ export class Game {
     // Mob grande soca de mais longe (o braço é maior) e para antes de encostar no centro do alvo.
     const corpo = m.corpo || 0, soco = 62 + corpo;
     const atira = m.type === 'ranged' || (socaEAtira && closest > soco);
-    const range = m.type === 'ranged' || socaEAtira ? 235 + corpo : grande ? 150 : soco;
+    const range = m.type === 'ranged' || socaEAtira ? m.projetil?.alcance ?? 235 + corpo : grande ? 150 : soco;
     // E não fica parado atirando: continua se aproximando até a distância do soco.
     if (socaEAtira && closest > soco - 7 && (closest > range || this.time < m.attackReady)) this.steer(m, target, dt, m.speed);
     else if (closest > range) this.steer(m, target, dt, m.speed);
     else if (this.time >= m.attackReady) {
-      if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
+      if (atira) { const dir = norm(target.x - m.x, target.y - m.y); m.telegraph = { kind: 'shot', alvoId:target.id, x: m.x, y: m.y, dx: dir.x, dy: dir.y, until: this.time + 0.8, started: this.time, radius: 25 }; }
       else m.telegraph = { kind: 'area', x: target.x, y: target.y, radius: m.type === 'boss' ? 125 : m.type === 'oozaruSuper' ? 115 : m.type === 'subboss' ? 95 : 43, until: this.time + (grande ? 1.15 : 0.65), started: this.time };
       m.facing = norm(target.x - m.x, target.y - m.y);
       // Presentation timestamps only: impact, warning duration and cooldown are unchanged.
@@ -771,6 +781,15 @@ export class Game {
     this.atualizarGenkis(dt);
     for (const s of this.projectiles) {
       if (s.kind === 'genki') continue;
+      if (s.kind === 'mobKiTarget') {
+        const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
+        if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
+        if(avancarVooTarget(s,alvo,this.time)) {
+          s.ttl=0;
+          this.hit(dono,alvo,s.damage,{ignorarEsquiva:true});
+        }
+        continue;
+      }
       s.ttl -= dt; const oldX = s.x, oldY = s.y; s.x += s.dx * s.speed * dt; s.y += s.dy * s.speed * dt;
       if (s.ttl <= 0) continue;
       const owner = s.ownerType === 'player' ? this.players.get(s.owner) : this.mobs.get(s.owner);
