@@ -18,7 +18,7 @@ export function instalarArrasto(painel, alca, chave) {
     return p;
   };
   alca.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || e.isPrimary === false || arr) return;
+    if (e.button !== 0 || e.isPrimary === false || arr || e.target.closest?.('button,input,select,textarea,a')) return;
     const caixa = painel.getBoundingClientRect();
     arr = { id: e.pointerId, ix: e.clientX, iy: e.clientY, left: caixa.left, top: caixa.top, moveu: false };
     alca.setPointerCapture(e.pointerId); e.preventDefault();
@@ -39,8 +39,10 @@ export function instalarArrasto(painel, alca, chave) {
   };
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) alca.addEventListener(ev, terminar);
   alca.addEventListener('dblclick', () => { Object.assign(painel.style, { left: '', top: '', right: '', bottom: '', transform: '' }); pref = null; try { localStorage.removeItem(chave); } catch {} });
-  addEventListener('resize', () => { if (pref) aplicar(pref); });
-  if (pref) requestAnimationFrame(() => aplicar(pref));
+  addEventListener('resize', () => { if (pref&&(painel.tagName!=='DIALOG'||painel.open))requestAnimationFrame(()=>aplicar(pref)); });
+  const restaurar=()=>{if(!pref||(painel.tagName==='DIALOG'&&!painel.open))return false;aplicar(pref);return true;};
+  if (pref) requestAnimationFrame(restaurar);
+  return {restaurar};
 }
 
 export function instalarPainelMovel(painel, cabecalho, chave) {

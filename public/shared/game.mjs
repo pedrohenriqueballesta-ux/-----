@@ -1,3 +1,9 @@
+import {preferenciasValidas} from './preferencias.mjs';
+import {perfilPersonagem} from './perfil.mjs';
+import {registrarMissao,listarMissoes,resgatarMissao} from './missoes.mjs';
+import {acaoCorreio} from './correio.mjs';
+import {restaurarNovidades} from './novidades.mjs';
+import {Guildas} from './guildas.mjs';
 // Regras autoritativas do jogo: combate, movimento, inventário e mundo.
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
@@ -30,7 +36,7 @@ export class Game {
   constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
-    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();
+    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -38,7 +44,7 @@ export class Game {
   notify(p, text) { this.emit('message', { playerId: p.id, text }); }
   notificarNovidade(p, novidade) {
     if (!p || !validarNovidade(novidade) || p.novidades.some(n => n.id === novidade.id)) return false;
-    p.novidades.push({ id:novidade.id, aba:novidade.aba, titulo:novidade.titulo, texto:novidade.texto, lida:false });
+    p.novidades.push(...restaurarNovidades([{...novidade,data:this.agora(),lida:false,resgatada:p.correioResgatadas.includes(novidade.id)}]));
     p.novidades = p.novidades.slice(-100); return true;
   }
   addPlayer(id, name = 'Guerreiro', saved = null) {
@@ -173,6 +179,10 @@ export class Game {
       this.emit('chat', { nome: p.name, texto, canal, ...lugar });
       return { ok: true };
     }
+    if(kind==='preferencias'){p.preferencias=preferenciasValidas(data.valor);return{ok:true};}
+    if(kind==='resgatarMissao')return resgatarMissao(this,p,data.id);
+    if(kind==='acompanharMissao'){if(data.id!==null&&!listarMissoes(p,this.agora()).some(m=>m.id===data.id))return{ok:false};p.missoes.acompanhada=data.id;return{ok:true};}
+    if(kind==='correio')return acaoCorreio(p,data);
     if (kind === 'lerNovidades') {
       if (!Array.isArray(data.ids) || data.ids.length > 100 || data.ids.some(id => typeof id !== 'string')) return { ok:false };
       for (const n of p.novidades) if (data.ids.includes(n.id)) n.lida = true;
@@ -228,7 +238,7 @@ export class Game {
       if (p.transformed) { p.transformed = false; this.notify(p, 'Forma base.'); return { ok: true }; }
       if (this.time < p.transformReady) return this.reject(p, 'Super Saiyajin em recarga: ' + Math.ceil(p.transformReady - this.time) + 's.');
       if (p.ki < CONFIG.skillCosts.transform) return this.reject(p, 'Ki insuficiente para transformar.');
-      p.transformed = true; p.ki -= CONFIG.skillCosts.transform; p.transformReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.transform);
+      registrarMissao(p,'skills',1,this.agora());p.transformed = true; p.ki -= CONFIG.skillCosts.transform; p.transformReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.transform);
       this.notify(p, 'Super Saiyajin ativado!'); return { ok: true };
     }
     if (kind === 'portal') return this.usePortal(p, data.destino);
@@ -301,7 +311,11 @@ export class Game {
     p.inventory.scrap = 0; p.inventory.crystal = 0;
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
-  cast(p, skill, automated = false) {
+  cast(p,skill,automated=false){
+    const r=this.executarTecnica(p,skill,automated);
+    if(r.ok&&skill!=='basic'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
+  }
+  executarTecnica(p, skill, automated = false) {
     if (skill === 'heal') return this.curarVida(p, automated);
     if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
@@ -427,6 +441,7 @@ export class Game {
     if (p.ki < cura.custo) return falha('Ki insuficiente para curar vida.');
     // Um único caminho para tecla, botão e automação: reserva a recarga antes de curar.
     p.healReady = this.time + (p.godmode ? 1 : CURA.cooldown); p.ki -= cura.custo;
+    registrarMissao(p,'skills',1,this.agora());
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
     p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual);
@@ -454,8 +469,8 @@ export class Game {
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          this.awardXp(attacker, target.xp); attacker.kills++; attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
-          if (target.raro) { attacker.bossKills++; this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
+          this.awardXp(attacker, target.xp); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < RECOMPENSAS_MOBS.fracaoCristal ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
           if (this.random() < RECOMPENSAS_MOBS.chanceSemente15) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
@@ -647,7 +662,7 @@ export class Game {
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
-      if (this.addItem(p, l.item)) { l.taken = true; this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
+      if (this.addItem(p, l.item)) { l.taken = true;registrarMissao(p,'coleta',1,this.agora()); this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
@@ -863,7 +878,8 @@ export class Game {
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
+      self: self ? { perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+        naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,

@@ -1,3 +1,5 @@
+import {instalarJanelasHud} from '../render/janelas-hud.mjs';
+import {instalarAbasHud} from '../render/abas-hud.mjs';
 // HUD: tudo o que o jogo mostra e liga na página (barras, botões, painéis, notificações, loja,
 // janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
@@ -12,7 +14,7 @@ import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs
 
 let atualizarDetalhes = () => {};
 let novidadesHud = null;
-let lojaHud = null;
+let lojaHud = null;let abasHud=null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -74,6 +76,7 @@ function renderChat() {
 }
 
 export function notify(text) {
+  if(document.documentElement.dataset.avisos==='false'){pushChat({canal:'sistema',texto:text});return;}
   if ($('shopDialog').open) $('shopNotice').textContent = text;
   const element = document.createElement('div'); element.className = 'toast'; element.textContent = text;
   $('notifications').append(element); setTimeout(() => element.remove(), 4200);
@@ -90,7 +93,7 @@ export function mensagemChat(nome, texto, canal = 'local') {
 // janela e a resolução; o teto e o piso evitam HUD gigante num 4K e ilegível numa janela pequena.
 function ajustarEscala() {
   const e = Math.max(0.6, Math.min(2.2, innerWidth / 1600, innerHeight / 950));
-  document.documentElement.style.setProperty('--e', e.toFixed(3));
+  document.documentElement.style.setProperty('--e', (e*(Number(document.documentElement.style.getPropertyValue?.('--hud-escala'))||1)).toFixed(3));
 }
 ajustarEscala(); addEventListener('resize', ajustarEscala);
 
@@ -129,7 +132,7 @@ export function atualizarHud(snapshot, playerId) {
   $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + s.inventory.crystal + ' cristais';
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
-  atualizarMochila(s);
+  atualizarMochila(s);abasHud?.atualizar(snapshot);
   if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
   $('seedButton').disabled = s.seedRemaining > 0 || !s.inventory['seed' + s.seedSelected];
@@ -243,7 +246,7 @@ function abrirMapa() {
     item.textContent = z.name + (z.nivel ? ' · nível ' + z.nivel[0] + '–' + z.nivel[1] : ' · área segura') + (z.id === aqui ? ' · você está aqui' : '');
     return item;
   }));
-  $('mapaDialog').showModal();
+  $('mapaDialog').show();
   const c = tela.getContext?.('2d'); if (!c) return;
   const kx = tela.width / mundo.w, ky = tela.height / mundo.h, solo = new Image();
   const desenhar = () => {
@@ -368,6 +371,7 @@ export function alternarAutoHunt() {
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
   ctx = contexto;
+  abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);
   lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify});
@@ -375,8 +379,9 @@ export function ligarHud(contexto) {
   const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
   const telas = { bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
+  instalarJanelasHud();
   const fecharMenu = () => { $('hudMenus').classList.remove('aberto'); $('menuAlternar').setAttribute('aria-expanded', 'false'); };
-  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
+  for (const btn of document.querySelectorAll('[data-menu]')) btn.onclick = () => { fecharMenu(); if(abasHud.abrir(btn.dataset.menu))return; if (novidadesHud.abrir(btn.dataset.menu)) return; (telas[btn.dataset.menu] || (() => notify('Em breve: ' + btn.title + '.')))(); };
   $('menuAlternar').onclick = () => { const aberto = $('hudMenus').classList.toggle('aberto'); $('menuAlternar').setAttribute('aria-expanded', String(aberto)); };
   // Setas do chat rolam as mensagens.
   $('chatCima').onclick = () => $('chatLinhas').scrollBy({ top: -40, behavior: 'smooth' });

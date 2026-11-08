@@ -1,3 +1,4 @@
+import {contasDoServidor,rankingServidor} from './public/shared/hud-servidor.mjs';
 import http from 'node:http';
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -20,7 +21,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     await mkdir(dataDir, { recursive: true });
     try { stored = JSON.parse(await readFile(resolve(dataDir, 'save.json'), 'utf8')); } catch {}
   }
-  game.mercado.restaurar(stored.__mercado);
+  game.mercado.restaurar(stored.__mercado);game.guildas.restaurar(stored.__guildas);
   const json = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   const body = req => new Promise((resolveBody, reject) => {
     let text = '';
@@ -34,7 +35,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     if(!dataDir)return Promise.resolve();
     const tarefa=filaSave.catch(()=>{}).then(async()=>{
       for(const[token,p]of sessions)stored[token]=game.exportPlayer(p);
-      stored.__mercado=game.mercado.exportar();
+      stored.__mercado=game.mercado.exportar();stored.__guildas=game.guildas.exportar();
       await writeFile(resolve(dataDir,'save.tmp'),JSON.stringify(stored),'utf8');
       await rename(resolve(dataDir,'save.tmp'),resolve(dataDir,'save.json'));
     });
@@ -75,7 +76,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         });
         return;
       }
-      if (req.method === 'POST' && ['/api/input', '/api/action', '/api/save'].includes(url.pathname)) {
+      if (req.method === 'POST' && ['/api/input', '/api/action', '/api/save','/api/hud'].includes(url.pathname)) {
         const token = auth(req), p = sessions.get(token);
         if (!p) return json(res, 401, { error: 'Sessão inválida.' });
         const now = Date.now(), last = rates.get(token) || { since: now, count: 0 };
@@ -84,9 +85,18 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if (last.count > 65) return json(res, 429, { error: 'Aguarde um instante.' });
         if (url.pathname === '/api/save') { await save(); return json(res, 200, { ok: true }); }
         const data = await body(req);
+        if(url.pathname==='/api/hud'){
+          const contas=contasDoServidor(stored,sessions);
+          if(data.aba==='ranking')return json(res,200,rankingServidor(contas,p.mercadoId,data,game.guildas));
+          if(data.aba==='guilda'){
+            if(data.operacao){if(!p.connected)return json(res,400,{ok:false,reason:'Personagem desconectado.'});const r=game.guildas.processar(p,data,contas);if(r.ok)await save();return json(res,200,r);}
+            return json(res,200,game.guildas.resumo(p,contas));
+          }
+          return json(res,400,{ok:false,reason:'Aba inválida.'});
+        }
         if (url.pathname === '/api/input') { game.setInput(p.id, data); return json(res, 200, { ok: true }); }
         const resultado=game.action(p.id,data);
-        if(resultado.ok && ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(data.type))await save();
+        if(resultado.ok && ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','preferencias','resgatarMissao','acompanharMissao','correio','lerNovidades'].includes(data.type))await save();
         return json(res,200,resultado);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Método não permitido.' });
