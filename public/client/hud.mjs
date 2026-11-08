@@ -47,30 +47,65 @@ function renderSkillMeta(element, cost, detail) {
   element.replaceChildren(costBadge, detailLabel);
 }
 
-// Chat com canais: global (todos), local (mesma área) e comércio (todos). As mensagens ficam
-// guardadas por canal; a aba ativa decide o que se vê e para onde se envia. [Sistema] aparece em toda aba.
+// Chat com canais em abas que a pessoa escolhe (padrão: só Global + o botão "+").
+// Cada canal tem sua própria conversa e uma introdução curta; Sistema é um canal à parte.
+const CANAIS = {
+  global:  { nome: 'Global',   intro: 'Todos os jogadores, em qualquer lugar.' },
+  local:   { nome: 'Local',    intro: 'Quem está na sua área agora.' },
+  trade:   { nome: 'Comércio', intro: 'Compra, venda e troca de itens.' },
+  sistema: { nome: 'Sistema',  intro: 'Avisos do jogo.' }
+};
 const chatMsgs = [];
-let canalChat = 'local';
+let canaisAbertos = ['global'], canalChat = 'global';
+try { const s = JSON.parse(localStorage.getItem('dbi-chat-abas')); if (Array.isArray(s) && s.length && s.every(c => CANAIS[c])) { canaisAbertos = s; canalChat = s[0]; } } catch {}
+const salvarAbas = () => { try { localStorage.setItem('dbi-chat-abas', JSON.stringify(canaisAbertos)); } catch {} };
+
 function linhaChat(msg) {
   const linha = document.createElement('p'), tag = document.createElement('b');
-  if (msg.canal === 'sistema') tag.textContent = '[Sistema] ';
+  if (msg.canal === 'sistema') { tag.className = 'chat-sistema'; tag.textContent = '• '; }
   else { tag.className = 'chat-nome'; tag.textContent = msg.nome + ': '; }
   linha.append(tag, msg.texto); return linha;
 }
-const chatVisivel = msg => msg.canal === 'sistema' || msg.canal === canalChat;
 function pushChat(msg) {
-  chatMsgs.push(msg); if (chatMsgs.length > 200) chatMsgs.shift();
+  chatMsgs.push(msg); if (chatMsgs.length > 300) chatMsgs.shift();
   const linhas = document.getElementById('chatLinhas');
-  if (linhas && chatVisivel(msg)) {
+  if (linhas && msg.canal === canalChat) {
     linhas.append(linhaChat(msg));
     while (linhas.children.length > 60) linhas.firstChild.remove();
     linhas.scrollTop = linhas.scrollHeight;
   }
 }
 function renderChat() {
-  const linhas = document.getElementById('chatLinhas'); if (!linhas) return;
-  linhas.replaceChildren(...chatMsgs.filter(chatVisivel).map(linhaChat));
-  linhas.scrollTop = linhas.scrollHeight;
+  const linhas = document.getElementById('chatLinhas'); if (linhas) { linhas.replaceChildren(...chatMsgs.filter(m => m.canal === canalChat).map(linhaChat)); linhas.scrollTop = linhas.scrollHeight; }
+  const intro = document.getElementById('chatIntro'); if (intro) intro.textContent = CANAIS[canalChat]?.intro || '';
+  const input = document.getElementById('chatInput');
+  if (input) { const sis = canalChat === 'sistema'; input.disabled = sis; input.placeholder = sis ? 'Sistema — somente leitura' : (CANAIS[canalChat]?.nome || '') + ' — Enter para conversar…'; }
+}
+function renderAbas() {
+  const nav = document.getElementById('chatAbas'); if (!nav) return;
+  nav.replaceChildren();
+  for (const c of canaisAbertos) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chat-aba' + (c === canalChat ? ' ativa' : ''); b.dataset.canal = c;
+    const nome = document.createElement('span'); nome.textContent = CANAIS[c].nome; b.append(nome);
+    if (canaisAbertos.length > 1) { const x = document.createElement('i'); x.className = 'chat-aba-x'; x.textContent = '×'; x.title = 'Fechar aba'; b.append(x); }
+    b.onclick = e => {
+      if (e.target.classList.contains('chat-aba-x')) { canaisAbertos = canaisAbertos.filter(k => k !== c); if (canalChat === c) canalChat = canaisAbertos[0]; salvarAbas(); renderAbas(); renderChat(); return; }
+      canalChat = c; renderAbas(); renderChat();
+    };
+    nav.append(b);
+  }
+  const mais = document.createElement('button'); mais.type = 'button'; mais.className = 'chat-mais'; mais.textContent = '+'; mais.title = 'Adicionar canal';
+  mais.onclick = () => alternarMenuCanais();
+  nav.append(mais);
+}
+function alternarMenuCanais() {
+  const menu = document.getElementById('chatMenu'); if (!menu) return;
+  if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
+  const faltam = Object.keys(CANAIS).filter(c => !canaisAbertos.includes(c));
+  menu.replaceChildren(...faltam.length
+    ? faltam.map(c => { const b = document.createElement('button'); b.type = 'button'; b.textContent = CANAIS[c].nome; b.onclick = () => { canaisAbertos.push(c); canalChat = c; salvarAbas(); menu.classList.add('hidden'); renderAbas(); renderChat(); }; return b; })
+    : [Object.assign(document.createElement('span'), { className: 'chat-menu-vazio', textContent: 'Todos os canais já estão abertos.' })]);
+  menu.classList.remove('hidden');
 }
 
 export function notify(text) {
@@ -78,12 +113,12 @@ export function notify(text) {
   const element = document.createElement('div'); element.className = 'toast'; element.textContent = text;
   $('notifications').append(element); setTimeout(() => element.remove(), 4200);
   while ($('notifications').children.length > 3) $('notifications').firstChild.remove();
-  pushChat({ canal: 'sistema', texto: text }); // aviso do sistema aparece em qualquer aba do chat
+  pushChat({ canal: 'sistema', texto: text }); // avisos vão para o canal Sistema (e continuam como toast)
 }
 
 // Mensagem de um jogador num canal do chat. Mostra "Nome: texto" com destaque no nome.
 export function mensagemChat(nome, texto, canal = 'local') {
-  pushChat({ canal: ['global', 'local', 'trade'].includes(canal) ? canal : 'local', nome, texto });
+  pushChat({ canal: CANAIS[canal] ? canal : 'local', nome, texto });
 }
 
 // Escala da HUD: tudo é medido em múltiplos de --e (1 = janela de 1600×950). Acompanha o tamanho da
@@ -383,17 +418,11 @@ export function ligarHud(contexto) {
   // Setas do chat rolam as mensagens.
   $('chatCima').onclick = () => $('chatLinhas').scrollBy({ top: -40, behavior: 'smooth' });
   $('chatBaixo').onclick = () => $('chatLinhas').scrollBy({ top: 40, behavior: 'smooth' });
-  // Abas do chat (Global/Local/Comércio): trocam o que se vê e para onde se envia.
-  for (const botao of document.querySelectorAll('.hud-chat nav [data-canal]')) {
-    botao.onclick = () => {
-      canalChat = botao.dataset.canal;
-      for (const b of document.querySelectorAll('.hud-chat nav [data-canal]')) b.classList.toggle('ativa', b === botao);
-      $('chatInput').placeholder = botao.textContent + ' — Enter para conversar…';
-      renderChat();
-    };
-  }
+  // Abas do chat: monta as abas escolhidas + o botão "+"; fecha o menu "+" ao clicar fora.
+  renderAbas(); renderChat();
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('#chatMenu, .chat-mais')) $('chatMenu').classList.add('hidden'); });
   // Chat: Enter envia no canal ativo; Escape devolve o foco ao jogo. Teclas no campo não acionam o jogo.
-  $('chatForm').addEventListener('submit', e => { e.preventDefault(); const txt = $('chatInput').value.trim(); if (txt) action({ type: 'chat', texto: txt.slice(0, 120), canal: canalChat }); $('chatInput').value = ''; });
+  $('chatForm').addEventListener('submit', e => { e.preventDefault(); const txt = $('chatInput').value.trim(); if (txt && canalChat !== 'sistema') action({ type: 'chat', texto: txt.slice(0, 120), canal: canalChat }); $('chatInput').value = ''; });
   $('chatInput').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') $('chatInput').blur(); });
   // Ataque e técnicas automáticos (a caça automática é o botão quickHunt).
   for (const btn of document.querySelectorAll('[data-toggle]')) btn.onclick = () => action({ type: 'toggle', key: btn.dataset.toggle, value: !ctx.snapshot()?.self?.[btn.dataset.toggle] });
