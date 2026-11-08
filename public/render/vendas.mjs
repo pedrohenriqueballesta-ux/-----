@@ -5,7 +5,7 @@ const criar=(tag,texto,classe)=>{const e=document.createElement(tag);if(texto!=n
 const numero=n=>Number(n||0).toLocaleString('pt-BR');
 const itens=Object.values(ITENS_NEGOCIAVEIS);
 const rotulo=(texto,input)=>{const l=criar('label',texto);l.append(input);return l;};
-const campo=(tipo,nome,min='1',max='99999')=>{const i=criar('input');i.type=tipo;i.min=min;i.max=max;i.step='1';i.value='1';i.setAttribute('aria-label',nome);return i;};
+const campo=(tipo,nome,min='0',max='99999')=>{const i=criar('input');i.type=tipo;i.min=min;i.max=max;i.step='1';i.value=min;i.setAttribute('aria-label',nome);return i;};
 function figura(item){const d=ITENS_NEGOCIAVEIS[item],img=criar('img',null,'venda-icone');img.src=d.icone;img.alt='';return img;}
 export function instalarVendas({janela,obterEstado,acao,avisar}){
  const painel=janela.querySelector('#shopVender'),npc=criar('section'),market=criar('section');market.hidden=true;
@@ -31,8 +31,8 @@ export function instalarVendas({janela,obterEstado,acao,avisar}){
   row.append(figura(d.id),nome,botao,controle);gradeNpc.append(row);
   const linha={d,row,qtd,slider,botao,saldo};linhasNpc.push(linha);
   slider.oninput=()=>{qtd.value=slider.value;atualizarNpc(linha);};
-  qtd.oninput=()=>{if(Number(qtd.value)>=1)slider.value=qtd.value;atualizarNpc(linha);};
-  qtd.onchange=()=>{qtd.value=String(Math.max(1,Math.min(Number(qtd.max),Math.floor(Number(qtd.value))||1)));atualizarNpc(linha);};
+  qtd.oninput=()=>{if(Number(qtd.value)>=0)slider.value=qtd.value;atualizarNpc(linha);};
+  qtd.onchange=()=>{qtd.value=String(Math.max(0,Math.min(Number(qtd.max),Math.floor(Number(qtd.value))||0)));atualizarNpc(linha);};
   botao.onclick=()=>executar(botao,{type:'venderItem',item:d.id,quantidade:Number(qtd.value)});
  }
  const saldoBox=criar('div',null,'mercado-saldo'),saldoTexto=criar('span'),receber=criar('button','Receber saldo');receber.type='button';saldoBox.append(saldoTexto,receber);
@@ -47,24 +47,24 @@ export function instalarVendas({janela,obterEstado,acao,avisar}){
  const lista=criar('div',null,'mercado-lista'),avisoLista=criar('p','Carregando mercado…','venda-nota');avisoLista.setAttribute('role','status');market.append(saldoBox,formulario,nota,barra,avisoLista,lista);
  const validarAnuncio=()=>{
   const s=obterEstado(),q=Number(quantidade.value),p=Number(preco.value),max=s?.inventory?.[selecionar.value]||0;
-  quantidade.max=String(Math.max(1,max));
+  quantidade.max=String(Math.max(0,max));
   if(document.activeElement!==quantidade&&q>max&&max)quantidade.value=String(max);
   anunciar.disabled=pendenteAnuncio||!max||!Number.isSafeInteger(Number(quantidade.value))||Number(quantidade.value)<1||Number(quantidade.value)>max||!Number.isSafeInteger(p)||p<1||p>MAX_ZENI_NORMAL;
  };
- selecionar.onchange=()=>{preco.value=String(CONFIG.prices[selecionar.value]||ITENS_NEGOCIAVEIS[selecionar.value]?.precoNpc*2||1);quantidade.value='1';validarAnuncio();};
+ selecionar.onchange=()=>{preco.value=String(CONFIG.prices[selecionar.value]||ITENS_NEGOCIAVEIS[selecionar.value]?.precoNpc*2||0);quantidade.value='0';validarAnuncio();};
  quantidade.oninput=preco.oninput=validarAnuncio;
  formulario.onsubmit=async e=>{e.preventDefault();validarAnuncio();if(anunciar.disabled)return;pendenteAnuncio=true;const r=await executar(anunciar,{type:'mercadoAnunciar',item:selecionar.value,quantidade:Number(quantidade.value),preco:Number(preco.value)});pendenteAnuncio=false;if(r.ok)await carregar(true);atualizar();};
  const atualizarNpc=l=>{
   const s=obterEstado();if(!s)return;const estoque=s.inventory[l.d.id]||0;l.row.hidden=!estoque;
-  l.qtd.max=l.slider.max=String(Math.max(1,estoque));
-  if(document.activeElement!==l.qtd&&(!Number.isSafeInteger(Number(l.qtd.value))||Number(l.qtd.value)<1||Number(l.qtd.value)>estoque))l.qtd.value=String(Math.max(1,Math.min(estoque,Math.floor(Number(l.qtd.value))||1)));
-  const q=Number(l.qtd.value),total=q*l.d.precoNpc;l.slider.value=String(Math.max(1,q||1));l.saldo.textContent='Você possui '+numero(estoque);
+  l.qtd.max=l.slider.max=String(Math.max(0,estoque));
+  if(document.activeElement!==l.qtd&&(!Number.isSafeInteger(Number(l.qtd.value))||Number(l.qtd.value)<1||Number(l.qtd.value)>estoque))l.qtd.value=String(Math.max(0,Math.min(estoque,Math.floor(Number(l.qtd.value))||0)));
+  const q=Number(l.qtd.value),total=q*l.d.precoNpc;l.slider.value=String(Math.max(0,q||0));l.saldo.textContent='Você possui '+numero(estoque);
   l.botao.textContent='Vender · '+numero(total)+' Z';l.botao.disabled=Boolean(l.botao.dataset.pendente)||!Number.isSafeInteger(q)||q<1||q>estoque||(s.mercado?.carteiraReal??s.zeni)+total>MAX_ZENI_NORMAL;
  };
  const atualizarCard=c=>{
   const s=obterEstado();if(!s||c.meu)return;
-  const max=limiteOferta(s,c.oferta);c.qtd.max=String(Math.max(1,max));
-  if(document.activeElement!==c.qtd&&(!Number.isSafeInteger(Number(c.qtd.value))||Number(c.qtd.value)<1||Number(c.qtd.value)>max))c.qtd.value=String(Math.max(1,Math.min(max,Number(c.qtd.value)||1)));
+  const max=limiteOferta(s,c.oferta);c.qtd.max=String(Math.max(0,max));
+  if(document.activeElement!==c.qtd&&(!Number.isSafeInteger(Number(c.qtd.value))||Number(c.qtd.value)<1||Number(c.qtd.value)>max))c.qtd.value=String(Math.max(0,Math.min(max,Number(c.qtd.value)||0)));
   const q=Number(c.qtd.value);c.botao.disabled=Boolean(c.botao.dataset.pendente)||!Number.isSafeInteger(q)||q<1||q>max;c.botao.textContent='Comprar · '+numero(q*c.oferta.preco)+' Z';
  };
  const desenharLista=()=>{
@@ -76,7 +76,7 @@ export function instalarVendas({janela,obterEstado,acao,avisar}){
    nome.append(criar('strong',ITENS_NEGOCIAVEIS[o.item].nome),criar('small',(meu?'Seu anúncio':o.vendedor)+' · '+numero(o.quantidade)+' disponíveis'),criar('small',numero(o.preco)+' Z por unidade'));
    row.append(figura(o.item),nome);const c={oferta:o,row,botao,meu};cards.set(o.id,c);
    if(meu){botao.onclick=async()=>{const r=await executar(botao,{type:'mercadoCancelar',id:o.id});if(r.ok)await carregar(true);};row.append(botao);}
-   else{const qtd=campo('number','Quantidade de '+ITENS_NEGOCIAVEIS[o.item].nome+' no anúncio');qtd.value=quantidades.get(o.id)||'1';c.qtd=qtd;qtd.oninput=()=>{quantidades.set(o.id,qtd.value);atualizarCard(c);};botao.onclick=async()=>{const r=await executar(botao,{type:'mercadoComprar',id:o.id,quantidade:Number(qtd.value)});if(r.ok)await carregar(true);};const controles=criar('div',null,'mercado-comprar');controles.append(qtd,botao);row.append(controles);atualizarCard(c);}
+   else{const qtd=campo('number','Quantidade de '+ITENS_NEGOCIAVEIS[o.item].nome+' no anúncio');qtd.value=quantidades.get(o.id)||'0';c.qtd=qtd;qtd.oninput=()=>{quantidades.set(o.id,qtd.value);atualizarCard(c);};botao.onclick=async()=>{const r=await executar(botao,{type:'mercadoComprar',id:o.id,quantidade:Number(qtd.value)});if(r.ok)await carregar(true);};const controles=criar('div',null,'mercado-comprar');controles.append(qtd,botao);row.append(controles);atualizarCard(c);}
    return row;
   }));
   avisoLista.textContent=filtradas.length?filtradas.length+' anúncios · atualização em tempo real':'Nenhum anúncio encontrado.';
