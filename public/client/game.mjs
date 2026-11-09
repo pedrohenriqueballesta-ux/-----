@@ -285,7 +285,6 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   if (!somenteCorpo) {
     ctx.save();ctx.globalAlpha=snapshot.self.preferencias.particulas&&!snapshot.self.preferencias.reduzirAnimacoes?snapshot.self.preferencias.intensidade:0;
     if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
-    if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
   }
   if(!somenteCorpo)ctx.restore();
   const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);

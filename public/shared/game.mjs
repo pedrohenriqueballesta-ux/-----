@@ -81,6 +81,7 @@ export class Game {
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
+    p.forma = 'base';
     p.genkiLancado = null; p.genkiDirecao = null;
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
@@ -93,7 +94,7 @@ export class Game {
     const portal = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destinoId) && distance(p, o) <= RAIO_PORTAL + 45);
     const destino = lugar(destinoId);
     if (!portal || !destino) return this.reject(p, 'Chegue perto de um portal para viajar.');
-    this.levar(p, destino); p.transformed = false;
+    this.levar(p, destino);
     const aviso = destino.nivel && p.level < destino.nivel[0] ? ' Recomendado a partir do nível ' + destino.nivel[0] + ': cuidado!' : '';
     this.notify(p, 'Portal: ' + destino.name + '.' + aviso); return { ok: true };
   }
@@ -252,12 +253,7 @@ export class Game {
       return resultado;
     }
     if (kind === 'transform') {
-      if (p.level < CONFIG.skills.transform) return this.reject(p, 'Super Saiyajin libera no nível ' + CONFIG.skills.transform + '.');
-      if (p.transformed) { p.transformed = false; this.notify(p, 'Forma base.'); return { ok: true }; }
-      if (this.time < p.transformReady) return this.reject(p, 'Super Saiyajin em recarga: ' + Math.ceil(p.transformReady - this.time) + 's.');
-      if (p.ki < CONFIG.skillCosts.transform) return this.reject(p, 'Ki insuficiente para transformar.');
-      registrarMissao(p,'skills',1,this.agora());p.transformed = true; p.ki -= CONFIG.skillCosts.transform; p.transformReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.transform);
-      this.notify(p, 'Super Saiyajin ativado!'); return { ok: true };
+      return this.cast(p, 'transform');
     }
     if (kind === 'portal') return this.usePortal(p, data.destino);
     if (kind === 'skill') return this.cast(p, data.skill);
@@ -331,9 +327,12 @@ export class Game {
   }
   cast(p,skill,automated=false){
     const r=this.executarTecnica(p,skill,automated);
+    this.verificarKiDaForma(p);
     if(r.ok&&skill!=='basic'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
   }
   executarTecnica(p, skill, automated = false) {
+    if (!p.connected || p.hp <= 0) return { ok: false };
+    if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated);
     if (skill === 'heal') return this.curarVida(p, automated);
     if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
@@ -342,7 +341,7 @@ export class Game {
       p.basicReady = this.time + 0.45;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
-      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (this.time < p.kaiokenUntil ? 1.4 : 1));
+      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (p.forma === 'kaioken' ? 1.4 : 1));
       return { ok: true };
     }
     if (skill === 'dash') {
@@ -358,7 +357,7 @@ export class Game {
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
-        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (this.time < p.kaiokenUntil ? 1.4 : 1), ttl: 0.95, kind: 'ki' });
+        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1), ttl: 0.95, kind: 'ki' });
       return { ok: true };
     }
     if (skill === 'kame') {
@@ -375,12 +374,6 @@ export class Game {
       p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
       return { ok: true };
     }
-    if (skill === 'kaioken') {
-      if (p.level < CONFIG.skills.kaioken) return automated ? { ok: false } : this.reject(p, 'Kaioken libera no nível 2.');
-      if (this.time < p.kaiokenReady || this.time < p.kaiokenUntil || p.ki < CONFIG.skillCosts.kaioken) return automated ? { ok: false } : this.reject(p, 'Kaioken em recarga ou Ki insuficiente.');
-      p.ki -= CONFIG.skillCosts.kaioken; p.kaiokenUntil = this.time + 6; p.kaiokenReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kaioken);
-      this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Kaioken ativado por 6 segundos!'); return { ok: true };
-    }
     if (skill === 'barrier') {
       if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível 2.');
       if (this.time < p.barrierReady || p.ki < CONFIG.skillCosts.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira em recarga ou Ki insuficiente.');
@@ -396,10 +389,26 @@ export class Game {
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
         owner: p.id, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
-        damage: p.stats.attack * (p.transformed ? 14 : 10) });
+        damage: p.stats.attack * (p.transformed ? 14 : 10) * (p.forma === 'kaioken' ? 1.4 : 1) });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
     }
     return { ok: false };
+  }
+  alternarForma(p, tecnica, automatica = false) {
+    const forma = tecnica === 'kaioken' ? 'kaioken' : 'ssj';
+    const nome = forma === 'kaioken' ? 'Kaioken' : 'Super Saiyajin';
+    if (p.level < CONFIG.skills[tecnica]) return automatica ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[tecnica] + '.');
+    // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
+    if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
+    p.forma = p.forma === forma ? 'base' : forma;
+    if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
+    this.notify(p, p.forma === 'base' ? 'Forma base.' : nome + ' ativado!');
+    return { ok: true };
+  }
+  verificarKiDaForma(p) {
+    if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
+      p.forma = 'base'; this.notify(p, 'Ki esgotado. Forma base.');
+    }
   }
   atualizarGenkis(dt) {
     // Metadados transitórios da pose não sobrevivem a cancelamento nem reconexão.
@@ -618,9 +627,10 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) return;
+    if (!p.connected) { p.forma = 'base'; return; }
     if (p.godmode) { p.hp = p.stats.hp; p.ki = p.stats.ki; }
     if (p.hp <= 0) {
+      p.forma = 'base';
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
@@ -630,8 +640,9 @@ export class Game {
     if (p.foodUntil > this.time) {const antes=p.hp;p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);analisar(p,'cura',p.hp-antes);}
     if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
     // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
-    if (!p.transformed && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
-    if (p.transformed) { p.ki = Math.max(0, p.ki - dt * 3.5); if (p.ki <= 0) { p.transformed = false; this.notify(p, 'Ki esgotado. Forma base.'); } }
+    if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
+    if (p.forma !== 'base' && !p.godmode) p.ki = Math.max(0, p.ki - dt * CONFIG.transformacao.drenoKi);
+    this.verificarKiDaForma(p);
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1));
@@ -706,7 +717,7 @@ export class Game {
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
         targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (this.time < p.kaiokenUntil ? 1.4 : 1), atingidos: new Set() });
+        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (p.forma === 'kaioken' ? 1.4 : 1), atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
@@ -932,7 +943,7 @@ export class Game {
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
-        montaria:p.montaria,level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
+        montaria:p.montaria,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
@@ -949,9 +960,9 @@ export class Game {
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,
         kameRemaining: Math.max(0, self.kameReady - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
-        kaiokenRemaining: Math.max(0, self.kaiokenReady - this.time), kaiokenActive: this.time < self.kaiokenUntil,
+        kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
-        genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: Math.max(0, self.transformReady - this.time),
+        genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: 0,
         novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,

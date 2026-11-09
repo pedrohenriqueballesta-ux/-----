@@ -75,13 +75,15 @@ test('safe zone, portal, desconexão e morte cancelam feixe; snapshot não vaza 
     sair(p, g); g.tick(.01); assert.equal(g.kamehamehas.length, 0);
   }
 });
-test('dano preserva os multiplicadores de Super Saiyajin e Kaioken', () => {
-  const { g, p, mob } = cena(50), m = mob(30); p.targetId = m.id;
-  p.transformed = true; p.kaiokenUntil = g.time + 6;
-  g.cast(p, 'kame'); passar(g, 1.7);
-  const dano = Math.round(p.stats.attack * 6 * 1.4 * 100 / (100 + (m.defesa ?? 1) * 3));
-  assert.equal(m.maxHp - m.hp, dano);
+test('dano preserva os multiplicadores de SSJ e Kaioken sem acumular formas (Pedro, 09/11)', () => {
+  for (const [forma, fator] of [['ssj',6],['kaioken',4.2*1.4],['base',4.2]]) {
+    const { g, p, mob } = cena(50), m = mob(30); p.targetId = m.id; p.forma = forma;
+    g.cast(p, 'kame'); passar(g, 1.7);
+    const dano = Math.round(p.stats.attack * fator * 100 / (100 + (m.defesa ?? 1) * 3));
+    assert.equal(m.maxHp - m.hp, dano);
+  }
 });
+
 test('auto técnicas limita a carga ao alcance acrescido da aproximação prevista', () => {
   for (const dentro of [true, false]) {
     const { g, p, mob } = cena(20), m = mob(dentro ? 100 : 450); p.targetId = m.id; p.autoSkills = true; p.autoHunt = true;

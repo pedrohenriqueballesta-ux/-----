@@ -152,6 +152,7 @@ button{cursor:pointer}
 .item-icone{background-image:none;font-size:calc(38 * var(--u))}
 .tecnica strong{font-size:calc(13 * var(--u));white-space:nowrap}
 .tecnica small{display:none}
+.tecnica .estado-transformacao{top:calc(48 * var(--u));font-size:calc(12 * var(--u));color:#fff3ab;background:#18242de8;border-radius:calc(4 * var(--u));margin:0 calc(10 * var(--u))}
 .tecnica .contagem{position:absolute;right:calc(10 * var(--u));top:calc(40 * var(--u));font:900 calc(18 * var(--u)) system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--u)) #000,0 0 calc(3 * var(--u)) #000}
 .recarga-item{position:absolute;top:calc(44 * var(--u));left:0;right:0;font-weight:800;font-size:calc(14 * var(--u));text-shadow:0 0 calc(3 * var(--u)) #000}
 .tecnica:hover .tecnica-icone{border-color:var(--ouro-claro);box-shadow:var(--brilho)}

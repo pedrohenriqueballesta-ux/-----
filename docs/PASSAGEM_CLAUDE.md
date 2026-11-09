@@ -1,5 +1,39 @@
 # Dragon Ball Idle — passagem para Claude Code
 
+## Kaioken e nova regra das transformações — 09/11/2026
+
+**Esta decisão substitui custo, recarga e duração de transformação descritos nas
+seções históricas abaixo.** Ramo `feature/goku-kaioken`, base `71104d0` com PR #74.
+Documento detalhado: `docs/GOKU_KAIOKEN.md`.
+
+- **DECIDIDO PELO PEDRO:** todas as transformações são grátis, sem recarga e sem
+  duração fixa. Uma forma por vez; repetir a técnica volta à base, outra forma
+  substitui a atual. Drenam Ki; zerar avisa “Ki esgotado. Forma base.”. Morte,
+  viagem e desconexão limpam a forma. Sem recuperação natural de Ki transformado
+  e sem persistência da forma no save.
+- **PROVISÓRIO:** `CONFIG.transformacao.drenoKi = 3.5` comum a todas as formas;
+  desbloqueios mantidos em 2/5. Automação atual não ativa formas, como antes;
+  chamadas automáticas só podem entrar na base acima de 50% Ki, nunca desligam
+  nem substituem forma ativa. God Mode preserva Ki cheio.
+- **IMPLEMENTADO:** `p.forma` único com alias `transformed` para SSJ; snapshots
+  incluem a forma para todos no mesmo lugar. Kaioken ×1,4 em soco, rajada,
+  Kamehameha e Genki, sem acumular com SSJ. SSJ conserva seus multiplicadores.
+  HUD com ATIVO visível, botão clicável para desligar e detalhes novos.
+- **ARTE DO PEDRO:** seis PNGs 1024×1536 do ZIP Kaioken, recortados em
+  `conectado verde` e gerados pelas ferramentas existentes. Atlas/JSON em
+  `assets/goku/kaioken/`, seis módulos e `FOLHAS_GOKU_KAIOKEN`; prioridades iguais
+  às da base, escala comum `70/253`, oito direções por `SHEET_VIEWS`.
+  Zero pixels opacos com verde predominante nos seis atlas. Sem aura nova;
+  círculo vermelho removido na revisão do Pedro, inclusive nos observadores.
+  SSJ mantém arte antiga.
+- **VERIFICADO:** sintaxe e 466 testes passaram. Chrome com prints das seis ações
+  nas oito direções, trocas base/Kaioken/SSJ, combate na hunt, esgotamento com
+  aviso e conta observadora recebendo/desenhando Kaioken. Prévia em worktree,
+  sem copiar o save original. Resultado final detalhado no documento Kaioken.
+- **ENTREGA LOCAL:** prévia `http://localhost:3002`, galeria `/kaioken.html`;
+  conta de teste no nível 60. Pedro revisou a prévia e autorizou commit e push
+  em 09/11/2026, incluindo a remoção do círculo vermelho. PR e merge aguardam pedido.
+
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
 ## Auto Hunt: controle principal da automação — 07/11/2026

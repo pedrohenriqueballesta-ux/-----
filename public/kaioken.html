@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Goku Kaioken · seis folhas</title>
+<style>body{margin:0;background:#101f2a;color:#ecf3f5;font:15px system-ui}main{max-width:1280px;margin:auto;padding:20px}h1{font-size:22px}nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0}select,button{font:inherit;padding:8px;background:#1b394b;color:#fff;border:1px solid #688ea0;border-radius:6px}a{color:#a2deff}canvas{width:100%;border:1px solid #476774;border-radius:10px}</style>
+<main><h1>Goku Kaioken · seis folhas nas oito direções</h1><p>As cruzes marcam os pés. Compare as formas sem mudar posição. Esta prévia de arte não usa o progresso salvo.</p>
+<nav><label>Forma <select id="forma"><option value="kaioken">Kaioken</option><option value="base">Base</option><option value="ssj">Super Saiyajin</option></select></label>
+<label>Ação <select id="acao"><option value="parado">Parado</option><option value="andar">Andar</option><option value="soco">Soco</option><option value="rajada">Rajada de Ki</option><option value="kamehameha">Kamehameha</option><option value="genki">Genki Dama</option></select></label>
+<button id="pausar">Pausar</button><label>Fase <input id="fase" type="range" min="0" max="0.999" step="0.001" value="0.6"></label><a href="/">Abrir o jogo</a><output id="estado">Carregando…</output></nav>
+<canvas id="previa" width="1280" height="720" aria-label="Goku em oito direções e caminhando em círculo"></canvas></main>
+<script type="module" src="/render/kaioken-previa.mjs"></script>
+</html>
