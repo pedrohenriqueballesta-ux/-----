@@ -9,8 +9,9 @@ import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO
 import { deslocar } from '../shared/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
 import { desenharRachaduras } from '../render/safe-zone.mjs';
-import { carregarKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
-import { origemKame } from '../shared/kamehameha.mjs';
+import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
+carregarImpactoKame();
+import { KAME, origemKame } from '../shared/kamehameha.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/cura.mjs';
@@ -611,11 +612,11 @@ function frame(now) {
   // Sem recorte: para baixo o feixe cobre o lançador; para cima o sprite recompõe a oclusão.
   for (const p of snapshot.players) if (p.charge) {
     const pos = renderPositions.get(p.id) || p;
-    desenharKameSobreInimigos({ ...p.charge, ...origemKame(pos, p.charge.direction) }, Math.max(time, p.charge.started), p, pos);
+    desenharKameSobreInimigos({ ...p.charge, ...origemKame(pos, p.charge.direction, snapshot.mobs.find(m => m.id === p.charge.targetId)) }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
   }
   for (const k of snapshot.kamehamehas || []) {
     const pos = renderPositions.get(k.owner);
-    desenharKameSobreInimigos(pos ? { ...k, ...origemKame(pos, k.direction) } : k, time, snapshot.players.find(p => p.id === k.owner), pos);
+    desenharKameSobreInimigos(pos && !k.impacto ? { ...k, ...origemKame(pos, k.direction, snapshot.mobs.find(m => m.id === k.targetId)) } : k, time, snapshot.players.find(p => p.id === k.owner), pos);
   }
   for (const g of snapshot.genkiCharges || []) desenharGenki(ctx, 'carga', g, time, renderPositions.get(g.owner) || g);
   for (const s of snapshot.projectiles) {

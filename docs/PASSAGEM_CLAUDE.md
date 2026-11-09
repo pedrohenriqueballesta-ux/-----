@@ -607,3 +607,25 @@ Atualização das safe zones (07/11): inimigos não nascem nem renascem dentro d
 ### HUD: trava de posição e arrasto pelo cabeçalho — 08/11/2026
 
 Pedido do Pedro: janelas com cadeado no cabeçalho (na mochila, ao lado de minimizar), com preferência persistida por janela no navegador. A trava impede arrastar e restaurar posição por duplo clique. Cabeçalhos substituem as bolinhas de arrasto do minimapa, automação, personagem e alvo. A mochila preserva a posição manual ao minimizar e reabrir.
+
+
+## Kamehameha: alvo selecionado e impacto com dano fragmentado — 08/11/2026
+
+- **DECIDIDO, revisão do Pedro:** Kamehameha passa a ser target: exige mob selecionado na HUD, vivo, na mesma hunt, fora da safe zone e no alcance do estágio. Sem alvo válido, não consome Ki nem inicia recarga. Mantém o alvo do início da carga, acompanha seus movimentos e não é interceptado por outro mob. Alvo morto ou que sai da hunt cancela o disparo antes do impacto.
+- **DECIDIDO:** alvo principal recebe dano completo; uma parcela adicional equivalente ao dano base é dividida igualmente entre os demais mobs na área do impacto. Defesa e arredondamento existentes são aplicados por mob. Não há redistribuição da parcela não utilizada quando não existem secundários.
+- **SUBSTITUÍDO:** a regra anterior de primeiro mob na linha e os três SQMs atrás não se aplicam mais. A área atual segue a silhueta acumulada dos 16 quadros da sprite: extremos dos pixels com alpha ≥ 32 por linha, incluindo os espaços entre esses extremos. Transformação inversa do desenho (escala, espelhamento e rotação) executada no servidor. O centro do mob precisa estar nessa área. O alcance do estágio limita o alvo principal; a explosão cobre a área da sprite, inclusive quando essa se estende além desse alcance.
+- **IMPLEMENTADO:** alcance de 4/6/8/10/12 tiles de 32 unidades, níveis 1/20/50/100/150+. Custo, recarga, multiplicadores e fórmula de dano preservados. Sem PvP, dano entre hunts ou dentro da safe zone. Dano de impacto aplicado uma vez.
+- **ARTE DO PEDRO:** `kamehameha_impacto.zip`, PNG RGBA original 1024×1024, grade 4×4, sem alteração de cores. 16 quadros a 80 ms, tamanho visual de 192 unidades. Feixe recortado no contato; impacto mantém posição e direção após colisão, mesmo se o personagem virar ou o alvo morrer.
+
+- **VERIFICADO:** 356 testes passaram e `npm run check` passou. Inclui seleção obrigatória, acompanhamento do alvo, ausência de interceptação, dano completo/fragmentado, silhueta nas oito direções, alvos sobrepostos e isolamento entre hunts. Conferência visual no Chrome nas oito direções; servidor reiniciado em http://localhost:3000.
+
+
+### Auto Hunt: carga antecipada do Kamehameha — 08/11/2026
+
+- **PEDIDO DO PEDRO:** iniciar carga durante a aproximação para soltar assim que o alvo entrar no alcance, sem esperar corpo a corpo.
+- **IMPLEMENTADO:** somente a carga automática pode iniciar fora do alcance, até `alcance do estágio + 20 + mobilidade × 0,65` unidades, enquanto o jogador se move. Seleção da Auto Hunt com técnicas ativas alcança no mínimo essa margem (mantém mínimo anterior de 350). Uso manual continua exigindo alvo no alcance.
+- Feixe só sai após 0,65 s e quando a distância à borda do corpo do alvo cabe no alcance real. Se chegar antes, a carga fica pronta aguardando, mantendo visual de carga sem feixe prematuro. Ao disparar, relógio da animação inicia no primeiro quadro de feixe, mesmo após espera longa.
+- Alvo inválido, mudança de alvo da Auto Hunt, desligamento da caça e safe zone cancelam a carga automática. Mantidos custo, cooldown, dano, mira target e fragmentação de impacto.
+- **MEDIDO:** com mob parado e simulação a 10 ms, distância de saída do feixe antes → depois: nível 3, 49 → 146; nível 20, 73 → 208; nível 50, 120 → 269 unidades. Mesmos cenários e atributos.
+
+- **VERIFICADO:** 362 testes passaram; `npm run check` passou. Conferência visual no Chrome registrou carga a 264 e disparo a 146 unidades no nível 3. Servidor reiniciado para teste em http://localhost:3000.

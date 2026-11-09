@@ -1,6 +1,25 @@
-import { KAME, estagioKame, geometriaKame } from '../shared/kamehameha.mjs';
+import { KAME, estagioKame, geometriaKame, IMPACTO_KAME } from '../shared/kamehameha.mjs';
 
 const imagens = new Map(), quadros = new Map();
+let imagemImpacto;
+export function carregarImpactoKame() {
+  if (!imagemImpacto) { imagemImpacto = new Image(); imagemImpacto.src = IMPACTO_KAME.imagem; }
+  return imagemImpacto;
+}
+function desenharImpacto(ctx, efeito, tempo) {
+  const frame = Math.floor((tempo - efeito.impacto.started) / IMPACTO_KAME.quadro + 1e-8);
+  if (frame < 0 || frame >= IMPACTO_KAME.quadros) return false;
+  const imagem = carregarImpactoKame();
+  if (!imagem.complete || !imagem.naturalWidth) return false;
+  ctx.save();ctx.translate(efeito.impacto.contatoX, efeito.impacto.contatoY - KAME.alturaMao);
+  ctx.rotate(Math.atan2(efeito.direction.y, efeito.direction.x));
+  // A folha aponta à esquerda: espelha para abrir a explosão atrás do contato.
+  ctx.scale(-1, 1);ctx.imageSmoothingEnabled = false;
+  const tamanho = IMPACTO_KAME.tamanho;
+  ctx.drawImage(imagem, frame % 4 * 256, Math.floor(frame / 4) * 256, 256, 256,
+    -tamanho / 2, -tamanho / 2, tamanho, tamanho);
+  ctx.restore();return true;
+}
 // Sul e diagonais para baixo ficam à frente do corpo; norte e laterais ficam atrás.
 export const kameSobrePersonagem = direcao => (direcao?.y || 0) > .0001;
 export function desenharKameComProfundidade(ctx, efeito, tempo, redesenharLancador = null) {
@@ -16,7 +35,7 @@ export function carregarKame(nivel) {
 }
 export function desenharKame(ctx, efeito, tempo) {
   const g = geometriaKame(efeito.nivel, tempo - efeito.started);
-  if (!g) return false;
+  if (!g) return efeito.impacto ? desenharImpacto(ctx, efeito, tempo) : false;
   const imagem = carregarKame(g.estagio.nivel);
   if (!imagem.complete || !imagem.naturalWidth) return false;
   const chave = g.estagio.nivel + ':' + g.frame;
@@ -60,9 +79,14 @@ export function desenharKame(ctx, efeito, tempo) {
   }
   ctx.save(); ctx.translate(efeito.x, efeito.y - KAME.alturaMao);
   ctx.rotate(Math.atan2(efeito.direction.y, efeito.direction.x));
+  if (efeito.impacto) {
+    ctx.beginPath();ctx.rect(-4, -1000, efeito.impacto.distancia + 4, 2000);ctx.clip();
+  }
   ctx.scale(g.estagio.escala * KAME.escalaVisual, g.estagio.escala * KAME.escalaVisual);
   ctx.imageSmoothingEnabled = true;
   // A margem transparente é a única coisa atrás das mãos, em qualquer direção/frame.
   ctx.drawImage(quadros.get(chave), -2, -g.q.origemY - 2);
-  ctx.restore(); return true;
+  ctx.restore();
+  if (efeito.impacto) desenharImpacto(ctx, efeito, tempo);
+  return true;
 }
