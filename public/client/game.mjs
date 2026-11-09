@@ -1,3 +1,4 @@
+import {apresentarGenkiJogador,POSE_GENKI} from '../render/genki-personagem.mjs';
 import {instalarAtalhosInterface} from './atalhos.mjs';
 import {desenharNimbus,nimbusCarregada} from '../render/nimbus.mjs';
 import {geometriaNimbus} from '../shared/montarias.mjs';
@@ -273,6 +274,7 @@ function placa(x, y, texto, hp, max, cor, largura = 52) {
   ctx.restore();
 }
 function drawPlayer(p, pos, time, somenteCorpo = false) {
+  p = apresentarGenkiJogador(p,snapshot.genkiCharges || [],time);
   if (!somenteCorpo) shadow(pos.x, pos.y, 20);
   const opcoesNimbus={flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes};
   const montado=somenteCorpo?(p.montaria==='nimbus'&&!p.dead&&nimbusCarregada()?geometriaNimbus(p,pos,time,opcoesNimbus):null):desenharNimbus(ctx,p,pos,time,opcoesNimbus);
@@ -286,6 +288,9 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
     if (p.id === playerId && snapshot.self?.kaiokenActive) { ctx.strokeStyle = '#ff4c43aa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 31 + Math.sin(time * 18) * 3, 44, 0, 0, Math.PI * 2); ctx.stroke(); }
   }
   if(!somenteCorpo)ctx.restore();
+  const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
+  const kame = (snapshot.kamehamehas || []).find(k => k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
+  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started };
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -618,7 +623,13 @@ function frame(now) {
     const pos = renderPositions.get(k.owner);
     desenharKameSobreInimigos(pos && !k.impacto ? { ...k, ...origemKame(pos, k.direction, snapshot.mobs.find(m => m.id === k.targetId)) } : k, time, snapshot.players.find(p => p.id === k.owner), pos);
   }
-  for (const g of snapshot.genkiCharges || []) desenharGenki(ctx, 'carga', g, time, renderPositions.get(g.owner) || g);
+  for (const g of snapshot.genkiCharges || []) {
+    const dono = snapshot.players.find(p => p.id === g.owner);
+    let pos = renderPositions.get(g.owner) || g;
+    if (dono?.montaria === 'nimbus' && !dono.dead && nimbusCarregada())
+      pos = geometriaNimbus({...dono,facing:g.direction},pos,time,{flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes}).personagem;
+    desenharGenki(ctx,'carga',g,time,{...pos,alturaCanalizacao:dono && !dono.transformed ? POSE_GENKI.alturaCanalizacao : 62});
+  }
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
     if (s.kind === 'mobKiTarget') {

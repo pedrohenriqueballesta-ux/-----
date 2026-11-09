@@ -19,7 +19,7 @@ export function geometriaGenki(fase, efeito, tempo, posicao = efeito) {
   if (quadro < 0) return null;
   // A ponta inferior do V nasce na cabeça; os dois braços de energia crescem para cima.
   const ancora = fase === 'carga' ? [191,334] : fase === 'voo' ? CENTROS_VOO[quadro] : [192,192];
-  return { quadro, x: posicao.x, y: posicao.y - (fase === 'carga' ? 62 : 0),
+  return { quadro, x: posicao.x, y: posicao.y - (fase === 'carga' ? (posicao.alturaCanalizacao ?? 62) : 0),
     angulo: fase === 'voo' ? Math.atan2(efeito.dy, efeito.dx) : 0,
     ancora, escala: GENKI_ARTE[fase].escala };
 }
