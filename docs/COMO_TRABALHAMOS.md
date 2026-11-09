@@ -56,6 +56,17 @@ O repositório é de 4 pessoas trabalhando em paralelo. A `main` só recebe trab
 
 ### Folhas de mobs e personagens
 
+Regra obrigatória para toda folha nova ou existente de cinco direções (Pedro, 09/11/2026):
+
+- Recebemos somente Sul, Sudeste, Leste, Nordeste e Norte, nessa ordem de linhas, com quatro colunas. Nunca pedir arte para a esquerda nem gerar cópias espelhadas em PNG.
+- Toda folha nova passa por `ferramentas/fatiar_caminhada.py` e `ferramentas/gerar_modulo.py`. O desenho usa `drawSheet` e a tabela única `SHEET_VIEWS` de `public/art/atlas.mjs` (diretamente ou por um desenhista que passe por ele).
+- `spriteFacing` fornece os índices Sul, Sudoeste, Oeste, Noroeste, Norte, Nordeste, Leste, Sudeste. Linhas correspondentes: 1, 2, 3, 4, 5, 4, 3, 2. Somente Sudoeste, Oeste e Noroeste espelham.
+- Frente e costas nunca espelham. Espelho é apenas `scale(-1, 1)` depois de transladar para a âncora do quadro (centro do tronco e chão/pés), nunca para o centro da célula. Preservar o deslocamento de chão comum do desenhista.
+- Clarões, carga e pontos de saída presos à mão/boca acompanham o mesmo espelho: o deslocamento horizontal do ponto de saída troca de sinal. Efeitos embutidos no quadro seguem automaticamente o sprite; origens externas devem respeitar a direção espelhada.
+- `ctx.save()`/`ctx.restore()` isolam o sprite. Nomes, números, placas e barras ficam fora do contexto espelhado.
+- Testes de todas as folhas registradas devem conferir as oito direções, linha, espelho horizontal e âncora fixa, além da restauração do contexto. Executar `npm run check` e `npm test`; conferir no navegador com prints da caminhada em círculo e nas oito direções.
+- Folhas antigas de outros formatos e montarias que têm oito direções próprias não devem ser reinterpretadas como folhas de cinco direções nem perder suas artes originais.
+
 - Formato: imagem **1024×1536**, grade **5 linhas × 4 colunas**, um quadro por célula, pés na mesma linha de base.
   Linhas: frente (sul), diagonal frente-direita, perfil direito, diagonal costas-direita, costas (norte, **sem rosto**).
   O jogo espelha o lado esquerdo.

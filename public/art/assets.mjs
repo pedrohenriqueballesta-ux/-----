@@ -1,5 +1,6 @@
 // Registro de imagens (sprites e texturas). A arte é separada da simulação
 // autoritativa, que vive em shared/.
+import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
 import { GOKU_PASSO } from './goku-passo.mjs';
 import { SSJ_PASSO } from './ssj-passo.mjs';
@@ -15,6 +16,7 @@ const loadImage = url => {
   return imageCache.get(url);
 };
 export const art = {
+  ...Object.fromEntries(Object.values(FOLHAS_GOKU_BASE).map(([folha,chave])=>[chave,loadImage(folha.file)])),
   nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),
   tree: loadImage('/assets/tree.png'),

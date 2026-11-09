@@ -1,9 +1,9 @@
-// Caminhada do Goku base desenhada quadro a quadro (ChatGPT, 27/10/2026), recortada e alinhada
-// pela cabeça com ferramentas/fatiar_caminhada.py. Não edite à mão: gere de novo.
-// Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: contato esq., passagem, contato dir., passagem.
+// Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: sequência original de quatro quadros.
 // Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
 export const GOKU_PASSO = {
-  file: '/assets/goku-passo.png', width: 776, height: 1345,
-  rows: 5, columns: 4, referenceHeight: 230, idleColumn: 1,
-  frames: [[[0,0,194,269,99.0,263],[194,0,194,269,293.0,263],[388,0,194,269,487.0,263],[582,0,194,269,681.0,263]],[[0,269,194,269,93.5,532],[194,269,194,269,287.5,532],[388,269,194,269,481.5,532],[582,269,194,269,675.5,532]],[[0,538,194,269,87.5,801],[194,538,194,269,281.5,801],[388,538,194,269,475.5,801],[582,538,194,269,669.5,801]],[[0,807,194,269,91.0,1070],[194,807,194,269,285.0,1070],[388,807,194,269,479.0,1070],[582,807,194,269,673.0,1070]],[[0,1076,194,269,96.0,1339],[194,1076,194,269,290.0,1339],[388,1076,194,269,484.0,1339],[582,1076,194,269,678.0,1339]]]
+  file: '/assets/goku/base/andar.png', width: 796, height: 1465,
+  rows: 5, columns: 4, referenceHeight: 253, idleColumn: 0,
+  frames: [[[0,0,199,293,97.0,287],[199,0,199,293,296.0,287],[398,0,199,293,495.0,287],[597,0,199,293,694.0,287]],[[0,293,199,293,101.0,580],[199,293,199,293,300.0,580],[398,293,199,293,499.0,580],[597,293,199,293,698.0,580]],[[0,586,199,293,100.0,873],[199,586,199,293,299.0,873],[398,586,199,293,498.0,873],[597,586,199,293,697.0,873]],[[0,879,199,293,104.5,1166],[199,879,199,293,303.5,1166],[398,879,199,293,502.5,1166],[597,879,199,293,701.5,1166]],[[0,1172,199,293,95.0,1459],[199,1172,199,293,294.0,1459],[398,1172,199,293,493.0,1459],[597,1172,199,293,692.0,1459]]]
 };

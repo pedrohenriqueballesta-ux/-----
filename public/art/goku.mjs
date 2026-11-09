@@ -2,9 +2,34 @@
 // quadro a quadro (folhas passo/golpe), com recortes de 16 quadros como reserva.
 import { art, loaded } from './assets.mjs';
 import { drawWalk, drawAttack, drawSheet, GOLPE } from './atlas.mjs';
+import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
+import { colunaGenki } from '../render/genki-personagem.mjs';
+import { KAME } from '../shared/kamehameha.mjs';
 import { strikeColumn } from '../render/camera.mjs';
 
 export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
+  if (!player.dead && !player.transformed) {
+    let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
+    const genki = colunaGenki(player,time);
+    if (genki !== null) { estado = 'genki';coluna = genki; }
+    else if (player.charge) {
+      estado = 'kamehameha';
+      const inicio = player.charge.until - KAME.carga;
+      coluna = time - inicio < KAME.carga / 2 ? 0 : 1;
+    } else if (Number.isFinite(player.kameStarted)) {
+      estado = 'kamehameha';coluna = time - player.kameStarted < .5 ? 2 : 3;
+    } else if (Number.isFinite(player.rajadaStarted) && time - player.rajadaStarted < .36) {
+      estado = 'rajada';coluna = strikeColumn(Math.max(0,time-player.rajadaStarted)/.36);
+    } else if (strikeProgress !== null) { estado = 'soco';coluna = strikeColumn(strikeProgress); }
+    if (estado === 'andar') {
+      if (drawWalk(ctx,'goku',pos,70,player.facing,true)) return true;
+    } else {
+      const [folha,chave] = FOLHAS_GOKU_BASE[estado];
+      // Escala única entre poses: mudar de ação não muda o tamanho do corpo.
+      const altura = 70 * folha.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+      if (drawSheet(ctx,folha,art[chave],pos,altura,player.facing,coluna)) return true;
+    }
+  }
   // Soco e carga do Kamehameha vêm da folha de golpe desenhada da forma atual (carga = pose de preparação).
   if (!player.dead) {
     const [sheet, key] = GOLPE[player.transformed ? 'ssj' : 'goku'];

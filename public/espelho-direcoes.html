@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Goku · conferência das oito direções</title>
+<style>body{margin:0;background:#101f2a;color:#ecf3f5;font:15px system-ui}main{max-width:1280px;margin:auto;padding:20px}h1{font-size:22px;margin:0 0 10px}p{color:#b4cbd0}nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0}select,button{font:inherit;padding:8px;background:#1b394b;color:#fff;border:1px solid #688ea0;border-radius:6px}a{color:#a2deff}canvas{width:100%;background:#18363a;border:1px solid #476774;border-radius:10px}label{display:flex;gap:8px;align-items:center}</style>
+<main><h1>Goku base · oito direções</h1><p>As marcas no chão indicam a âncora dos pés. O personagem à direita percorre um círculo pelas oito direções. Esta prévia não usa o progresso salvo.</p>
+<nav><label>Ação <select id="acao"><option value="andar">Andar</option><option value="parado">Parado</option><option value="soco">Soco</option><option value="rajada">Rajada de Ki</option><option value="kamehameha">Kamehameha</option></select></label><button id="pausar">Pausar</button><a href="/genki-goku.html">Folha 6 · Genki Dama</a><a href="/">Abrir o jogo</a><output id="estado" role="status">Carregando folhas…</output></nav>
+<canvas id="previa" width="1280" height="720" aria-label="Goku nas oito direções e caminhando em círculo"></canvas></main>
+<script type="module" src="/render/espelho-direcoes-previa.mjs"></script>
+</html>

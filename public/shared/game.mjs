@@ -81,6 +81,7 @@ export class Game {
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
+    p.genkiLancado = null; p.genkiDirecao = null;
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
@@ -355,6 +356,7 @@ export class Game {
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
+      this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
         owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (this.time < p.kaiokenUntil ? 1.4 : 1), ttl: 0.95, kind: 'ki' });
       return { ok: true };
@@ -390,6 +392,7 @@ export class Game {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível 10.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
+      p.genkiLancado = null;p.genkiDirecao = null;
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
         owner: p.id, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
@@ -399,6 +402,10 @@ export class Game {
     return { ok: false };
   }
   atualizarGenkis(dt) {
+    // Metadados transitórios da pose não sobrevivem a cancelamento nem reconexão.
+    for (const p of this.players.values()) if (!p.connected || p.hp <= 0 || naZonaSegura(p) || this.time - p.genkiLancado >= .35) {
+      p.genkiLancado = null;p.genkiDirecao = null;
+    }
     this.genkiExplosions = this.genkiExplosions.filter(g => this.time - g.started < GENKI.explosao);
     const ativo = (p, g) => p && p.connected && p.hp > 0 && this.mesmoLugar(p, g) && !naZonaSegura(p);
     const alvoValido = (alvo, g) => alvo && alvo.hp > 0 && this.mesmoLugar(alvo, g) && !naZonaSegura(alvo)
@@ -412,6 +419,7 @@ export class Game {
       if (this.time + 1e-9 < g.until) return true;
       const origem = { x: p.x, y: p.y - (g.targetId || g.aim ? GENKI.alturaOrigem : GENKI.alturaAlvo) };
       const direcao = !g.targetId && g.aim ? norm(g.aim.x - origem.x, g.aim.y - origem.y) : g.direction;
+      p.genkiLancado = this.time;p.genkiDirecao = { ...direcao };
       this.projectiles.push({ id: this.uid('s'), kind: 'genki', owner: p.id, ownerType: 'player',
         ...origem, planet: g.planet, area: g.area,
         dx: direcao.x, dy: direcao.y, speed: GENKI.velocidade, targetId: g.targetId,
@@ -421,9 +429,9 @@ export class Game {
     for (const s of this.projectiles) {
       if (s.kind !== 'genki' || s.ttl <= 0) continue;
       const p = this.players.get(s.owner);
-      if (!ativo(p, s)) { s.ttl = 0; continue; }
+      if (!ativo(p, s)) { if(p){p.genkiLancado=null;p.genkiDirecao=null;} s.ttl = 0; continue; }
       const alvo = this.mobs.get(s.targetId) || this.players.get(s.targetId);
-      if (s.targetId && !alvoValido(alvo, s)) { s.ttl = 0; continue; }
+      if (s.targetId && !alvoValido(alvo, s)) { if(p){p.genkiLancado=null;p.genkiDirecao=null;} s.ttl = 0; continue; }
       const antes = { x: s.x, y: s.y };
       let passo = s.speed * dt;
       if (alvo) {
@@ -927,6 +935,8 @@ export class Game {
         montaria:p.montaria,level: p.level, moving: p.moving, facing: p.facing, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
+        genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
+        genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,

@@ -650,3 +650,35 @@ Pedido do Pedro: janelas com cadeado no cabeçalho (na mochila, ao lado de minim
 | vegeta-cratera | 54 | 0 → 0 | 1 → 1 |
 
 - **VERIFICADO:** 364 testes passaram, `npm run check` passou e servidor reiniciado em http://localhost:3000. Testes novos confirmam aquisição a 600 unidades com técnicas ligadas/desligadas e rejeição de mobs fora do raio, mortos, em safe zone ou de outra hunt.
+
+
+## Goku base e espelho das folhas — 09/11/2026
+
+- Branch `feature/espelho-direcoes`, criada a partir de origin/main no repositório solicitado `~/idle-dbz/jogo`; desenvolvimento e prévia em worktree separado, sem copiar o save original.
+- **ARTE DO PEDRO:** cinco PNGs de `goku_base_5_folhas.zip`: parado, andar, soco, rajada de Ki e Kamehameha. Recortados pelo `fatiar_caminhada.py` e módulos gerados pelo `gerar_modulo.py`. Atlas transparentes e JSONs em `public/assets/goku/base/`; registro em `art/goku-base.mjs`. Não foram criadas artes espelhadas.
+- Goku base permanece com altura de referência de 70 unidades; poses usam a escala da caminhada (referenceHeight 253) para não mudar de tamanho entre ações. Super Saiyajin mantém a arte anterior. Morte continua usando a reserva existente, pois o pacote não contém folha de morte.
+- Animação da rajada usa evento visual `kiShot`; não altera dano, custo, cooldown ou projétil. A carga e o disparo do Kamehameha usam as poses próprias sem alterar a simulação da habilidade.
+- **AUDITORIA:** `SHEET_VIEWS` já estava correta; passou a ser exportada para os testes. Voadores tinham tabela equivalente duplicada e passaram a usar `drawSheet`, preservando referência de escala do voo e deslocamento vertical. Freeza Boss, lutadores, Saibaman, sentinelas e demais folhas de cinco linhas já passam pelo desenhista comum. Goku antigo, atlas de reserva e Freeza antigo possuem outros formatos; Nimbus possui oito direções próprias. Não são convertidos nem têm arte ou tamanho alterados.
+- Teste automático descobre todas as folhas geradas com cinco linhas, confere oito direções e todas as colunas, seleção de recorte, espelho só nas três direções da esquerda, âncora fixa e contexto restaurado. Testes específicos verificam as cinco poses novas e a origem externa do Kamehameha nas diagonais espelhadas.
+- **VERIFICADO:** 433 testes passaram e `npm run check` passou. Prévia `/espelho-direcoes.html` mostra cinco ações, oito direções e caminhada em círculo. Chrome: prints de todas as ações, ciclo das oito direções também dentro do jogo com conta de teste. Comparados 60 pares de quadros: geometria espelhada e âncoras coincidentes; diferenças residuais de interpolação do Canvas concentradas em 48 canais de borda (máximo alpha 12/255 e cor opaca 4/255), sem deslocamento geométrico.
+- Save original conferido por SHA-256 antes/depois, idêntico. Conta descartável e progresso apenas no worktree. Sem commit, push ou PR.
+
+
+## Goku novo: folha 6 — Genki Dama (09/11/2026)
+
+- Continuação em `feature/espelho-direcoes`, preservando todas as alterações sem commit das cinco primeiras folhas. Documento completo: `docs/GOKU_NOVO.md`.
+- Arte original em `~/idle-dbz/referencias/goku-novo/goku_base_06_genki.png`, recortada em modo halo e gerada pelas ferramentas existentes. Novo `GOKU_GENKI`, atlas/JSON `public/assets/goku/base/genki.*`, registro `genki: [GOKU_GENKI, 'gokuGenki']`. Células 254×315; nenhuma borda corta pixels das mãos. Escala de corpo única 70/253 preservada.
+- Apresentação da forma base: prioridade Genki sobre Kamehameha; carga coluna 0 por 0,25 s e coluna 1 parada até terminar a carga; lançamento coluna 2 por 0,15 s e coluna 3 até 0,35 s. SSJ mantém folhas antigas.
+- Servidor envia `genkiLancado` e `genkiDirecao` transitórios no snapshot dos jogadores da mesma hunt. Cancelamentos existentes, morte, desconexão, portal e safe zone apagam a pose. Direção aplicada só à apresentação; não altera direção autoritativa, custo, dano, cooldown, velocidade ou área.
+- Canalização da forma base ancorada a 58 unidades dos pés do sprite (SSJ continua 62); energia recebe o mesmo deslocamento do corpo na Nimbus. Energia, voo e explosão usam as folhas já existentes.
+- 440 testes passaram; `npm run check` passou, incluindo o módulo novo. Chrome: quatro fases nas oito direções, com/sem alvo, montado na Nimbus e cancelando na safe zone. Prévia: http://localhost:3001/genki-goku.html. Save original preservado.
+- Sem commit/push/PR/merge. Antes do commit aprovado, atualizar o ramo com `origin/main` (PR #73) e repetir toda a validação. Nenhum stash ou troca de ramo feito no clone original.
+
+
+### Entrega do Goku novo autorizada — 09/11/2026
+
+Pedro autorizou commit e push de todo o trabalho em `feature/espelho-direcoes`.
+Base atualizada com `origin/main` (PR #73), sem perder alterações locais e sem stash
+ou troca de ramo. Suíte repetida na cópia separada: **442 testes passaram** e
+`npm run check` passou. Save original preservado por verificação de hash.
+As seis folhas, espelhamento, Genki e prévias seguem na mesma entrega; sem PR/merge.

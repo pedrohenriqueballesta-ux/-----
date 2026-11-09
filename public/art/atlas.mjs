@@ -98,7 +98,7 @@ function drawAtlas(ctx, key, pos, height, facing, frame) {
 const walkingRigs = new Map();
 // Direção do jogo (ordem de DIRECTIONS) → linha das folhas desenhadas (Sul, Sudeste, Leste, Nordeste, Norte);
 // oeste e diagonais da esquerda são espelhadas.
-const SHEET_VIEWS = [
+export const SHEET_VIEWS = [
   { row: 0, flip: false }, { row: 1, flip: true }, { row: 2, flip: true }, { row: 3, flip: true },
   { row: 4, flip: false }, { row: 3, flip: false }, { row: 2, flip: false }, { row: 1, flip: false }
 ];
