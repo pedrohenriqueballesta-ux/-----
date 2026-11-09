@@ -372,7 +372,7 @@ function atualizarMochila(s) {
 // Encaixa a Mochila no vão entre o cartão do jogador e as pílulas (comida/conexão): começa logo abaixo do
 // cartão e, se não couber inteira, encolhe tudo por igual (--m) até terminar acima das pílulas.
 function encaixarMochila() {
-  const janela = $('mochilaDialog'); if (!janela.open || janela.classList.contains('hud-tamanho-manual')) return;
+  const janela = $('mochilaDialog'); if (!janela.open || janela.classList.contains('hud-tamanho-manual') || janela.style.left) return;
   const u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--e')) || 1, folga = 8 * u;
   const cartao = document.querySelector('.hud-jogador')?.getBoundingClientRect(), pilulas = document.querySelector('.hud-pilulas')?.getBoundingClientRect();
   const topo = (cartao?.bottom ?? 0) + folga, fim = pilulas?.height ? pilulas.top - folga : innerHeight - folga;
@@ -469,11 +469,16 @@ export function ligarHud(contexto) {
   for(const seletor of ['.hud-chat','.hud-tecnicas','.hud-topo','.hud-logo','.hud-pilulas','.hud-dica']){
     document.querySelector(seletor)?.querySelectorAll('.arrasto-alca,.hud-redimensionar').forEach(alca=>alca.remove());
   }
-  for (const [sel, chave] of [['.hud-mapa', 'dbi-pos-mapa'], ['.hud-auto', 'dbi-pos-auto']]) {
-    const painel = document.querySelector(sel), alca = painel?.querySelector('.arrasto-alca');
-    if (painel && alca) instalarArrasto(painel, alca, chave);
+  // Cabeçalhos substituem as antigas bolinhas sem capturar os controles do painel.
+  for(const [sel,cabecalho] of [['.hud-mapa','#regionName'],['.hud-auto',null],['.hud-jogador','.hud-nome'],['.hud-alvo','#targetName']]){
+    const painel=document.querySelector(sel);if(!painel)continue;
+    painel.querySelectorAll('.arrasto-alca').forEach(alca=>alca.remove());
+    let topo=cabecalho?painel.querySelector(cabecalho):null;
+    if(!topo){topo=document.createElement('div');topo.className='hud-cabecalho-movel';topo.textContent=painel.getAttribute('aria-label')||'Automação';painel.prepend(topo);}
+    topo.classList.add('janela-arrastavel');topo.title='Arraste para mover · duplo clique restaura posição';
+    instalarArrasto(painel,topo,sel==='.hud-mapa'?'dbi-pos-mapa':sel==='.hud-auto'?'dbi-pos-auto':'dbi-pos-'+sel.slice(1));
   }
-  for(const sel of ['.hud-jogador','.hud-alvo','.hud-godmode','.hud-missao']){
+  for(const sel of ['.hud-godmode','.hud-missao']){
     const painel=document.querySelector(sel);if(!painel)continue;
     const alca=document.createElement('span');alca.className='arrasto-alca';alca.textContent='⠿';alca.title='Arrastar HUD · duplo clique restaura posição';painel.append(alca);
     instalarArrasto(painel,alca,'dbi-pos-'+sel.slice(1));

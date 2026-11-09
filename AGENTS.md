@@ -1,5 +1,7 @@
 # Guia do projeto
 
+- Abas da HUD usam arrasto pelo cabeçalho; janelas têm cadeado para travar a posição, ao lado de minimizar na mochila (pedido de 08/11/2026).
+
 - Inimigos têm colisão própria: não devem atravessar estruturas nem sobrepor outros inimigos vivos no mesmo lugar (pedido de 07/11/2026).
 - Jogadores atravessam os corpos dos mobs para evitar cercos sem saída; a colisão entre mobs não bloqueia nem empurra jogadores (pedido de 07/11/2026).
 - TPs de saída das hunts ficam dentro das respectivas safe zones de chegada (pedido de 07/11/2026).

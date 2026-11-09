@@ -20,7 +20,7 @@ export function instalarArrasto(painel, alca, chave) {
     return p;
   };
   alca.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || e.isPrimary === false || arr || (e.target.closest?.('button,input,select,textarea,a') && e.target.closest?.('button,input,select,textarea,a') !== painel)) return;
+    if (painel.classList?.contains?.('hud-posicao-travada') || e.button !== 0 || e.isPrimary === false || arr || (e.target.closest?.('button,input,select,textarea,a') && e.target.closest?.('button,input,select,textarea,a') !== painel)) return;
     const caixa = painel.getBoundingClientRect();
     arr = { id: e.pointerId, ix: e.clientX, iy: e.clientY, left: caixa.left, top: caixa.top, moveu: false };
     alca.setPointerCapture(e.pointerId); e.preventDefault();
@@ -40,7 +40,7 @@ export function instalarArrasto(painel, alca, chave) {
     if (alca.hasPointerCapture?.(e.pointerId)) alca.releasePointerCapture(e.pointerId);
   };
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) alca.addEventListener(ev, terminar);
-  alca.addEventListener('dblclick', () => { Object.assign(painel.style, { left: '', top: '', right: '', bottom: '', transform: '' }); pref = null; try { localStorage.removeItem(chave); } catch {} });
+  alca.addEventListener('dblclick', e => { if(painel.classList?.contains?.('hud-posicao-travada') || e.target.closest?.('button,input,select,textarea,a'))return; Object.assign(painel.style, { left: '', top: '', right: '', bottom: '', transform: '' }); pref = null; try { localStorage.removeItem(chave); } catch {} });
   addEventListener('resize', () => { if (pref&&(painel.tagName!=='DIALOG'||painel.open))requestAnimationFrame(()=>aplicar(pref)); });
   const restaurar=()=>{if(!pref||(painel.tagName==='DIALOG'&&!painel.open))return false;aplicar(pref);return true;};
   if (pref) requestAnimationFrame(restaurar);
@@ -75,7 +75,7 @@ export function instalarPainelMovel(painel, cabecalho, chave) {
     if (cabecalho.hasPointerCapture(e.pointerId)) cabecalho.releasePointerCapture(e.pointerId);
   };
   cabecalho.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || e.isPrimary === false || !painel.open || arrasto || e.target.closest('button, input, select, a')) return;
+    if (painel.classList?.contains?.('hud-posicao-travada') || e.button !== 0 || e.isPrimary === false || !painel.open || arrasto || e.target.closest('button, input, select, a')) return;
     const caixa = painel.getBoundingClientRect();
     arrasto = { id: e.pointerId, inicioX: e.clientX, inicioY: e.clientY,
       esquerda: caixa.left, topo: caixa.top, altura: caixa.height, moveu: false };

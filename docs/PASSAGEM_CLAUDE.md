@@ -602,3 +602,8 @@ Pedido implementado: proteção permanente no quadrado de chegada de todas as oi
 Valor provisório: quadrado de 180 × 180 unidades, centrado na chegada. Mantida a proteção breve de chegada existente. Nenhuma alteração de atributos ou balanceamento dos mobs.
 
 Atualização das safe zones (07/11): inimigos não nascem nem renascem dentro do quadrado. A distribuição, os sorteios/fallbacks de chefes e `Game.addMob` validam o ponto; posições antigas de renascimento são corrigidas para um ponto caminhável fora dele, com margem provisória de 24 unidades. A auto caça usa uma grade de navegação própria que bloqueia o quadrado com folga, inclusive nas arestas e na simplificação dos segmentos: perseguição e patrulha contornam a área e não tentam atravessá-la. A movimentação automática também recusa passos para dentro, e invalida a rota ao passar do modo de saída para o de caça. Ativar auto caça dentro da safe zone ainda permite sair; controle manual, portais, dano e proteção mantêm as regras anteriores. Cobertura de contorno e renascimento nas oito hunts em `tests/safe-zone.test.mjs`.
+
+
+### HUD: trava de posição e arrasto pelo cabeçalho — 08/11/2026
+
+Pedido do Pedro: janelas com cadeado no cabeçalho (na mochila, ao lado de minimizar), com preferência persistida por janela no navegador. A trava impede arrastar e restaurar posição por duplo clique. Cabeçalhos substituem as bolinhas de arrasto do minimapa, automação, personagem e alvo. A mochila preserva a posição manual ao minimizar e reabrir.
