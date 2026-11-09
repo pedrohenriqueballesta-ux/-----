@@ -17,6 +17,20 @@ export function instalarJanelasHud(){
   if(!cabecalho)return;
   if(janela.id!=='tutorialDialog')instalarRedimensionamento(janela,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]));
   cabecalho.classList.add('janela-arrastavel');cabecalho.title='Arraste para mover · duplo clique para restaurar a posição';
+  const chaveTrava='dbi-janela-'+(janela.id||janela.className.split(' ')[0])+'-travada';
+  const cadeado=document.createElement('button');cadeado.type='button';cadeado.className='hud-cadeado';
+  if(janela.id==='mochilaDialog')cadeado.classList.add('mochila-x');
+  const iconeCadeado=document.createElement('img');iconeCadeado.alt='';iconeCadeado.draggable=false;cadeado.append(iconeCadeado);
+  const travar=valor=>{
+   janela.classList.toggle('hud-posicao-travada',valor);
+   iconeCadeado.src=valor?'/assets/hud/cadeado-fechado.png':'/assets/hud/cadeado-aberto.png';cadeado.setAttribute('aria-pressed',String(valor));
+   cadeado.title=valor?'Destravar posição da janela':'Travar posição da janela';cadeado.setAttribute('aria-label',cadeado.title);
+  };
+  let travada=false;try{travada=localStorage.getItem(chaveTrava)==='true';}catch{}travar(travada);
+  cadeado.onclick=()=>{travada=!travada;travar(travada);try{localStorage.setItem(chaveTrava,String(travada));}catch{}};
+  const acoes=document.createElement('div');acoes.className='janela-acoes';
+  const botoes=[...cabecalho.querySelectorAll('button')];
+  acoes.append(cadeado,...botoes);cabecalho.append(acoes);
   // Auto Hunt já possui seu controlador de arrasto e altura próprios.
   if(janela.id==='autoHuntDialog'){controles.set(janela,null);return;}
   const controle=instalarArrasto(janela,cabecalho,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]));controles.set(janela,controle);
