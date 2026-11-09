@@ -304,7 +304,7 @@ test('duas sessões HTTP reais recebem o mundo compartilhado e entradas não alt
   } finally { controllers.forEach(c => c.abort()); await app.close(); }
 });
 
-test('Kaioken e Barreira de Ki têm níveis de desbloqueio, duração e recarga', () => {
+test('Kaioken alterna sem custo nem recarga; Barreira preserva duração e recarga', () => {
   const game = world(), p = game.addPlayer('power', 'Goku', { level: 1 });
   assert.equal(game.cast(p, 'kaioken').ok, false);
   assert.equal(game.cast(p, 'barrier').ok, false);
@@ -312,13 +312,15 @@ test('Kaioken e Barreira de Ki têm níveis de desbloqueio, duração e recarga'
   assert.equal(p.level, 2);
   const kiBefore = p.ki;
   assert.equal(game.cast(p, 'kaioken').ok, true);
-  assert.equal(p.ki, kiBefore - 12);
+  assert.equal(p.ki, kiBefore, 'Decisão do Pedro em 09/11: ativação gratuita');
   assert.equal(game.snapshot(p.id).self.kaiokenActive, true);
   assert.equal(game.snapshot(p.id).self.kaiokenRemaining, CONFIG.skillCooldowns.kaioken);
-  assert.equal(game.cast(p, 'kaioken').ok, false, 'Kaioken não pode ser empilhado durante a duração');
+  assert.equal(game.cast(p, 'kaioken').ok, true);
+  assert.equal(p.forma, 'base');
+  game.cast(p, 'kaioken');
   advance(game, 6.1);
-  assert.equal(game.snapshot(p.id).self.kaiokenActive, false);
-  assert.ok(game.snapshot(p.id).self.kaiokenRemaining > 5, 'a recarga de 12s continua após os 6s de efeito');
+  assert.equal(game.snapshot(p.id).self.kaiokenActive, true, 'Não há duração fixa de seis segundos');
+  assert.equal(game.snapshot(p.id).self.kaiokenRemaining, 0);
 
   const defended = world(), dp = naArea(defended, defended.addPlayer('defended', 'Goku', { level: 2 }));
   const attacker = defended.addMob('melee', dp.x + 20, dp.y);

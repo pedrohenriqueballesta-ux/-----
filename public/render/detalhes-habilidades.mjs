@@ -7,6 +7,15 @@ const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDi
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
   if (NOMES[chave]) {
+    if (chave === 'kaioken' || chave === 'transform') {
+      const ativa = chave === 'kaioken' ? estado.forma === 'kaioken' || estado.kaiokenActive : estado.transformed;
+      return { nome: NOMES[chave], linhas: [
+        ['Desbloqueia', 'Nível ' + CONFIG.skills[chave]], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
+        ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],
+        ['Término', 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Uma forma por vez; apertar novamente volta à base'],
+        ['Estado', estado.level < CONFIG.skills[chave] ? 'Bloqueada · requer nível ' + CONFIG.skills[chave] : ativa ? 'ATIVO' : 'Disponível']
+      ] };
+    }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
     const nivel = chave === 'heal' ? 1 : CONFIG.skills[chave];
     const custo = chave === 'heal' ? cura.custo : CONFIG.skillCosts[chave];
@@ -16,7 +25,6 @@ export function detalhesHabilidade(chave, estado) {
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],
       ...(chave === 'heal' ? [['Cura', Number((cura.percentual * 100).toFixed(1)).toLocaleString('pt-BR') + '% do HP máximo']] : []),
       ...(chave === 'kame' ? [['Alvo', 'Mob selecionado'], ['Impacto', 'Dano completo no alvo; dano adicional dividido entre os demais mobs na área da sprite']] : []),
-      ...(chave === 'transform' ? [['Manutenção', '3,5 Ki por segundo']] : []),
       ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : 'Desbloqueada']
     ] };
   }

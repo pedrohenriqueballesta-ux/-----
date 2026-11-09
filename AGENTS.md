@@ -1,5 +1,7 @@
 # Guia do projeto
 
+- Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
+
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.
 
 - Folhas de cinco direções usam o recorte existente e `drawSheet`/`SHEET_VIEWS`; só Sudoeste/Oeste/Noroeste espelham horizontalmente em torno da âncora. Nunca gerar PNGs da esquerda; efeitos acompanham o espelho e textos ficam fora dele (Pedro, 09/11/2026).

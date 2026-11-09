@@ -44,7 +44,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   };
   const cookie=(req,token,limpar=false)=>'dbi_session='+token+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+(limpar?0:Math.floor(AUTH_CONFIG.sessaoMs/1000))+((req.socket.encrypted||req.headers['x-forwarded-proto']==='https'||process.env.COOKIE_SECURE==='true')?'; Secure':'');
   const guardar=p=>{const a=autenticacao.contas.get(p.contaId),c=a?.personagens.find(c=>c.id===p.personagemId);if(c)c.save=game.exportPlayer(p);};
-  const congelar=id=>{const p=sessions.get(id);if(p){guardar(p);p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
+  const congelar=id=>{const p=sessions.get(id);if(p){guardar(p);p.forma='base';p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
   const congelarConta=id=>{for(const[h,p]of sessions)if(p.contaId===id)congelar(h);};
   const exigir=req=>{const a=autenticacao.sessao(auth(req));if(!a)throw new FalhaAuth('sessaoExpirada',401);return a;};
   const mundo=req=>{const a=exigir(req),p=sessions.get(a.id);if(!p||!a.ativo||a.ativo!==a.selecionado||p.personagemId!==a.ativo||p.contaId!==a.conta.id)throw new FalhaAuth('selecionePersonagem',403);return{...a,p};};

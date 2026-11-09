@@ -10,8 +10,8 @@ test('detalhes das skills seguem configuração e progressão, inclusive cura de
   for (const chave of ['kame','kaioken','barrier','transform','genki']) {
     const dados = campos(detalhesHabilidade(chave, estado));
     assert.equal(dados.Desbloqueia, 'Nível ' + CONFIG.skills[chave]);
-    assert.equal(dados.Custo, CONFIG.skillCosts[chave] + ' Ki');
-    assert.equal(dados.Cooldown, CONFIG.skillCooldowns[chave] + ' s');
+    assert.equal(dados.Custo, ['kaioken','transform'].includes(chave) ? 'Sem custo' : CONFIG.skillCosts[chave] + ' Ki');
+    assert.equal(dados.Cooldown, ['kaioken','transform'].includes(chave) ? 'Sem recarga' : CONFIG.skillCooldowns[chave] + ' s');
   }
   const cura = campos(detalhesHabilidade('heal', estado));
   assert.equal(cura.Cooldown, CURA.cooldown.toLocaleString('pt-BR') + ' s');

@@ -1,7 +1,8 @@
-// Desenho do Goku (forma base e Super Saiyajin): caminhada e soco desenhados
+// Desenho do Goku (base, Kaioken e Super Saiyajin): caminhada e soco desenhados
 // quadro a quadro (folhas passo/golpe), com recortes de 16 quadros como reserva.
 import { art, loaded } from './assets.mjs';
 import { drawWalk, drawAttack, drawSheet, GOLPE } from './atlas.mjs';
+import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { colunaGenki } from '../render/genki-personagem.mjs';
 import { KAME } from '../shared/kamehameha.mjs';
@@ -9,6 +10,7 @@ import { strikeColumn } from '../render/camera.mjs';
 
 export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
   if (!player.dead && !player.transformed) {
+    const folhas = player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
     let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
     const genki = colunaGenki(player,time);
     if (genki !== null) { estado = 'genki';coluna = genki; }
@@ -22,9 +24,10 @@ export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
       estado = 'rajada';coluna = strikeColumn(Math.max(0,time-player.rajadaStarted)/.36);
     } else if (strikeProgress !== null) { estado = 'soco';coluna = strikeColumn(strikeProgress); }
     if (estado === 'andar') {
-      if (drawWalk(ctx,'goku',pos,70,player.facing,true)) return true;
+      const altura = 70 * folhas.andar[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+      if (drawWalk(ctx,player.forma === 'kaioken' ? 'kaioken' : 'goku',pos,altura,player.facing,true)) return true;
     } else {
-      const [folha,chave] = FOLHAS_GOKU_BASE[estado];
+      const [folha,chave] = folhas[estado];
       // Escala única entre poses: mudar de ação não muda o tamanho do corpo.
       const altura = 70 * folha.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
       if (drawSheet(ctx,folha,art[chave],pos,altura,player.facing,coluna)) return true;

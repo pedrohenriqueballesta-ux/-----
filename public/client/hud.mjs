@@ -149,7 +149,7 @@ export function atualizarHud(snapshot, playerId) {
   $('xpLabel').textContent = 'Nível ' + s.level; $('xpNumbers').textContent = integer(s.xp) + ' / ' + integer(s.xpNext) + ' XP';
   $('xpBar').style.width = xpPct + '%';
   $('hudXpBar').style.width = xpPct + '%'; $('hudXpText').textContent = 'EXP ' + Math.round(xpPct) + '%';
-  $('formLabel').textContent = s.transformed ? 'SUPER SAIYAJIN' : 'FORMA BASE';
+  $('formLabel').textContent = s.transformed ? 'SUPER SAIYAJIN' : s.forma === 'kaioken' ? 'KAIOKEN' : 'FORMA BASE';
   $('nextUnlock').textContent = s.level < 2 ? 'Próximo: Kaioken + Barreira de Ki · NV. 2' : s.level < 3 ? 'Próximo: Kamehameha · NV. 3' : s.level < 5 ? 'Próximo: Super Saiyajin · NV. 5' : s.level < 10 ? 'Próximo: Genki Dama · NV. 10' : 'Todas as técnicas principais desbloqueadas.';
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
@@ -206,19 +206,20 @@ export function atualizarHud(snapshot, playerId) {
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
   if (target) { $('targetName').textContent = target.name + (target.level ? ' • Nv. ' + target.level : ''); $('targetBar').style.width = 100 * target.hp / target.maxHp + '%'; $('targetHp').textContent = integer(target.hp) + ' / ' + integer(target.maxHp); }
   const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
+  const textoTransformacao = 'Sem custo · drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s · volta à forma base quando o Ki zerar · sem recarga';
   const skillState = {
     heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
       text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
       detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
-    kaioken: { required: CONFIG.skills.kaioken, cost: CONFIG.skillCosts.kaioken, cooldown: CONFIG.skillCooldowns.kaioken, remaining: s.kaiokenRemaining || 0, text: s.level < CONFIG.skills.kaioken ? CONFIG.skillCooldowns.kaioken + 's' : s.kaiokenActive ? 'ATIVO' : s.kaiokenRemaining > 0 ? s.kaiokenRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kaioken + 's', active: s.kaiokenActive },
+    kaioken: { required: CONFIG.skills.kaioken, cost: 0, cooldown: 0, remaining: 0, text: s.kaiokenActive ? 'ATIVO' : 'SEM RECARGA', active: s.kaiokenActive, detail: textoTransformacao },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
     genki: { required: CONFIG.skills.genki, cost: CONFIG.skillCosts.genki, cooldown: CONFIG.skillCooldowns.genki, remaining: s.genkiRemaining || 0, text: s.level < CONFIG.skills.genki ? CONFIG.skillCooldowns.genki + 's' : s.genkiRemaining > 0 ? s.genkiRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.genki + 's' }
   };
   for (const button of document.querySelectorAll('[data-skill]')) {
     const skill = button.dataset.skill, state = skillState[skill]; if (!state) continue;
     const locked = s.level < state.required;
-    button.classList.toggle('locked', locked); button.disabled = locked || state.remaining > 0 || (skill === 'kaioken' && s.kaiokenActive) || (skill === 'barrier' && s.barrierActive);
+    button.classList.toggle('locked', locked); button.disabled = locked || state.remaining > 0 || (skill === 'barrier' && s.barrierActive);
     if (skill === 'heal') button.disabled ||= s.hp <= 0 || s.hp >= s.stats.hp || s.ki < cura.custo;
     button.classList.toggle('active', Boolean(state.active));
     const label = button.querySelector('small');
@@ -226,18 +227,21 @@ export function atualizarHud(snapshot, playerId) {
     let cooldown = button.querySelector('.cooldown-overlay');
     if (!cooldown) { cooldown = document.createElement('span'); cooldown.className = 'cooldown-overlay'; cooldown.setAttribute('aria-hidden', 'true'); button.append(cooldown); }
     const remaining = state.remaining;
-    cooldown.textContent = remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
+    cooldown.textContent = skill === 'kaioken' && state.active ? 'ATIVO' : remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
+    cooldown.classList.toggle('estado-transformacao', skill === 'kaioken' && Boolean(state.active));
     button.classList.toggle('cooling', remaining > 0);
     button.title = state.detail || (button.querySelector('strong')?.textContent || skill) + ' · ' + state.text + (button.querySelector('kbd') ? ' · tecla ' + button.querySelector('kbd').textContent : '');
   }
   const transformLocked = s.level < CONFIG.skills.transform;
-  $('transformButton').disabled = transformLocked || (!s.transformed && (s.transformRemaining || 0) > 0);
+  $('transformButton').disabled = transformLocked;
   $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', s.transformed);
-  $('transformButton').classList.toggle('cooling', !s.transformed && s.transformRemaining > 0);
+  $('transformButton').classList.remove('cooling');
   let transformCooldown = $('transformButton').querySelector('.cooldown-overlay');
-  if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; transformCooldown.setAttribute('aria-hidden', 'true'); $('transformButton').append(transformCooldown); }
-  transformCooldown.textContent = !s.transformed && s.transformRemaining > 0 ? s.transformRemaining.toFixed(1) + 's' : '';
-  renderSkillMeta(document.getElementById('transformText'), CONFIG.skillCosts.transform, transformLocked ? CONFIG.skillCooldowns.transform + 's' : s.transformed ? 'ATIVO · 3,5 Ki/s' : s.transformRemaining > 0 ? Math.ceil(s.transformRemaining) + 's' : CONFIG.skillCooldowns.transform + 's');
+  if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; $('transformButton').append(transformCooldown); }
+  transformCooldown.textContent = s.transformed ? 'ATIVO' : '';
+  transformCooldown.classList.toggle('estado-transformacao', s.transformed);
+  renderSkillMeta(document.getElementById('transformText'), 0, s.transformed ? 'ATIVO' : 'SEM RECARGA');
+  $('transformButton').title = textoTransformacao;
   atualizarDetalhes(s);
   novidadesHud?.atualizar(s);
   lojaHud?.atualizar();
