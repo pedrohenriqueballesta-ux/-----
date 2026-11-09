@@ -43,6 +43,8 @@ test('subir de nível aumenta todos os atributos automaticamente e libera técni
   assert.equal(game.cast(p, 'ki').ok, true);
   assert.equal(game.cast(p, 'kame').ok, false);
   game.awardXp(p, xpForLevel(2));
+  naArea(game,p);
+  const alvoKame = game.addMob('melee',p.x+70,p.y,p.area);p.targetId=alvoKame.id;
   const kiBeforeKame = p.ki;
   assert.equal(game.cast(p, 'kame').ok, true);
   assert.equal(p.ki, kiBeforeKame - CONFIG.skillCosts.kame);
@@ -57,7 +59,7 @@ test('sem PvP nesta versão: dano entre jogadores é recusado em qualquer lugar,
     assert.equal(game.hit(a, b, 30), false, 'na hunt ' + area); assert.equal(b.hp, b.stats.hp);
   }
   a.aim = { x: b.x, y: b.y }; a.kameReady = 0;
-  assert.equal(game.cast(a, 'kame').ok, true);
+  a.targetId=b.id;assert.equal(game.cast(a, 'kame').ok, false, 'jogador não pode ser alvo do Kamehameha');
   advance(game, 0.8); assert.equal(b.hp, b.stats.hp);
 });
 

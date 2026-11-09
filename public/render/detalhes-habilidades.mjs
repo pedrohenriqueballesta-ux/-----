@@ -15,6 +15,7 @@ export function detalhesHabilidade(chave, estado) {
     return { nome: NOMES[chave], linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],
       ...(chave === 'heal' ? [['Cura', Number((cura.percentual * 100).toFixed(1)).toLocaleString('pt-BR') + '% do HP máximo']] : []),
+      ...(chave === 'kame' ? [['Alvo', 'Mob selecionado'], ['Impacto', 'Dano completo no alvo; dano adicional dividido entre os demais mobs na área da sprite']] : []),
       ...(chave === 'transform' ? [['Manutenção', '3,5 Ki por segundo']] : []),
       ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : 'Desbloqueada']
     ] };

@@ -113,7 +113,8 @@ test('Auto Hunt OFF bloqueia todo combate e recuperação mesmo com opções mar
 test('desligar cancela carga automática pendente e preserva carga manual', () => {
   for (const automated of [true,false]) {
     const { g, p } = cena();
-    p.charge = { automated, until: g.time + .2, started: g.time, direction: {x:1,y:0}, nivel:1 };
+    const alvo = g.addMob('melee', p.x+70, p.y, p.area);
+    p.charge = { targetId:alvo.id, automated, until: g.time + .2, started: g.time, direction: {x:1,y:0}, nivel:1 };
     g.action(p.id, { type:'hunt', enabled:false });
     g.updatePlayer(p, 0);
     assert.equal(Boolean(p.charge), !automated);

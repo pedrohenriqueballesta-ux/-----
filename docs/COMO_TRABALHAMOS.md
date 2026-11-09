@@ -14,9 +14,10 @@ Pedro e o que já aprendemos fazendo. Leia junto com `AGENTS.md` (decisões do j
 O repositório é de 4 pessoas trabalhando em paralelo. A `main` só recebe trabalho por pull request.
 
 1. **Antes de abrir uma branch, procurar branches locais/remotas e PRs abertas do mesmo assunto; reutilizar uma branch existente quando ainda estiver em andamento (pedido de 07/11/2026).** Branches já integradas não contam como trabalho aberto.
-   **Nunca commitar na `main`.** Antes de mexer, `git fetch` e criar um ramo a partir da `origin/main` mais nova.
+   **Nunca commitar na `main`.** Antes de mexer, executar `git fetch`; se não houver branch correspondente em andamento, criar um ramo a partir da `origin/main` mais nova.
    Instale as travas uma vez em cada clone: `sh ferramentas/travas-git/instalar.sh`.
-2. **Nada no GitHub sem OK explícito do Pedro, a cada vez**: enviar ramo, abrir PR, comentar, abrir issue.
+2. **Não fazer commits nem pushs sem autorização explícita do Pedro para cada ação (reforçado em 08/11/2026).** Nada no GitHub sem OK explícito a cada vez: enviar ramo, abrir PR, comentar, abrir issue.
+   **Sempre que implementar algo em uma nova branch, reiniciar o servidor e confirmar o endereço para o Pedro testar (pedido de 08/11/2026).**
 3. **PR só "perfeitamente encaixado".** Antes de propor, audite:
    - a `main` andou? (`git log ramo..origin/main`) Se andou, atualize o ramo e teste de novo;
    - há PRs abertos de colegas que mexem nos mesmos arquivos?;

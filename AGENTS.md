@@ -1,5 +1,7 @@
 # Guia do projeto
 
+- Kamehameha mira o mob selecionado na HUD e acompanha esse alvo até o impacto, respeitando alcance por nível. Alvo principal recebe dano completo; uma parcela adicional igual ao dano base é dividida entre os demais mobs dentro da silhueta da sprite de impacto. Substitui a área anterior de três SQMs (pedido de 08/11/2026). Na Auto Hunt, antecipa a carga durante a aproximação pela distância percorrida em 0,65 s; feixe só dispara com carga pronta e alvo no alcance.
+
 - Abas da HUD usam arrasto pelo cabeçalho; janelas têm cadeado para travar a posição, ao lado de minimizar na mochila (pedido de 08/11/2026).
 
 - Inimigos têm colisão própria: não devem atravessar estruturas nem sobrepor outros inimigos vivos no mesmo lugar (pedido de 07/11/2026).
@@ -11,6 +13,12 @@
 - Genki-Dama usa canalização, voo em loop até impacto sem limite por tiles e explosão única, com efeitos independentes do personagem. Preservar custo, cooldown e dano existentes (pedido de 07/11/2026).
 
 Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
+
+## Fluxo de trabalho
+
+- Antes de criar uma branch, verificar branches locais/remotas e PRs abertas do mesmo assunto. Reutilizar a branch em andamento; criar uma nova apenas quando não houver uma correspondente aberta.
+- Não fazer commits nem pushs sem autorização explícita do Pedro para cada ação.
+- Sempre que implementar algo em uma nova branch, reiniciar o servidor e confirmar o endereço para o Pedro testar.
 
 ## Executar e verificar
 
