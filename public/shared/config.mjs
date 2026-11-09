@@ -32,6 +32,8 @@ export const CONFIG = Object.freeze({
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
   mochilaSlots: 30,
+  // Raio de seleção de mobs pela Auto Hunt (Pedro, 09/11/2026).
+  autoHuntRaio: 700,
   seedCooldown: 20, kiCooldown: 8, pickupRadius: 60, respawnDelay: 4,
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
