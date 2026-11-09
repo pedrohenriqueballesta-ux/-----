@@ -127,7 +127,7 @@ export class Game {
     return best;
   }
   // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
-  alvoMaisProximo(p, raio = 350) {
+  alvoMaisProximo(p, raio = CONFIG.autoHuntRaio) {
     const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && !naZonaSegura(m) && this.mesmoLugar(p, m)
       && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
       .sort((a, b) => distance(p, a) - distance(p, b));
@@ -637,7 +637,7 @@ export class Game {
       // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
       // quando outro se aproxima durante a perseguição atual.
       const raioCaca = p.autoSkills && p.level >= CONFIG.skills.kame
-        ? Math.max(350, estagioKame(p.level).alcance + KAME.mao + p.stats.mobility * KAME.carga) : 350;
+        ? Math.max(CONFIG.autoHuntRaio, estagioKame(p.level).alcance + KAME.mao + p.stats.mobility * KAME.carga) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
       if (target) {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
@@ -679,7 +679,7 @@ export class Game {
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
-    const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, 320) : this.nearestMob(p, 320));
+    const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
     if (p.autoHunt && p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);

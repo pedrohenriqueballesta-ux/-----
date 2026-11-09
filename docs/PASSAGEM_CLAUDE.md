@@ -629,3 +629,24 @@ Pedido do Pedro: janelas com cadeado no cabeçalho (na mochila, ao lado de minim
 - **MEDIDO:** com mob parado e simulação a 10 ms, distância de saída do feixe antes → depois: nível 3, 49 → 146; nível 20, 73 → 208; nível 50, 120 → 269 unidades. Mesmos cenários e atributos.
 
 - **VERIFICADO:** 362 testes passaram; `npm run check` passou. Conferência visual no Chrome registrou carga a 264 e disparo a 146 unidades no nível 3. Servidor reiniciado para teste em http://localhost:3000.
+
+
+## Auto Hunt: raio de seleção de 700 unidades — 09/11/2026
+
+- **DECIDIDO PELO PEDRO:** raio base da seleção automática aumenta de 350 para 700 unidades (aproximadamente 22 SQMs). Configuração centralizada em `CONFIG.autoHuntRaio`.
+- O novo raio vale com técnicas automáticas ligadas ou desligadas; a preparação do Kamehameha continua usando o maior entre esse raio e sua margem de aproximação. Alcance e aggro próprios dos mobs, alcance das técnicas, exclusão de chefes, safe zones, prioridade do mob próximo e validação de caminho preservados.
+- Não havia branch ou PR aberta de aggro: o trabalho antigo já estava integrado à main. Nova branch `feature/alcance-auto-hunt`, baseada em `origin/main` atualizada.
+- **COMPARAÇÃO:** simulação com semente 12345, passo de 100 ms e cinco minutos em cada hunt, personagem no nível mínimo, itens iniciais e Auto Hunt ligada. População restrita à hunt simulada. São cenários individuais de regressão, não médias estatísticas; raio maior altera rotas, encontros e sobrevivência.
+
+| Hunt | Nível | Abates antes → depois | Mortes antes → depois |
+| --- | --- | --- | --- |
+| inicial | 1 | 84 → 102 | 0 → 0 |
+| media | 10 | 49 → 16 | 0 → 1 |
+| dificil | 20 | 27 → 25 | 1 → 1 |
+| vegeta-planicies | 30 | 2 → 2 | 1 → 1 |
+| vegeta-canions | 36 | 2 → 1 | 1 → 1 |
+| vegeta-floresta | 42 | 1 → 1 | 1 → 1 |
+| vegeta-lava | 48 | 1 → 4 | 1 → 1 |
+| vegeta-cratera | 54 | 0 → 0 | 1 → 1 |
+
+- **VERIFICADO:** 364 testes passaram, `npm run check` passou e servidor reiniciado em http://localhost:3000. Testes novos confirmam aquisição a 600 unidades com técnicas ligadas/desligadas e rejeição de mobs fora do raio, mortos, em safe zone ou de outra hunt.

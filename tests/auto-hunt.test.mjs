@@ -120,3 +120,24 @@ test('desligar cancela carga automática pendente e preserva carga manual', () =
     assert.equal(Boolean(p.charge), !automated);
   }
 });
+
+test('Auto Hunt seleciona mob alcançável entre o raio antigo e 700 unidades, com e sem técnicas',()=>{
+ for(const autoSkills of [false,true]){
+  const {g,p}=cena();p.autoSkills=autoSkills;
+  const alvo=g.addMob('melee',p.x+600,p.y,p.area);alvo.speed=0;alvo.agressivo=false;
+  const antes=p.x;g.tick(.01);
+  assert.equal(p.targetId,alvo.id);assert.ok(p.x>antes,'começa a perseguir sem esperar patrulha aproximar');
+ }
+});
+test('raio maior não seleciona mob fora de 700, morto, protegido ou de outra hunt',()=>{
+ const {g,p}=cena();
+ const longe=g.addMob('melee',p.x+701,p.y,p.area);
+ const morto=g.addMob('melee',p.x+100,p.y,p.area);morto.hp=0;
+ const outro=g.addMob('melee',p.x+200,p.y,'media');
+ assert.equal(g.alvoMaisProximo(p),null);
+ const seguro=g.addMob('melee',lugar('inicial').chegada.x,lugar('inicial').chegada.y,p.area);
+ // addMob evita a zona segura; posiciona explicitamente para validar a filtragem.
+ seguro.x=lugar('inicial').chegada.x;seguro.y=lugar('inicial').chegada.y;
+ assert.equal(g.alvoMaisProximo(p),null);
+ assert.ok(longe.hp>0&&outro.hp>0);assert.equal(CONFIG.autoHuntRaio,700);
+});

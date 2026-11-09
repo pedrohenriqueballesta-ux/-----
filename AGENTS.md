@@ -1,5 +1,7 @@
 # Guia do projeto
 
+- Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.
+
 - Kamehameha mira o mob selecionado na HUD e acompanha esse alvo até o impacto, respeitando alcance por nível. Alvo principal recebe dano completo; uma parcela adicional igual ao dano base é dividida entre os demais mobs dentro da silhueta da sprite de impacto. Substitui a área anterior de três SQMs (pedido de 08/11/2026). Na Auto Hunt, antecipa a carga durante a aproximação pela distância percorrida em 0,65 s; feixe só dispara com carga pronta e alvo no alcance.
 
 - Abas da HUD usam arrasto pelo cabeçalho; janelas têm cadeado para travar a posição, ao lado de minimizar na mochila (pedido de 08/11/2026).
