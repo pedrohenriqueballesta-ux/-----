@@ -17,9 +17,9 @@ const ATRIBUTOS = {
   // Cratera de Nail: atributos PROVISÓRIOS, calibrados por duelos 30/35/40 e caça.
   norte: {
     // Percepção 250 provisória: evita que o tamanho dos corpos atraia grupos inteiros na ilha estreita.
-    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:34, aggro:250, name:'Nail' },
-    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:38, aggro:250, name:'Piccolo Daimaoh' },
-    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:55, name:'Neva' }
+    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:24, aggro:250, name:'Nail' },
+    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:26, aggro:250, name:'Piccolo Daimaoh' },
+    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:30, name:'Neva' }
   },
   inicial: {
     passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
@@ -192,7 +192,7 @@ export function spawnPoints(random) {
     ...espalhar(random, 'media', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
     // Grade própria e margem do maior corpo: os gigantes não nascem presos na costa.
     // Os oito Nails ficam na metade sul, perto da chegada; Piccolos ocupam o norte.
-    ...espalhar(random, 'norte', 16, i => i < 8 ? 'piccoloDaimaoh' : 'nail', { passo:120, raio:(22 + 38) / 0.6 }),
+    ...espalhar(random, 'norte', 16, i => i < 8 ? 'piccoloDaimaoh' : 'nail', { passo:120, raio:(22 + 26) / 0.6 }),
     { type:'neva', ...pontoNoCirculo(random,'norte'), area:'norte', raro:true },
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
