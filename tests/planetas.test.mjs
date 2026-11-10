@@ -145,7 +145,7 @@ test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de
   const n = t => mobs.filter(m => m.type === t).length;
   assert.ok(n('oozaru') > n('oozaruGuerreiro') && n('oozaruGuerreiro') > 0 && n('oozaruDourado') === 1 && n('oozaruSuper') === 0);
   const [o, g, s] = ['oozaru', 'oozaruGuerreiro', 'oozaruDourado'].map(t => mobs.find(x => x.type === t));
-  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Dourado']);
+  assert.deepEqual([o.name, g.name, s.name], ['Oozaru', 'Oozaru Guerreiro', 'Oozaru Dourado BOSS']);
   assert.ok(o.maxHp < g.maxHp && g.maxHp * 4 < s.maxHp && o.attack < g.attack && g.attack < s.attack);
   for (const t of ['oozaru', 'oozaruGuerreiro']) assert.ok(SOCA_E_ATIRA.has(t));
   assert.ok(CHEFES.has('oozaruDourado'), 'caça automática não enfrenta o Oozaru Dourado');
