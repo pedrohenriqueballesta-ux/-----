@@ -12,7 +12,7 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
   const g=new Game(),catalogo=criarBestiario(g.mobs.values());
   const especies=new Set([...g.mobs.values()].map(m=>m.area+':'+m.type));
   assert.deepEqual(new Set(catalogo.map(m=>m.id)),especies);
-  assert.equal(catalogo.length,21);
+  assert.equal(catalogo.length,24); // Três fichas novas da Cratera de Nail (Pedro, 09/11).
   assert.ok(!catalogo.some(m=>m.tipo==='oozaruSuper'),'espécie reservada não aparece como encontrada no mundo');
   for(const m of catalogo){
     const stats=mobStats(m.tipo,m.area);assert.equal(m.hp,stats.hp);assert.equal(m.ataque,stats.attack);assert.equal(m.defesa,stats.defesa);assert.equal(m.xp,stats.xp);
@@ -40,7 +40,7 @@ test('API de bestiário é somente leitura e não expõe posições, jogadores o
   try{
     const mobs=JSON.stringify([...app.game.mobs.values()]);
     const sessao=await criarSessaoTeste('http://127.0.0.1:'+app.port,'Bestiario');const r=await fetch('http://127.0.0.1:'+app.port+'/api/bestiario',{headers:{Authorization:'Bearer '+sessao.token}});assert.equal(r.status,200);
-    const {inimigos}=await r.json();assert.equal(inimigos.length,21);
+    const {inimigos}=await r.json();assert.equal(inimigos.length,24);
     for(const m of inimigos){assert.equal(m.x,undefined);assert.equal(m.y,undefined);assert.equal(m.inventory,undefined);}
     assert.equal(JSON.stringify([...app.game.mobs.values()]),mobs);
   }finally{await app.close();}

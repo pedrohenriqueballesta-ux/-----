@@ -39,3 +39,14 @@ repositório; o processo completo está em `docs/COMO_TRABALHAMOS.md`.
 |---|---|
 | `navegador_cdp.mjs` | Abre o jogo num Chrome sem janela, executa passos em JavaScript e tira prints: `node ferramentas/navegador_cdp.mjs <url> <prefixo> <passos.json>`. |
 | `travas-git/instalar.sh` | Instala as travas que bloqueiam commit e envio para a `main` neste clone. |
+
+### Recorte dos mobs da Cratera de Nail
+
+As nove folhas usam `conectado magenta 210 150` após os argumentos de linhas e
+colunas: tolerância do fundo conectado e dos buracos internos, respectivamente.
+Isso remove contaminação do fundo entre braço/corpo sem apagar capas e faixas.
+Os padrões antigos (110/45) continuam iguais quando os argumentos são omitidos.
+O recorte só altera transparência/posição, sem recolorir os pixels preservados.
+
+`node ferramentas/simular_namek_norte.mjs` mede duelos 30/35/40 e caça de cinco
+minutos no nível 30, comparando com Planícies Vermelhas. Não acessa o save.

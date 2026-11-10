@@ -3,7 +3,7 @@
 
 import { configurarProjetilMob } from './projetil-mob.mjs';
 import { PLANETS, areaPorId, naEscala, pontoNaZonaSegura } from './config.mjs';
-import { podeAndar, pontoAlcancavelDesde } from './passagem.mjs';
+import { podeAndar, pesLivres, pontoAlcancavelDesde } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
 // Inseto de Namek, metade de cada, os dois atacando de perto); na média (decisão de 03/11), metade Guerreiros
@@ -14,6 +14,13 @@ import { podeAndar, pontoAlcancavelDesde } from './passagem.mjs';
 // mortes por nível). Arte também provisória: básico = Saibaman, sentinela = alienígena,
 // subchefe = sentinela grande (provisório); chefe da hunt difícil = Porunga BOSS (folhas definitivas).
 const ATRIBUTOS = {
+  // Cratera de Nail: atributos PROVISÓRIOS, calibrados por duelos 30/35/40 e caça.
+  norte: {
+    // Percepção 250 provisória: evita que o tamanho dos corpos atraia grupos inteiros na ilha estreita.
+    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:34, aggro:250, name:'Nail' },
+    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:38, aggro:250, name:'Piccolo Daimaoh' },
+    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:55, name:'Neva' }
+  },
   inicial: {
     passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
     inseto: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Inseto de Namek' },
@@ -100,14 +107,14 @@ function mobsDaFaixa(area, nivel, tipos) {
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
-  const grande = type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
+  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
   return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base, projetil:configurarProjetilMob(type,base) };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 // Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
-export const TEMPO_CHEFE_RARO = { boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
+export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
   oozaruDourado: { minimo: 6 * 3600, maximo: 12 * 3600 },
   freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
 export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
@@ -115,6 +122,8 @@ export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
 // Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
 // `aviso`: o que aparece para quem está na hunt quando ele surge.
 export const CHEFES_RAROS = {
+  // Neva na cratera central; raio e respawn 45–90 min são provisórios (09/11/2026).
+  norte: { x:naEscala(2730), y:naEscala(400), r:naEscala(100), aviso:'despertou na Cratera de Nail!' },
   dificil: { x: naEscala(4065), y: naEscala(1150), r: naEscala(190), aviso: 'apareceu no círculo do planalto!' },
   // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
   'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'chegou à Grande Cratera!' },
@@ -158,12 +167,13 @@ export function pontoDeSpawnForaDaSafeZone(area, ponto) {
   }
   throw new Error('Sem ponto de spawn fora da safe zone: ' + area);
 }
-function espalhar(random, area, n, tipo) {
+function espalhar(random, area, n, tipo, opcoes = {}) {
   const z = areaPorId(area), k = PLANETS[z.planet].escala, candidatos = [];
-  const passo = 170 * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;
+  const passo = (opcoes.passo ?? 170) * k, margem = 90 * k, fim = 60 * k, sorteio = 60 * k;
   for (let y = z.y + margem; y < z.y + z.h - fim; y += passo) for (let x = z.x + margem; x < z.x + z.w - fim; x += passo) {
     const px = x + (random() - 0.5) * sorteio, py = y + (random() - 0.5) * sorteio;
-    if (em_terra(area, px, py) && pontoAlcancavelDesde(z.planet, z.chegada, { x: px, y: py }, area)) candidatos.push({ x: px, y: py });
+    const corpoLivre = !opcoes.raio || (pesLivres(z.planet, px, py, opcoes.raio, area) && !pontoNaZonaSegura(z.planet, area, px, py, opcoes.raio));
+    if (corpoLivre && em_terra(area, px, py) && pontoAlcancavelDesde(z.planet, z.chegada, { x: px, y: py }, area)) candidatos.push({ x: px, y: py });
   }
   // Pega n pontos bem distribuídos ao longo da lista (em vez dos n primeiros, que ficariam todos no topo).
   const salto = Math.max(1, candidatos.length / n);
@@ -180,6 +190,10 @@ export function spawnPoints(random) {
   return [
     ...espalhar(random, 'inicial', 20, i => i % 2 ? 'inseto' : 'passaro'),
     ...espalhar(random, 'media', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
+    // Grade própria e margem do maior corpo: os gigantes não nascem presos na costa.
+    // Os oito Nails ficam na metade sul, perto da chegada; Piccolos ocupam o norte.
+    ...espalhar(random, 'norte', 16, i => i < 8 ? 'piccoloDaimaoh' : 'nail', { passo:120, raio:(22 + 38) / 0.6 }),
+    { type:'neva', ...pontoNoCirculo(random,'norte'), area:'norte', raro:true },
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },
     // Planalto do Porunga: só Porungas (decisão do Pedro, 03/11) e o chefe raro no círculo.

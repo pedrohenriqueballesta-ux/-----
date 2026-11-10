@@ -1,9 +1,11 @@
 ﻿// Mesmos inimigos que já combinavam soco e rajada; chefes especiais ficam fora.
-export const TIPOS_SOCA_E_ATIRA = Object.freeze(['veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria']);
+export const TIPOS_SOCA_E_ATIRA = Object.freeze(['nail','piccoloDaimaoh','neva','veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria']);
 export const ARTE_PROJETIL_MOB = Object.freeze({ arquivo:'/assets/mobs/projetil-ki/spritesheet.png',quadros:8,largura:288,altura:256,fps:12,tonalidadeOriginal:270,ancoraX:224,ancoraY:128 });
 // Tonalidades extraídas das cores saturadas das artes atuais (graus no círculo de cor).
 // Cada espécie pode sobrescrever qualquer campo; a ficha individual também aceita `projetil`.
 export const PROJETEIS_POR_MOB = Object.freeze({
+  // Tonalidades medidas nos clarões de Ki das folhas do Pedro (09/11/2026).
+  nail:{cor:196,tamanho:58},piccoloDaimaoh:{cor:197,tamanho:58},neva:{cor:202,tamanho:72,cooldown:1.5},
   ranged:{cor:285},veterano:{cor:105},tsufuruGuerreiro:{cor:285},tsufuruGeneral:{cor:45},hatchiyack:{cor:345},
   nappa:{cor:45},raditz:{cor:45},bardock:{cor:345},oozaru:{cor:15},oozaruGuerreiro:{cor:45},
   oozaruSuper:{cor:45,cooldown:1.5},reiVegeta:{cor:345},broly:{cor:75},zarbon:{cor:225},dodoria:{cor:345}

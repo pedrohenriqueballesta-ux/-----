@@ -61,7 +61,7 @@ Para conferir as sprites sem mexer no progresso, com o servidor ligado abra **ht
 6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
 7. Volte ao mercador da vila, venda materiais e reponha comida e poções.
 
-Viagem só por portal: na Terra, o portal leva à Vila de Namekusei; na Vila, um portal para cada hunt e outro de volta à Terra; em cada hunt, a saída fica onde você chegou e leva à Vila ou às outras hunts. Movimentar manualmente interrompe a condução automática.
+Viagem só por portal: na Terra, o portal leva à Vila de Namekusei; na Vila, um portal para cada uma das quatro hunts e outro de volta à Terra; em cada hunt, a saída fica onde você chegou e leva à Vila ou às outras hunts. Movimentar manualmente interrompe a condução automática.
 
 ## Dois computadores ou celular na mesma rede
 
@@ -77,7 +77,7 @@ O servidor padrão aceita conexões apenas do próprio computador. Esta entrega 
 - Comida com efeito temporário de recuperação, sem regeneração gratuita de vida fora do efeito.
 - Sementes de 15%, 30%, 50% e 100% da vida máxima, com recarga compartilhada.
 - Poções de Ki, inventário com peso, coleta de materiais, Zeni e um mercado de NPC.
-- Vila segura e três hunts fechadas em Namekusei (inicial, média com subchefe, difícil com chefe), ligadas por portais.
+- Vila segura e quatro hunts fechadas em Namekusei (inicial, média com subchefe, difícil com chefe e Cratera de Nail, faixa 30–40 provisória), ligadas por portais.
 - Simulação e validação de ações no servidor, inclusive dano, experiência, estoque e recarga.
 - Salvamento local do servidor. A caça é suspensa se a sessão desconectar.
 
@@ -133,3 +133,14 @@ As tecnologias Phaser + TypeScript e Colyseus foram recomendações iniciais. Pa
 Execute npm test para verificar as regras, a conexão de dois jogadores, diagonais, quadros e sincronização dos golpes. Os 21 testes passaram nesta entrega, incluindo desbloqueios e cooldowns de Kaioken/Barreira de Ki e desbloqueio/impacto de área da Genki Dama. Execute npm run check para verificar a sintaxe dos módulos.
 
 O servidor transmite o estado para o navegador e calcula as regras. A primeira validação envolve duas sessões; capacidade de jogadores em produção ainda precisa de testes próprios.
+
+## Cratera de Nail — quarta hunt de Namekusei (09/11/2026)
+
+Na Vila, use o portal roxo para a ilha norte. Nível recomendado 30–40 (provisório),
+sem impedir níveis menores. Oito Nails e oito Piccolos Daimaoh andam e usam
+ataques curtos e rajadas de Ki TARGET. Neva é o chefe raro da cratera central;
+sua magia da mão ataca de perto, e a rajada segue o alvo de longe. A chegada é
+segura; a saída fica dentro dela. Não há passagem a pé para as outras hunts.
+
+Detalhes, números do equilíbrio e instruções: `docs/NAMEK_4A_HUNT.md`. Galeria
+das nove animações, sem usar o save: `/namek-norte.html`.

@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cratera de Nail · animações</title>
+<style>body{margin:0;background:#101f2a;color:#ecf3f5;font:15px system-ui}main{max-width:1280px;margin:auto;padding:20px}h1{font-size:22px}nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0}select,button{font:inherit;padding:8px;background:#1b394b;color:#fff;border:1px solid #688ea0;border-radius:6px}a{color:#a2deff}canvas{width:100%;border:1px solid #476774;border-radius:10px}</style>
+<main><h1>Cratera de Nail · oito direções</h1><p>Goku ao lado de cada inimigo para comparar o tamanho. As marcas indicam os pés. A prévia não usa o progresso salvo.</p>
+<nav><label>Inimigo <select id="tipo"><option value="nail">Nail</option><option value="piccoloDaimaoh">Piccolo Daimaoh</option><option value="neva">Neva</option></select></label>
+<label>Ação <select id="acao"><option value="andar">Andar</option><option value="ataque">Ataque curto</option><option value="rajada">Rajada de Ki</option></select></label>
+<button id="pausar">Pausar</button><label>Fase <input id="fase" type="range" min="0" max="0.999" step="0.001" value="0.6"></label><a href="/">Abrir o jogo</a><output id="estado">Carregando…</output></nav>
+<canvas id="previa" width="1280" height="740" aria-label="Inimigos nas oito direções ao lado do Goku"></canvas></main>
+<script type="module" src="/render/namek-norte-previa.mjs"></script></html>

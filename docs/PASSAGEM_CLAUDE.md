@@ -1,5 +1,34 @@
 # Dragon Ball Idle — passagem para Claude Code
 
+## Cratera de Nail — quarta hunt de Namekusei (09/11/2026)
+
+- **DECIDIDO:** quarta hunt na ilha norte, ID `norte`, nome Cratera de Nail,
+  faixa 30–40 provisória. Oito Nails e oito Piccolos Daimaoh terrestres, ataque
+  curto e rajada TARGET; Neva raro com magia da mão de perto e rajada de longe.
+- **ÁREA:** caixa em px do solo `(2058,72,1322,568)`, cortes 3380/640 preservam
+  Planalto/Planícies. Chegada `(2600,570)`, entrada da Vila `(600,1050)`, saída
+  a −60/−60 unidades dentro da safe zone. Sem travessia a pé. Solo/máscara intactos.
+- **ARTE:** nove folhas 5×4 originais do Pedro; modo conectado com tolerâncias
+  210/150 para fundo/buracos, sem recolorir. Os três têm altura 140 (2× Goku),
+  corpos 34/38/55. Revisão visual mais recente do Pedro, 09/11/2026, substitui
+  a redução de 25%. Escala única entre poses, espelho por SHEET_VIEWS.
+- **PROVISÓRIO:** Nail HP2200/ATK64/DEF24/XP260; Piccolo HP4900/ATK120/DEF40/XP1100;
+  Neva HP40000/ATK200/DEF65/XP35000. Aggro comuns 250, perseguição 650; Neva 570/560.
+  Neva no círculo `(2730,400,r100)` px, respawn 45–90 min, teste em 10 s.
+- **MEDIDO:** duelos base/sem consumíveis: Nail no 30 cai em 13,7 s; Piccolo vence
+  jogador 30 e 35, cai no 40 em 31,7 s; Neva conserva 89% HP contra jogador 40.
+  Auto Hunt cinco minutos/início 30/kit padrão: norte 15 abates e 11 mortes;
+  Vegeta Planícies Vermelhas 16 e 5. Cenários determinísticos, semente 12345,
+  sem God Mode ou equipamento; metodologia completa e tabela em NAMEK_4A_HUNT.md.
+- **VERIFICADO:** 471 testes e sintaxe de 194 módulos aprovados. Chrome com prints de portal/transição,
+  safe zone, mapa/minimapa, Bestiário (24 fichas), nascimento de Neva, nove
+  animações nas oito direções e combate sem os gigantes ocuparem o centro do Goku.
+- **ENTREGA LOCAL:** ramo `feature/namek-4a-hunt` baseado em `71104d0`, worktree
+  separado, prévia `http://localhost:3003`, galeria `/namek-norte.html`, teste nível35.
+  Save principal com hash idêntico. Sem commit/push/PR/merge; revisão do Pedro pendente.
+  Kaioken continua no seu ramo próprio, sem misturar alterações não integradas à main.
+
+
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
 ## Auto Hunt: controle principal da automação — 07/11/2026
