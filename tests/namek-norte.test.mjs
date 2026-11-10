@@ -84,9 +84,9 @@ test('bestiário registra as três fichas, magia de Neva, recompensas padrão e 
   const n=fichas.find(m=>m.tipo==='neva');assert.equal(n.raro,true);assert.match(n.ataques,/Magia da mão/);assert.deepEqual(n.zeni,[RECOMPENSAS_MOBS.zeniChefe,RECOMPENSAS_MOBS.zeniChefe]);
   for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[30,40]);assert.ok(f.xp>0);assert.equal(f.drops.length,3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
 });
-test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três inimigos com 1,5× Goku',async()=>{
+test('nove folhas 5×4 com âncoras nos pés, PNGs completos e Nail e Piccolo com 1,25× e Neva com 1,5× Goku',async()=>{
   for(const [tipo,estados]of Object.entries(FOLHAS_NAMEK_NORTE)) {
-    assert.equal(LUTADORES[tipo].altura,70*1.5);
+    assert.equal(LUTADORES[tipo].altura,tipo==='neva'?70*1.5:70*1.25);
     for(const [f]of Object.values(estados)) {
       assert.equal(f.rows,5);assert.equal(f.columns,4);const png=await readFile(new URL('../public'+f.file,import.meta.url));
       assert.equal(png.readUInt32BE(16),f.width);assert.equal(png.readUInt32BE(20),f.height);

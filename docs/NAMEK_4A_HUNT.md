@@ -82,8 +82,8 @@ Profundidade segue os pés; jogador continua atravessando mobs, como antes.
 
 | Espécie | Quantidade | HP | Ataque | Defesa | XP | Velocidade | Altura | Corpo |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 105 | 24 |
-| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 105 | 26 |
+| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 87,5 | 20 |
+| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 87,5 | 22 |
 | Neva | 1 raro | 40000 | 200 | 65 | 35000 | 85 | 105 | 30 |
 
 Grade de candidatos de 120 px, com variação normal, amostrando 16 pontos
@@ -199,4 +199,8 @@ problemas:
 Tamanho: `ALTURA_NAMEK_NORTE = 70 × 1,5` e corpos 24/26/30 (provisórios). Recorte das folhas novas igual ao das
 outras (`conectado magenta 210 150`). Galeria `/namek-norte.html` ganhou a ação Parado. 499 testes; conferido no
 navegador (galeria nas 8 direções e mobs na Cratera).
+
+**2º ajuste de 10/11 (ramo `feature/cratera-nail-tamanho`):** Nail e Piccolo com **1,25× o Goku** (87,5); o Neva,
+chefe, continua com 1,5× (105). Passo e corpo dos dois acompanham a altura (5/6 do anterior): Nail passo 148 e
+corpo 20, Piccolo passo 100 e corpo 22. Simulação refeita: duelos iguais; caça de 5 min 17 abates e 8 mortes.
 
