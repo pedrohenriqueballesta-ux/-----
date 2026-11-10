@@ -34,9 +34,9 @@ Para encerrar, pressione Ctrl+C no Terminal. O progresso fica no arquivo data/sa
 | Selecionar alvo | Clique no mob ou em outro jogador |
 | Cura de Vida | 1; cura instantânea de HP com custo de Ki, recarga de 1,5 s; estágios nos níveis 1, 20, 50, 100 e 150+ |
 | Kamehameha | 2; disponível no nível 3; estágios pelo nível do personagem: 1, 20, 50, 100 e 150 |
-| Kaioken | 3, disponível no nível 2; aumenta o dano por 6 s |
+| Kaioken | 3, nível 2; dano ×1,4 enquanto ativa; ativação grátis, sem recarga, drena 3,5 Ki/s |
 | Barreira de Ki | 4, disponível no nível 2; reduz o dano recebido por 2,5 s |
-| Super Saiyajin | 5 ou T, disponível no nível 5 |
+| Super Saiyajin | 5 ou T, nível 5; ativação grátis, sem recarga, drena 3,5 Ki/s |
 | Genki Dama | 6, disponível no nível 10; recarga de 45 s |
 | Ataque básico | Espaço |
 | Esquiva rápida | Shift |
@@ -44,6 +44,14 @@ Para encerrar, pressione Ctrl+C no Terminal. O progresso fica no arquivo data/sa
 | Poção de Ki | 8 ou Q |
 | Semente selecionada | 7 ou R |
 | Iniciar/pausar caça | H ou botão no painel |
+
+Transformações (decisão do Pedro, 09/11/2026): uma forma por vez. Apertar a técnica
+ativa novamente volta à base; ativar outra forma substitui a anterior. Não há
+duração fixa. Ki zerado, morte, viagem e desconexão encerram a forma; reconexão
+começa na base. A recuperação natural de Ki fica bloqueada enquanto transformado.
+O dreno de 3,5 Ki/s e os níveis de desbloqueio são valores provisórios.
+Detalhes e conferência das seis folhas Kaioken em `docs/GOKU_KAIOKEN.md`;
+prévia das poses em `/kaioken.html`.
 
 A HUD nova fica sobre o mapa que continua ativo. O retrato, HP, Ki, experiência, recursos, minimapa, bússola, missões, menu lateral, chat e cinco slots de habilidade são elementos HTML/CSS; os personagens e o mundo continuam renderizados no Canvas. O botão **Mais** abre o painel de status, inventário e caça. A HUD de missões/chat é uma interface de protótipo; o chat mostrado é demonstrativo, não um chat multiplayer persistente.
 

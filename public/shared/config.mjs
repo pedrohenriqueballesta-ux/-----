@@ -40,8 +40,10 @@ export const CONFIG = Object.freeze({
   seedPotencies: [15, 30, 50, 100],
   itemWeights: { food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.7, crystal: 0.45 },
   prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
-  skillCosts: { kame: 25, kaioken: 12, barrier: 30, transform: 60, genki: 60 },
-  skillCooldowns: { kame: 5, kaioken: 12, barrier: 8, transform: 30, genki: 45 },
+  // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
+  transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5 }),
+  skillCosts: { kame: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
+  skillCooldowns: { kame: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
   skills: { ki: 2, dash: 2, kame: 3, kaioken: 2, barrier: 2, transform: 5, genki: 10 }
 });
 // Áreas fechadas de Namekusei (modelo do Pedro, 03/11/2026). Cada área é um lugar à parte: não se anda

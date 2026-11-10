@@ -20,14 +20,51 @@
   Auto Hunt cinco minutos/início 30/kit padrão: norte 15 abates e 11 mortes;
   Vegeta Planícies Vermelhas 16 e 5. Cenários determinísticos, semente 12345,
   sem God Mode ou equipamento; metodologia completa e tabela em NAMEK_4A_HUNT.md.
-- **VERIFICADO:** 471 testes e sintaxe de 194 módulos aprovados. Chrome com prints de portal/transição,
+- **VERIFICADO:** após atualizar com a main, 495 testes e sintaxe de 202 módulos aprovados. Chrome com prints de portal/transição,
   safe zone, mapa/minimapa, Bestiário (24 fichas), nascimento de Neva, nove
   animações nas oito direções e combate sem os gigantes ocuparem o centro do Goku.
 - **ENTREGA LOCAL:** ramo `feature/namek-4a-hunt` baseado em `71104d0`, worktree
   separado, prévia `http://localhost:3003`, galeria `/namek-norte.html`, teste nível35.
-  Save principal com hash idêntico. Sem commit/push/PR/merge; revisão do Pedro pendente.
-  Kaioken continua no seu ramo próprio, sem misturar alterações não integradas à main.
+  Save principal preservado. Commit e push autorizados pelo Pedro em 09/11/2026; sem PR/merge.
+  Branch atualizada com origin/main, que já contém o Kaioken (PR #75).
+- **PENDENTE — CAMINHADA:** as três imagens substitutas enviadas na conversa ainda
+  aguardam PNGs locais para recorte. Mantidas as folhas anteriores, incluindo o erro
+  de direção na quarta linha do Neva e os ciclos que precisam de revisão.
 
+
+## Kaioken e nova regra das transformações — 09/11/2026
+
+**Esta decisão substitui custo, recarga e duração de transformação descritos nas
+seções históricas abaixo.** Ramo `feature/goku-kaioken`, base `71104d0` com PR #74.
+Documento detalhado: `docs/GOKU_KAIOKEN.md`.
+
+- **DECIDIDO PELO PEDRO:** todas as transformações são grátis, sem recarga e sem
+  duração fixa. Uma forma por vez; repetir a técnica volta à base, outra forma
+  substitui a atual. Drenam Ki; zerar avisa “Ki esgotado. Forma base.”. Morte,
+  viagem e desconexão limpam a forma. Sem recuperação natural de Ki transformado
+  e sem persistência da forma no save.
+- **PROVISÓRIO:** `CONFIG.transformacao.drenoKi = 3.5` comum a todas as formas;
+  desbloqueios mantidos em 2/5. Automação atual não ativa formas, como antes;
+  chamadas automáticas só podem entrar na base acima de 50% Ki, nunca desligam
+  nem substituem forma ativa. God Mode preserva Ki cheio.
+- **IMPLEMENTADO:** `p.forma` único com alias `transformed` para SSJ; snapshots
+  incluem a forma para todos no mesmo lugar. Kaioken ×1,4 em soco, rajada,
+  Kamehameha e Genki, sem acumular com SSJ. SSJ conserva seus multiplicadores.
+  HUD com ATIVO visível, botão clicável para desligar e detalhes novos.
+- **ARTE DO PEDRO:** seis PNGs 1024×1536 do ZIP Kaioken, recortados em
+  `conectado verde` e gerados pelas ferramentas existentes. Atlas/JSON em
+  `assets/goku/kaioken/`, seis módulos e `FOLHAS_GOKU_KAIOKEN`; prioridades iguais
+  às da base, escala comum `70/253`, oito direções por `SHEET_VIEWS`.
+  Zero pixels opacos com verde predominante nos seis atlas. Sem aura nova;
+  círculo vermelho removido na revisão do Pedro, inclusive nos observadores.
+  SSJ mantém arte antiga.
+- **VERIFICADO:** sintaxe e 466 testes passaram. Chrome com prints das seis ações
+  nas oito direções, trocas base/Kaioken/SSJ, combate na hunt, esgotamento com
+  aviso e conta observadora recebendo/desenhando Kaioken. Prévia em worktree,
+  sem copiar o save original. Resultado final detalhado no documento Kaioken.
+- **ENTREGA LOCAL:** prévia `http://localhost:3002`, galeria `/kaioken.html`;
+  conta de teste no nível 60. Pedro revisou a prévia e autorizou commit e push
+  em 09/11/2026, incluindo a remoção do círculo vermelho. PR e merge aguardam pedido.
 
 Data: 27/10/2026. Base executável: **0.4.0**. Documento preparado a partir desta conversa, do conceito registrado e da leitura do código incluído no ZIP. Não representa alterações feitas em computadores aos quais não temos acesso.
 
