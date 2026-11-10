@@ -11,7 +11,7 @@ const [url, prefixo, arquivoPassos] = process.argv.slice(2);
 const passos = JSON.parse(await readFile(arquivoPassos, 'utf8'));
 const porta = 9300 + Math.floor(Math.random() * 500);
 const perfil = await mkdtemp(join(tmpdir(), 'cdp-'));
-// Permite conferir as artes no Windows sem alterar o caminho usado no Mac do Pedro.
+// Mantém o caminho do Mac e permite a conferência na máquina Windows do Pedro.
 const executavel = process.env.DBI_CHROME || (process.platform === 'win32'
   ? ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)
   : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');

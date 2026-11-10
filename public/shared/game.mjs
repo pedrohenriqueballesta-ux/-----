@@ -27,7 +27,7 @@ import { GENKI } from './genki.mjs';
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
 // Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
-export const CHEFES = new Set(['boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
+export const CHEFES = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
 // Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
 // (Pedro, 06/11: no lugar do laser; metade do tamanho da Supernova). A bola carrega na boca, voa até o alvo e explode.
 export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga: 1.0, bolaVoo: 0.45, bolaAlcance: 620, bolaRaio: 75, bolaRecarga: 2.6 };

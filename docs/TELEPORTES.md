@@ -8,7 +8,7 @@ Todos os TPs usam a arte fornecida em `nuvem_voadora_16_frames.zip`:
 `public/assets/teleports/nuvem.png`, 16 frames em grade 4×4, células 443×221,
 100 ms/frame em loop. Cores e transparência originais preservadas.
 
-Saídas das oito hunts ficam no canto superior esquerdo da safe zone, a 60 unidades
+Saídas das nove hunts ficam no canto superior esquerdo da safe zone, a 60 unidades
 à esquerda e 60 acima da chegada. Distância até o spawn: aproximadamente 85;
 gatilho de abertura do menu: 55. Assim, chegar não abre novamente a seleção de TP.
 Os testes conferem chão caminhável, acesso por clique e viagem em todas as hunts.

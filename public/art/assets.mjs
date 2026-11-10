@@ -1,5 +1,7 @@
 // Registro de imagens (sprites e texturas). A arte é separada da simulação
 // autoritativa, que vive em shared/.
+import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+
 import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
@@ -17,6 +19,7 @@ const loadImage = url => {
   return imageCache.get(url);
 };
 export const art = {
+  ...Object.fromEntries(Object.values(FOLHAS_NAMEK_NORTE).flatMap(Object.values).map(([folha,chave])=>[chave,loadImage(folha.file)])),
   ...Object.fromEntries([...Object.values(FOLHAS_GOKU_BASE), ...Object.values(FOLHAS_GOKU_KAIOKEN)].map(([folha,chave])=>[chave,loadImage(folha.file)])),
   nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),

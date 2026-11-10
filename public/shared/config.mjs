@@ -50,7 +50,7 @@ export const CONFIG = Object.freeze({
 // de uma para outra, troca-se pelos portais (PORTAIS). A caixa (x, y, w, h, em px da imagem) limita onde
 // se anda; dentro dela vale a máscara de passagem. `chegada` é onde o jogador aparece ao entrar e, nas
 // hunts, também onde fica a saída. `nivel` é só recomendação: entra quem quiser, mas é perigoso.
-// O que fica fora das caixas (ilha norte, ilha noroeste, ilhotas) está guardado para uma 4ª área.
+// Ilha norte aberta como quarta hunt (Pedro, 09/11/2026); noroeste e ilhotas continuam reservadas.
 // Os ids são usados pelas regras e pelo save: mude nome, caixa e chegada à vontade, mas não os ids.
 // Os ids valem para o jogo inteiro (todos os planetas): um planeta novo usa ids próprios (ex.: 'vegeta-…').
 // `cor`: a do portal, do minimapa e do menu Mapa (verde, laranja e vermelho para as hunts; azul para a Vila).
@@ -61,7 +61,10 @@ export const ZONES = [
     { id: 'vila', name: 'Vila Namekiana', segura: true, cor: '#5fb6ff', x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
     { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], cor: '#46e646', x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
     { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], cor: '#ffa51e', x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
-    { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } }
+    { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } },
+    // Contorno medido na máscara de 6 px; cortes 3380/640 preservam as hunts atuais.
+    // Faixa 30–40 provisória, decidida pelo Pedro em 09/11/2026.
+    { id: 'norte', name: 'Cratera de Nail', nivel: [30, 40], cor: '#a35cff', x: 2058, y: 72, w: 1322, h: 568, chegada: { x: 2600, y: 570 } }
   ]),
   // Planeta Vegeta: cidade no centro e 5 hunts, cada uma numa ilha cercada de abismo, com uma estrada até a
   // cidade (nomes e temas propostos, a confirmar pelo Pedro). Caixas = contorno de cada ilha na máscara
@@ -157,7 +160,7 @@ export const PLANETS = {
   terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 }, imagem: '/assets/worlds/terra.webp' },
   namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
     soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
-    vila: 'vila', hunts: ['inicial', 'media', 'dificil'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
+    vila: 'vila', hunts: ['inicial', 'media', 'dificil', 'norte'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
   vegeta: { id: 'vegeta', name: 'Planeta Vegeta', w: SOLO_VEGETA.w * ESCALA_VEGETA, h: SOLO_VEGETA.h * ESCALA_VEGETA, escala: ESCALA_VEGETA,
     solo: 'vegetaSolo', soloUrl: '/assets/vegeta/solo.webp', fundo: '#0b0308', imagem: '/assets/worlds/vegeta.webp', vila: 'vegeta-cidade',
     hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada }
@@ -174,7 +177,7 @@ export function lugar(id) {
 // praça na sua direção (leste, sul e norte; pedido do Pedro, 04/11: "guiando o personagem para fora pela
 // estrada"), medido no mapa de 36 partes; e a volta para a Terra
 // logo acima do ponto de chegada. Hunts: um só portal, logo acima do ponto de chegada (é a saída),
-// com a Vila e as outras duas hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
+// com a Vila e as demais hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
 export const RAIO_PORTAL = 55;
 const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
 // Portais de um planeta de hunt: a volta para a Terra acima da chegada da Vila, um portal da Vila para
@@ -192,7 +195,7 @@ function portaisDoPlaneta(planet, entradas) {
 }
 export const PORTAIS = [
   { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
-  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 } }),
+  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 600, y: 1050 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },

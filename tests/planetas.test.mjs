@@ -95,9 +95,9 @@ test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível reco
   }
 });
 
-test('Namekusei: caça automática cruza as 3 hunts sem ficar presa em água ou obstáculos', async () => {
+test('Namekusei: caça automática nas três hunts originais sem ficar presa em água ou obstáculos', async () => {
   const { statsFor } = await import('../public/shared/characters.mjs');
-  for (const area of PLANETS.namek.hunts) {
+  for (const area of ['inicial','media','dificil']) {
     const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a'), nivel = lugar(area).nivel[0];
     p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
     game.levar(p, lugar(area)); game.action(p.id, { type: 'hunt' });

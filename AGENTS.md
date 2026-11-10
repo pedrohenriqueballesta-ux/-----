@@ -1,5 +1,7 @@
 # Guia do projeto
 
+- Quarta hunt de Namekusei: Cratera de Nail na ilha norte, área fechada `norte`, faixa 30–40 provisória. Oito Nails e oito Piccolos Daimaoh andam e usam ataque curto/rajada; Neva é chefe raro, com magia da mão de perto e rajada de longe. Revisão visual: os três têm 2× a altura do Goku (140 contra 70), todos com corpo próprio (Pedro, 09/11/2026).
+
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.
@@ -46,7 +48,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 
 ## Decisões que devem ser preservadas
 
-- Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em cada planeta de hunt, a Vila (segura) e as hunts: Namekusei com três; Planeta Vegeta, decidido em 04/11/2026, com cinco (níveis 30–60; mobs ainda provisórios). Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
+- Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em cada planeta de hunt, a Vila (segura) e as hunts: Namekusei com quatro desde 09/11/2026; Planeta Vegeta com cinco (níveis 30–60). Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
 - Sem PvP nesta versão (decisão do Pedro, 03/11/2026). Quando voltar, só em área marcada como pvp, validado para todos os tipos de dano.
 - Movimento por teclado/toque e caça automática opcional, que roda a hunt inteira onde o jogador está.
 - Aggro por ameaça (decisão do Pedro, 05/11/2026): mob agressivo nota quem chega perto, todo mob reage a quem o ataca, persegue quem causou mais ameaça e volta à origem (curando-se) ao passar do limite. Raio, limite e agressividade configuráveis por mob em enemies.mjs.

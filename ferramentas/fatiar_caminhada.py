@@ -1,6 +1,6 @@
 """Recorta uma folha de caminhada (fundo magenta) em quadros alinhados pela cabeça.
 
-Uso: python3 fatiar_caminhada.py <folha.png> <saida.png> <saida.json> [linhas] [colunas] [halo|conectado] [verde]
+Uso: python3 fatiar_caminhada.py <folha.png> <saida.png> <saida.json> [linhas] [colunas] [halo|conectado] [verde|magenta] [tolerancia-conectado] [tolerancia-buracos]
 Cada linha da folha é uma direção; cada coluna, um quadro do ciclo.
 Gera um atlas transparente com uma célula por quadro e o JSON com
 [sx, sy, w, h, ancoraX, ancoraY] de cada quadro (âncora = centro dos pés no chão).
@@ -22,15 +22,18 @@ MAGENTA = np.array([0, 255, 0]) if FUNDO_VERDE else np.array([255, 0, 255])
 
 # 6º argumento "conectado": para personagens roxos/rosados, cuja pele seria apagada pela regra do halo.
 MODO = sys.argv[6] if len(sys.argv) > 6 else "halo"
+# Só o fundo ligado às bordas usa esta tolerância; cores internas protegidas pelo contorno ficam intactas.
+TOLERANCIA_CONECTADO = int(sys.argv[8]) if len(sys.argv) > 8 else 110
+TOLERANCIA_BURACOS = int(sys.argv[9]) if len(sys.argv) > 9 else 45
 
 rgb = np.array(Image.open(folha).convert("RGB")).astype(int)
 dist = np.abs(rgb - MAGENTA).sum(2)
 if MODO == "conectado":
     # Fundo = tons próximos do magenta ligados à borda da imagem (o contorno escuro do desenho
     # serve de barreira), mais buracos internos de magenta quase puro (entre braço e corpo).
-    perto, n = ndimage.label(dist < 110)
+    perto, n = ndimage.label(dist < TOLERANCIA_CONECTADO)
     bordas = set(np.unique(np.concatenate([perto[0], perto[-1], perto[:, 0], perto[:, -1]]))) - {0}
-    fundo = np.isin(perto, list(bordas)) | (dist < 45)
+    fundo = np.isin(perto, list(bordas)) | (dist < TOLERANCIA_BURACOS)
     frente = ~fundo
 else:
     # Rosado = mistura do contorno com o fundo; vira transparente para não deixar halo.
