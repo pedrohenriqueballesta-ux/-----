@@ -7,16 +7,16 @@ import { drawWalk, drawSheet, GOLPE } from './atlas.mjs';
 import { strikeColumn } from '../render/camera.mjs';
 
 export const ALTURA_GUERREIRO = 70;   // mesma altura do Goku (provisório)
-export function drawGuerreiro(ctx, x, y, moving, facing, phase, attackProgress = null, travelled = 0) {
+export function drawGuerreiro(ctx, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tempo = null) {
   const pos = { x, y, travelled };
   const [sheet, key] = GOLPE.guerreiro;
   if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, ALTURA_GUERREIRO, facing, strikeColumn(attackProgress))) return true;
-  return drawWalk(ctx, 'guerreiro', pos, ALTURA_GUERREIRO, facing, moving, 96, phase);
+  return drawWalk(ctx, 'guerreiro', pos, ALTURA_GUERREIRO, facing, moving, 96, phase, tempo);
 }
 
-export function drawVeterano(ctx, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false) {
+export function drawVeterano(ctx, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false, tempo = null) {
   const pos = { x, y, travelled };
   const [sheet, key] = tiro ? GOLPE.veteranoKi : GOLPE.veterano;
   if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, ALTURA_GUERREIRO, facing, strikeColumn(attackProgress))) return true;
-  return drawWalk(ctx, 'veterano', pos, ALTURA_GUERREIRO, facing, moving, 96, phase);
+  return drawWalk(ctx, 'veterano', pos, ALTURA_GUERREIRO, facing, moving, 96, phase, tempo);
 }

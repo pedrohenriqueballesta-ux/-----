@@ -1,0 +1,9 @@
+// Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: respiração em repouso (pés parados).
+// Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
+export const RADITZ_PARADO = {
+  file: '/assets/mobs/raditz-parado.png', width: 740, height: 1355,
+  rows: 5, columns: 4, referenceHeight: 240, idleColumn: 0,
+  frames: [[[0,0,185,271,93.5,265],[185,0,185,271,278.5,265],[370,0,185,271,463.5,265],[555,0,185,271,648.5,265]],[[0,271,185,271,93.0,536],[185,271,185,271,278.0,536],[370,271,185,271,463.0,536],[555,271,185,271,648.0,536]],[[0,542,185,271,86.0,807],[185,542,185,271,271.0,807],[370,542,185,271,456.0,807],[555,542,185,271,641.0,807]],[[0,813,185,271,91.5,1078],[185,813,185,271,276.5,1078],[370,813,185,271,461.5,1078],[555,813,185,271,646.5,1078]],[[0,1084,185,271,91.5,1349],[185,1084,185,271,276.5,1349],[370,1084,185,271,461.5,1349],[555,1084,185,271,646.5,1349]]]
+};

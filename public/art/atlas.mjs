@@ -2,6 +2,7 @@
 // Goku/SSJ usam folhas desenhadas quadro a quadro (passo/golpe); Saibaman/Alien
 // usam pernas geradas proceduralmente (walk-rig) a partir de um desenho parado.
 import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+import { PARADO } from './parado.mjs';
 import { art, loaded } from './assets.mjs';
 import { spriteFacing, walkStep, strikeFrame, DIRECTIONS } from '../render/camera.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
@@ -148,7 +149,17 @@ function drawPasso(ctx, kind, pos, height, facing, moving, stride, phase = 0) {
   const bob = moving ? walkBob(walkStep(pos.travelled || 0, stride, phase)) * height : 0;
   return drawSheet(ctx, sheet, art[key], pos, height, facing, passoFrame(pos.travelled || 0, stride, moving, sheet, phase), bob);
 }
-export function drawWalk(ctx, kind, pos, height, facing, moving, stride = 96, phase = 0) {
+// Parado com folha PARADO (parado.mjs): respiração em loop pelo tempo (~3 quadros/s, como o Goku), com a fase
+// de cada mob para o grupo não respirar junto, na mesma altura da caminhada. Sem `tempo`, cai no quadro parado
+// da caminhada, como antes.
+export function drawParado(ctx, kind, pos, height, facing, tempo, phase = 0) {
+  const parado = PARADO[kind];
+  if (!parado || !Number.isFinite(tempo)) return false;
+  const [sheet, key] = parado;
+  return drawSheet(ctx, sheet, art[key], pos, height, facing, Math.floor(tempo * 3 + phase * 4) % 4);
+}
+export function drawWalk(ctx, kind, pos, height, facing, moving, stride = 96, phase = 0, tempo = null) {
+  if (!moving && drawParado(ctx, kind, pos, height, facing, tempo, phase)) return true;
   if (PASSO[kind] && drawPasso(ctx, kind, pos, height, facing, moving, stride, phase)) return true;
   if (!moving) return drawAtlas(ctx, kind + 'Walk', pos, height, facing, 0);
   const direction = spriteFacing(facing), diagonal = direction % 2 === 1;

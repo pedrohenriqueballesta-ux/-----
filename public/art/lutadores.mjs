@@ -36,13 +36,7 @@ export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgre
   if (tipo === 'oozaruDourado' && tiro && coluna === 2) coluna = 1;
   const alturaAtaque = FOLHAS_NAMEK_NORTE[tipo] ? altura * sheet.referenceHeight / FOLHAS_NAMEK_NORTE[tipo].andar[0].referenceHeight : altura;
   if (attackProgress !== null && drawSheet(ctx, sheet, art[key], pos, alturaAtaque, facing, coluna)) return true;
-  // Parado com folha própria: respiração em loop pelo tempo (~3 quadros/s, como o Goku), com a fase do mob
-  // para o grupo não respirar junto. Mesma escala da caminhada, para o corpo não mudar de tamanho ao parar.
-  const parado = !moving && FOLHAS_NAMEK_NORTE[tipo]?.parado;
-  if (parado) {
-    const [folha, chave] = parado, alturaParado = altura * folha.referenceHeight / FOLHAS_NAMEK_NORTE[tipo].andar[0].referenceHeight;
-    if (drawSheet(ctx, folha, art[chave], pos, alturaParado, facing, Math.floor(tempo * 3 + phase * 4) % 4)) return true;
-  }
   // Passo proporcional ao tamanho: o gigante anda mais por ciclo, senão os pés "patinam" (Goku: 70 de altura, 96 por ciclo).
-  return drawWalk(ctx, tipo, pos, altura, facing, moving, LUTADORES[tipo].passo ?? 96 * Math.max(1, altura / 70), phase);
+  // Parado: folha PARADO (parado.mjs) pelo drawWalk, quando o mob tiver uma.
+  return drawWalk(ctx, tipo, pos, altura, facing, moving, LUTADORES[tipo].passo ?? 96 * Math.max(1, altura / 70), phase, tempo);
 }

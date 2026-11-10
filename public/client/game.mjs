@@ -319,10 +319,10 @@ function drawMob(m, pos, time) {
   // Pássaro e Inseto de Namek voam (art/voadores.mjs); se a folha não carregar, usam o Saibaman e a sentinela.
   const corpoACorpo = ['melee', 'passaro', 'guerreiro'].includes(m.type), voa = m.type in VOADORES;
   const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress))
-    || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled))
+    || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
     || (m.type === 'freezaBoss' && drawFreezaBoss(ctx, m.forma || 'pe', pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
     || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time))
-    || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot')) || (m.type === 'boss'
+    || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time)) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : corpoACorpo
       ? drawSaibaman(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
