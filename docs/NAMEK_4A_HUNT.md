@@ -82,9 +82,9 @@ Profundidade segue os pés; jogador continua atravessando mobs, como antes.
 
 | Espécie | Quantidade | HP | Ataque | Defesa | XP | Velocidade | Altura | Corpo |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 105 | 24 |
-| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 105 | 26 |
-| Neva | 1 raro | 40000 | 200 | 65 | 35000 | 85 | 105 | 30 |
+| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 87,5 | 20 |
+| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 87,5 | 22 |
+| Neva | 1 raro | 40000 | 200 | 65 | 35000 | 85 | 87,5 | 25 |
 
 Grade de candidatos de 120 px, com variação normal, amostrando 16 pontos
 espalhados. A geração valida a margem do maior corpo comum (100 unidades
@@ -199,4 +199,9 @@ problemas:
 Tamanho: `ALTURA_NAMEK_NORTE = 70 × 1,5` e corpos 24/26/30 (provisórios). Recorte das folhas novas igual ao das
 outras (`conectado magenta 210 150`). Galeria `/namek-norte.html` ganhou a ação Parado. 499 testes; conferido no
 navegador (galeria nas 8 direções e mobs na Cratera).
+
+**2º ajuste de 10/11 (ramo `feature/cratera-nail-tamanho`):** os três com **1,25× o Goku** (87,5), o Neva incluído.
+Passo e corpo acompanham a altura (5/6 do anterior): Nail 148/20, Piccolo 100/22, Neva 67/25. Simulação refeita:
+duelos iguais; caça de 5 min 17 abates e 8 mortes. No mesmo ramo, todo chefe do jogo passou a levar "BOSS" no nome
+(Neva BOSS, Porunga BOSS, Comandante Sentinela BOSS, Oozaru Dourado BOSS, Freeza BOSS / Freeza BOSS (nave)).
 

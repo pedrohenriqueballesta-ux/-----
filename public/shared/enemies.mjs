@@ -17,9 +17,9 @@ const ATRIBUTOS = {
   // Cratera de Nail: atributos PROVISÓRIOS, calibrados por duelos 30/35/40 e caça.
   norte: {
     // Percepção 250 provisória: evita que o tamanho dos corpos atraia grupos inteiros na ilha estreita.
-    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:24, aggro:250, name:'Nail' },
-    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:26, aggro:250, name:'Piccolo Daimaoh' },
-    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:30, name:'Neva' }
+    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:20, aggro:250, name:'Nail' },
+    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:22, aggro:250, name:'Piccolo Daimaoh' },
+    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:25, name:'Neva' }
   },
   inicial: {
     passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
@@ -31,7 +31,7 @@ const ATRIBUTOS = {
     // Veterano de Namek: ataca de longe (rajada de ki) e de perto (soco).
     veterano: { hp: 190, attack: 16, xp: 45, defesa: 5, speed: 108, name: 'Veterano de Namek' },
     ranged: { hp: 200, attack: 17, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
-    subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela · Subchefe' }
+    subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela' }
   },
   dificil: {
     // Porunga (decisão do Pedro, 03/11): o mob mais fraco da hunt difícil, voa e ataca de perto (garra).
@@ -105,10 +105,16 @@ function mobsDaFaixa(area, nivel, tipos) {
 // - perseguicao: quanto ele se afasta do ponto de origem antes de desistir e voltar (curando-se ao chegar).
 // O raio antigo (300, fixo) era curto para os mapas do Vegeta: mobs a 400–500 do jogador não reagiam.
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
+// Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
+// diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
+export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
+// Forma entre parênteses fica no fim: "Freeza (nave)" → "Freeza BOSS (nave)".
+export const nomeDeChefe = nome => /\bBOSS\b/.test(nome) ? nome : nome.replace(/^(.*?)(\s*\([^)]*\))?$/, (_, n, forma = '') => n + ' BOSS' + forma);
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
   const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
-  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base, projetil:configurarProjetilMob(type,base) };
+  const chefe = TIPOS_CHEFE.has(type) ? { name: nomeDeChefe(base.name), ...(base.nave ? { nave: { ...base.nave, nome: nomeDeChefe(base.nave.nome) } } : {}) } : {};
+  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base, ...chefe, projetil:configurarProjetilMob(type,base) };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
@@ -192,7 +198,7 @@ export function spawnPoints(random) {
     ...espalhar(random, 'media', 16, i => i % 2 ? 'veterano' : 'guerreiro'),
     // Grade própria e margem do maior corpo: os gigantes não nascem presos na costa.
     // Os oito Nails ficam na metade sul, perto da chegada; Piccolos ocupam o norte.
-    ...espalhar(random, 'norte', 16, i => i < 8 ? 'piccoloDaimaoh' : 'nail', { passo:120, raio:(22 + 26) / 0.6 }),
+    ...espalhar(random, 'norte', 16, i => i < 8 ? 'piccoloDaimaoh' : 'nail', { passo:120, raio:(22 + 22) / 0.6 }),
     { type:'neva', ...pontoNoCirculo(random,'norte'), area:'norte', raro:true },
     // Subchefe na cratera grande do Campo de Batalha; chefe no centro da arena do Planalto.
     { type: 'subboss', x: naEscala(3330), y: naEscala(2280), area: 'media' },

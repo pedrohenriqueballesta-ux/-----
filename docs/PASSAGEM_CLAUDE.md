@@ -9,8 +9,8 @@
   Planalto/Planícies. Chegada `(2600,570)`, entrada da Vila `(600,1050)`, saída
   a −60/−60 unidades dentro da safe zone. Sem travessia a pé. Solo/máscara intactos.
 - **ARTE:** nove folhas 5×4 originais do Pedro; modo conectado com tolerâncias
-  210/150 para fundo/buracos, sem recolorir. Os três têm altura 105 (1,5× Goku,
-  Pedro 10/11/2026), corpos 24/26/30, passo próprio (Nail 178, Piccolo 120, Neva 80)
+  210/150 para fundo/buracos, sem recolorir. Os três têm altura 87,5 (1,25× Goku,
+  Pedro 10/11/2026); corpos 20/22/25, passo próprio (Nail 148, Piccolo 100, Neva 67); chefes com "BOSS" no nome
   e folha PARADO; andar do Nail e do Neva refeito (detalhes em NAMEK_4A_HUNT.md). Escala única entre poses, espelho por SHEET_VIEWS.
 - **PROVISÓRIO:** Nail HP2200/ATK64/DEF24/XP260; Piccolo HP4900/ATK120/DEF40/XP1100;
   Neva HP40000/ATK200/DEF65/XP35000. Aggro comuns 250, perseguição 650; Neva 570/560.
