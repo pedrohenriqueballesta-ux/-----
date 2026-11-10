@@ -114,14 +114,19 @@ test('Auto Hunt roda cinco minutos no norte, retoma após mortes e não enfrenta
   const {g,p}=cena(),n=g.addMob('neva',p.x+80,p.y,'norte');p.autoHunt=true;g.tick(.05);assert.notEqual(p.targetId,n.id);assert.equal(n.hp,n.maxHp);
 });
 
-test('passada própria (sem patinar) e quadro parado com as pernas juntas',()=>{
+test('passada própria (sem patinar) e folha PARADO com respiração em loop',async()=>{
   // Passo medido no desenho de cada folha (10/11/2026): menor que a regra geral 96 × altura/70.
   for(const tipo of ['nail','piccoloDaimaoh','neva']){
     const {altura,passo}=LUTADORES[tipo];
     assert.ok(passo>0&&passo<96*altura/70,tipo+': passo próprio menor que a regra geral');
+    const [folha,chave]=FOLHAS_NAMEK_NORTE[tipo].parado;
+    assert.equal(folha.rows,5);assert.equal(folha.columns,4);assert.ok(chave.endsWith('Parado'));
+    // Parado desenha a folha PARADO (não a de andar) e troca de quadro com o tempo.
+    const {drawLutador}=await import('../public/art/lutadores.mjs'),{art}=await import('../public/art/assets.mjs');
+    const usadas=[],ctx={save(){},restore(){},translate(){},scale(){},drawImage(img,...a){usadas.push([img,a[0]]);}};
+    for(const t of [0,.34,.67,1]) drawLutador(ctx,tipo,0,0,false,{x:0,y:1},0,null,0,false,t);
+    assert.ok(art[chave],tipo+': imagem PARADO registrada');
+    assert.ok(usadas.length===4&&usadas.every(([img])=>img===art[chave]),tipo+': parado usa a folha PARADO');
+    assert.equal(new Set(usadas.map(([,sx])=>sx)).size,4,tipo+': 4 quadros de respiração');
   }
-  // Parado: Nail e Piccolo usam a passagem (coluna 1), Neva o quadro em pé (coluna 0), até chegarem as folhas PARADO.
-  assert.equal(FOLHAS_NAMEK_NORTE.nail.andar[0].idleColumn,1);
-  assert.equal(FOLHAS_NAMEK_NORTE.piccoloDaimaoh.andar[0].idleColumn,1);
-  assert.equal(FOLHAS_NAMEK_NORTE.neva.andar[0].idleColumn,0);
 });

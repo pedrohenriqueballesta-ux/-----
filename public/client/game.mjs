@@ -321,7 +321,7 @@ function drawMob(m, pos, time) {
   const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress))
     || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled))
     || (m.type === 'freezaBoss' && drawFreezaBoss(ctx, m.forma || 'pe', pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
-    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot'))
+    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time))
     || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot')) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : corpoACorpo
