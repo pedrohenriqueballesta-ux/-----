@@ -115,10 +115,10 @@ test('Auto Hunt roda cinco minutos no norte, retoma após mortes e não enfrenta
 });
 
 test('passada própria (sem patinar) e folha PARADO com respiração em loop',async()=>{
-  // Passo medido no desenho de cada folha (10/11/2026): menor que a regra geral 96 × altura/70.
+  // Passo medido no desenho de cada folha (10/11/2026), diferente da regra geral 96 × altura/70.
   for(const tipo of ['nail','piccoloDaimaoh','neva']){
     const {altura,passo}=LUTADORES[tipo];
-    assert.ok(passo>0&&passo<96*altura/70,tipo+': passo próprio menor que a regra geral');
+    assert.ok(passo>0&&passo!==96*Math.max(1,altura/70),tipo+': passo próprio, medido na folha');
     const [folha,chave]=FOLHAS_NAMEK_NORTE[tipo].parado;
     assert.equal(folha.rows,5);assert.equal(folha.columns,4);assert.ok(chave.endsWith('Parado'));
     // Parado desenha a folha PARADO (não a de andar) e troca de quadro com o tempo.

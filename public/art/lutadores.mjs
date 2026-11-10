@@ -12,10 +12,11 @@ import { strikeColumn } from '../render/camera.mjs';
 // Altura na tela (Goku = 70). Provisório: o Hatchiyack é maior, o General um pouco maior que o Guerreiro.
 // Revisão do Pedro, 10/11/2026: Nail, Piccolo e Neva têm 1,5× a altura do Goku (70); antes, 2×.
 const ALTURA_NAMEK_NORTE = 70 * 1.5;
-// `passo` = distância percorrida por ciclo de 4 quadros, medida no próprio desenho (10/11/2026): a regra geral
-// (96 × altura/70) fazia os três "patinarem" — as folhas deles têm passada curta. Goku usa 1,25× o passo
-// desenhado (77 → 96); aqui vale o mesmo fator: Nail 65 → 80, Piccolo 96 → 120, Neva 86 → 108.
-export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 80 }, piccoloDaimaoh: { altura:ALTURA_NAMEK_NORTE, passo: 120 }, neva: { altura:ALTURA_NAMEK_NORTE, passo: 108 }, tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { altura: 76 }, hatchiyack: { altura: 92 },
+// `passo` = distância percorrida por ciclo de 4 quadros, medida no próprio desenho (10/11/2026): com a regra geral
+// (96 × altura/70) os pés não acompanhavam o chão. Goku usa 1,25× o passo desenhado (77 → 96); aqui vale o mesmo
+// fator, medido nas folhas de andar refeitas pelo Pedro: Nail 142 → 178 (passada larga), Piccolo 96 → 120,
+// Neva 63 → 80 (passinho de ancião com cajado). Folha nova = medir de novo.
+export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 178 }, piccoloDaimaoh: { altura:ALTURA_NAMEK_NORTE, passo: 120 }, neva: { altura:ALTURA_NAMEK_NORTE, passo: 80 }, tsufuruGuerreiro: { altura: 70 }, tsufuruGeneral: { altura: 76 }, hatchiyack: { altura: 92 },
   nappa: { altura: 84 }, raditz: { altura: 80 }, bardock: { altura: 76 },
   oozaru: { altura: 120 }, oozaruGuerreiro: { altura: 128 }, oozaruSuper: { altura: 175 },
   // Grande Cratera (06/11): Rei Vegeta (o mais fraco) e Broly (o mais forte, o maior dos humanoides).
