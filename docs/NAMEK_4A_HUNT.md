@@ -9,10 +9,9 @@ O trabalho da Kaioken permanece no seu próprio ramo, fora desta base.
 **DECIDIDO:** ilha norte, nome Cratera de Nail, oito Nails e oito Piccolos Daimaoh,
 todos terrestres, com ataque curto e rajada; Neva como chefe raro terrestre.
 O Ataque_Cajado do Neva é magia da mão, não pancada de cajado. As três espécies
-têm altura de 140 (2× a referência de 70 do Goku), com corpos próprios.
-Revisão mais recente do Pedro em 09/11/2026: padronizar Nail, Piccolo e Neva
-em 2× Goku, substituindo a redução anterior de 25%. Atributos e corpos de colisão
-mantidos nesta revisão visual.
+têm altura de 105 (1,5× a referência de 70 do Goku), com corpos próprios.
+Revisão do Pedro em 10/11/2026: 1,5× Goku, substituindo os 2× de 09/11; corpos
+reduzidos na mesma proporção (ver "Ajustes de 10/11" no fim). Atributos mantidos.
 Viagem somente por portal; chegada protegida e saída dentro dela.
 
 **PROVISÓRIO:** faixa recomendada 30–40; atributos, XP, velocidades, raio dos
@@ -83,9 +82,9 @@ Profundidade segue os pés; jogador continua atravessando mobs, como antes.
 
 | Espécie | Quantidade | HP | Ataque | Defesa | XP | Velocidade | Altura | Corpo |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 140 | 34 |
-| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 140 | 38 |
-| Neva | 1 raro | 40000 | 200 | 65 | 35000 | 85 | 140 | 55 |
+| Nail | 8 | 2200 | 64 | 24 | 260 | 104 | 105 | 24 |
+| Piccolo Daimaoh | 8 | 4900 | 120 | 40 | 1100 | 100 | 105 | 26 |
+| Neva | 1 raro | 40000 | 200 | 65 | 35000 | 85 | 105 | 30 |
 
 Grade de candidatos de 120 px, com variação normal, amostrando 16 pontos
 espalhados. A geração valida a margem do maior corpo comum (100 unidades
@@ -136,12 +135,13 @@ caça ao renascer; progressão de XP permanece ativa (ambos chegaram ao nível 3
 
 | Hunt | Abates | Mortes |
 | --- | --- | --- |
-| Cratera de Nail | 15 | 11 |
+| Cratera de Nail | 17 | 8 |
 | Planícies Vermelhas (Vegeta) | 16 | 5 |
 
 Nail é vencível no mínimo, mas leva 13,7 s; Piccolo vence o jogador nos níveis
 30/35 e só cai no 40; Neva conserva 89% do HP contra um nível 40 sozinho.
-A Cratera é mais punitiva que as Planícies Vermelhas nesta simulação. Densidade,
+A Cratera é mais punitiva que as Planícies Vermelhas nesta simulação (medido de novo em 10/11 com os
+corpos menores: 17 abates e 8 mortes, antes 15 e 11; os duelos não mudaram). Densidade,
 atributos e faixas ficam provisórios para a revisão do Pedro.
 
 ## Testes e conferência visual
@@ -180,3 +180,23 @@ Save principal não copiado ou sobrescrito; SHA-256 antes/depois:
 `dba119a323d0328e694504974d6e52423123a2effca765672f41a1abee74fe32`.
 Sem arte original, credenciais, save ou ajustes de personagem em commit.
 Próximo passo: aprovação visual do Pedro. Commit somente depois dessa aprovação.
+
+## Ajustes de 10/11/2026 (ramo `feature/cratera-nail-ajustes`)
+
+Pedido do Pedro: tamanho 1,5× o Goku e corrigir a movimentação, que estava "bugada". Medido no jogo, eram três
+problemas:
+
+1. **Parado com perna de andar:** sem folha própria, o mob parado usava um quadro da caminhada. Agora há folhas
+   **PARADO** (respiração em loop, pés parados) dos três: `{nail,piccolo-daimaoh,neva}/parado.png` e
+   `art/{especie}-parado.mjs`, registradas em `FOLHAS_NAMEK_NORTE[tipo].parado`. `drawLutador` desenha a folha PARADO
+   quando o mob não anda, a ~3 quadros/s com a fase de cada mob, na mesma escala da caminhada.
+2. **Pés deslizando:** a regra geral de passo (96 × altura/70) não batia com a passada desenhada. Cada espécie tem
+   `LUTADORES[tipo].passo`, medido na folha com o mesmo fator do Goku (1,25× o passo desenhado): Nail 178,
+   Piccolo 120, Neva 80. Folha nova de andar = medir de novo.
+3. **Travadas no passo:** as caminhadas antigas do Nail (diagonal) e do Neva tinham quadros vizinhos quase iguais.
+   O Pedro refez as duas; as novas têm os 4 quadros bem diferentes em todas as linhas.
+
+Tamanho: `ALTURA_NAMEK_NORTE = 70 × 1,5` e corpos 24/26/30 (provisórios). Recorte das folhas novas igual ao das
+outras (`conectado magenta 210 150`). Galeria `/namek-norte.html` ganhou a ação Parado. 499 testes; conferido no
+navegador (galeria nas 8 direções e mobs na Cratera).
+

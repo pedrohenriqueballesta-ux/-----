@@ -64,7 +64,7 @@ test('Neva nasce na cratera em 10 s com opção de teste, avisa só a hunt e seg
 for(const tipo of ['nail','piccoloDaimaoh','neva']) {
   test(tipo+': corpo próprio, magia/ataque curto e rajada TARGET com a cor da folha',()=>{
     const {g,p}=cena(),m=g.addMob(tipo,p.x+75,p.y,'norte');m.attackReady=g.time;
-    assert.ok(m.corpo>=34);assert.ok(SOCA_E_ATIRA.has(tipo));assert.ok(m.projetil);assert.equal(m.projetil.cor,PROJETEIS_POR_MOB[tipo].cor);
+    assert.ok(m.corpo>=20);assert.ok(SOCA_E_ATIRA.has(tipo));assert.ok(m.projetil);assert.equal(m.projetil.cor,PROJETEIS_POR_MOB[tipo].cor);
     g.tick(.05);assert.equal(m.telegraph.kind,'area');
     m.telegraph=null;m.attackReady=g.time;m.x=m.homeX=p.x+240;g.tick(.05);assert.equal(m.telegraph.kind,'shot');
     passar(g,.85);const tiro=g.projectiles.find(s=>s.owner===m.id);assert.ok(tiro);assert.equal(tiro.kind,'mobKiTarget');assert.equal(tiro.alvoId,p.id);
@@ -84,9 +84,9 @@ test('bestiário registra as três fichas, magia de Neva, recompensas padrão e 
   const n=fichas.find(m=>m.tipo==='neva');assert.equal(n.raro,true);assert.match(n.ataques,/Magia da mão/);assert.deepEqual(n.zeni,[RECOMPENSAS_MOBS.zeniChefe,RECOMPENSAS_MOBS.zeniChefe]);
   for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[30,40]);assert.ok(f.xp>0);assert.equal(f.drops.length,3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
 });
-test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três inimigos com 2× Goku',async()=>{
+test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três inimigos com 1,5× Goku',async()=>{
   for(const [tipo,estados]of Object.entries(FOLHAS_NAMEK_NORTE)) {
-    assert.equal(LUTADORES[tipo].altura,70*2);
+    assert.equal(LUTADORES[tipo].altura,70*1.5);
     for(const [f]of Object.values(estados)) {
       assert.equal(f.rows,5);assert.equal(f.columns,4);const png=await readFile(new URL('../public'+f.file,import.meta.url));
       assert.equal(png.readUInt32BE(16),f.width);assert.equal(png.readUInt32BE(20),f.height);
@@ -112,4 +112,21 @@ test('desenhista escolhe as nove folhas e mantém escala única entre andar, ata
 test('Auto Hunt roda cinco minutos no norte, retoma após mortes e não enfrenta Neva automaticamente',()=>{
   const r=caca('norte',30);assert.ok(r.abates>0);assert.ok(r.mortes>0);
   const {g,p}=cena(),n=g.addMob('neva',p.x+80,p.y,'norte');p.autoHunt=true;g.tick(.05);assert.notEqual(p.targetId,n.id);assert.equal(n.hp,n.maxHp);
+});
+
+test('passada própria (sem patinar) e folha PARADO com respiração em loop',async()=>{
+  // Passo medido no desenho de cada folha (10/11/2026), diferente da regra geral 96 × altura/70.
+  for(const tipo of ['nail','piccoloDaimaoh','neva']){
+    const {altura,passo}=LUTADORES[tipo];
+    assert.ok(passo>0&&passo!==96*Math.max(1,altura/70),tipo+': passo próprio, medido na folha');
+    const [folha,chave]=FOLHAS_NAMEK_NORTE[tipo].parado;
+    assert.equal(folha.rows,5);assert.equal(folha.columns,4);assert.ok(chave.endsWith('Parado'));
+    // Parado desenha a folha PARADO (não a de andar) e troca de quadro com o tempo.
+    const {drawLutador}=await import('../public/art/lutadores.mjs'),{art}=await import('../public/art/assets.mjs');
+    const usadas=[],ctx={save(){},restore(){},translate(){},scale(){},drawImage(img,...a){usadas.push([img,a[0]]);}};
+    for(const t of [0,.34,.67,1]) drawLutador(ctx,tipo,0,0,false,{x:0,y:1},0,null,0,false,t);
+    assert.ok(art[chave],tipo+': imagem PARADO registrada');
+    assert.ok(usadas.length===4&&usadas.every(([img])=>img===art[chave]),tipo+': parado usa a folha PARADO');
+    assert.equal(new Set(usadas.map(([,sx])=>sx)).size,4,tipo+': 4 quadros de respiração');
+  }
 });

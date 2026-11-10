@@ -6,7 +6,7 @@ import {FOLHAS_NAMEK_NORTE} from '../art/namek-norte.mjs';
 import {DIRECTIONS} from './camera.mjs';
 const $=id=>document.getElementById(id),ctx=$('previa').getContext('2d');
 await Promise.all([...Object.values(FOLHAS_NAMEK_NORTE).flatMap(Object.values),...Object.values(FOLHAS_GOKU_BASE)].map(([,chave])=>art[chave].decode()));
-$('estado').textContent='Nove folhas carregadas';
+$('estado').textContent='Doze folhas carregadas';
 let rodando=true,tempo=0,anterior=performance.now();
 $('pausar').onclick=()=>{rodando=!rodando;$('pausar').textContent=rodando?'Pausar':'Reproduzir';};
 function quadro(agora) {
@@ -20,7 +20,9 @@ function quadro(agora) {
     const x=105+(i%4)*320,y=335+Math.floor(i/4)*350;
     ctx.fillText(d.label,x+45,y-245);
     ctx.strokeStyle='#ffd477';ctx.beginPath();ctx.moveTo(x-10,y+6);ctx.lineTo(x+10,y+6);ctx.moveTo(x,y);ctx.lineTo(x,y+12);ctx.stroke();
-    drawLutador(ctx,tipo,x,y,acao==='andar',d,0,acao==='andar'?null:fase,(rodando?tempo:fase)*96*LUTADORES[tipo].altura/70,acao==='rajada');
+    // Parado: respiração pelo tempo (pausado, a barra de fase escolhe o quadro). Andar usa o passo próprio do mob.
+    const pose=['andar','parado'].includes(acao)?null:fase,passo=LUTADORES[tipo].passo??96*LUTADORES[tipo].altura/70;
+    drawLutador(ctx,tipo,x,y,acao==='andar',d,0,pose,(rodando?tempo:fase)*passo,acao==='rajada',rodando?tempo:fase);
     drawGoku(ctx,{facing:d,moving:false,transformed:false},{x:x+135,y},tempo);
   });requestAnimationFrame(quadro);
 }

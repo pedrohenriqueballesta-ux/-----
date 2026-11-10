@@ -1,6 +1,6 @@
 # Guia do projeto
 
-- Quarta hunt de Namekusei: Cratera de Nail na ilha norte, área fechada `norte`, faixa 30–40 provisória. Oito Nails e oito Piccolos Daimaoh andam e usam ataque curto/rajada; Neva é chefe raro, com magia da mão de perto e rajada de longe. Revisão visual: os três têm 2× a altura do Goku (140 contra 70), todos com corpo próprio (Pedro, 09/11/2026).
+- Quarta hunt de Namekusei: Cratera de Nail na ilha norte, área fechada `norte`, faixa 30–40 provisória. Oito Nails e oito Piccolos Daimaoh andam e usam ataque curto/rajada; Neva é chefe raro, com magia da mão de perto e rajada de longe. Os três têm 1,5× a altura do Goku (105 contra 70; Pedro, 10/11/2026, antes 2×), com corpo, passo e folha PARADO próprios.
 
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
