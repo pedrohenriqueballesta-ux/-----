@@ -9,15 +9,15 @@
   Planalto/Planícies. Chegada `(2600,570)`, entrada da Vila `(600,1050)`, saída
   a −60/−60 unidades dentro da safe zone. Sem travessia a pé. Solo/máscara intactos.
 - **ARTE:** nove folhas 5×4 originais do Pedro; modo conectado com tolerâncias
-  210/150 para fundo/buracos, sem recolorir. Os três têm altura 140 (2× Goku),
-  corpos 34/38/55. Revisão visual mais recente do Pedro, 09/11/2026, substitui
-  a redução de 25%. Escala única entre poses, espelho por SHEET_VIEWS.
+  210/150 para fundo/buracos, sem recolorir. Os três têm altura 105 (1,5× Goku,
+  Pedro 10/11/2026), corpos 24/26/30, passo próprio (Nail 178, Piccolo 120, Neva 80)
+  e folha PARADO; andar do Nail e do Neva refeito (detalhes em NAMEK_4A_HUNT.md). Escala única entre poses, espelho por SHEET_VIEWS.
 - **PROVISÓRIO:** Nail HP2200/ATK64/DEF24/XP260; Piccolo HP4900/ATK120/DEF40/XP1100;
   Neva HP40000/ATK200/DEF65/XP35000. Aggro comuns 250, perseguição 650; Neva 570/560.
   Neva no círculo `(2730,400,r100)` px, respawn 45–90 min, teste em 10 s.
 - **MEDIDO:** duelos base/sem consumíveis: Nail no 30 cai em 13,7 s; Piccolo vence
   jogador 30 e 35, cai no 40 em 31,7 s; Neva conserva 89% HP contra jogador 40.
-  Auto Hunt cinco minutos/início 30/kit padrão: norte 15 abates e 11 mortes;
+  Auto Hunt cinco minutos/início 30/kit padrão: norte 17 abates e 8 mortes (10/11, corpos menores; antes 15 e 11);
   Vegeta Planícies Vermelhas 16 e 5. Cenários determinísticos, semente 12345,
   sem God Mode ou equipamento; metodologia completa e tabela em NAMEK_4A_HUNT.md.
 - **VERIFICADO:** após atualizar com a main, 495 testes e sintaxe de 202 módulos aprovados. Chrome com prints de portal/transição,
