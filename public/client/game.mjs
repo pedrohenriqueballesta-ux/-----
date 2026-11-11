@@ -627,6 +627,7 @@ function frame(now) {
   }
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
+    if (s.kind === 'ki' && desenharProjetilMob(ctx, s, { x: px, y: py }, time, camera.scale)) continue;
     if (s.kind === 'mobKiTarget') {
       const alvo=renderPositions.get(s.alvoId),distancia=alvo?Math.hypot(alvo.x-s.x,alvo.y-s.y):Infinity;
       const avanco=Math.min(s.speed*Math.min(.07,(now-receivedAt)/1000),distancia);
