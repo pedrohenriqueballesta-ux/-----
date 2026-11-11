@@ -15,5 +15,5 @@ export function drawFreezaBoss(ctx, forma, x, y, moving, facing, phase, attackPr
     const [sheet, key] = GOLPE[nave ? 'freezaNaveNova' : 'freezaPeBeam'];
     if (drawSheet(ctx, sheet, art[key], pos, altura, facing, strikeColumn(attackProgress))) return true;
   }
-  return drawWalk(ctx, nave ? 'freezaNave' : 'freezaPe', pos, altura, facing, nave || moving, nave ? 140 : 96, phase);
+  return drawWalk(ctx, nave ? 'freezaNave' : 'freezaPe', pos, altura, facing, nave || moving, nave ? 140 : 96, phase, time);
 }

@@ -72,7 +72,10 @@ Regra obrigatória para toda folha nova ou existente de cinco direções (Pedro,
   O jogo espelha o lado esquerdo.
 - Fundo **magenta** puro (#FF00FF). Se o personagem tiver vermelho/roxo/lilás perto do magenta, fundo **verde** (#00FF00).
 - Pedido de qualidade no prompt: pixel art nítida, contorno escuro contínuo, 3 tons por cor, personagem em ~80% da célula.
-- Mob que anda e luta: 3 folhas (andar, soco, rajada de ki). Peça as 3 **num chat só**: o prompt único gera a
+- Mob que anda e luta: 4 folhas (PARADO, andar, soco, rajada de ki). Peça as 3 **num chat só**: o prompt único gera a
+- **Folha PARADO é obrigatória** para todo mob ou personagem que anda (Pedro, 10/11/2026): pés lado a lado e iguais
+  nos 4 quadros, só a respiração muda. Sem ela, parado, o jogo usa um quadro da caminhada e o mob fica no meio do
+  passo. Recorte como as outras e registre em `public/art/parado.mjs` (o `drawWalk` usa sozinho).
   folha 1 e, a cada "próxima", a seguinte, usando a primeira como referência de tamanho e traço.
 - Na rajada, só o clarão na mão (ou na boca); o raio que voa o jogo desenha.
 - Conferir sempre: costas sem rosto, 4 quadros diferentes por linha, nada cortado na borda (cabelo, cauda, chifres).
