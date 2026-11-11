@@ -1,5 +1,6 @@
 ﻿import { CONFIG } from '../shared/config.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
+import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
 
 const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
@@ -8,12 +9,15 @@ export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
   if (NOMES[chave]) {
     if (chave === 'kaioken' || chave === 'transform') {
-      const ativa = chave === 'kaioken' ? estado.forma === 'kaioken' || estado.kaiokenActive : estado.transformed;
-      return { nome: NOMES[chave], linhas: [
-        ['Desbloqueia', 'Nível ' + CONFIG.skills[chave]], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
+      // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
+      const disponivel = formaDisponivel(estado.level), ativa = estado.forma && estado.forma !== 'base';
+      const mostrada = ativa ? estado.forma : disponivel?.forma || FORMAS[0].forma, proxima = FORMAS.find(f => estado.level < f.nivel);
+      return { nome: nomeDaForma(mostrada), linhas: [
+        ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? FORMAS[0].nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
         ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],
         ['Término', 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Uma forma por vez; apertar novamente volta à base'],
-        ['Estado', estado.level < CONFIG.skills[chave] ? 'Bloqueada · requer nível ' + CONFIG.skills[chave] : ativa ? 'ATIVO' : 'Disponível']
+        ...(proxima ? [['Próxima', proxima.nome + ' no nível ' + proxima.nivel]] : []),
+        ['Estado', !disponivel ? 'Bloqueada · requer nível ' + FORMAS[0].nivel : ativa ? 'ATIVO' : 'Disponível']
       ] };
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };

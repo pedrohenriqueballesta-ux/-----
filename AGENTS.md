@@ -6,6 +6,7 @@
 - Todo chefe (subchefe e chefes raros, lista `TIPOS_CHEFE` em `shared/enemies.mjs`) leva "BOSS" no nome — placa, alvo, Bestiário e avisos — para se diferenciar dos mobs comuns; chefe novo só precisa entrar na lista (Pedro, 10/11/2026).
 
 - Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/GOKU_NOVO.md` (Pedro, 11/11/2026).
+- Escada de transformações (Pedro, 11/11/2026): um botão só na barra (tecla 3 ou T) com a forma mais forte que o nível liberou — Kaioken → Super Saiyajin → Super Saiyajin 2; liberar o SSJ tira a Kaioken. SSJ2 = SSJ × 1,5 nos danos, mesmo dreno de Ki. Nível do SSJ2 provisório (50), o Pedro decide depois. Barra: 1 Cura · 2 Kame · 3 Transformação · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis. Escada e danos em `shared/formas.mjs`.
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.

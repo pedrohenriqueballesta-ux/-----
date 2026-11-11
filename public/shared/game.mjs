@@ -12,6 +12,7 @@ import {Guildas} from './guildas.mjs';
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode } from './characters.mjs';
+import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
@@ -357,7 +358,7 @@ export class Game {
       p.basicReady = this.time + 0.45;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
-      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * (p.transformed ? 1.5 : 1) * (p.forma === 'kaioken' ? 1.4 : 1));
+      if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * multiplicadorDaForma(p.forma, 'soco'));
       return { ok: true };
     }
     if (skill === 'dash') {
@@ -373,7 +374,7 @@ export class Game {
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
-        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1),
+        owner: p.id, ownerType: 'player', damage: p.stats.attack * multiplicadorDaForma(p.forma, 'rajada'),
         ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
@@ -406,20 +407,22 @@ export class Game {
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
         owner: p.id, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
-        damage: p.stats.attack * (p.transformed ? 14 : 10) * (p.forma === 'kaioken' ? 1.4 : 1) });
+        damage: p.stats.attack * multiplicadorDaForma(p.forma, 'genki') });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
     }
     return { ok: false };
   }
+  // Um botão só (decisão do Pedro, 11/11/2026): transformado → volta à base; na base → ativa a forma mais forte
+  // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
   alternarForma(p, tecnica, automatica = false) {
-    const forma = tecnica === 'kaioken' ? 'kaioken' : 'ssj';
-    const nome = forma === 'kaioken' ? 'Kaioken' : 'Super Saiyajin';
-    if (p.level < CONFIG.skills[tecnica]) return automatica ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[tecnica] + '.');
+    const disponivel = formaDisponivel(p.level);
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
-    p.forma = p.forma === forma ? 'base' : forma;
+    if (p.forma !== 'base') { p.forma = 'base'; this.notify(p, 'Forma base.'); return { ok: true }; }
+    if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
+    p.forma = disponivel.forma;
     if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
-    this.notify(p, p.forma === 'base' ? 'Forma base.' : nome + ' ativado!');
+    this.notify(p, disponivel.nome + ' ativado!');
     return { ok: true };
   }
   verificarKiDaForma(p) {
@@ -726,9 +729,9 @@ export class Game {
       p.targetId = target?.id || null;
     }
     if (p.autoHunt && p.autoSkills && target) {
-      const attackFactor = (p.transformed ? 1.5 : 1) * (p.forma === 'kaioken' ? 1.4 : 1);
+      const attackFactor = multiplicadorDaForma(p.forma, 'soco');
       const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
-      const danoKi = Math.max(1, Math.round(p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1) * 100 / (100 + (target.defesa ?? 1) * 3)));
+      const danoKi = Math.max(1, Math.round(p.stats.attack * multiplicadorDaForma(p.forma, 'rajada') * 100 / (100 + (target.defesa ?? 1) * 3)));
       const basicoPronto = this.time >= p.basicReady;
       const pertoParaBasico = this.distanciaAoCorpo(p, target) <= 70;
       const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
@@ -752,7 +755,7 @@ export class Game {
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
         targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (p.forma === 'kaioken' ? 1.4 : 1), automated: p.charge.automated, atingidos: new Set() });
+        damage: p.stats.attack * multiplicadorDaForma(p.forma, 'kame'), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {

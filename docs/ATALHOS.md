@@ -25,12 +25,11 @@ Branch feature/novos-atalhos, criada da main atualizada após merge #69.
 | Imagem Residual | Shift |
 | Cura de Vida | 1 |
 | Kamehameha | 2 |
-| Kaioken | 3 |
 | Barreira de Ki | 4 |
-| Transformação | 5 / T |
-| Genki-Dama | 6 |
-| Consumível do slot 7 | 7 / R |
-| Consumível do slot 8 | 8 / Q |
+| Transformação (Kaioken → Super Saiyajin → Super Saiyajin 2, conforme o nível) | 3 / T |
+| Genki-Dama | 5 |
+| Consumível do slot 6 | 6 / R |
+| Consumível do slot 7 | 7 / Q |
 | Usar comida | F |
 | Zoom do mapa sob o cursor / câmera | Roda do mouse |
 | Navegar até um ponto pelo minimapa | Clique no minimapa |
@@ -51,3 +50,6 @@ npm run check e npm test: 350 testes passaram. No navegador: onze menus por tecl
 ## Arquivos
 Criados: public/shared/atalhos.mjs, public/client/atalhos.mjs, public/render/atalhos-hud.mjs, tests/atalhos.test.mjs e este documento.
 Modificados: public/client/game.mjs, hud.mjs, tutorial.mjs e locales/pt-BR.mjs, en.mjs, es.mjs; public/render/configuracoes-hud.mjs, janelas-hud.mjs; public/index.html, public/style.css e package.json.
+
+## Barra com um botão de transformação (11/11/2026)
+Decisão do Pedro: só uma transformação por vez na barra, a mais forte que o nível liberou (escada em `shared/formas.mjs`). Teclas: 1 Cura · 2 Kamehameha · 3/T Transformação · 4 Barreira · 5 Genki-Dama · 6/R e 7/Q consumíveis. Internamente os consumíveis continuam como slots 7 e 8 (nada muda nos saves).
