@@ -3,14 +3,17 @@
 import { art, loaded } from './assets.mjs';
 import { drawWalk, drawAttack, drawSheet, GOLPE } from './atlas.mjs';
 import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
+import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { colunaGenki } from '../render/genki-personagem.mjs';
 import { KAME } from '../shared/kamehameha.mjs';
 import { strikeColumn } from '../render/camera.mjs';
 
 export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
-  if (!player.dead && !player.transformed) {
-    const folhas = player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
+  // Base, Kaioken e Super Saiyajin usam as mesmas poses (folhas da base como molde), na escala da base.
+  if (!player.dead) {
+    const ssj = player.transformed || player.forma === 'ssj';
+    const folhas = ssj ? FOLHAS_GOKU_SSJ : player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
     let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
     const genki = colunaGenki(player,time);
     if (genki !== null) { estado = 'genki';coluna = genki; }
@@ -25,7 +28,7 @@ export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
     } else if (strikeProgress !== null) { estado = 'soco';coluna = strikeColumn(strikeProgress); }
     if (estado === 'andar') {
       const altura = 70 * folhas.andar[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
-      if (drawWalk(ctx,player.forma === 'kaioken' ? 'kaioken' : 'goku',pos,altura,player.facing,true)) return true;
+      if (drawWalk(ctx,ssj ? 'gokuSsj' : player.forma === 'kaioken' ? 'kaioken' : 'goku',pos,altura,player.facing,true)) return true;
     } else {
       const [folha,chave] = folhas[estado];
       // Escala única entre poses: mudar de ação não muda o tamanho do corpo.
