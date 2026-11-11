@@ -234,7 +234,8 @@ export function atualizarHud(snapshot, playerId) {
   // Um botão de transformação: mostra a forma ativa ou, na base, a mais forte que o nível liberou.
   const formaAtiva = s.forma && s.forma !== 'base', disponivel = formaDisponivel(s.level), mostrada = formaAtiva ? s.forma : disponivel?.forma || 'kaioken';
   const transformLocked = !disponivel;
-  $('transformButton').querySelector('strong').textContent = nomeDaForma(mostrada);
+  const nomeForma = nomeDaForma(mostrada), rotulo = $('transformButton').querySelector('strong');
+  rotulo.textContent = nomeForma; rotulo.classList.toggle('nome-longo', nomeForma.length > 14);
   $('transformButton').querySelector('.tecnica-icone').className = 'tecnica-icone ' + (mostrada === 'kaioken' ? 'sprite-kaioken' : 'sprite-transform');
   $('transformButton').disabled = transformLocked;
   $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', formaAtiva);
