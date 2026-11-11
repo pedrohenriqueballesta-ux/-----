@@ -7,7 +7,9 @@ export function instalarAtalhosInterface({ativo,bloqueado,abrirMenu,caca,painelC
   if(key==='escape'){
    consumir(e);if(e.repeat)return;
    const abertas=[...document.querySelectorAll('dialog[open]:not(#welcomeDialog):not(#tutorialDialog)')];
-   if(abertas.length){abertas.at(-1).close();soltarTeclas();return;}
+   const fechaveis=abertas.filter(j=>j.id!=='mochilaDialog');
+   if(fechaveis.length){fechaveis.at(-1).close();soltarTeclas();return;}
+   if(abertas.length){soltarTeclas();return;}
    if(alvoEditavel(e.target)){e.target.blur?.();soltarTeclas();return;}
    abrirMenu('ajustes');soltarTeclas();return;
   }
