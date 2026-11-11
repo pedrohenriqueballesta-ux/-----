@@ -4,6 +4,7 @@ import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
 import { PARADO } from './parado.mjs';
 
 import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
+import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
 import { GOKU_PASSO } from './goku-passo.mjs';
@@ -21,7 +22,7 @@ const loadImage = url => {
 };
 export const art = {
   ...Object.fromEntries(Object.values(FOLHAS_NAMEK_NORTE).flatMap(Object.values).map(([folha,chave])=>[chave,loadImage(folha.file)])),
-  ...Object.fromEntries([...Object.values(FOLHAS_GOKU_BASE), ...Object.values(FOLHAS_GOKU_KAIOKEN)].map(([folha,chave])=>[chave,loadImage(folha.file)])),
+  ...Object.fromEntries([...Object.values(FOLHAS_GOKU_BASE), ...Object.values(FOLHAS_GOKU_KAIOKEN), ...Object.values(FOLHAS_GOKU_SSJ)].map(([folha,chave])=>[chave,loadImage(folha.file)])),
   ...Object.fromEntries(Object.values(PARADO).map(([folha,chave])=>[chave,loadImage(folha.file)])),
   nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),

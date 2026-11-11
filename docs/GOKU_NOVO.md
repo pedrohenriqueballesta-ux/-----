@@ -75,3 +75,15 @@ local feita antes da conciliação; save original verificado por hash e preserva
 
 Na base atualizada, **442 testes passaram e `npm run check` passou**. Esta é a
 validação final da entrega completa das seis folhas e do espelhamento. Sem PR ou merge.
+
+## Super Saiyajin novo (11/11/2026)
+
+Seis folhas do Pedro (`goku_super_saiyajin_6_folhas.zip`), feitas no ChatGPT com as folhas base como molde: mesmas
+poses e posição, cabelo de Super Saiyajin fase 1 (dourado, espetado para cima, olhos verde-azulados) e **quimono
+inteiro** (decisão do Pedro). Fundo magenta, recorte `halo`, PNGs em `public/assets/goku/ssj/`, módulos
+`art/goku-ssj-*.mjs` e conjunto `FOLHAS_GOKU_SSJ` (`art/goku-ssj.mjs`) com as mesmas chaves da base.
+
+`drawGoku` usa essas folhas com a forma SSJ (`transformed`), na escala de pixel da base: o corpo não muda de tamanho
+nem de lugar ao transformar; só o cabelo cresce (folha ~270 px contra 253 da base). Caminhada pelo `kind` `gokuSsj`.
+As folhas antigas do SSJ (chibi) ficam só como reserva. Teste: `tests/goku-ssj.test.mjs`. Conferido no navegador:
+base → SSJ no mesmo ponto, andando, e de volta à base.

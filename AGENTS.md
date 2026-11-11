@@ -5,6 +5,7 @@
 - Todo mob e personagem que anda tem folha PARADO (respiração em loop, pés parados), registrada em `public/art/parado.mjs`; parado, o `drawWalk` usa essa folha em vez de um quadro da caminhada (Pedro, 10/11/2026). Voadores pairam e o Freeza na nave flutua: não precisam.
 - Todo chefe (subchefe e chefes raros, lista `TIPOS_CHEFE` em `shared/enemies.mjs`) leva "BOSS" no nome — placa, alvo, Bestiário e avisos — para se diferenciar dos mobs comuns; chefe novo só precisa entrar na lista (Pedro, 10/11/2026).
 
+- Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/GOKU_NOVO.md` (Pedro, 11/11/2026).
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.
