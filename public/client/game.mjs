@@ -282,11 +282,7 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const back = p.facing.y < -0.3;
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
-  if (!somenteCorpo) {
-    ctx.save();ctx.globalAlpha=snapshot.self.preferencias.particulas&&!snapshot.self.preferencias.reduzirAnimacoes?snapshot.self.preferencias.intensidade:0;
-    if (p.transformed) { ctx.strokeStyle = '#f1d75a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(pos.x, pos.y - 20, 28 + Math.sin(time * 10) * 3, 42, 0, 0, Math.PI * 2); ctx.stroke(); }
-  }
-  if(!somenteCorpo)ctx.restore();
+  // Sem círculo dourado em volta do Super Saiyajin (pedido do Pedro, 11/11/2026), como já foi feito com a Kaioken.
   const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
   const kame = (snapshot.kamehamehas || []).find(k => k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
   p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started };
