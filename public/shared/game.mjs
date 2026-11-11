@@ -354,10 +354,11 @@ export class Game {
       if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível 2.');
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
-      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
+      const dir = this.aimDirection(p, target); p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
-        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1), ttl: 0.95, kind: 'ki' });
+        owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1),
+        ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
     if (skill === 'kame') {
