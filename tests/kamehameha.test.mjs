@@ -267,3 +267,38 @@ test('carga automática pronta aguarda alcance; desligar a caça cancela a esper
     else{alvo.x=p.x+alcance-1;g.tick(.01);assert.equal(p.charge,null);assert.equal(g.kamehamehas.length,1);assert.ok(geometriaKame(20,g.time-g.kamehamehas[0].started));}
   }
 });
+
+test('Auto Hunt transfere a carga de Kamehameha para outro mob sem cobrar Ki novamente',()=>{
+  const {g,p,mob}=cena(20),primeiro=mob(120),seguinte=mob(220);
+  p.autoHunt=true;p.autoSkills=true;
+  g.tick(.01);
+  assert.ok(p.charge);assert.equal(p.charge.targetId,primeiro.id);
+  const kiDepoisDoCast=p.ki;
+  primeiro.hp=0;
+  g.tick(.01);
+  assert.ok(p.charge,'a animação de carga continua');
+  assert.equal(p.charge.targetId,seguinte.id);
+  assert.equal(p.ki,kiDepoisDoCast,'a troca de alvo não cobra Ki outra vez');
+});
+
+test('Auto Hunt escolhe Rajada de Ki em vez de Kamehameha quando o alvo cai com o golpe barato',()=>{
+  const {g,p,mob}=cena(20),alvo=mob(100);
+  p.autoHunt=true;p.autoSkills=true;
+  alvo.hp=Math.round(p.stats.attack*1.2);
+  const ki=p.ki;
+  g.tick(.01);
+  assert.equal(p.charge,null);
+  assert.equal(ki-p.ki,7);
+  assert.ok(g.projectiles.some(s=>s.kind==='ki'));
+});
+
+test('Auto Hunt não gasta Ki em alvo que o golpe básico derrota',()=>{
+  const {g,p,mob}=cena(20),alvo=mob(25);
+  p.autoHunt=true;p.autoSkills=true;p.autoAttack=true;alvo.hp=1;
+  const ki=p.ki;
+  g.tick(.01);
+  assert.equal(alvo.hp,0);
+  assert.equal(p.ki,ki);
+  assert.equal(p.charge,null);
+  assert.equal(g.projectiles.filter(s=>s.kind==='ki').length,0);
+});

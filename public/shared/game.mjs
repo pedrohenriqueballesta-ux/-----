@@ -354,7 +354,7 @@ export class Game {
       if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível 2.');
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
-      const dir = this.aimDirection(p, target); p.facing = dir;
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
         owner: p.id, ownerType: 'player', damage: p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1),
@@ -699,17 +699,35 @@ export class Game {
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
-    const target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
+    let target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
     if (p.autoHunt && p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
+    // O golpe pode ter derrotado o alvo neste mesmo passo; nunca calcule uma skill
+    // usando o HP antigo nem gaste Ki em um cadáver.
+    if (target && target.hp <= 0 && p.autoHunt) {
+      target = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
+      p.targetId = target?.id || null;
+    }
     if (p.autoHunt && p.autoSkills && target) {
-      if (p.level >= 3 && p.ki > p.stats.ki * 0.35 && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0) && target.hp > p.stats.attack * 1.6) this.cast(p, 'kame', true);
-      else if (p.ki > p.stats.ki * 0.15 && distance(p, target) < 390) this.cast(p, 'ki', true);
+      const attackFactor = (p.transformed ? 1.5 : 1) * (p.forma === 'kaioken' ? 1.4 : 1);
+      const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
+      const danoKi = Math.max(1, Math.round(p.stats.attack * (p.transformed ? 2.1 : 1.4) * (p.forma === 'kaioken' ? 1.4 : 1) * 100 / (100 + (target.defesa ?? 1) * 3)));
+      const basicoPronto = this.time >= p.basicReady;
+      const pertoParaBasico = this.distanciaAoCorpo(p, target) <= 70;
+      const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
+      const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
+      const noAlcanceKame = this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
+      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) this.cast(p, 'kame', true);
+      else if (!morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico) this.cast(p, 'ki', true);
     }
     if (p.charge) {
-      const alvo = this.mobs.get(p.charge.targetId);
-      if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || (p.charge.automated && p.targetId !== alvo.id)) p.charge = null;
+      let alvo = this.mobs.get(p.charge.targetId);
+      if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
+        alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
+        if (alvo) { p.charge.targetId = alvo.id; p.targetId = alvo.id; }
+      }
+      if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo)) p.charge = null;
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
@@ -718,7 +736,7 @@ export class Game {
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
         targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (p.forma === 'kaioken' ? 1.4 : 1), atingidos: new Set() });
+        damage: p.stats.attack * (p.transformed ? 6 : 4.2) * (p.forma === 'kaioken' ? 1.4 : 1), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
@@ -732,8 +750,13 @@ export class Game {
       if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k) || naZonaSegura(p)) return false;
       if (k.impacto) return this.time - k.impacto.started < IMPACTO_KAME.quadros * IMPACTO_KAME.quadro;
       if (!g) return false;
-      const principal = this.mobs.get(k.targetId);
-      if (!principal || principal.hp <= 0 || !this.mesmoLugar(k, principal) || naZonaSegura(principal)) return false;
+      let principal = this.mobs.get(k.targetId);
+      if (!principal || principal.hp <= 0 || !this.mesmoLugar(k, principal) || naZonaSegura(principal)) {
+        if (!k.automated) return false;
+        principal = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
+        if (!principal) return true;
+        k.targetId = principal.id;
+      }
       k.direction = norm(principal.x - p.x, principal.y - p.y);p.facing = k.direction;
       Object.assign(k, origemKame(p, k.direction, principal));
       if (atingidoPeloKame(principal, k, k.direction, g)) {
