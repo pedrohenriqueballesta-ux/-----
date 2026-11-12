@@ -11,6 +11,7 @@ import { SPRITE_DATA } from './sprite-data.mjs';
 import { makeWalkAtlas, walkBob } from './walk-rig.mjs';
 import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
 import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
+import { FOLHAS_GOKU_SSJ2 } from './goku-ssj2.mjs';
 import { GOKU_PASSO } from './goku-passo.mjs';
 import { SSJ_PASSO } from './ssj-passo.mjs';
 import { GOKU_GOLPE } from './goku-golpe.mjs';
@@ -124,7 +125,7 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 }
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
-const PASSO = { kaioken: FOLHAS_GOKU_KAIOKEN.andar, gokuSsj: FOLHAS_GOKU_SSJ.andar, ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).map(([tipo,f])=>[tipo,f.andar])), goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'],
+const PASSO = { kaioken: FOLHAS_GOKU_KAIOKEN.andar, gokuSsj: FOLHAS_GOKU_SSJ.andar, gokuSsj2: FOLHAS_GOKU_SSJ2.andar, ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).map(([tipo,f])=>[tipo,f.andar])), goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'],
   freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'] };
 export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).flatMap(([tipo,f])=>[[tipo,f.ataque],[tipo+'Ki',f.rajada]])), goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
   veteranoKi: [VETERANO_KI, 'veteranoKi'],

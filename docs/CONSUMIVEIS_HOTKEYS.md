@@ -2,7 +2,7 @@
 
 Abra a mochila e arraste Presunto, Poção de Ki ou qualquer potência de semente para o slot 7 ou 8 da HUD. O slot passa a exibir o item, quantidade e recarga correspondentes. Atribuir é apenas um atalho: não move nem consome estoque. Materiais e slots de skills 1–6 não aceitam atribuição.
 
-Clique no slot ou use 7/R e 8/Q. O servidor resolve o item salvo e usa o mesmo caminho de consumo existente, respeitando estoque, vida/Ki cheios, efeito ativo e cooldown. Duas hotkeys com sementes compartilham a recarga; a atribuição não zera timers. O item continua vinculado quando acaba, e o slot continua aceitando drop durante recarga ou sem estoque. A potência escolhida na automação continua independente da semente vinculada manualmente.
+Clique no slot ou use 6/R e 7/Q (desde 11/11/2026; antes 7/R e 8/Q — internamente os slots continuam 7 e 8). O servidor resolve o item salvo e usa o mesmo caminho de consumo existente, respeitando estoque, vida/Ki cheios, efeito ativo e cooldown. Duas hotkeys com sementes compartilham a recarga; a atribuição não zera timers. O item continua vinculado quando acaba, e o slot continua aceitando drop durante recarga ou sem estoque. A potência escolhida na automação continua independente da semente vinculada manualmente.
 
 Configuração salva por personagem no servidor em hotkeysConsumiveis. Saves antigos recebem semente da potência selecionada no slot 7 e poção no 8. Ícones e tooltips usam os dados do item vinculado. Durante o arrasto, evita reconstruir o slot de origem e suprime clique acidental ao soltar.
 

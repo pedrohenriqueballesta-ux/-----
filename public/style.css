@@ -153,6 +153,8 @@ button{cursor:pointer}
 .sprite-pocao-ki{background-image:url('/assets/items/pocao-ki.png');background-size:cover;background-position:center}
 .item-icone{background-image:none;font-size:calc(38 * var(--u))}
 .tecnica strong{font-size:calc(13 * var(--u));white-space:nowrap}
+/* Nome longo da transformação ("Super Saiyajin 2") cabe no próprio espaço sem invadir o vizinho. */
+.tecnica strong.nome-longo{font-size:calc(11 * var(--u));letter-spacing:-.02em}
 .tecnica small{display:none}
 .tecnica .estado-transformacao{top:calc(48 * var(--u));font-size:calc(12 * var(--u));color:#fff3ab;background:#18242de8;border-radius:calc(4 * var(--u));margin:0 calc(10 * var(--u))}
 .tecnica .contagem{position:absolute;right:calc(10 * var(--u));top:calc(40 * var(--u));font:900 calc(18 * var(--u)) system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--u)) #000,0 0 calc(3 * var(--u)) #000}

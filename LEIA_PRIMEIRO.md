@@ -34,15 +34,14 @@ Para encerrar, pressione Ctrl+C no Terminal. O progresso fica no arquivo data/sa
 | Selecionar alvo | Clique no mob ou em outro jogador |
 | Cura de Vida | 1; cura instantânea de HP com custo de Ki, recarga de 1,5 s; estágios nos níveis 1, 20, 50, 100 e 150+ |
 | Kamehameha | 2; disponível no nível 3; estágios pelo nível do personagem: 1, 20, 50, 100 e 150 |
-| Kaioken | 3, nível 2; dano ×1,4 enquanto ativa; ativação grátis, sem recarga, drena 3,5 Ki/s |
+| Transformação | 3 ou T; um botão só, com a forma mais forte liberada: Kaioken (nível 2, dano ×1,4) → Super Saiyajin (nível 5) → Super Saiyajin 2 (nível 50, provisório; SSJ × 1,5). Grátis, sem recarga, drena 3,5 Ki/s |
 | Barreira de Ki | 4, disponível no nível 2; reduz o dano recebido por 2,5 s |
-| Super Saiyajin | 5 ou T, nível 5; ativação grátis, sem recarga, drena 3,5 Ki/s |
-| Genki Dama | 6, disponível no nível 10; recarga de 45 s |
+| Genki Dama | 5, disponível no nível 10; recarga de 45 s |
 | Ataque básico | Espaço |
 | Esquiva rápida | Shift |
 | Comer | F |
-| Poção de Ki | 8 ou Q |
-| Semente selecionada | 7 ou R |
+| Poção de Ki | 7 ou Q |
+| Semente selecionada | 6 ou R |
 | Iniciar/pausar caça | H ou botão no painel |
 
 Transformações (decisão do Pedro, 09/11/2026): uma forma por vez. Apertar a técnica

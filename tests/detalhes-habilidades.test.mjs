@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { CONFIG } from '../public/shared/config.mjs';
 import { CURA } from '../public/shared/cura.mjs';
+import { formaDisponivel } from '../public/shared/formas.mjs';
 import { detalhesHabilidade, posicaoDetalhes } from '../public/render/detalhes-habilidades.mjs';
 const estado = { level: 50, inventory: { ki: 3, seed30: 2, food: 1 }, seedSelected: 30 };
 const campos = detalhe => Object.fromEntries(detalhe.linhas);
@@ -9,7 +10,8 @@ const campos = detalhe => Object.fromEntries(detalhe.linhas);
 test('detalhes das skills seguem configuração e progressão, inclusive cura de 0,7s', () => {
   for (const chave of ['kame','kaioken','barrier','transform','genki']) {
     const dados = campos(detalhesHabilidade(chave, estado));
-    assert.equal(dados.Desbloqueia, 'Nível ' + CONFIG.skills[chave]);
+    // Transformação (Pedro, 11/11/2026): o botão mostra a forma mais forte liberada no nível do jogador.
+    assert.equal(dados.Desbloqueia, 'Nível ' + (['kaioken','transform'].includes(chave) ? formaDisponivel(estado.level).nivel : CONFIG.skills[chave]));
     assert.equal(dados.Custo, ['kaioken','transform'].includes(chave) ? 'Sem custo' : CONFIG.skillCosts[chave] + ' Ki');
     assert.equal(dados.Cooldown, ['kaioken','transform'].includes(chave) ? 'Sem recarga' : CONFIG.skillCooldowns[chave] + ' s');
   }
@@ -18,6 +20,10 @@ test('detalhes das skills seguem configuração e progressão, inclusive cura de
   assert.equal(cura.Custo, '14 Ki'); assert.equal(cura.Cura, '3% do HP máximo');
   assert.match(campos(detalhesHabilidade('genki', {...estado,level:1})).Estado, /Bloqueada/);
   assert.match(campos(detalhesHabilidade('kame', {...estado,kameRemaining:2.3})).Estado, /2,3 s/);
+  // Escada: nível 3 mostra Kaioken e avisa o próximo degrau; nível 1 está bloqueado.
+  const k = detalhesHabilidade('transform', {...estado,level:3});
+  assert.equal(k.nome, 'Kaioken'); assert.match(campos(k).Próxima, /Super Saiyajin no nível/);
+  assert.match(campos(detalhesHabilidade('transform', {...estado,level:1})).Estado, /Bloqueada/);
 });
 
 test('consumíveis informam potência, estoque, recarga compartilhada e ausência de custo de Ki', () => {

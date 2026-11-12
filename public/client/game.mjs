@@ -13,6 +13,9 @@ import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 carregarImpactoKame();
 import { KAME, origemKame } from '../shared/kamehameha.mjs';
+import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/raios-ssj2.mjs';
+import { FOLHAS_GOKU_SSJ2 } from '../art/goku-ssj2.mjs';
+import { FOLHAS_GOKU_BASE } from '../art/goku-base.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/cura.mjs';
@@ -82,7 +85,7 @@ function conectarMundo(data){
       }
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       carregarKame(snapshot.self?.level || 1);
-      carregarBarreira();
+      carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
       carregarGenki();
       for (const effect of snapshot.events) {
@@ -133,13 +136,14 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  const skills = { '1': 'heal', '2': 'kame', '3': 'kaioken', '4': 'barrier', '6': 'genki', ' ': 'basic', 'shift': 'dash' };
-  // Cura universal ocupa a primeira posição; R, Q e T continuam como alternativas.
+  // Barra (Pedro, 11/11/2026): 1 Cura · 2 Kame · 3 Transformação (ou T) · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis.
+  // Os consumíveis seguem salvos como "slot 7" e "slot 8" (só a tecla mudou), para não mexer nos saves.
+  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
-  else if (key === '5' || key === 't') action({ type: 'transform' });
+  else if (key === '3' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'q' || key === '8') action({ type: 'usarConsumivelHotkey',slot:8 });
-  else if (key === 'r' || key === '7') action({ type: 'usarConsumivelHotkey',slot:7 });
+  else if (key === 'q' || key === '7') action({ type: 'usarConsumivelHotkey',slot:8 });
+  else if (key === 'r' || key === '6') action({ type: 'usarConsumivelHotkey',slot:7 });
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
 window.addEventListener('blur', () => { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); });
@@ -298,12 +302,17 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
   if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
+  // Camada de trás dos raios do Super Saiyajin 2 (passam por trás do corpo).
+  const alturaSsj2 = 70 * FOLHAS_GOKU_SSJ2.parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+  if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
   // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
   if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
+  // Super Saiyajin 2: camada da frente dos raios (atravessando o corpo), na altura do Goku SSJ2 desenhado.
+  desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'frente');
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }

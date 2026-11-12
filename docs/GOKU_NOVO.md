@@ -87,3 +87,18 @@ inteiro** (decisão do Pedro). Fundo magenta, recorte `halo`, PNGs em `public/as
 nem de lugar ao transformar; só o cabelo cresce (folha ~270 px contra 253 da base). Caminhada pelo `kind` `gokuSsj`.
 As folhas antigas do SSJ (chibi) ficam só como reserva. Teste: `tests/goku-ssj.test.mjs`. Conferido no navegador:
 base → SSJ no mesmo ponto, andando, e de volta à base.
+
+## Super Saiyajin 2 (11/11/2026)
+
+Seis folhas do Pedro feitas sobre as do SSJ (corpo idêntico pixel a pixel; cabelo um pouco mais cheio) em
+`public/assets/goku/ssj2/`, módulos `art/goku-ssj2-*.mjs` e `FOLHAS_GOKU_SSJ2` (`art/goku-ssj2.mjs`). `drawGoku` usa-as
+com `forma === 'ssj2'`, na escala da base; caminhada pelo `kind` `gokuSsj2`.
+
+**Raios animados** (pedido do Pedro: "o raio fica fazendo animação, não é algo estático"; a equipe pediu em 12/11
+que passem também pela frente do corpo): efeito separado do corpo, desenhado por cima do Goku em qualquer pose e
+ancorado nos pés (`render/raios-ssj2.mjs`), com uma segunda passada em modo `lighter` para brilhar em chão claro.
+Arte da equipe `ssj2_raios_azuis` (16 quadros de 315×311 a 90 ms, arcos de energia azul em volta e pela frente): veio
+com a transparência invertida (fundo azul opaco, miolo apagado) e foi recuperada por código (fundo transparente,
+miolo branco) em `public/assets/skills/raios-ssj2-corpo/frente.png`; original em `~/idle-dbz/referencias/goku-ssj/raios-amigo/`.
+O módulo aceita uma camada `atras` (antes do corpo) se a arte vier com ela.
+Teste: `tests/goku-ssj2.test.mjs`. Escada de formas e barra de técnicas: `docs/ATALHOS.md` e `shared/formas.mjs`.

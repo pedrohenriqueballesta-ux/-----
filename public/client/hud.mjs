@@ -1,3 +1,4 @@
+import { formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
 import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
@@ -149,7 +150,7 @@ export function atualizarHud(snapshot, playerId) {
   $('xpLabel').textContent = 'Nível ' + s.level; $('xpNumbers').textContent = integer(s.xp) + ' / ' + integer(s.xpNext) + ' XP';
   $('xpBar').style.width = xpPct + '%';
   $('hudXpBar').style.width = xpPct + '%'; $('hudXpText').textContent = 'EXP ' + Math.round(xpPct) + '%';
-  $('formLabel').textContent = s.transformed ? 'SUPER SAIYAJIN' : s.forma === 'kaioken' ? 'KAIOKEN' : 'FORMA BASE';
+  $('formLabel').textContent = !s.forma || s.forma === 'base' ? 'FORMA BASE' : nomeDaForma(s.forma).toUpperCase();
   $('nextUnlock').textContent = s.level < 2 ? 'Próximo: Kaioken + Barreira de Ki · NV. 2' : s.level < 3 ? 'Próximo: Kamehameha · NV. 3' : s.level < 5 ? 'Próximo: Super Saiyajin · NV. 5' : s.level < 10 ? 'Próximo: Genki Dama · NV. 10' : 'Todas as técnicas principais desbloqueadas.';
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
@@ -212,7 +213,6 @@ export function atualizarHud(snapshot, playerId) {
       text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
       detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
-    kaioken: { required: CONFIG.skills.kaioken, cost: 0, cooldown: 0, remaining: 0, text: s.kaiokenActive ? 'ATIVO' : 'SEM RECARGA', active: s.kaiokenActive, detail: textoTransformacao },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
     genki: { required: CONFIG.skills.genki, cost: CONFIG.skillCosts.genki, cooldown: CONFIG.skillCooldowns.genki, remaining: s.genkiRemaining || 0, text: s.level < CONFIG.skills.genki ? CONFIG.skillCooldowns.genki + 's' : s.genkiRemaining > 0 ? s.genkiRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.genki + 's' }
   };
@@ -227,20 +227,24 @@ export function atualizarHud(snapshot, playerId) {
     let cooldown = button.querySelector('.cooldown-overlay');
     if (!cooldown) { cooldown = document.createElement('span'); cooldown.className = 'cooldown-overlay'; cooldown.setAttribute('aria-hidden', 'true'); button.append(cooldown); }
     const remaining = state.remaining;
-    cooldown.textContent = skill === 'kaioken' && state.active ? 'ATIVO' : remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
-    cooldown.classList.toggle('estado-transformacao', skill === 'kaioken' && Boolean(state.active));
+    cooldown.textContent = remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
     button.classList.toggle('cooling', remaining > 0);
     button.title = state.detail || (button.querySelector('strong')?.textContent || skill) + ' · ' + state.text + (button.querySelector('kbd') ? ' · tecla ' + button.querySelector('kbd').textContent : '');
   }
-  const transformLocked = s.level < CONFIG.skills.transform;
+  // Um botão de transformação: mostra a forma ativa ou, na base, a mais forte que o nível liberou.
+  const formaAtiva = s.forma && s.forma !== 'base', disponivel = formaDisponivel(s.level), mostrada = formaAtiva ? s.forma : disponivel?.forma || 'kaioken';
+  const transformLocked = !disponivel;
+  const nomeForma = nomeDaForma(mostrada), rotulo = $('transformButton').querySelector('strong');
+  rotulo.textContent = nomeForma; rotulo.classList.toggle('nome-longo', nomeForma.length > 14);
+  $('transformButton').querySelector('.tecnica-icone').className = 'tecnica-icone ' + (mostrada === 'kaioken' ? 'sprite-kaioken' : 'sprite-transform');
   $('transformButton').disabled = transformLocked;
-  $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', s.transformed);
+  $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', formaAtiva);
   $('transformButton').classList.remove('cooling');
   let transformCooldown = $('transformButton').querySelector('.cooldown-overlay');
   if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; $('transformButton').append(transformCooldown); }
-  transformCooldown.textContent = s.transformed ? 'ATIVO' : '';
-  transformCooldown.classList.toggle('estado-transformacao', s.transformed);
-  renderSkillMeta(document.getElementById('transformText'), 0, s.transformed ? 'ATIVO' : 'SEM RECARGA');
+  transformCooldown.textContent = formaAtiva ? 'ATIVO' : '';
+  transformCooldown.classList.toggle('estado-transformacao', formaAtiva);
+  renderSkillMeta(document.getElementById('transformText'), 0, formaAtiva ? 'ATIVO' : 'SEM RECARGA');
   $('transformButton').title = textoTransformacao;
   atualizarDetalhes(s);
   novidadesHud?.atualizar(s);
