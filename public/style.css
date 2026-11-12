@@ -424,6 +424,9 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 
 .mochila-compacta{height:auto!important;--m:1!important}.mochila-compacta .mochila-equip,.mochila-compacta .mochila-info{display:none}.mochila-topo #mochilaMinimizar{flex-shrink:0}
 
+/* A mochila usa passos de escala em vez de dimensões livres; os slots quadrados mantêm itens legíveis. */
+.mochila.hud-ajustavel .mochila-grade .slot{width:100%;height:auto;aspect-ratio:1;min-width:0;min-height:0}
+
 .consumivel-personalizado{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}.tecnica.consumivel-destino{outline:2px solid #ffda72;box-shadow:0 0 12px #ffda72}.tecnica.consumivel-indisponivel .tecnica-icone{opacity:.5}#mochilaGrade [draggable="true"]{cursor:grab}
 
 .tecnica.consumivel-vazio .tecnica-icone{border:1px dashed #8297ac;background-color:#07192b88}.tecnica[draggable="true"]{cursor:grab}.mochila.consumivel-destino{outline:2px solid #ffd465;box-shadow:0 0 18px #ffd46588}
