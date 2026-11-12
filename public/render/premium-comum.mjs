@@ -15,7 +15,7 @@ export function criarPainelPremium(id,titulo,ctx){
  const atualizar=async()=>{if(carregando||!janela.open)return;carregando=true;const g=geracao;
   try{const d=await request();if(g!==geracao||!janela.open)return;estado=d;saldo.textContent='Saldo da conta: '+numero(d.saldo)+' moedas premium'+(d.vipAtivo?' · VIP até '+new Date(d.vipAte).toLocaleDateString('pt-BR'):'');const scroll=corpo.scrollTop;render(d);corpo.scrollTop=scroll;}catch(e){if(g===geracao)status.textContent=e.message;}finally{carregando=false;}
  };
- const executar=async dados=>{if(ocupado)return;ocupado=true;try{await request(dados);status.textContent='Concluído com sucesso.';await atualizar();}catch(e){status.textContent=e.message;}finally{ocupado=false;}};
+ const executar=async dados=>{if(ocupado)return{ok:false};ocupado=true;try{const r=await request(dados);status.textContent='Concluído com sucesso.';await atualizar();return r;}catch(e){status.textContent=e.message;return{ok:false,reason:e.message};}finally{ocupado=false;}};
  const comprar=async produto=>{if(ocupado)return;ocupado=true;try{
   const d=await request({operacao:'prepararCompra',produto}),c=d.cotacao;
   confirmacao.replaceChildren(el('strong','Confirmar '+c.nome+'?'),el('p',c.simulada?'Simulação de '+precoReais(c.precoCentavos)+'. Nenhum pagamento real será feito.':numero(c.preco)+' moedas premium da conta. A compra não pode ser desfeita.'));
