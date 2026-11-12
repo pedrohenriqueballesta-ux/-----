@@ -1,4 +1,5 @@
 import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
+import { RYUKEN } from '../shared/ryuken.mjs';
 import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
@@ -221,10 +222,21 @@ export function atualizarHud(snapshot, playerId) {
     heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
       text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
       detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
-    kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
+    // No Super Saiyajin 3 a tecla 2 vira o Ryuken (Pedro, 12/11/2026): custo, recarga e estado próprios.
+    kame: s.forma === RYUKEN.forma ? { required: 0, cost: RYUKEN.custo, cooldown: RYUKEN.recarga, remaining: s.ryukenRemaining || 0,
+      text: s.ryukenRemaining > 0 ? s.ryukenRemaining.toFixed(1) + 's' : RYUKEN.recarga + 's',
+      detail: 'Ryuken (Punho do Dragão) · ' + RYUKEN.custo + ' Ki · recarga ' + RYUKEN.recarga + 's · dragão no alvo selecionado (só nele) · tecla 2' }
+      : { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
     genki: { required: CONFIG.skills.genki, cost: CONFIG.skillCosts.genki, cooldown: CONFIG.skillCooldowns.genki, remaining: s.genkiRemaining || 0, text: s.level < CONFIG.skills.genki ? CONFIG.skillCooldowns.genki + 's' : s.genkiRemaining > 0 ? s.genkiRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.genki + 's' }
   };
+  // Botão 2: Kamehameha ou, no SSJ3, Ryuken (nome e ícone trocam junto com a forma).
+  const botaoKame = document.querySelector('[data-skill="kame"]'), ryuken = s.forma === RYUKEN.forma;
+  if (botaoKame && botaoKame.dataset.ryuken !== String(ryuken)) {
+    botaoKame.dataset.ryuken = String(ryuken);
+    botaoKame.querySelector('strong').textContent = ryuken ? 'Ryuken' : 'Kamehameha';
+    botaoKame.querySelector('.tecnica-icone').classList.toggle('sprite-ryuken', ryuken);
+  }
   for (const button of document.querySelectorAll('[data-skill]')) {
     const skill = button.dataset.skill, state = skillState[skill]; if (!state) continue;
     const locked = s.level < state.required;

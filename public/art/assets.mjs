@@ -7,6 +7,7 @@ import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
 import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
 import { FOLHAS_GOKU_SSJ2 } from './goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from './goku-ssj3.mjs';
+import { GOKU_SSJ3_RYUKEN } from './goku-ssj3-ryuken.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
 import { GOKU_PASSO } from './goku-passo.mjs';
@@ -25,6 +26,7 @@ const loadImage = url => {
 export const art = {
   ...Object.fromEntries(Object.values(FOLHAS_NAMEK_NORTE).flatMap(Object.values).map(([folha,chave])=>[chave,loadImage(folha.file)])),
   ...Object.fromEntries([...Object.values(FOLHAS_GOKU_BASE), ...Object.values(FOLHAS_GOKU_KAIOKEN), ...Object.values(FOLHAS_GOKU_SSJ), ...Object.values(FOLHAS_GOKU_SSJ2), ...Object.values(FOLHAS_GOKU_SSJ3)].map(([folha,chave])=>[chave,loadImage(folha.file)])),
+  gokuSsj3Ryuken: loadImage(GOKU_SSJ3_RYUKEN.file),
   ...Object.fromEntries(Object.values(PARADO).map(([folha,chave])=>[chave,loadImage(folha.file)])),
   nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),

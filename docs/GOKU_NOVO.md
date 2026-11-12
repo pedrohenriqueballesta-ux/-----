@@ -111,3 +111,16 @@ Seis folhas do Pedro feitas sobre as do SSJ2 (pés no mesmo pixel; cabelo longo 
 Pedro, 12/11/2026): eles são a marca do SSJ2 (`FORMAS_COM_RAIOS`). Teste: `tests/goku-ssj3.test.mjs`.
 Ryuken (Punho do Dragão) no lugar do Kamehameha enquanto em SSJ3: em espera (ramo `feature/ryuken`).
 
+## Ryuken / Punho do Dragão (12/11/2026)
+
+Decisões do Pedro: técnica do SSJ3 **no lugar do Kamehameha** (tecla 2); o dragão dourado sai do soco, voa até o alvo
+selecionado acompanhando-o e explode **só nele** (sem área); dano ×13,5 do ataque (1,5× o Kamehameha), 40 Ki, 10 s de
+recarga, alcance do Kamehameha no nível. Constantes em `shared/ryuken.mjs`; servidor em `Game.lancarRyuken` (chamado
+pelo `cast('kame')` quando a forma é SSJ3) e `atualizarRyukens` (lançamento de 0,84 s, depois o projétil `ryuken` que
+persegue o alvo e ignora os outros mobs). Sair do SSJ3, morrer, entrar na safe zone ou perder o alvo cancela.
+Arte da equipe: três GIFs convertidos por `ferramentas/gif_para_spritesheet.py` em `public/assets/skills/ryuken/`
+(lançamento 384×256 com o punho em 110,128; voo 384×192 com o focinho em 374,72; impacto 256×256 centrado; 12 quadros
+a 70 ms) e a folha `goku-ssj3-ryuken` (postura, carga, soco, sustentação). `render/ryuken.mjs` gira cada fase para a
+direção e espelha na vertical para a esquerda. Botão 2 mostra "Ryuken" com o ícone da cabeça do dragão no SSJ3.
+Teste: `tests/ryuken.test.mjs`.
+

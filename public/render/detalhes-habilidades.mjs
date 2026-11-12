@@ -1,6 +1,7 @@
 ﻿import { CONFIG } from '../shared/config.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
+import { RYUKEN } from '../shared/ryuken.mjs';
 
 const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
@@ -8,6 +9,14 @@ const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDi
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
   if (NOMES[chave]) {
+    if (chave === 'kame' && estado.forma === RYUKEN.forma) {
+      const restante = estado.ryukenRemaining || 0;
+      return { nome: 'Ryuken (Punho do Dragão)', linhas: [
+        ['Forma', 'Super Saiyajin 3 (no lugar do Kamehameha)'], ['Custo', RYUKEN.custo + ' Ki'], ['Cooldown', segundos(RYUKEN.recarga)],
+        ['Dano', '×' + String(RYUKEN.dano).replace('.', ',') + ' do ataque'], ['Alvo', 'Mob selecionado; o dragão acompanha e acerta só ele'],
+        ['Estado', restante > 0 ? 'Em recarga · ' + segundos(restante) : 'Disponível']
+      ] };
+    }
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
       const disponivel = formaDisponivel(estado.level), ativa = estado.forma && estado.forma !== 'base';

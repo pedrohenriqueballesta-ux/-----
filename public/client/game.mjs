@@ -22,6 +22,7 @@ import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/cura.mjs';
 import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob.mjs';
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
+import { carregarRyuken, desenharLancamentoRyuken, desenharVooRyuken, desenharImpactoRyuken } from '../render/ryuken.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { instalarStatusPopout } from './stats-popout.mjs';
@@ -92,7 +93,7 @@ function conectarMundo(data){
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
-      carregarGenki();
+      carregarGenki(); carregarRyuken();
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -699,6 +700,8 @@ function frame(now) {
       pos = geometriaNimbus({...dono,facing:g.direction},pos,time,{flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes}).personagem;
     desenharGenki(ctx,'carga',g,time,{...pos,alturaCanalizacao:dono && !dono.transformed ? POSE_GENKI.alturaCanalizacao : 62});
   }
+  // Ryuken: energia saindo do punho durante o lançamento (por cima do corpo).
+  for (const j of snapshot.players) if (j.ryuken) desenharLancamentoRyuken(ctx, j, renderPositions.get(j.id) || j, time);
   for (const s of snapshot.projectiles) {
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
     if (s.kind === 'ki' && desenharProjetilMob(ctx, s, { x: px, y: py }, time, camera.scale)) continue;
@@ -710,9 +713,11 @@ function frame(now) {
     }
     if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); continue; }
     if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, { x: px, y: py });
+    else if (s.kind === 'ryuken') desenharVooRyuken(ctx, s, time, { x: px, y: py });
     else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
   }
   for (const g of snapshot.genkiExplosions || []) desenharGenki(ctx, 'explosao', g, time);
+  for (const e of snapshot.ryukenExplosoes || []) desenharImpactoRyuken(ctx, e, time);
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'supernova') bolaSupernova(m, m.telegraph, time);
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra') bolaNegra(m, m.telegraph, time);
   effects(time);

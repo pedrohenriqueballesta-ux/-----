@@ -8,6 +8,7 @@
 - Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/GOKU_NOVO.md` (Pedro, 11/11/2026).
 - Escada implementada (Pedro, 13/11/2026): o terceiro dos cinco slots existentes, tecla 3/T, atualiza nome e ícone e ativa a forma mais forte liberada — Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900. Uma forma por vez; todas drenam 3,5 Ki/s. Gogeta dura 3.600 s.
 - Multiplicadores de dano mantêm a progressão de 1,5× por degrau SSJ; as formas de fusão seguem o mesmo incremento. Ainda não há sprites próprias de SSJ4, Gogeta ou Vegetto: usar fallback visual em folhas existentes e não desenhar assets novos sem solicitação.
+- Ryuken / Punho do Dragão (Pedro, 12/11/2026): técnica do SSJ3, no lugar do Kamehameha (tecla 2) enquanto em SSJ3; o dragão persegue o alvo perto ou longe e acerta só ele; dano ×13,5, 40 Ki, 10 s, alcance do Kamehameha. `shared/ryuken.mjs`.
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.

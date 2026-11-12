@@ -24,6 +24,7 @@ import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
+import { RYUKEN, usaRyuken } from './ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from './variacao-combate.mjs';
 import { xpAjustadoPorNivel } from './progressao.mjs';
 
@@ -43,7 +44,7 @@ export class Game {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
-    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
+    this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -86,7 +87,8 @@ export class Game {
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
     p.forma = 'base'; p.formaAte = 0;
-    p.genkiLancado = null; p.genkiDirecao = null;
+    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
+    this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
@@ -401,6 +403,8 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
+    // No Super Saiyajin 3 a tecla do Kamehameha solta o Ryuken (Pedro, 12/11/2026).
+    if (skill === 'kame' && usaRyuken(p)) return this.lancarRyuken(p, automated);
     if (skill === 'kame') {
       if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
       if (p.charge || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
@@ -452,6 +456,54 @@ export class Game {
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
       p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Ki esgotado. Forma base.');
+    }
+  }
+  lancarRyuken(p, automated = false) {
+    if (p.charge || p.ryuken || this.time < p.ryukenReady || p.ki < RYUKEN.custo)
+      return automated ? { ok: false } : this.reject(p, 'Ryuken em recarga ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    const alcance = estagioKame(p.level).alcance + KAME.mao;
+    const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * RYUKEN.lancamento : 0;
+    if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
+      return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
+    const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
+    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
+    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * RYUKEN.dano };
+    this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
+    this.verificarKiDaForma(p);
+    return { ok: true };
+  }
+  // Ryuken: lançamento (pose + energia no punho), depois o dragão persegue o alvo e explode só nele.
+  atualizarRyukens(dt) {
+    this.ryukenExplosoes = this.ryukenExplosoes.filter(e => this.time - e.started < RYUKEN.impacto);
+    const ativo = p => p && p.connected && p.hp > 0 && !naZonaSegura(p);
+    const alvoValido = (alvo, ref) => alvo && alvo.hp > 0 && this.mesmoLugar(alvo, ref) && !naZonaSegura(alvo);
+    for (const p of this.players.values()) {
+      if (!p.ryuken) { if (p.ryukenLancado && this.time - p.ryukenLancado > RYUKEN.sustentacao) p.ryukenLancado = null; continue; }
+      const alvo = this.mobs.get(p.ryuken.targetId);
+      if (!ativo(p) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
+      p.ryuken.direction = norm(alvo.x - p.x, alvo.y - p.y); p.facing = p.ryuken.direction;
+      if (this.time + 1e-9 < p.ryuken.until) continue;
+      const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
+      origem.y -= KAME.alturaMao;
+      this.projectiles.push({ id: this.uid('s'), kind: 'ryuken', owner: p.id, ownerType: 'player', ...origem, planet: p.planet, area: p.area,
+        dx: d.x, dy: d.y, speed: RYUKEN.velocidade, targetId: alvo.id, damage: p.ryuken.damage, started: this.time, ttl: 1 });
+      p.ryukenLancado = this.time; p.ryuken = null;
+    }
+    for (const s of this.projectiles) {
+      if (s.kind !== 'ryuken' || s.ttl <= 0) continue;
+      const p = this.players.get(s.owner), alvo = this.mobs.get(s.targetId);
+      if (!ativo(p) || !alvoValido(alvo, s)) { s.ttl = 0; continue; }
+      const ax = alvo.x, ay = alvo.y - RYUKEN.alturaAlvo, falta = Math.hypot(ax - s.x, ay - s.y);
+      const d = norm(ax - s.x, ay - s.y); s.dx = d.x; s.dy = d.y;
+      const passo = s.speed * dt;
+      // Só o alvo: o dragão atravessa os outros mobs (decisão do Pedro: sem dano em área).
+      if (falta <= passo + RYUKEN.colisao + (alvo.corpo || 0)) {
+        s.x = ax - d.x * Math.min(falta, RYUKEN.colisao); s.y = ay - d.y * Math.min(falta, RYUKEN.colisao);
+        this.hit(p, alvo, s.damage);
+        this.ryukenExplosoes.push({ id: this.uid('rx'), x: ax, y: ay, dx: d.x, dy: d.y, planet: s.planet, area: s.area, started: this.time });
+        s.ttl = 0;
+      } else { s.x += d.x * passo; s.y += d.y * passo; }
     }
   }
   atualizarGenkis(dt) {
@@ -998,8 +1050,9 @@ export class Game {
     for (const m of this.mobs.values()) this.updateMob(m, dt);
     this.separarMobs();
     this.atualizarGenkis(dt);
+    this.atualizarRyukens(dt);
     for (const s of this.projectiles) {
-      if (s.kind === 'genki') continue;
+      if (s.kind === 'genki' || s.kind === 'ryuken') continue;
       if (s.kind === 'mobKiTarget') {
         const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
         if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
@@ -1038,6 +1091,8 @@ export class Game {
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
+        ryuken: p.ryuken ? { started: p.ryuken.started, until: p.ryuken.until, direction: p.ryuken.direction } : null,
+        ryukenLancado: Number.isFinite(p.ryukenLancado) ? p.ryukenLancado : null,
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
@@ -1056,6 +1111,7 @@ export class Game {
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
+        ryukenRemaining: Math.max(0, (self.ryukenReady || 0) - this.time),
         novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
@@ -1064,6 +1120,7 @@ export class Game {
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
       genkiCharges: this.genkiCharges.filter(aqui).map(({ damage, ...g }) => g),
       genkiExplosions: this.genkiExplosions.filter(aqui),
+      ryukenExplosoes: this.ryukenExplosoes.filter(aqui),
       projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => (!e.playerId || e.playerId === id || e.type !== 'message') && (!e.planet || aqui(e))) };
   }
 }

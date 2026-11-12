@@ -107,7 +107,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     hotkeysConsumiveis:hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected),
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
-    basicReady: 0, shotReady: 0, kameReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    basicReady: 0, shotReady: 0, kameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
     healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
     autoHeal: saved?.autoHeal !== false,
     healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,

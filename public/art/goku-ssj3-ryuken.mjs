@@ -1,0 +1,9 @@
+// Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: Ryuken: postura, carga, soco, sustentação.
+// Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
+export const GOKU_SSJ3_RYUKEN = {
+  file: '/assets/goku/ssj3/ryuken.png', width: 984, height: 1525,
+  rows: 5, columns: 4, referenceHeight: 267, idleColumn: 0,
+  frames: [[[0,0,246,305,122.5,299],[246,0,246,305,368.5,299],[492,0,246,305,614.5,299],[738,0,246,305,860.5,299]],[[0,305,246,305,110.5,604],[246,305,246,305,356.5,604],[492,305,246,305,602.5,604],[738,305,246,305,848.5,604]],[[0,610,246,305,109.0,909],[246,610,246,305,355.0,909],[492,610,246,305,601.0,909],[738,610,246,305,847.0,909]],[[0,915,246,305,109.0,1214],[246,915,246,305,355.0,1214],[492,915,246,305,601.0,1214],[738,915,246,305,847.0,1214]],[[0,1220,246,305,115.0,1519],[246,1220,246,305,361.0,1519],[492,1220,246,305,607.0,1519],[738,1220,246,305,853.0,1519]]]
+};

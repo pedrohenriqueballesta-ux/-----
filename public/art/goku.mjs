@@ -6,6 +6,8 @@ import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
 import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
 import { FOLHAS_GOKU_SSJ2 } from './goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from './goku-ssj3.mjs';
+import { GOKU_SSJ3_RYUKEN } from './goku-ssj3-ryuken.mjs';
+import { RYUKEN } from '../shared/ryuken.mjs';
 import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
 import { colunaGenki } from '../render/genki-personagem.mjs';
 import { KAME } from '../shared/kamehameha.mjs';
@@ -19,6 +21,13 @@ export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
     const folhas = ssj3 ? FOLHAS_GOKU_SSJ3 : ssj2 ? FOLHAS_GOKU_SSJ2 : ssj ? FOLHAS_GOKU_SSJ : player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
     let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
     const genki = colunaGenki(player,time);
+    // Ryuken (SSJ3): postura e carga durante o lançamento; soco e sustentação enquanto o dragão sai.
+    const lancado = Number.isFinite(player.ryukenLancado) ? time - player.ryukenLancado : Infinity;
+    if (ssj3 && (player.ryuken || lancado < RYUKEN.sustentacao)) {
+      const coluna = player.ryuken ? (time - player.ryuken.started < RYUKEN.lancamento * .5 ? 0 : time - player.ryuken.started < RYUKEN.lancamento * .85 ? 1 : 2) : lancado < .2 ? 2 : 3;
+      const altura = 70 * GOKU_SSJ3_RYUKEN.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+      if (drawSheet(ctx, GOKU_SSJ3_RYUKEN, art.gokuSsj3Ryuken, pos, altura, player.ryuken?.direction || player.facing, coluna)) return true;
+    }
     if (genki !== null) { estado = 'genki';coluna = genki; }
     else if (player.charge) {
       estado = 'kamehameha';
