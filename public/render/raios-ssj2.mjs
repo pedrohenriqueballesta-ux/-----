@@ -3,7 +3,7 @@
 // Arte da equipe (12/11/2026, `ssj2_raios_azuis`): arcos de energia azul que passam pela frente do corpo e em volta,
 // 16 quadros de 315×311. O arquivo veio com a transparência invertida (fundo azul opaco, miolo apagado):
 // recuperado por código — fundo transparente e miolo branco — sem redesenhar.
-// Também aparecem no Super Saiyajin 3, como no anime (12/11/2026).
+// Só no Super Saiyajin 2: é a marca dele (o SSJ3 não tem raios, decisão do Pedro, 12/11/2026).
 // `camadas`: `atras` (opcional) vai antes do corpo e `frente` depois; hoje só existe a da frente.
 export const RAIOS_SSJ2 = Object.freeze({
   camadas: Object.freeze({ frente: '/assets/skills/raios-ssj2-corpo/frente.png' }),
@@ -20,7 +20,7 @@ export const RAIOS_SSJ2 = Object.freeze({
 const passoRaios = tempo => Math.floor(Math.max(0, tempo) / RAIOS_SSJ2.segundosPorFrame) % RAIOS_SSJ2.quadros;
 export const quadroRaios = tempo => RAIOS_SSJ2.ordem[passoRaios(tempo)];
 
-export const FORMAS_COM_RAIOS = new Set(['ssj2', 'ssj3']);
+export const FORMAS_COM_RAIOS = new Set(['ssj2']);
 const imagens = {};
 export function carregarRaiosSsj2(camada = 'frente') {
   const url = RAIOS_SSJ2.camadas[camada]; if (!url) return null;

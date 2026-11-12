@@ -31,9 +31,10 @@ test('forma SSJ3 desenha as folhas SSJ3 em todas as poses e oito direções, na 
     assert.ok(Math.abs(desenhos[0][7]/desenhos[0][3]-70/FOLHAS_GOKU_BASE.andar[0].referenceHeight)<1e-9,estado);
   }
 });
-test('SSJ3: topo da escada, dano = SSJ2 × 1,5 e raios também nele',()=>{
+test('SSJ3: topo da escada, dano = SSJ2 × 1,5 e sem os raios do SSJ2',()=>{
   assert.equal(formaDisponivel(CONFIG.skills.ssj3).forma,'ssj3');assert.equal(formaDisponivel(CONFIG.skills.ssj3-1).forma,'ssj2');
   for(const g of ['soco','rajada','kame','genki'])assert.ok(Math.abs(DANO_DA_FORMA.ssj3[g]-DANO_DA_FORMA.ssj2[g]*1.5)<1e-9,g);
   carregarRaiosSsj2('frente');const ctx={globalAlpha:1,save(){},restore(){},drawImage(){}};
-  assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj3'},{x:0,y:0},1,75),true);
+  assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj3'},{x:0,y:0},1,75),false);
+  assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj2'},{x:0,y:0},1,75),true);
 });
