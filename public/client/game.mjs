@@ -20,6 +20,7 @@ import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
+import { instalarStatusPopout } from './stats-popout.mjs';
 import { zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
 import { desenharCabecaMinimapa } from '../render/minimapa-cabecas.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
@@ -34,6 +35,7 @@ let floating = [], lastFrame = performance.now(), connectionError = false, miniT
 let zoomMini = 1, vistaMini = null, destinoMini = null;
 let centroMini = null, arrastoMini = null, ponteiroMini = null;
 const trilhaSonora=instalarTrilhaSonora({obterEstado:()=>snapshot});
+const statusPopout=instalarStatusPopout({botao:document.getElementById('statsPopoutButton'),windowRef:window,obterSnapshot:()=>snapshot,avisar:notify});
 const transicaoTeleport = criarTransicaoTeleport({
   viajar: destino => api('action', { type: 'portal', destino }),
   pronto: id => {
@@ -66,9 +68,9 @@ function connected(ok) {
   $('connection').classList.toggle('hidden', ok);
   $('connection').classList.toggle('offline', !ok);
 }
-function sairDoMundo(){if(eventSource){eventSource.close();eventSource=null;}session='';snapshot=null;playerId='';keys.clear();touchVector={x:0,y:0};pointerAim=null;floating=[];renderPositions.clear();seenEvents.clear();tutorial?.fechar();for(const d of document.querySelectorAll('dialog[open]'))if(d.id!=='welcomeDialog')d.close();trilhaSonora.atualizar();}
+function sairDoMundo(){if(eventSource){eventSource.close();eventSource=null;}session='';snapshot=null;playerId='';statusPopout.atualizar(null);keys.clear();touchVector={x:0,y:0};pointerAim=null;floating=[];renderPositions.clear();seenEvents.clear();tutorial?.fechar();for(const d of document.querySelectorAll('dialog[open]'))if(d.id!=='welcomeDialog')d.close();trilhaSonora.atualizar();}
 function conectarMundo(data){
- if(eventSource)eventSource.close();session='autenticado';playerId=data.playerId;snapshot=null;
+ if(eventSource)eventSource.close();session='autenticado';playerId=data.playerId;snapshot=null;statusPopout.atualizar(null);
  return new Promise((resolve,reject)=>{let primeiro=true;const prazo=setTimeout(()=>{eventSource?.close();session='';reject(new Error('conexao'));},12000);
  eventSource=new EventSource('/api/events');eventSource.onopen=()=>connected(true);
  eventSource.onerror=()=>{connected(false);if(primeiro){clearTimeout(prazo);eventSource?.close();session='';reject(new Error('conexao'));}else entrada?.sessaoExpirada();};
@@ -78,7 +80,7 @@ function conectarMundo(data){
       if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
         renderPositions.clear(); floating = []; pointerAim = null;
       }
-      snapshot = proximo; receivedAt = performance.now();trilhaSonora.atualizar();
+      snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       carregarKame(snapshot.self?.level || 1);
       carregarBarreira();
       carregarCura();

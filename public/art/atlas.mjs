@@ -4,6 +4,8 @@
 import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
 import { PARADO } from './parado.mjs';
 import { art, loaded } from './assets.mjs';
+import { SHEET_VIEWS } from './sheet-views.mjs';
+export { SHEET_VIEWS } from './sheet-views.mjs';
 import { spriteFacing, walkStep, strikeFrame, DIRECTIONS } from '../render/camera.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
 import { makeWalkAtlas, walkBob } from './walk-rig.mjs';
@@ -102,10 +104,6 @@ function drawAtlas(ctx, key, pos, height, facing, frame) {
 const walkingRigs = new Map();
 // Direção do jogo (ordem de DIRECTIONS) → linha das folhas desenhadas (Sul, Sudeste, Leste, Nordeste, Norte);
 // oeste e diagonais da esquerda são espelhadas.
-export const SHEET_VIEWS = [
-  { row: 0, flip: false }, { row: 1, flip: true }, { row: 2, flip: true }, { row: 3, flip: true },
-  { row: 4, flip: false }, { row: 3, flip: false }, { row: 2, flip: false }, { row: 1, flip: false }
-];
 // phase desencontra os passos de mobs iguais, para não andarem todos no mesmo pé.
 function passoFrame(travelled, stride, moving, sheet = GOKU_PASSO, phase = 0) {
   if (!moving) return sheet.idleColumn;

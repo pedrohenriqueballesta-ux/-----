@@ -51,6 +51,8 @@ button{cursor:pointer}
 
 /* Cartão do jogador */
 .hud-jogador{position:absolute;top:calc(94 * var(--u));left:calc(12 * var(--u));display:flex;gap:calc(10 * var(--u));align-items:center;padding:calc(8 * var(--u)) calc(12 * var(--u))}
+.hud-popout-button{display:grid;place-items:center;flex:0 0 auto;width:calc(30 * var(--u));height:calc(30 * var(--u));padding:0;border-radius:calc(7 * var(--u));color:#ffd36a;font-size:calc(20 * var(--u));font-weight:900;line-height:1}
+.hud-popout-button:hover{border-color:var(--ouro);color:#fff1bb;background:#1b2d50}
 .hud-retrato{width:calc(76 * var(--u));height:calc(76 * var(--u));border-radius:50%;border:calc(2 * var(--u)) solid var(--ouro);object-fit:cover;background:#0b1730}
 .hud-status{display:grid;gap:calc(3 * var(--u));width:calc(180 * var(--u))}
 .hud-nome{display:grid;line-height:1.1;margin-bottom:calc(2 * var(--u))}

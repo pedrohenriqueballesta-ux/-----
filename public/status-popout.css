@@ -1,0 +1,29 @@
+:root{color-scheme:dark;font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b1428;color:#f1f5ff}
+*{box-sizing:border-box}
+html,body{width:100%;min-width:280px;height:100%;min-height:250px;margin:0;overflow:hidden}
+body{padding:8px;background:radial-gradient(ellipse at 20% 0%,#183451,#0b1428 75%)}
+.status-card{height:100%;display:grid;grid-template-rows:auto 1fr 1fr auto;gap:7px;padding:10px;border:1px solid #e8b84b;border-radius:12px;background:linear-gradient(145deg,#13233bdd,#0a1327f2);box-shadow:0 4px 20px #0008}
+header{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.identity{display:flex;align-items:center;gap:8px;min-width:0}
+.avatar{flex:none;display:grid;justify-items:center;gap:0;margin:0;width:68px}
+.avatar canvas{display:block;width:64px;height:68px;image-rendering:auto}
+.avatar figcaption{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ffd978;font-size:10px;font-weight:900}
+.identity-info{display:grid;min-width:0;gap:2px}
+header small{font-size:9px;letter-spacing:.14em;color:#9bb7d1;font-weight:800}
+header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;color:#ffe08a}
+.identity-info .status-level{margin:0;color:#a9bedc;font-size:11px}
+.status-badge{flex:none;padding:4px 7px;border:1px solid #548263;border-radius:999px;background:#1b5439;color:#bbf2cb;font-size:9px;font-weight:900;letter-spacing:.04em}
+.status-badge[data-estado=repouso]{border-color:#617797;background:#23334d;color:#c9d8f0}
+.status-badge[data-estado=explorando]{border-color:#b38c41;background:#56421c;color:#ffe5a4}
+.status-badge[data-estado=morto]{border-color:#bd5656;background:#591f2a;color:#ffc2c2}
+.meter{display:grid;align-content:center;gap:4px;min-width:0}
+.meter-label{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#a9bedc;font-weight:800;letter-spacing:.06em}
+.meter-label b{font-size:11px;color:#fff;letter-spacing:0}
+.meter-track{height:12px;overflow:hidden;border:1px solid #ffffff26;border-radius:8px;background:#060b16}
+.meter-track i{display:block;height:100%;width:0;border-radius:inherit;transition:width .2s ease}
+.meter-track .hp{background:linear-gradient(90deg,#b91e2f,#ff5965)}
+.meter-track .ki{background:linear-gradient(90deg,#0963d0,#46baff)}
+footer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 8px;border-top:1px solid #ffffff20;padding-top:7px}
+footer span{color:#a9bedc;font-size:10px;font-weight:900;letter-spacing:.08em}
+footer strong{color:#ffe08a;font-size:17px;font-variant-numeric:tabular-nums}
+footer small{grid-column:1/-1;color:#7990aa;font-size:9px}

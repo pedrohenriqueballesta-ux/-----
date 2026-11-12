@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1428">
+  <title>Status · Dragon Ball Idle</title>
+  <link rel="stylesheet" href="/status-popout.css">
+</head>
+<body>
+  <main class="status-card" aria-live="polite">
+    <header><div class="identity"><figure class="avatar"><canvas id="sprite" width="120" height="120" aria-label="Sprite animada do personagem"></canvas><figcaption id="vocacao">Goku</figcaption></figure><div class="identity-info"><small>DRAGON BALL IDLE</small><strong id="nome">Aguardando jogo…</strong><span id="nivel" class="status-level">Personagem</span></div></div><span id="estado" class="status-badge">CONECTANDO</span></header>
+    <section class="meter" aria-label="Vida"><div class="meter-label"><span>VIDA</span><b id="hpTexto">—</b></div><div class="meter-track"><i id="hpBarra" class="hp"></i></div></section>
+    <section class="meter" aria-label="Ki"><div class="meter-label"><span>KI</span><b id="kiTexto">—</b></div><div class="meter-track"><i id="kiBarra" class="ki"></i></div></section>
+    <footer><span>XP / H</span><strong id="xpHora">—</strong><small id="atualizacao">Conecte-se ao jogo para acompanhar.</small></footer>
+  </main>
+  <script type="module" src="/client/status-popout.mjs"></script>
+</body>
+</html>
