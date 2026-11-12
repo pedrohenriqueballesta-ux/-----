@@ -244,6 +244,14 @@ test('jogador nasce na Terra e viaja só por portal: Terra → Vila → hunts �
   assert.deepEqual([p.planet, p.area], ['terra', null]);
 });
 
+test('portal da Vila permite viajar diretamente para outro planeta', () => {
+  const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a');
+  assert.equal(porPortal(game, p, 'vila').ok, true);
+  assert.deepEqual([p.planet, p.area], ['namek', 'vila']);
+  assert.equal(porPortal(game, p, 'vegeta-cidade').ok, true);
+  assert.deepEqual([p.planet, p.area], ['vegeta', 'vegeta-cidade']);
+});
+
 test('hunt da média tem Guerreiros de Namek, Veteranos de Namek e o subchefe; nível abaixo do recomendado entra com aviso', () => {
   const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a');
   porPortal(game, p, 'vila');

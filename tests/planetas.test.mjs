@@ -30,12 +30,15 @@ test('ficha de cada planeta: Vila segura, hunts do próprio planeta com nível, 
   }
 });
 
-test('portais: Terra leva a toda Vila; cada Vila leva à Terra e a cada hunt; cada hunt tem saída', () => {
+test('portais: Terra e cada Vila oferecem todos os planetas; cada Vila também leva às hunts; cada hunt tem saída', () => {
   const terra = PORTAIS.filter(o => o.planet === 'terra');
   assert.deepEqual(terra.flatMap(o => o.destinos).sort(), PLANETAS_DE_HUNT.map(p => p.vila).sort());
   for (const mundo of PLANETAS_DE_HUNT) {
-    const daVila = PORTAIS.filter(o => o.planet === mundo.id && o.area === mundo.vila).flatMap(o => o.destinos);
-    assert.deepEqual(daVila.sort(), ['terra', ...mundo.hunts].sort(), mundo.id + ': portais da Vila');
+    const portalInterplanetario = PORTAIS.find(o => o.planet === mundo.id && o.area === mundo.vila && o.id === mundo.vila + '-terra');
+    assert.ok(portalInterplanetario, mundo.id + ': portal interplanetário da Vila');
+    assert.deepEqual([...portalInterplanetario.destinos].sort(), ['terra', ...PLANETAS_DE_HUNT.filter(p => p.id !== mundo.id).map(p => p.vila)].sort(), mundo.id + ': opções de planeta');
+    const daVila = PORTAIS.filter(o => o.planet === mundo.id && o.area === mundo.vila && o !== portalInterplanetario).flatMap(o => o.destinos);
+    assert.deepEqual(daVila.sort(), [...mundo.hunts].sort(), mundo.id + ': portais da Vila para hunts');
     for (const id of mundo.hunts) {
       const saida = PORTAIS.filter(o => o.planet === mundo.id && o.area === id);
       assert.equal(saida.length, 1, id + ': uma saída');

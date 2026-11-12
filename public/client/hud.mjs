@@ -262,7 +262,8 @@ const imagemDoDestino = id => PLANETS[lugar(id).planet].imagem;
 // O servidor confere se o jogador está mesmo no portal e se o destino é dele.
 export function abrirPortal(portal) {
   const nivel = ctx?.snapshot()?.self?.level || 1;
-  $('portalTitulo').textContent = portal.planet === 'terra' ? 'PORTAL — ESCOLHA O PLANETA' : portal.destinos.length > 1 ? 'SAÍDA — ESCOLHA O DESTINO' : 'PORTAL';
+  const interplanetario = portal.destinos.some(id => lugar(id).planet !== portal.planet);
+  $('portalTitulo').textContent = interplanetario ? 'PORTAL — ESCOLHA O PLANETA' : portal.destinos.length > 1 ? 'SAÍDA — ESCOLHA O DESTINO' : 'PORTAL';
   $('portalDestinos').replaceChildren(...portal.destinos.map(id => {
     const d = lugar(id), botao = document.createElement('button');
     botao.type = 'button'; botao.className = 'world-card';
