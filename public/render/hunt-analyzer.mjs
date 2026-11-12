@@ -8,10 +8,14 @@ try{const pos=JSON.parse(localStorage.getItem('dbi-loot-tracker')),tam=JSON.pars
 function posicionarLootAcima(){
  const mini=document.getElementById('huntAnalyzerMini'),janela=document.getElementById('lootTrackerWindow');
  if(!lootPosicaoPendente||!mini||mini.hidden||janela.hidden)return;
- const base=mini.getBoundingClientRect(),caixa=janela.getBoundingClientRect(),margem=4;
+ const base=mini.getBoundingClientRect(),caixa=janela.getBoundingClientRect(),margem=8,folga=6;
+ const alturaDisponivel=Math.max(160,Math.min(innerHeight-2*margem,base.top-margem-folga));
+ const alturaDesejada=lootAlturaPersonalizada?caixa.height:Math.min(380,Math.max(200,innerHeight*.52));
+ const altura=Math.min(alturaDesejada,alturaDisponivel);
  const esquerda=Math.max(margem,Math.min(base.left,innerWidth-caixa.width-margem));
- const topo=Math.max(margem,base.top-caixa.height-margem);
- Object.assign(janela.style,{left:esquerda+'px',top:topo+'px',right:'auto',bottom:'auto',width:base.width+'px',...(lootAlturaPersonalizada?{}:{height:base.height+'px'}),transform:'none'});
+ const topo=Math.max(margem,base.top-altura-folga);
+ Object.assign(janela.style,{left:esquerda+'px',top:topo+'px',right:'auto',bottom:'auto',width:base.width+'px',height:altura+'px',transform:'none'});
+ if(janela.classList.contains('hud-tamanho-manual'))janela.style.setProperty('--hud-altura',altura+'px');
  lootPosicaoPendente=false;
 }
 function atualizarLootTracker(a){
@@ -43,7 +47,7 @@ function visibilidade(){
  if(!aberto&&autoHuntPainelAberto&&lootAbrirAoFecharAutoHunt&&!lootFechadoManual){loot.hidden=false;lootPosicaoPendente=!lootPosicaoPersonalizada;lootAbrirAoFecharAutoHunt=false;}
  autoHuntPainelAberto=aberto;
  if(root.open&&dialog.open)visto=true;
- mini.hidden=!huntAtivo||!visto||Boolean(document.getElementById('welcomeDialog')?.open)||dialog.open;
+ mini.hidden=!huntAtivo||Boolean(document.getElementById('welcomeDialog')?.open)||dialog.open;
  if(!mini.hidden&&lootPosicaoPendente)requestAnimationFrame(posicionarLootAcima);
 }
 export function instalarHuntAnalyzer(expandir){
@@ -66,6 +70,7 @@ export function instalarHuntAnalyzer(expandir){
  });
  const observar=new MutationObserver(visibilidade);observar.observe(dialog,{attributes:true,attributeFilter:['open']});
  const login=document.getElementById('welcomeDialog');if(login)observar.observe(login,{attributes:true,attributeFilter:['open']});
+ addEventListener('resize',()=>{if(!loot.hidden&&!lootPosicaoPersonalizada){lootPosicaoPendente=true;requestAnimationFrame(()=>{if(!mini.hidden)posicionarLootAcima();});}});
  document.getElementById('huntAnalyzerExpand').onclick=()=>{if(!dialog.open)expandir();root.open=true;dialog.querySelector('.auto-hunt-body').scrollTop=0;visibilidade();};
 }
 function atualizarMini(a,id){
@@ -73,8 +78,7 @@ function atualizarMini(a,id){
  if(!ativo){lootFechadoManual=false;lootAbrirAoFecharAutoHunt=false;}
  if(ativo&&!huntAtivo){
    lootFechadoManual=false;
-   if(document.getElementById('autoHuntDialog').open){loot.hidden=true;lootPosicaoPendente=false;lootAbrirAoFecharAutoHunt=true;}
-   else{loot.hidden=false;lootPosicaoPendente=!lootPosicaoPersonalizada;lootAbrirAoFecharAutoHunt=false;}
+   loot.hidden=true;lootPosicaoPendente=false;lootAbrirAoFecharAutoHunt=false;
  }
  huntAtivo=ativo;
  if(identidade!==id||a.segundos<ultimo){amostras=[];ultimo=-1;visto=false;identidade=id;}
