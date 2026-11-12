@@ -2,6 +2,7 @@
 import { PEGADAS } from './pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from './decoracao-namek.mjs';
 import { OBJETOS_DECORACAO } from './decoracao-objetos.mjs';
+import { CURA } from './cura.mjs';
 
 // Modo de teste GOD MODE (nivel 100 + HP/Ki infinitos). DESLIGADO por padrao.
 // Liga so no servidor local com a variavel de ambiente DBI_GODMODE=1.
@@ -34,7 +35,7 @@ export const CONFIG = Object.freeze({
   mochilaSlots: 30,
   // Raio de seleção de mobs pela Auto Hunt (Pedro, 09/11/2026).
   autoHuntRaio: 700,
-  seedCooldown: 20, kiCooldown: 8, pickupRadius: 60, respawnDelay: 4,
+  seedCooldown: 20, kiCooldown: CURA.cooldown, pickupRadius: 60, respawnDelay: 4,
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
