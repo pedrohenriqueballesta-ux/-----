@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/game.mjs';
 import { CONFIG, lugar } from '../public/shared/config.mjs';
+import { CURA } from '../public/shared/cura.mjs';
 
 function cena() {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
@@ -10,6 +11,18 @@ function cena() {
   return { g, p };
 }
 const limitar = (g, p, key, value) => g.action(p.id, { type: 'automationThreshold', key, value });
+
+test('poção de Ki e Cura de Vida usam o mesmo cooldown configurado', () => {
+  const { g, p } = cena();
+  assert.equal(CONFIG.kiCooldown, CURA.cooldown);
+  p.ki = 0;
+  assert.equal(g.usePotion(p).ok, true);
+  assert.equal(p.kiReady, g.time + CURA.cooldown);
+
+  p.hp = 1; p.ki = p.stats.ki;
+  assert.equal(g.cast(p, 'heal').ok, true);
+  assert.equal(p.healReady, g.time + CURA.cooldown);
+});
 
 test('limites padrão e configuração de cura, Ki e semente são validados no servidor', () => {
   const { g, p } = cena();
