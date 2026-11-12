@@ -989,7 +989,7 @@ export class Game {
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
         hotkeysConsumiveis:{...self.hotkeysConsumiveis},hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
