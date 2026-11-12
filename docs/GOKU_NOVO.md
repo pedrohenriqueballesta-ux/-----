@@ -87,3 +87,16 @@ inteiro** (decisão do Pedro). Fundo magenta, recorte `halo`, PNGs em `public/as
 nem de lugar ao transformar; só o cabelo cresce (folha ~270 px contra 253 da base). Caminhada pelo `kind` `gokuSsj`.
 As folhas antigas do SSJ (chibi) ficam só como reserva. Teste: `tests/goku-ssj.test.mjs`. Conferido no navegador:
 base → SSJ no mesmo ponto, andando, e de volta à base.
+
+## Super Saiyajin 2 (11/11/2026)
+
+Seis folhas do Pedro feitas sobre as do SSJ (corpo idêntico pixel a pixel; cabelo um pouco mais cheio) em
+`public/assets/goku/ssj2/`, módulos `art/goku-ssj2-*.mjs` e `FOLHAS_GOKU_SSJ2` (`art/goku-ssj2.mjs`). `drawGoku` usa-as
+com `forma === 'ssj2'`, na escala da base; caminhada pelo `kind` `gokuSsj2`.
+
+**Raios animados** (pedido do Pedro: "o raio fica fazendo animação, não é algo estático"): efeito separado do corpo,
+GIF do Pedro convertido por `ferramentas/gif_para_spritesheet.py` em `public/assets/skills/raios-ssj2/` (12 quadros
+de 256×384 a 70 ms, loop). `render/raios-ssj2.mjs` desenha por cima do Goku em qualquer pose, ancorado nos pés (molde:
+Goku SSJ de 250 px com os pés em 128,344), com uma segunda passada em modo `lighter` para brilhar também em chão claro.
+A 1ª versão do GIF (raios finos) sumiria no tamanho do jogo; a aprovada tem traço de 3–4 px.
+Teste: `tests/goku-ssj2.test.mjs`. Escada de formas e barra de técnicas: `docs/ATALHOS.md` e `shared/formas.mjs`.

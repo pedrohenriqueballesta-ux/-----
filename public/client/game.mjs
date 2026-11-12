@@ -13,6 +13,9 @@ import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 carregarImpactoKame();
 import { KAME, origemKame } from '../shared/kamehameha.mjs';
+import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/raios-ssj2.mjs';
+import { FOLHAS_GOKU_SSJ2 } from '../art/goku-ssj2.mjs';
+import { FOLHAS_GOKU_BASE } from '../art/goku-base.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/cura.mjs';
@@ -80,7 +83,7 @@ function conectarMundo(data){
       }
       snapshot = proximo; receivedAt = performance.now();trilhaSonora.atualizar();
       carregarKame(snapshot.self?.level || 1);
-      carregarBarreira();
+      carregarBarreira(); carregarRaiosSsj2();
       carregarCura();
       carregarGenki();
       for (const effect of snapshot.events) {
@@ -303,6 +306,8 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
   if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
+  // Super Saiyajin 2: raios animados por cima do corpo, na altura do Goku SSJ2 desenhado (com o cabelo).
+  desenharRaiosSsj2(ctx, p, pos, time, 70 * FOLHAS_GOKU_SSJ2.parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight);
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
