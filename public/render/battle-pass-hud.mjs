@@ -1,6 +1,7 @@
 import {el,botao,numero,barra} from './hud-elementos.mjs';
 import {criarPainelPremium,textoRecompensa} from './premium-comum.mjs';
 import {COLECIONAVEIS} from '../shared/premium-config.mjs';
+import {avaliarResgateLote} from '../shared/resgate-lote.mjs';
 const imagens={ki:'pocao_ki',food:'comida',crystal:'cristal',scrap:'sucata',seed15:'semente_dos_deuses'};
 function imagemRecompensa(r){return r.colecao?.length?COLECIONAVEIS[r.colecao[0]].imagem:r.bau?'/assets/premium/caixa-espolios.png':r.moedas?'/assets/hud/personagem/zeni.png':r.zeni?'/assets/hud/personagem/zeni-prateado.png':'/assets/inventario/'+imagens[Object.keys(r.itens||{})[0]]+'.png';}
 function icone(r){const img=el('img',null,'passe-icone');img.src=imagemRecompensa(r);img.alt=textoRecompensa(r);img.draggable=false;return img;}
@@ -39,7 +40,16 @@ export function instalarBattlePass(ctx){
    }return;
   }
   const ajuda=el('div',null,'passe-navegacao'),trilhas=el('div',null,'passe-trilhas');trilhas.tabIndex=0;trilhas.setAttribute('aria-label','Recompensas: Premium acima, Grátis abaixo. Arraste ou role horizontalmente.');
-  ajuda.append(botao('←',()=>trilhas.scrollBy({left:-360,behavior:'smooth'})),el('span','Premium acima · Grátis abaixo · arraste para explorar'),botao('→',()=>trilhas.scrollBy({left:360,behavior:'smooth'})));ui.corpo.append(ajuda,trilhas);
+  const disponiveis=p.niveis.flatMap(n=>['premium','gratis'].filter(t=>n[t].desbloqueada&&!n[t].resgatada).map(trilha=>({nivel:n.nivel,trilha,recompensa:n[trilha].recompensa})));
+  const resgatarTudo=botao('Resgatar tudo');resgatarTudo.disabled=!p.ativa||!disponiveis.length;
+  resgatarTudo.onclick=async()=>{
+   if(!disponiveis.length)return;const jogador=ctx.snapshot()?.self;if(!jogador)return;
+   const capacidade=avaliarResgateLote(disponiveis.map(x=>x.recompensa),jogador.weight,jogador.stats.capacity);
+   if(capacidade.faltam>.0001){ui.status.textContent=`Libere ${capacidade.faltam.toLocaleString('pt-BR',{maximumFractionDigits:2})} kg na mochila para resgatar todas as recompensas.`;return;}
+   if(capacidade.lotara&&!confirm('As recompensas vão preencher toda a capacidade da mochila. Deseja continuar?'))return;
+   resgatarTudo.disabled=true;try{for(const r of disponiveis){const resultado=await ui.executar({operacao:'resgatarRecompensa',nivel:r.nivel,trilha:r.trilha});if(!resultado?.ok)break;}}finally{resgatarTudo.disabled=false;}
+  };
+  ajuda.append(botao('←',()=>trilhas.scrollBy({left:-360,behavior:'smooth'})),el('span','Premium acima · Grátis abaixo · arraste para explorar'),botao('→',()=>trilhas.scrollBy({left:360,behavior:'smooth'})));ui.corpo.append(resgatarTudo,ajuda,trilhas);
   for(const n of p.niveis){const row=el('article',null,'passe-nivel'+(n.nivel===Math.max(1,p.nivel)?' passe-atual':''));row.dataset.nivelPasse=n.nivel;row.append(el('h4','Nível '+n.nivel));
    for(const trilha of ['premium','gratis']){const r=n[trilha],card=el('section',null,'passe-recompensa '+trilha+(r.desbloqueada&&!r.resgatada?' disponivel':'')+(r.resgatada?' recebida':''));
     const ver=botao('',()=>mostrarPrevia(r.recompensa,trilha==='premium'?'Premium':'Grátis',n.nivel));ver.className='passe-ver';ver.setAttribute('aria-label','Ver '+textoRecompensa(r.recompensa));ver.append(icone(r.recompensa));
