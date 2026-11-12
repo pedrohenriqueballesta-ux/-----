@@ -21,7 +21,7 @@ const types = { '.gif':'image/gif', '.mp3':'audio/mpeg', '.html': 'text/html; ch
 export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data'), ambiente=process.env.NODE_ENV||'production',noticiasMain=new NovidadesMain({cacheFile:dataDir?resolve(dataDir,'novidades-main-cache.json'):null}) } = {}) {
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
   const economiaPremium=new EconomiaPremium({ambiente});
-  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1' });
+  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random });
   const sessions = new Map(), streams = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
   if (dataDir) {

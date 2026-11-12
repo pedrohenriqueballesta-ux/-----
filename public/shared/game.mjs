@@ -24,6 +24,7 @@ import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
+import { fatorCombateAleatorio, variarExperiencia } from './variacao-combate.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
@@ -37,8 +38,9 @@ export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga:
 export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
 
 export class Game {
-  constructor({ now = Date.now() / 1000, random = Math.random, populate = true, chefeJa = false } = {}) {
+  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
+    this.randomCombat = randomCombat;
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
@@ -501,7 +503,7 @@ export class Game {
     registrarMissao(p,'skills',1,this.agora());
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
-    p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual);
+    p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp * cura.percentual * fatorCombateAleatorio(this.randomCombat));
     analisar(p,'cura',p.hp-antes);
     this.emit('heal', { x: p.x, y: p.y, playerId: p.id, planet: p.planet, area: p.area,
       amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
@@ -517,7 +519,7 @@ export class Game {
     }
     const defense = playerTarget ? target.stats.defense : target.defesa ?? 1;
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
-    const damage = Math.max(1, Math.round(guardedRaw * 100 / (100 + defense * 3)));
+    const damage = Math.max(1, Math.round(guardedRaw * fatorCombateAleatorio(this.randomCombat) * 100 / (100 + defense * 3)));
     const hpAntes=target.hp;
     if(playerTarget) analisar(target,'danoRecebido',Math.min(hpAntes,damage));
     if(attacker && this.players.has(attacker.id)) analisar(attacker,'danoCausado',Math.min(hpAntes,damage));
@@ -534,7 +536,7 @@ export class Game {
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          analisar(attacker,'xp',target.xp);const zeniAntes=attacker.zeni; this.awardXp(attacker, target.xp); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          const experiencia=variarExperiencia(target.xp,this.randomCombat);analisar(attacker,'xp',experiencia);const zeniAntes=attacker.zeni; this.awardXp(attacker, experiencia); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
