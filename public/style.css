@@ -424,6 +424,13 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 
 .mochila-compacta{height:auto!important;--m:1!important}.mochila-compacta .mochila-equip,.mochila-compacta .mochila-info{display:none}.mochila-topo #mochilaMinimizar{flex-shrink:0}
 
+/* Redimensionamento manual: a mochila pode mudar de largura e altura; a grade distribui os 30
+   slots pelos cinco níveis e reduz os botões conforme o espaço disponível. */
+.mochila.hud-tamanho-manual{display:flex!important;flex-direction:column;min-height:0;overflow:hidden!important}
+.mochila.hud-tamanho-manual>.mochila-topo,.mochila.hud-tamanho-manual>.mochila-equip,.mochila.hud-tamanho-manual>.mochila-info,.mochila.hud-tamanho-manual>.mochila-abas{flex:0 0 auto}
+.mochila.hud-tamanho-manual>.mochila-grade{flex:1 1 0;grid-template-rows:repeat(5,minmax(0,1fr));min-height:0;overflow:hidden}
+.mochila.hud-tamanho-manual>.mochila-grade>.slot{width:auto;height:100%;min-width:0;min-height:0;aspect-ratio:1;align-self:center}
+
 .consumivel-personalizado{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}.tecnica.consumivel-destino{outline:2px solid #ffda72;box-shadow:0 0 12px #ffda72}.tecnica.consumivel-indisponivel .tecnica-icone{opacity:.5}#mochilaGrade [draggable="true"]{cursor:grab}
 
 .tecnica.consumivel-vazio .tecnica-icone{border:1px dashed #8297ac;background-color:#07192b88}.tecnica[draggable="true"]{cursor:grab}.mochila.consumivel-destino{outline:2px solid #ffd465;box-shadow:0 0 18px #ffd46588}
