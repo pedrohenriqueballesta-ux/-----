@@ -175,20 +175,21 @@ export function lugar(id) {
   return z && { id, planet: z.planet, area: z.id, name: z.name, chegada: z.chegada, segura: z.segura, nivel: z.nivel };
 }
 // Portais (o desenho ainda vai ser escolhido). Encostar abre a janela com os destinos.
-// Terra: um portal que leva à Vila de cada planeta. Vila: um portal por hunt, cada um em cima da estrada de terra que sai da
-// praça na sua direção (leste, sul e norte; pedido do Pedro, 04/11: "guiando o personagem para fora pela
-// estrada"), medido no mapa de 36 partes; e a volta para a Terra
-// logo acima do ponto de chegada. Hunts: um só portal, logo acima do ponto de chegada (é a saída),
+// Terra: um portal que leva à Vila de cada planeta. Vila: um portal interplanetário com a Terra e todas as outras Vilas,
+// mais um portal por hunt, cada um em cima da estrada de terra que sai da praça na sua direção
+// (leste, sul e norte; pedido do Pedro, 04/11: "guiando o personagem para fora pela estrada"), medido no mapa de 36 partes.
+// Hunts: um só portal, logo acima do ponto de chegada (é a saída),
 // com a Vila e as demais hunts; para ir à Terra passa-se pela Vila (decisão do Pedro).
 export const RAIO_PORTAL = 55;
 const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).chegada.y - 110 });
-// Portais de um planeta de hunt: a volta para a Terra acima da chegada da Vila, um portal da Vila para
+// Portais de um planeta de hunt: portal interplanetário acima da chegada da Vila, um portal da Vila para
 // cada hunt (`entradas`: posição em px da imagem do solo, por id de hunt) e a saída de cada hunt, com a
 // Vila e as outras hunts do mesmo planeta. Saídas ficam dentro do quadrado seguro da chegada.
 function portaisDoPlaneta(planet, entradas) {
   const { vila, hunts, escala } = PLANETS[planet];
+  const destinosInterplanetarios = ['terra', ...PLANETAS_DE_HUNT.filter(p => p.id !== planet).map(p => p.vila)];
   return [
-    { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: ['terra'] },
+    { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: destinosInterplanetarios },
     ...hunts.map(id => ({ id: vila + '-' + id, planet, area: vila, x: entradas[id].x * escala, y: entradas[id].y * escala, destinos: [id] })),
     // Canto superior esquerdo: chegada fora do gatilho de 55, sem reabrir o menu ao viajar.
     ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, x: areaPorId(id).chegada.x - 60, y: areaPorId(id).chegada.y - 60,
