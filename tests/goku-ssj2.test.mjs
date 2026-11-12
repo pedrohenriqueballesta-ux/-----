@@ -29,15 +29,16 @@ test('forma SSJ2 desenha as folhas SSJ2 em todas as poses e oito direções, na 
     assert.ok(Math.abs(desenhos[0][7]/desenhos[0][3]-70/FOLHAS_GOKU_BASE.andar[0].referenceHeight)<1e-9,estado);
   }
 });
-test('raios: 12 quadros em loop a 70 ms, só na forma SSJ2, ancorados nos pés e escalados pela altura',async()=>{
-  const j=JSON.parse(await readFile(new URL('../public/assets/skills/raios-ssj2/animation.json',import.meta.url)));
-  assert.equal(j.frame_count,RAIOS_SSJ2.quadros);assert.equal(j.frame_duration_ms,70);assert.equal(j.frame_width,256);assert.equal(j.frame_height,384);
-  assert.equal(quadroRaios(0),0);assert.equal(quadroRaios(0.071),1);assert.equal(quadroRaios(12*0.07+0.001),0);
-  carregarRaiosSsj2();
+test('raios: 16 quadros em loop a 90 ms, só na forma SSJ2, ancorados nos pés e escalados pela altura',async()=>{
+  const png=await readFile(new URL('../public'+RAIOS_SSJ2.camadas.frente,import.meta.url));
+  assert.equal(png.readUInt32BE(16),RAIOS_SSJ2.largura*RAIOS_SSJ2.colunas);assert.equal(png.readUInt32BE(20),RAIOS_SSJ2.altura*Math.ceil(RAIOS_SSJ2.quadros/RAIOS_SSJ2.colunas));
+  assert.equal(quadroRaios(0),0);assert.equal(quadroRaios(0.091),1);assert.equal(quadroRaios(16*0.09+0.001),0);
+  carregarRaiosSsj2('frente');assert.equal(carregarRaiosSsj2('atras'),null);
   const chamadas=[],ctx={globalAlpha:1,save(){},restore(){},drawImage(...a){chamadas.push(a);}};
   for(const forma of ['base','kaioken','ssj'])assert.equal(desenharRaiosSsj2(ctx,{forma},{x:0,y:0},1,75),false,forma);
   assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj2',dead:true},{x:0,y:0},1,75),false);
   assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj2'},{x:300,y:400},1,75),true);
+  assert.equal(desenharRaiosSsj2(ctx,{forma:'ssj2'},{x:300,y:400},1,75,'atras'),false,'sem camada de trás por enquanto');
   const e=75/RAIOS_SSJ2.alturaNoMolde,a=chamadas[0];
   assert.ok(Math.abs(a[5]+RAIOS_SSJ2.pesX*e-300)<1e-9);assert.ok(Math.abs(a[6]+RAIOS_SSJ2.pesY*e-400)<1e-9);
 });

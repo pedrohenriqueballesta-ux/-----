@@ -83,7 +83,7 @@ function conectarMundo(data){
       }
       snapshot = proximo; receivedAt = performance.now();trilhaSonora.atualizar();
       carregarKame(snapshot.self?.level || 1);
-      carregarBarreira(); carregarRaiosSsj2();
+      carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
       carregarGenki();
       for (const effect of snapshot.events) {
@@ -300,14 +300,17 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
   if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
+  // Camada de trás dos raios do Super Saiyajin 2 (passam por trás do corpo).
+  const alturaSsj2 = 70 * FOLHAS_GOKU_SSJ2.parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+  if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
   // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
   if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
-  // Super Saiyajin 2: raios animados por cima do corpo, na altura do Goku SSJ2 desenhado (com o cabelo).
-  desenharRaiosSsj2(ctx, p, pos, time, 70 * FOLHAS_GOKU_SSJ2.parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight);
+  // Super Saiyajin 2: camada da frente dos raios (atravessando o corpo), na altura do Goku SSJ2 desenhado.
+  desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'frente');
   if (somenteCorpo) return;
   placa(pos.x, pos.y - 86, p.name + ' • Nv. ' + p.level, p.hp, p.maxHp, p.id === playerId ? '#3ccf55' : '#5fb6ff');
   if (p.id === playerId) { ctx.fillStyle = '#f9d3a4'; ctx.beginPath(); ctx.moveTo(pos.x - 4, pos.y + 13); ctx.lineTo(pos.x + 4, pos.y + 13); ctx.lineTo(pos.x, pos.y + 18); ctx.fill(); }
