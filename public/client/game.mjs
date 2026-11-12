@@ -15,6 +15,7 @@ carregarImpactoKame();
 import { KAME, origemKame } from '../shared/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/raios-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ2 } from '../art/goku-ssj2.mjs';
+import { FOLHAS_GOKU_SSJ3 } from '../art/goku-ssj3.mjs';
 import { FOLHAS_GOKU_BASE } from '../art/goku-base.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/teleporte.mjs';
@@ -303,7 +304,8 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
   if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
   // Camada de trás dos raios do Super Saiyajin 2 (passam por trás do corpo).
-  const alturaSsj2 = 70 * FOLHAS_GOKU_SSJ2.parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+  // Altura do Goku desenhado na forma (com o cabelo): os raios encaixam no corpo do SSJ2 e do SSJ3.
+  const alturaSsj2 = 70 * (p.forma === 'ssj3' ? FOLHAS_GOKU_SSJ3 : FOLHAS_GOKU_SSJ2).parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
   if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);

@@ -45,8 +45,8 @@ export const CONFIG = Object.freeze({
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5 }),
   skillCosts: { kame: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
   skillCooldowns: { kame: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
-  // ssj2: VALOR PROVISÓRIO (o Pedro decide o nível depois, 11/11/2026); escada em shared/formas.mjs.
-  skills: { ki: 2, dash: 2, kame: 3, kaioken: 2, barrier: 2, transform: 5, ssj2: 50, genki: 10 }
+  // ssj2 e ssj3: VALORES PROVISÓRIOS (o Pedro decide os níveis depois, 11–12/11/2026); escada em shared/formas.mjs.
+  skills: { ki: 2, dash: 2, kame: 3, kaioken: 2, barrier: 2, transform: 5, ssj2: 50, ssj3: 70, genki: 10 }
 });
 // Áreas fechadas de Namekusei (modelo do Pedro, 03/11/2026). Cada área é um lugar à parte: não se anda
 // de uma para outra, troca-se pelos portais (PORTAIS). A caixa (x, y, w, h, em px da imagem) limita onde
