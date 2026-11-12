@@ -18,7 +18,10 @@ export function instalarJanelasHud(){
    cabecalho=document.createElement('header');cabecalho.className='janela-loja-cabecalho';titulo.before(cabecalho);cabecalho.append(titulo,fechar);
   }
   if(!cabecalho)return;
-  if(janela.id!=='tutorialDialog')instalarRedimensionamento(janela,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]));
+  if(janela.id!=='tutorialDialog'){
+   const eixo=janela.id==='mochilaDialog'?'grade':'livre';
+   instalarRedimensionamento(janela,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]),{eixo});
+  }
   cabecalho.classList.add('janela-arrastavel');cabecalho.title='Arraste para mover · duplo clique para restaurar a posição';
   const chaveTrava='dbi-janela-'+(janela.id||janela.className.split(' ')[0])+'-travada';
   const cadeado=document.createElement('button');cadeado.type='button';cadeado.className='hud-cadeado';

@@ -8,23 +8,26 @@ export function limitarAlturaHud(h,tela,min=160){
  const max=Math.max(48,tela.h-16);
  return Math.max(Math.min(min,max),Math.min(max,Number.isFinite(h)?h:188));
 }
-export function limitarEscalaHud(valor,base,tela){
+export function limitarEscalaHud(valor,base,tela,minimo=.6,passo=0){
  const max=Math.min(2,Math.max(.1,(tela.w-16)/Math.max(1,base.w)),Math.max(.1,(tela.h-16)/Math.max(1,base.h)));
- return Math.max(Math.min(.6,max),Math.min(max,Number.isFinite(valor)?valor:1));
+ const min=Math.min(minimo,max),limitado=Math.max(min,Math.min(max,Number.isFinite(valor)?valor:1));
+ if(!(passo>0))return limitado;
+ const passos=Math.floor((max-min)/passo+1e-9),indice=Math.min(passos,Math.max(0,Math.round((limitado-min)/passo)));
+ return Number((min+indice*passo).toFixed(4));
 }
 export function modoRedimensionamento(painel,eixo='livre'){
- return eixo==='vertical'?'vertical':painel.tagName==='DIALOG'?'janela':'escala';
+ return eixo==='grade'?'grade':eixo==='vertical'?'vertical':painel.tagName==='DIALOG'?'janela':'escala';
 }
 export function instalarRedimensionamento(painel,chave,{eixo='livre'}={}){
  // Estes painéis preservam tamanho padrão; o arrasto continua independente.
  if(painel.matches('.hud-chat,.hud-tecnicas,.hud-topo,.hud-logo,.hud-pilulas,.hud-dica'))return null;
  if(controles.has(painel))return controles.get(painel);
- const dialogo=painel.tagName==='DIALOG',modo=modoRedimensionamento(painel,eixo),vertical=modo==='vertical',janela=modo==='janela';
+ const dialogo=painel.tagName==='DIALOG',modo=modoRedimensionamento(painel,eixo),vertical=modo==='vertical',janela=modo==='janela',grade=modo==='grade';
  let salvo=null,arr=null,aplicando=false;
  try{const s=JSON.parse(localStorage.getItem(chave+'-tamanho'));if(s?.modo===modo && (janela?[s.w,s.h].every(n=>Number.isFinite(n)&&n>0):vertical?Number.isFinite(s.h)&&s.h>0:Number.isFinite(s.escala)&&s.escala>0))salvo=s;}catch{}
  const alca=document.createElement(painel.tagName==='BUTTON'?'span':'button');if(alca.tagName==='BUTTON')alca.type='button';else{alca.setAttribute('role','button');alca.tabIndex=0;}alca.className='hud-redimensionar'+(vertical?' hud-redimensionar-vertical':'');alca.textContent=vertical?'↕':'◢';
  const nome=painel.getAttribute('aria-label')||painel.querySelector('h2')?.textContent||'HUD';
- alca.setAttribute('aria-label','Redimensionar '+nome);alca.title='Arraste para ajustar o tamanho · setas para ajustar · duplo clique restaura';
+ alca.setAttribute('aria-label','Redimensionar '+nome);alca.title=grade?'Arraste para aumentar em passos · duplo clique restaura o tamanho':'Arraste para ajustar o tamanho · setas para ajustar · duplo clique restaura';
  painel.classList.add('hud-ajustavel');painel.append(alca);
  const visivel=()=>painel.getClientRects().length && (!dialogo||painel.open);
  const fixar=(x,y)=>{const r=painel.getBoundingClientRect();Object.assign(painel.style,{position:'fixed',left:Math.max(8,Math.min(x,innerWidth-r.width-8))+'px',top:Math.max(8,Math.min(y,innerHeight-r.height-8))+'px',right:'auto',bottom:'auto',transform:'none'});};
@@ -33,7 +36,7 @@ export function instalarRedimensionamento(painel,chave,{eixo='livre'}={}){
   const r=painel.getBoundingClientRect(),tela={w:innerWidth,h:innerHeight};
   if(janela){const size=limitarTamanhoHud(valor.w,valor.h,tela);painel.classList.add('hud-tamanho-manual');painel.style.setProperty('--hud-largura',size.w+'px');painel.style.setProperty('--hud-altura',size.h+'px');}
   else if(vertical){const largura=painel.getBoundingClientRect().width,altura=limitarAlturaHud(valor.h,tela);painel.classList.add('hud-tamanho-manual');painel.style.setProperty('--hud-largura',largura+'px');painel.style.setProperty('--hud-altura',altura+'px');}
-  else{const atual=Number(painel.style.scale)||1;const escala=limitarEscalaHud(valor.escala,{w:r.width/atual,h:r.height/atual},tela);painel.style.transformOrigin='top left';painel.style.scale=String(escala);}
+  else{const atual=Number(painel.style.scale)||1;const escala=limitarEscalaHud(valor.escala,{w:r.width/atual,h:r.height/atual},tela,grade?1:.6,grade ? 0.05 : 0);painel.style.transformOrigin='top left';painel.style.scale=String(escala);}
   fixar(ancora?.x??r.left,ancora?.y??r.top);aplicando=false;
  };
  const guardar=()=>{const r=painel.getBoundingClientRect();salvo=janela?{modo,w:r.width,h:r.height}:vertical?{modo,h:r.height}:{modo,escala:Number(painel.style.scale)||1};try{localStorage.setItem(chave+'-tamanho',JSON.stringify(salvo));}catch{}};
