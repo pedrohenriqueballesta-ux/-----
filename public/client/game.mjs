@@ -20,7 +20,8 @@ import { carregarProjetilMob, desenharProjetilMob } from '../render/projetil-mob
 import { carregarGenki, desenharGenki } from '../render/genki.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
-import { zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
+import { zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/minimapa.mjs';
+import { desenharCabecaMinimapa } from '../render/minimapa-cabecas.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/camera.mjs';
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
@@ -31,7 +32,7 @@ let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
 let zoomMini = 1, vistaMini = null, destinoMini = null;
-let centroMini = null, arrastoMini = null;
+let centroMini = null, arrastoMini = null, ponteiroMini = null;
 const trilhaSonora=instalarTrilhaSonora({obterEstado:()=>snapshot});
 const transicaoTeleport = criarTransicaoTeleport({
   viajar: destino => api('action', { type: 'portal', destino }),
@@ -187,19 +188,24 @@ mini?.addEventListener('pointermove', e => {
   const dx = e.clientX - arrastoMini.x, dy = e.clientY - arrastoMini.y;
   if (!arrastoMini.moveu && Math.hypot(dx, dy) < 4) return;
   arrastoMini.moveu = true; mini.classList.add('arrastando');
+  ponteiroMini = null;
   const mundo = PLANETS[snapshot.planet], limite = areaPorId(snapshot.area) || { x: 0, y: 0, w: mundo.w, h: mundo.h };
   centroMini = { ...arrastarMinimapa(arrastoMini.vista, dx, dy, arrastoMini.caixa, limite), planet: snapshot.planet, area: snapshot.area };
   e.preventDefault(); redesenharMini();
 });
+mini?.addEventListener('pointermove', e => {
+  if (arrastoMini?.moveu || transicaoTeleport.ativa) return;
+  ponteiroMini = { x: e.clientX, y: e.clientY }; redesenharMini();
+});
+mini?.addEventListener('pointerleave', () => { ponteiroMini = null; redesenharMini(); });
 function terminarArrastoMini(e) {
   if (!arrastoMini || arrastoMini.id !== e.pointerId) return;
   const gesto = arrastoMini; arrastoMini = null; mini.classList.remove('arrastando');
   if (mini.hasPointerCapture(e.pointerId)) mini.releasePointerCapture(e.pointerId);
   if (e.type !== 'pointerup' || gesto.moveu || !snapshot || transicaoTeleport.ativa || snapshot.self?.hp <= 0 ||
       gesto.vista.planet !== snapshot.planet || gesto.vista.area !== snapshot.area) return;
-  const caixa = mini.getBoundingClientRect();
-  const ponto = pontoDoMinimapa(e.clientX, e.clientY,
-    { left: caixa.left + mini.clientLeft, top: caixa.top + mini.clientTop, width: mini.clientWidth, height: mini.clientHeight }, vistaMini);
+  const caixa = caixaConteudoMinimapa(mini.getBoundingClientRect(), mini);
+  const ponto = pontoDoMinimapa(e.clientX, e.clientY, caixa, vistaMini);
   if (!ponto) return;
   e.preventDefault(); keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null;
   canvas.focus({ preventScroll: true }); sendInput();
@@ -460,14 +466,32 @@ function miniMarker(x, y, r, color) {
   mctx.beginPath(); mctx.arc(x, y, r, 0, Math.PI * 2); mctx.fillStyle = color; mctx.fill();
 }
 // Jogador: anel pulsando (chama o olho numa olhada rápida), seta para onde está virado e o marcador.
-function drawMiniSelf(x, y, facing) {
+function drawMiniSelf(x, y, facing, personagem) {
   const pulse = (performance.now() / 1100) % 1;
   mctx.beginPath(); mctx.arc(x, y, 6 + pulse * 9, 0, Math.PI * 2);
   mctx.strokeStyle = `rgba(255, 43, 214, ${0.9 * (1 - pulse)})`; mctx.lineWidth = 2.5; mctx.stroke();
   const a = Math.atan2(facing?.y || 1, facing?.x || 0), tip = (d, da) => [x + Math.cos(a + da) * d, y + Math.sin(a + da) * d];
   mctx.beginPath(); mctx.moveTo(...tip(11, 0)); mctx.lineTo(...tip(6, 0.75)); mctx.lineTo(...tip(6, -0.75)); mctx.closePath();
   mctx.fillStyle = '#fff'; mctx.fill(); mctx.strokeStyle = '#000'; mctx.lineWidth = 1.5; mctx.stroke();
-  miniMarker(x, y, 4, '#ff2bd6');
+  if (!desenharCabecaMinimapa(mctx, personagem, x, y, 16, true)) miniMarker(x, y, 4, '#ff2bd6');
+}
+function drawMiniPortal(x, y) {
+  const image = art.nuvemTeleport;
+  if (!image?.complete || !image.naturalWidth) { miniMarker(x, y, 3, '#62c7ff'); return; }
+  const frame = Math.floor(performance.now() / 100) % 16;
+  mctx.save(); mctx.imageSmoothingEnabled = true; mctx.imageSmoothingQuality = 'high';
+  mctx.drawImage(image, frame % 4 * 443, Math.floor(frame / 4) * 221, 443, 221, x - 8, y - 5, 16, 10);
+  mctx.restore();
+}
+function drawMiniTooltip(texto, x, y, mapW, mapH) {
+  mctx.save(); mctx.font = 'bold 10px system-ui, -apple-system, sans-serif'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle';
+  const maxW = Math.max(30, Math.min(150, mapW - 8)); let label = String(texto || '');
+  while (label.length > 3 && mctx.measureText(label).width > maxW - 12) label = label.slice(0, -2) + '…';
+  const w = Math.min(maxW, mctx.measureText(label).width + 12), h = 18;
+  const bx = Math.max(4, Math.min(mapW - w - 4, x - w / 2)), by = Math.max(2, Math.min(mapH - h - 2, y - h - 7));
+  mctx.fillStyle = '#07101eee'; mctx.strokeStyle = '#f4cf6a'; mctx.lineWidth = 1;
+  mctx.beginPath(); mctx.roundRect(bx, by, w, h, 4); mctx.fill(); mctx.stroke();
+  mctx.fillStyle = '#fff'; mctx.fillText(label, bx + w / 2, by + h / 2, maxW - 8); mctx.restore();
 }
 // Minimapa da região em volta do jogador (decisão do Pedro, 29/10): mostra um pedaço do mundo
 // centrado nele, preso às bordas do mapa; mobs, outros jogadores e o que a câmera vê, no mesmo recorte.
@@ -487,11 +511,32 @@ function drawMinimap(world = PLANETS.namek, area = null) {
     mctx.imageSmoothingEnabled = true;
     mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
   }
-  for (const o of portaisAqui()) miniMarker(X(o.x), Y(o.y), 3, corDoPortal(o));
-  for (const mob of snapshot.mobs) { mctx.fillStyle = grande(mob) ? '#ff9369' : '#d96049'; mctx.beginPath(); mctx.arc(X(mob.x), Y(mob.y), grande(mob) ? 4 : 3, 0, Math.PI * 2); mctx.fill(); }
-  for (const p of snapshot.players) if (p.id !== playerId) miniMarker(X(p.x), Y(p.y), 2.5, '#5fd8ff');
+  const hoveraveis = [];
+  for (const o of portaisAqui()) { const x = X(o.x), y = Y(o.y); drawMiniPortal(x, y); hoveraveis.push({ x, y, raio: 9, texto: destinosDoPortal(o) }); }
+  for (const mob of snapshot.mobs) {
+    const x = X(mob.x), y = Y(mob.y);
+    if (!desenharCabecaMinimapa(mctx, mob, x, y, grande(mob) ? 15 : 13)) miniMarker(x, y, grande(mob) ? 4 : 3, grande(mob) ? '#ff9369' : '#d96049');
+    hoveraveis.push({ x, y, raio: 7, texto: mob.name || 'Criatura' });
+  }
+  for (const p of snapshot.players) if (p.id !== playerId) {
+    const x = X(p.x), y = Y(p.y);
+    if (!desenharCabecaMinimapa(mctx, p, x, y, 14, true)) miniMarker(x, y, 2.5, '#5fd8ff');
+    hoveraveis.push({ x, y, raio: 7, texto: p.name || 'Jogador' });
+  }
   mctx.strokeStyle = '#fff0c488'; mctx.lineWidth = 1; mctx.strokeRect(X(camera.x), Y(camera.y), width / camera.scale * sx, height / camera.scale * sy);
-  if (self) drawMiniSelf(X(self.x), Y(self.y), self.facing);
+  if (self) {
+    const x = X(self.x), y = Y(self.y); drawMiniSelf(x, y, self.facing, self);
+    hoveraveis.push({ x, y, raio: 7, texto: self.name || 'Você' });
+  }
+  if (ponteiroMini) {
+    const caixa = caixaConteudoMinimapa(mini.getBoundingClientRect(), mini);
+    if (caixa?.width > 0 && caixa?.height > 0) {
+      const px = (ponteiroMini.x - caixa.left) / caixa.width * mapW, py = (ponteiroMini.y - caixa.top) / caixa.height * mapH;
+      const alvo = hoveraveis.map(o => ({ ...o, distancia: Math.hypot(o.x - px, o.y - py) }))
+        .filter(o => o.distancia <= o.raio).sort((a, b) => a.distancia - b.distancia)[0];
+      if (alvo) drawMiniTooltip(alvo.texto, alvo.x, alvo.y, mapW, mapH);
+    }
+  }
   if (destinoMini && destinoMini.planet === snapshot.planet && destinoMini.area === snapshot.area) {
     const idade = (performance.now() - destinoMini.em) / 1000;
     if (idade < 1.2) {
@@ -509,6 +554,13 @@ function textoDoPortal(o) {
   if (o.destinos.length > 1) return 'Saída';
   const d = lugar(o.destinos[0]);
   return (d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
+}
+function destinosDoPortal(o) {
+  return o.destinos.map(id => {
+    if (id === 'terra') return 'Terra';
+    const d = lugar(id), nome = d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name;
+    return nome + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
+  }).join(' / ');
 }
 // Encostar no portal abre a janela de destinos uma vez; só abre de novo depois de sair do círculo
 // (quem chega por um portal aparece fora dele, e fechar a janela não faz ela voltar parada ali).

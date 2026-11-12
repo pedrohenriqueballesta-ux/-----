@@ -25,3 +25,11 @@ export function pontoDoMinimapa(clientX, clientY, caixa, vista) {
   if (x < 0 || x > 1 || y < 0 || y > 1) return null;
   return { x: vista.x + x * vista.w, y: vista.y + y * vista.h };
 }
+// Converte o retângulo CSS real para a área interna desenhada do canvas, incluindo bordas e transformações.
+export function caixaConteudoMinimapa(rect, medidas) {
+  if (!rect || !medidas) return null;
+  const sx = medidas.offsetWidth > 0 ? rect.width / medidas.offsetWidth : 1;
+  const sy = medidas.offsetHeight > 0 ? rect.height / medidas.offsetHeight : 1;
+  return { left: rect.left + medidas.clientLeft * sx, top: rect.top + medidas.clientTop * sy,
+    width: medidas.clientWidth * sx, height: medidas.clientHeight * sy };
+}

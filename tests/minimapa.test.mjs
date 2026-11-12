@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../public/render/minimapa.mjs';
+import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../public/render/minimapa.mjs';
 import { Game } from '../public/shared/game.mjs';
 import { PLANETS, ZONES, OBSTACLES } from '../public/shared/config.mjs';
 import { zoomFromWheel } from '../public/render/camera.mjs';
@@ -29,6 +29,16 @@ test('clique corresponde ao recorte exibido, com zoom e tamanhos diferentes', ()
     }
   }
   assert.equal(pontoDoMinimapa(0, 0, { left: 0, top: 0, width: 0, height: 0 }, null), null);
+});
+
+test('clique usa a área interna visível do canvas quando o minimapa tem borda e escala CSS', () => {
+  const vista = { x: 1000, y: 2000, w: 2400, h: 1760 };
+  for (const escala of [.75, 1, 1.5, 2]) {
+    const caixa = caixaConteudoMinimapa({ left: 100, top: 50, width: 242 * escala, height: 178 * escala },
+      { offsetWidth: 242, offsetHeight: 178, clientLeft: 1, clientTop: 1, clientWidth: 240, clientHeight: 176 });
+    assert.deepEqual(pontoDoMinimapa(caixa.left + caixa.width / 2, caixa.top + caixa.height / 2, caixa, vista), { x: 2200, y: 2880 });
+    assert.deepEqual(pontoDoMinimapa(caixa.left + caixa.width, caixa.top + caixa.height, caixa, vista), { x: 3400, y: 3760 });
+  }
 });
 
 test('minimapa e cliques permanecem dentro do lugar atual, inclusive nas bordas e com zoom afastado', () => {
