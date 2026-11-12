@@ -152,6 +152,28 @@ test('caça automática troca imediatamente para o mob mais próximo', () => {
   assert.equal(p.targetId, proximo.id, 'não espera matar o alvo anterior');
 });
 
+test('Auto Hunt varia o próximo alvo entre mobs quase igualmente próximos e conserva a escolha durante a perseguição', () => {
+  const selecionar = sorteio => {
+    const game = world(), p = naArea(game, game.addPlayer('a'));
+    const criar = (x, y) => {
+      const m = game.addMob('melee', p.x + x, p.y + y, 'inicial');
+      m.x = p.x + x; m.y = p.y + y; return m;
+    };
+    const primeiro = criar(100, 0), segundo = criar(150, 0), acima = criar(120, 90), abaixo = criar(120, -90);
+    game.random = () => sorteio;
+    assert.equal(game.alvoMaisProximo(p)?.id, primeiro.id, 'o primeiro alvo continua sendo o mais próximo');
+    p.targetId = primeiro.id; primeiro.hp = 0;
+    const escolhido = game.alvoMaisProximo(p);
+    p.targetId = escolhido.id;
+    assert.equal(game.alvoMaisProximo(p)?.id, escolhido.id, 'não troca de alvo no meio do caminho');
+    return { escolhido, segundo, acima, abaixo };
+  };
+  const sorteioInicial = selecionar(0);
+  assert.equal(sorteioInicial.escolhido.id, sorteioInicial.segundo.id);
+  const sorteioFinal = selecionar(0.99);
+  assert.equal(sorteioFinal.escolhido.id, sorteioFinal.abaixo.id);
+});
+
 test('caça automática mantém o alvo quando as distâncias quase empatam e evita tremedeira', () => {
   const game = world(), p = naArea(game, game.addPlayer('a'));
   const a = game.addMob('melee', p.x + 120, p.y, 'inicial');

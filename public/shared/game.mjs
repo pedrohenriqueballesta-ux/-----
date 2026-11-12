@@ -134,12 +134,28 @@ export class Game {
       && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
       .sort((a, b) => distance(p, a) - distance(p, b));
     const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40, true);
+    const opcoes = vivos.filter(alcançavel);
     const atual = this.mobs.get(p.targetId);
     if (atual && vivos.includes(atual) && alcançavel(atual)) {
       const maisPerto = vivos.find(m => m !== atual && distance(p, m) + 35 < distance(p, atual) && alcançavel(m));
-      return maisPerto || atual;
+      if (maisPerto) {
+        p.alvosRecentes = [...(p.alvosRecentes || []), maisPerto.id].slice(-3);
+        return maisPerto;
+      }
+      return atual;
     }
-    return vivos.find(alcançavel) || null;
+    if (!opcoes.length) return null;
+    const recentes = p.alvosRecentes || [];
+    // O primeiro alvo continua sendo o mais próximo. Depois de cada abate, varia entre
+    // inimigos alcançáveis a no máximo 35 unidades do mais próximo, sem repetir os três
+    // últimos quando há alternativas. A margem respeita a prioridade e a histerese atuais.
+    const maisPerto = distance(p, opcoes[0]);
+    const grupo = recentes.length ? opcoes.filter(m => distance(p, m) <= maisPerto + 35) : [opcoes[0]];
+    const novos = grupo.filter(m => !recentes.includes(m.id));
+    const escolhas = novos.length ? novos : grupo;
+    const escolhido = escolhas[Math.min(escolhas.length - 1, Math.floor(this.random() * escolhas.length))];
+    p.alvosRecentes = [...recentes, escolhido.id].slice(-3);
+    return escolhido;
   }
   // Entre combates, patrulha pontos de nascimento espalhados pela hunt. Evita repetir os três
   // últimos pontos para sair da mesma área e encontrar outros inimigos.
@@ -226,7 +242,7 @@ export class Game {
     if (kind === 'hunt') {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
-      p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.rota = null;
+      p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.alvosRecentes = []; p.rota = null;
       if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
       return { ok: true };
     }
