@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {limitarTamanhoHud,limitarEscalaHud} from '../public/render/redimensionar-hud.mjs';
+import {limitarTamanhoHud,limitarAlturaHud,limitarEscalaHud} from '../public/render/redimensionar-hud.mjs';
 test('tamanho das janelas respeita mínimos e limites da tela',()=>{
  assert.deepEqual(limitarTamanhoHud(50,40,{w:1000,h:800}),{w:220,h:160});
  assert.deepEqual(limitarTamanhoHud(5000,5000,{w:420,h:740}),{w:404,h:724});
@@ -13,4 +13,10 @@ test('escala mantém proporção e limita HUDs à área disponível',()=>{
  assert.equal(limitarEscalaHud(2,{w:800,h:100},{w:420,h:740}),404/800);
  assert.equal(limitarEscalaHud(2,{w:100,h:900},{w:420,h:740}),724/900);
  assert.equal(limitarEscalaHud(NaN,{w:300,h:100},{w:1000,h:800}),1);
+});
+test('altura vertical respeita a tela sem alterar a largura fixa da janela',()=>{
+ assert.equal(limitarAlturaHud(260,{w:1000,h:800}),260);
+ assert.equal(limitarAlturaHud(5000,{w:420,h:740}),724);
+ assert.equal(limitarAlturaHud(40,{w:1000,h:800}),160);
+ assert.equal(limitarAlturaHud(NaN,{w:1000,h:800}),188);
 });

@@ -539,8 +539,15 @@ export class Game {
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
-          if (this.random() < attacker.stats.lootChance) this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item: this.random() < RECOMPENSAS_MOBS.fracaoCristal ? 'crystal' : 'scrap', owner: attacker.id, until: this.time + 45 });
-          if (this.random() < RECOMPENSAS_MOBS.chanceSemente15) this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
+          if (this.random() < attacker.stats.lootChance) {
+            const item=this.random()<RECOMPENSAS_MOBS.fracaoCristal?'crystal':'scrap';
+            this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
+            analisar(attacker,'drops',1,item);
+          }
+          if (this.random() < RECOMPENSAS_MOBS.chanceSemente15) {
+            this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
+            analisar(attacker,'drops',1,'seed15');
+          }
         }
       }
     }

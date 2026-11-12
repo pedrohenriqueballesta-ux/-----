@@ -9,8 +9,8 @@ export function limitarPosicaoPainel(posicao, tamanho, tela) {
 
 // Arrasta um painel comum da HUD (<section>/<div>) pela alça; salva a posição no localStorage.
 // Duplo clique na alça reseta a posição (volta ao lugar padrão do CSS).
-export function instalarArrasto(painel, alca, chave) {
-  if(typeof document!=='undefined')instalarRedimensionamento(painel,chave);
+export function instalarArrasto(painel, alca, chave, opcoes={}) {
+  if(typeof document!=='undefined')instalarRedimensionamento(painel,chave,opcoes);
   let pref = null, arr = null;
   try { const s = JSON.parse(localStorage.getItem(chave)); if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) pref = s; } catch {}
   const aplicar = pos => {

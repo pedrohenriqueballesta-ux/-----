@@ -108,7 +108,7 @@
       <details id="huntAnalyzer" class="hunt-analyzer"><summary>Hunt Analyzer <span class="hunt-analyzer-toggle">Expandir / minimizar</span></summary>
         <button id="huntAnalyzerReset" type="button">Iniciar nova sessão</button>
         <nav class="hunt-analyzer-abas" aria-label="Seções do Hunt Analyzer">
-          <button type="button" data-hunt-aba="resumo" aria-pressed="true">Resumo e loot</button>
+          <button type="button" data-hunt-aba="resumo" aria-pressed="true">Resumo</button>
           <button type="button" data-hunt-aba="abates" aria-pressed="false">Abates</button>
           <button type="button" data-hunt-aba="mortes" aria-pressed="false">Mortes</button>
         </nav>
@@ -116,6 +116,7 @@
         <p><small>Conta enquanto o Auto Hunt estiver ativo. Saldo = Zeni + loot ao preço de venda ao NPC − consumíveis ao preço de compra. Raridades não cadastradas aparecem como “Não definida”.</small></p>
         <p><small>Os totais permanecem ao pausar; uma nova conexão ao personagem inicia outra sessão.</small></p>
       </details>
+      <button id="lootTrackerOpen" class="hunt-loot-abrir" type="button" aria-controls="lootTrackerWindow">Abrir Loot Tracker ↗</button>
       <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa toda a automação. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>
         <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca os alvos próximos.</small></span><input id="autoAttack" type="checkbox"></label>
@@ -140,6 +141,11 @@
     <svg viewBox="0 0 240 52" role="img" aria-label="XP por hora nas últimas amostras da sessão"><path d="M0 51H240" stroke="#526b89"/><polyline fill="none" stroke="#ffda72" stroke-width="2" points=""/></svg>
     <small>XP/h · últimas 60 amostras (5 s)</small>
     <dl><dt>Tempo</dt><dd data-hunt="tempo">00:00:00</dd><dt>XP/h</dt><dd data-hunt="xp">0</dd><dt>Saldo estimado</dt><dd data-hunt="saldo">0 Z</dd></dl>
+  </section>
+  <section id="lootTrackerWindow" class="hunt-loot-window" aria-label="Loot Tracker" hidden>
+    <header><strong>Loot Tracker</strong><button id="lootTrackerClose" type="button" aria-label="Fechar Loot Tracker" title="Fechar">×</button></header>
+    <div class="hunt-loot-status" aria-live="polite"></div>
+    <div class="hunt-loot-dados" aria-live="off"></div>
   </section>
   <script type="module" src="/client/game.mjs"></script>
 </body>
