@@ -29,10 +29,12 @@ test('forma SSJ2 desenha as folhas SSJ2 em todas as poses e oito direções, na 
     assert.ok(Math.abs(desenhos[0][7]/desenhos[0][3]-70/FOLHAS_GOKU_BASE.andar[0].referenceHeight)<1e-9,estado);
   }
 });
-test('raios: 16 quadros em loop a 90 ms, só na forma SSJ2, ancorados nos pés e escalados pela altura',async()=>{
+test('raios: 16 quadros em loop a 70 ms, em ordem embaralhada (estalando), só na forma SSJ2, ancorados nos pés e escalados pela altura',async()=>{
   const png=await readFile(new URL('../public'+RAIOS_SSJ2.camadas.frente,import.meta.url));
   assert.equal(png.readUInt32BE(16),RAIOS_SSJ2.largura*RAIOS_SSJ2.colunas);assert.equal(png.readUInt32BE(20),RAIOS_SSJ2.altura*Math.ceil(RAIOS_SSJ2.quadros/RAIOS_SSJ2.colunas));
-  assert.equal(quadroRaios(0),0);assert.equal(quadroRaios(0.091),1);assert.equal(quadroRaios(16*0.09+0.001),0);
+  assert.deepEqual([...RAIOS_SSJ2.ordem].sort((a,b)=>a-b),[...Array(16).keys()],'todos os quadros, cada um uma vez');
+  assert.equal(quadroRaios(0),RAIOS_SSJ2.ordem[0]);assert.equal(quadroRaios(0.071),RAIOS_SSJ2.ordem[1]);assert.equal(quadroRaios(16*0.07+0.001),RAIOS_SSJ2.ordem[0]);
+  for(let i=1;i<16;i++)assert.ok(Math.abs(RAIOS_SSJ2.ordem[i]-RAIOS_SSJ2.ordem[i-1])>=3,'quadros vizinhos saltam');
   carregarRaiosSsj2('frente');assert.equal(carregarRaiosSsj2('atras'),null);
   const chamadas=[],ctx={globalAlpha:1,save(){},restore(){},drawImage(...a){chamadas.push(a);}};
   for(const forma of ['base','kaioken','ssj'])assert.equal(desenharRaiosSsj2(ctx,{forma},{x:0,y:0},1,75),false,forma);
