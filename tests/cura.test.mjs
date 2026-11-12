@@ -8,7 +8,7 @@ import { lugar } from '../public/shared/config.mjs';
 import { createGameServer } from '../server.mjs';
 
 function cena(nivel = 1) {
-  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
+  const g = new Game({ now: 1000, populate: false, randomCombat:()=>.5 }), p = g.addPlayer('p');
   Object.assign(p, { level: nivel, stats: statsFor(nivel), hp: statsFor(nivel).hp / 2, ki: statsFor(nivel).ki,
     autoFood: false, autoHeal: false });
   return { g, p };
@@ -125,6 +125,7 @@ test('autocura repete a cada 0,7s sem regeneração gratuita, sem alvo e sem pau
 test('API concorrente aceita apenas uma cura e não confia em cura/custo enviados pelo cliente', async () => {
   const app = await createGameServer({ port: 0, dataDir: null, populate: false });
   try {
+    app.game.randomCombat=()=>.5;
     const base = 'http://127.0.0.1:' + app.port;
     const entrada = await criarSessaoTeste(base,'Teste');
     const p = app.game.players.get(entrada.playerId); p.hp = 60; p.autoHeal = false;
