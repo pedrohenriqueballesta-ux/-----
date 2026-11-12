@@ -102,3 +102,12 @@ com a transparência invertida (fundo azul opaco, miolo apagado) e foi recuperad
 miolo branco) em `public/assets/skills/raios-ssj2-corpo/frente.png`; original em `~/idle-dbz/referencias/goku-ssj/raios-amigo/`.
 O módulo aceita uma camada `atras` (antes do corpo) se a arte vier com ela.
 Teste: `tests/goku-ssj2.test.mjs`. Escada de formas e barra de técnicas: `docs/ATALHOS.md` e `shared/formas.mjs`.
+
+## Super Saiyajin 3 (12/11/2026)
+
+Seis folhas do Pedro feitas sobre as do SSJ2 (pés no mesmo pixel; cabelo longo até as coxas, sem sobrancelhas) em
+`public/assets/goku/ssj3/`, módulos `art/goku-ssj3-*.mjs` e `FOLHAS_GOKU_SSJ3`. Forma `ssj3` no topo da escada
+(`shared/formas.mjs`), nível 70 PROVISÓRIO, dano = SSJ2 × 1,5. Os raios do SSJ2 também aparecem no SSJ3
+(`FORMAS_COM_RAIOS`), na altura do corpo do SSJ3. Teste: `tests/goku-ssj3.test.mjs`.
+Próximo: Ryuken (Punho do Dragão) no lugar do Kamehameha enquanto em SSJ3, quando chegarem os 3 GIFs.
+
