@@ -1,10 +1,10 @@
 {
   "skill": "ryuken-impacto",
   "direction": "right",
-  "frame_count": 12,
-  "frame_width": 256,
-  "frame_height": 256,
-  "frame_duration_ms": 70,
+  "frame_count": 16,
+  "frame_width": 512,
+  "frame_height": 512,
+  "frame_duration_ms": 60,
   "spritesheet_columns": 4,
-  "spritesheet_rows": 3
+  "spritesheet_rows": 4
 }
