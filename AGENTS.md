@@ -70,3 +70,27 @@ Os números, marcos de nível e decisões provisórias estão explicados em LEIA
 
 Use testes quando alterar regras de combate, recuperação, progressão e inventário. Preserve a execução sem instalação de pacotes enquanto isso atender ao protótipo. Goku é o único personagem implementado nesta versão.
 
+## Diretrizes de Vocações, Progressão e Balanceamento — Dragon Ball Idle
+
+### Estado atual implementado
+
+- Goku é a única vocação jogável. `public/shared/vocacoes.mjs` já fornece um catálogo compartilhado, mas atualmente registra somente `goku`; valores desconhecidos voltam para Goku. Os campos de personagem/vocação já podem ser salvos, sem que isso signifique que outras vocações estejam disponíveis.
+- A progressão atual usa `statsFor` e `xpForLevel` em `public/shared/characters.mjs`. A criação do personagem limita o nível a 100 e a simulação interrompe os ganhos de nível nesse teto. A curva atual não equivale ao planejamento futuro até 1.000.
+- Goku já possui atributos, habilidades, sprites e a escada de transformações implementada para esta versão. As regras atuais estão em `public/shared/config.mjs`, `public/shared/formas.mjs`, `public/shared/game.mjs` e `public/art/`; preservá-las é obrigatório.
+
+### Diretrizes permanentes de arquitetura e balanceamento
+
+- O projeto prevê Goku, Vegeta, Gohan, Cell, Buu e futuras vocações. Cada uma deverá ter identidade de combate própria, mantendo potencial competitivo equivalente ao longo da progressão; não precisam ter atributos, habilidades ou estilo idênticos.
+- Avaliar o equilíbrio considerando XP por hora em hunts compatíveis, combate contra mobs e chefes, sobrevivência, consumo e recuperação de recursos e progressão de habilidades. PvP só entra nessa avaliação se for implementado e solicitado.
+- Evoluir os sistemas compartilhados com configurações específicas por vocação quando isso for necessário e seguro. Reutilizar regras de progressão, combate, salvamento, HUD e simulação autoritativa; evitar duplicar sistemas inteiros ou exigir uma reescrita ao adicionar uma vocação.
+- Não copiar automaticamente os atributos, habilidades ou transformações de Goku para outra vocação. Generalizar lógica específica de Goku apenas quando uma necessidade concreta justificar a mudança e quando o comportamento existente puder ser preservado.
+- Preservar compatibilidade com personagens e saves existentes, incluindo progresso, vocação identificada e regras atuais. Não alterar dados de jogadores, curva de XP, nível máximo, desbloqueios, habilidades, transformações, sprites, caminhos de assets ou estrutura de animação sem uma tarefa específica.
+
+### Planejamento futuro — ainda não implementado
+
+- A progressão de longo prazo prevê nível máximo 1.000, XP gradual e habilidades distribuídas pela progressão. Isso não altera o teto atual de 100 nem autoriza mudar a curva, os saves ou os desbloqueios.
+- Cada vocação poderá ter habilidades e transformações próprias, configuradas sobre estruturas compartilhadas. Referências de design (Vegeta: ofensiva explosiva; Gohan: críticos e grande impacto; Cell: regeneração, resistência e absorção; Buu: sobrevivência e recuperação) são diretrizes, não atributos ou habilidades já disponíveis.
+- Após o nível 1.000, o planejamento prevê Ascensão em cinco estágios, com evolução, transformações, habilidades, Poder de Combate, desafios, chefes e recompensas específicos por vocação. Esse sistema ainda não existe.
+- Endgame e futuras vocações devem manter competitividade entre estilos diferentes, sem tornar uma opção superior em todos os aspectos.
+- Itens listados como planejamento nesta seção não autorizam implementação automática. Só implementar uma vocação, progressão, habilidade, transformação, Ascensão ou mudança de balanceamento quando houver uma solicitação específica; até lá, documentar propostas como futuras e manter intacto o jogo atual.
+

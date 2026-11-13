@@ -557,8 +557,8 @@ export class Game {
   }
   awardXp(p, amount) {
     p.xp += amount;
-    while (p.level < 100 && p.xp >= xpForLevel(p.level)) {
-      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level);
+    while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
+      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
       const unlock = p.level === 2 ? ' Kaioken, Barreira de Ki e Imagem Residual liberados!' : p.level === 3 ? ' Kamehameha liberado!' : p.level === 5 ? ' Super Saiyajin liberado!' : p.level === 10 ? ' Genki Dama liberada!' : '';

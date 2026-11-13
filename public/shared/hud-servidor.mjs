@@ -5,7 +5,7 @@ export function contasDoServidor(stored,sessions){
  const contas=new Map();
  const adicionar=p=>{
   if(!p?.mercadoId||typeof p.name!=='string')return;
-  const nivel=p.levelReal??p.level,stats=statsFor(nivel);
+  const nivel=p.levelReal??p.level,stats=statsFor(nivel,p.vocacao);
   contas.set(p.mercadoId,{id:p.mercadoId,nome:p.name,vocacao:{...vocacaoDoPersonagem(p)},nivel,xp:Number(p.xp)||0,poder:poderCombate(stats),kills:Math.max(0,Number(p.kills)||0),bossKills:Math.max(0,Number(p.bossKills)||0),godmode:p.godmode===true});
  };
  for(const[k,p]of Object.entries(stored))if(!k.startsWith('__'))adicionar(p);
