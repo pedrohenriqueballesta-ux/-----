@@ -11,11 +11,8 @@ import { CONFIG, PLANETS, GODMODE } from './config.mjs';
 import { restaurarNovidades } from './novidades.mjs';
 import { CURA } from './cura.mjs';
 
-export function statsFor(level) {
-  const n = Math.max(0, level - 1);
-  return { hp: 120 + n * 22, ki: 80 + n * 10, attack: 12 + n * 2.8,
-    defense: 2 + n * 0.65, healing: 1 + n * 0.08, capacity: 20 + n * 1.3,
-    lootChance: Math.min(0.8, 0.35 + n * 0.008), mobility: 175 + Math.min(60, n * 2) };
+export function statsFor(level, vocacao = 'goku') {
+  return vocacaoDoPersonagem(vocacao).atributos(level);
 }
 
 // Valores "praticamente infinitos" usados pelo god mode de teste.
@@ -32,13 +29,13 @@ export function aplicarGodmode(p, on) {
     if (p.hpReal == null) p.hpReal = p.hp;
     if (p.kiReal == null) p.kiReal = p.ki;
     p.godmode = true; p.level = 100;
-    p.stats = statsFor(100); p.stats.capacity = GODMODE_CAPACITY;
+    p.stats = statsFor(100, p.vocacao); p.stats.capacity = GODMODE_CAPACITY;
     p.hp = p.stats.hp; p.ki = p.stats.ki; p.zeni = GODMODE_ZENI;
   } else {
     p.godmode = false;
     if (p.levelReal != null) p.level = p.levelReal;
     if (p.zeniReal != null) p.zeni = p.zeniReal;
-    p.stats = statsFor(p.level);
+    p.stats = statsFor(p.level, p.vocacao);
     p.hp = Math.min(p.hpReal != null ? p.hpReal : p.hp, p.stats.hp);
     p.ki = Math.min(p.kiReal != null ? p.kiReal : p.ki, p.stats.ki);
     p.levelReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
@@ -54,11 +51,12 @@ const STARTING_INVENTORY = { food: 5, ki: 4, seed15: 2, seed30: 1, seed50: 1, se
 
 // Cria o estado completo de um jogador, aplicando o progresso salvo quando houver.
 export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
-  const level = clamp(Math.floor(Number(saved?.level) || 1), 1, 100);
-  const stats = statsFor(level);
+  const level = clamp(Math.floor(Number(saved?.level) || 1), 1, CONFIG.progression.nivelMaximo);
+  const vocacao = vocacaoDoPersonagem(saved);
+  const stats = statsFor(level, vocacao.id);
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
-  const p = { montaria:montariaValida(saved?.montaria), battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacaoDoPersonagem(saved).personagem,vocacao:vocacaoDoPersonagem(saved).id, level,
+  const p = { montaria:montariaValida(saved?.montaria), battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     xp: clamp(Number(saved?.xp) || 0, 0, xpForLevel(level) - 1), stats,
     x: PLANETS.terra.spawn.x, y: PLANETS.terra.spawn.y, planet: 'terra', area: null, seguroAte: 0,

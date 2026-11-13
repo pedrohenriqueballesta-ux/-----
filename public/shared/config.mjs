@@ -29,6 +29,8 @@ export const ESCALA_VEGETA = ESCALA_MUNDO;
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
+  // Teto atual do protótipo. A expansão planejada até 1.000 requer uma tarefa própria.
+  progression: Object.freeze({ nivelMaximo: 100 }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
