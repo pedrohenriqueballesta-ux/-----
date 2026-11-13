@@ -486,6 +486,9 @@ export class Game {
       if (this.time + 1e-9 < p.ryuken.until) continue;
       const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
       origem.y -= KAME.alturaMao;
+      // Continua de onde o lançamento terminou (sem passar do alvo, se ele estiver mais perto que isso).
+      const avanco = Math.min(RYUKEN.cabecaAFrente, Math.max(0, Math.hypot(alvo.x - origem.x, alvo.y - RYUKEN.alturaAlvo - origem.y) - RYUKEN.colisao));
+      origem.x += d.x * avanco; origem.y += d.y * avanco;
       this.projectiles.push({ id: this.uid('s'), kind: 'ryuken', owner: p.id, ownerType: 'player', ...origem, planet: p.planet, area: p.area,
         dx: d.x, dy: d.y, speed: RYUKEN.velocidade, targetId: alvo.id, damage: p.ryuken.damage, started: this.time, ttl: 1 });
       p.ryukenLancado = this.time; p.ryuken = null;

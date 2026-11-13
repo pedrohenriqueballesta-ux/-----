@@ -49,7 +49,9 @@ export function desenharAuraRyuken(ctx, jogador, pos, tempo) {
 export function desenharLancamentoRyuken(ctx, jogador, pos, tempo) {
   const r = jogador?.ryuken; if (!r || jogador.dead) return false;
   const d = r.direction, punho = punhoRyuken(pos, d);
-  return desenharFase(ctx, 'lancamento', quadroRyuken('lancamento', tempo - r.started), punho.x, punho.y, d.x, d.y);
+  // Segura o último quadro até o voo chegar do servidor (um tick + um snapshot): sem isso o dragão pisca.
+  const idade = Math.max(0, tempo - r.started), quadro = Math.min(RYUKEN.quadros - 1, quadroRyuken('lancamento', Math.min(idade, RYUKEN.lancamento - 1e-6)));
+  return desenharFase(ctx, 'lancamento', quadro, punho.x, punho.y, d.x, d.y);
 }
 export const desenharVooRyuken = (ctx, s, tempo, pos = s) => desenharFase(ctx, 'voo', quadroRyuken('voo', tempo - s.started), pos.x, pos.y, s.dx, s.dy);
 export const desenharImpactoRyuken = (ctx, e, tempo) => desenharFase(ctx, 'impacto', quadroRyuken('impacto', tempo - e.started), e.x, e.y, e.dx, e.dy);

@@ -57,3 +57,13 @@ test('tooltip do botão 2 no SSJ3 mostra o Ryuken; fora dele, o Kamehameha',asyn
   assert.equal(Object.fromEntries(r.linhas).Custo,'40 Ki');
   assert.equal(detalhesHabilidade('kame',{level:70,forma:'ssj2'}).nome,'Kamehameha');
 });
+
+test('voo começa onde o lançamento terminou (cabeça à frente do punho) e o último quadro fica até o voo chegar',async()=>{
+  const {g,p}=cena(),alvo=mob(g,p,240);p.targetId=alvo.id;g.cast(p,"transform");assert.ok(g.cast(p,"kame").ok);
+  passar(g,RYUKEN.lancamento+.05);
+  const s=g.projectiles.find(x=>x.kind==='ryuken');assert.ok(s);
+  const punhoX=p.x+20;assert.ok(s.x-punhoX>=RYUKEN.cabecaAFrente-1,'cabeça já à frente do punho');
+  globalThis.Image=globalThis.Image||class{complete=true;naturalWidth=1024;};
+  const {quadroRyuken}=await import('../public/render/ryuken.mjs');
+  assert.equal(quadroRyuken('lancamento',RYUKEN.lancamento+.2),-1,'sem segurar, o lançamento some');
+});

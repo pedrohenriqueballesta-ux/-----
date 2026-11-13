@@ -8,6 +8,9 @@ export const RYUKEN = Object.freeze({
   lancamento: 16 * 0.06,     // aura + energia no punho; o voo começa no último quadro
   impacto: 16 * 0.06,        // duração da explosão no alvo
   velocidade: 430, colisao: 26, alturaAlvo: 22,
+  // No último quadro do lançamento a cabeça do dragão já está 90 unidades à frente do punho (487 px × 74/400):
+  // o voo começa ali, senão o dragão "volta" para o punho e parece sumir e reaparecer.
+  cabecaAFrente: 90,
   sustentacao: 0.6           // segundos com o braço esticado depois que o dragão sai
 });
 export const usaRyuken = p => p?.forma === RYUKEN.forma;
