@@ -1096,6 +1096,8 @@ export class Game {
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
         ryuken: p.ryuken ? { started: p.ryuken.started, until: p.ryuken.until, direction: p.ryuken.direction } : null,
         ryukenLancado: Number.isFinite(p.ryukenLancado) ? p.ryukenLancado : null,
+        // Enquanto o dragão voa, o Goku segura o soco (a pose não volta antes do impacto).
+        ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),

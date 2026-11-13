@@ -54,4 +54,15 @@ export function desenharLancamentoRyuken(ctx, jogador, pos, tempo) {
   return desenharFase(ctx, 'lancamento', quadro, punho.x, punho.y, d.x, d.y);
 }
 export const desenharVooRyuken = (ctx, s, tempo, pos = s) => desenharFase(ctx, 'voo', quadroRyuken('voo', tempo - s.started), pos.x, pos.y, s.dx, s.dy);
-export const desenharImpactoRyuken = (ctx, e, tempo) => desenharFase(ctx, 'impacto', quadroRyuken('impacto', tempo - e.started), e.x, e.y, e.dx, e.dy);
+// Chegada: o corpo do dragão não some de uma vez — continua desenhado com a cabeça no alvo e vai se desfazendo nos
+// primeiros quadros do impacto (a folha de impacto começa só com a cabeça).
+export const CHEGADA = 0.3;
+export function desenharImpactoRyuken(ctx, e, tempo) {
+  const idade = tempo - e.started;
+  if (idade >= 0 && idade < CHEGADA) {
+    ctx.save(); ctx.globalAlpha *= 1 - idade / CHEGADA;
+    desenharFase(ctx, 'voo', quadroRyuken('voo', tempo), e.x, e.y, e.dx, e.dy);
+    ctx.restore();
+  }
+  return desenharFase(ctx, 'impacto', quadroRyuken('impacto', idade), e.x, e.y, e.dx, e.dy);
+}

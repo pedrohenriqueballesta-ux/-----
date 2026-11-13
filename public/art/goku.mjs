@@ -23,7 +23,7 @@ export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
     const genki = colunaGenki(player,time);
     // Ryuken (SSJ3): postura e carga durante o lançamento; soco e sustentação enquanto o dragão sai.
     const lancado = Number.isFinite(player.ryukenLancado) ? time - player.ryukenLancado : Infinity;
-    if (ssj3 && (player.ryuken || lancado < RYUKEN.sustentacao)) {
+    if (ssj3 && (player.ryuken || player.ryukenVoando || lancado < RYUKEN.sustentacao)) {
       const coluna = player.ryuken ? (time - player.ryuken.started < RYUKEN.lancamento * .5 ? 0 : time - player.ryuken.started < RYUKEN.lancamento * .85 ? 1 : 2) : lancado < .2 ? 2 : 3;
       const altura = 70 * GOKU_SSJ3_RYUKEN.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
       if (drawSheet(ctx, GOKU_SSJ3_RYUKEN, art.gokuSsj3Ryuken, pos, altura, player.ryuken?.direction || player.facing, coluna)) return true;
