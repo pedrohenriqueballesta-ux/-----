@@ -16,6 +16,7 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
   assert.ok(!catalogo.some(m=>m.tipo==='oozaruSuper'),'espécie reservada não aparece como encontrada no mundo');
   for(const m of catalogo){
     const stats=mobStats(m.tipo,m.area);assert.equal(m.hp,stats.hp);assert.equal(m.ataque,stats.attack);assert.equal(m.defesa,stats.defesa);assert.equal(m.xp,stats.xp);
+    assert.equal(m.nivel,stats.level,'nível-base usado pela redução de XP');
     assert.deepEqual(m.recomendado,areaPorId(m.area).nivel);
     if(m.raro)assert.deepEqual(m.renascimento,[TEMPO_CHEFE_RARO[m.tipo].minimo,TEMPO_CHEFE_RARO[m.tipo].maximo]);
   }

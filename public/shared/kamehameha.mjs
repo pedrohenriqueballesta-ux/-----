@@ -3,10 +3,12 @@ import { QUADROS_KAME } from './kamehameha-dados.mjs';
 
 // Tiles dos pacotes = 32 unidades do mundo; a escala da imagem do mapa não altera técnicas.
 export const KAME = Object.freeze({ tile: 32, quadro: .08, quadros: 16, carga: .65, primeiroFeixe: 4, mao: 20, alturaMao: 28, escalaVisual: .5 });
-export const ESTAGIOS_KAME = [1, 20, 50, 100, 150].map((nivel, i) => {
-  const quadros = QUADROS_KAME[nivel], alcance = (4 + i * 2) * KAME.tile;
+const NIVEIS_ESTAGIO_KAME = [40, 80, 120, 160, 200];
+const PACOTES_KAME = [1, 20, 50, 100, 150];
+export const ESTAGIOS_KAME = NIVEIS_ESTAGIO_KAME.map((nivel, i) => {
+  const pacote = PACOTES_KAME[i], quadros = QUADROS_KAME[pacote], alcance = (4 + i * 2) * KAME.tile;
   return Object.freeze({ nivel, alcance, quadros, escala: alcance / Math.max(...quadros.slice(4).map(q => q.ponta - q.origemX)),
-    imagem: '/assets/skills/kamehameha/nivel-' + nivel + '/spritesheet.png' });
+    pacote, imagem: '/assets/skills/kamehameha/nivel-' + pacote + '/spritesheet.png' });
 });
 export const estagioKame = nivel => ESTAGIOS_KAME.findLast(e => Number(nivel) >= e.nivel) || ESTAGIOS_KAME[0];
 export function quadroKame(idade) {

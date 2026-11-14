@@ -12,7 +12,7 @@ body{margin:0;background:#0b1520;color:#eaf2fa;font:15px system-ui}main{max-widt
 <section id="niveis" aria-label="Estágio"></section>
 <section><label>Direção <select id="direcao"><option value="0">Leste →</option><option value="45">Sudeste ↘</option><option value="90">Sul ↓</option><option value="135">Sudoeste ↙</option><option value="180">Oeste ←</option><option value="225">Noroeste ↖</option><option value="270">Norte ↑</option><option value="315">Nordeste ↗</option></select></label><button id="tocar">Pausar</button><label>Frame <input id="quadro" type="range" min="0" max="15" value="0"></label><output id="info"></output></section>
 <canvas id="previa" width="1100" height="850" aria-label="Animação do Kamehameha"></canvas>
-<p>Escala: 32 unidades por tile. O contorno pontilhado é a distância máxima; o efeito cresce dentro dela. No jogo, o desbloqueio continua no nível 3 e o limite atual do personagem continua em 100; o estágio 150 está disponível nesta prévia.</p>
+<p>Escala: 32 unidades por tile. O contorno pontilhado é a distância máxima; o efeito cresce dentro dela. No jogo, o Kamehameha libera no nível 40 e evolui nos níveis 40, 80, 120, 160 e 200; este último é o maior estágio atual.</p>
 </main>
 <script type="module" src="/render/kamehameha-previa.mjs"></script>
 </html>

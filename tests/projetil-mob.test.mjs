@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inflateSync} from 'node:zlib';
 import {Game,SOCA_E_ATIRA} from '../public/shared/game.mjs';
-import {lugar} from '../public/shared/config.mjs';
+import {CONFIG,lugar} from '../public/shared/config.mjs';
 import {mobStats} from '../public/shared/enemies.mjs';
 import {ARTE_PROJETIL_MOB,configurarProjetilMob,iniciarVooTarget,avancarVooTarget,quadroProjetilMob} from '../public/shared/projetil-mob.mjs';
 function cena(){
@@ -88,7 +88,7 @@ test('soco mantém dano e aviso originais; jogadores continuam com projétil Ki 
  const {g,p,m}=cena();m.x=p.x-35;m.attackReady=g.time;m.projetil.dano=999;
  g.tick(.05);assert.equal(m.telegraph.kind,'area');const antes=p.hp;passar(g,.7);
  assert.ok(p.hp<antes);assert.ok(antes-p.hp<100);assert.equal(g.projectiles.length,0);
- p.level=2;p.charge=null;p.shotReady=0;p.ki=100;assert.ok(g.cast(p,'ki').ok);assert.equal(g.projectiles.at(-1).kind,'ki');assert.equal(g.projectiles.at(-1).ttl,.95);
+ p.level=CONFIG.skills.ki;p.charge=null;p.shotReady=0;p.ki=100;assert.ok(g.cast(p,'ki').ok);assert.equal(g.projectiles.at(-1).kind,'ki');assert.equal(g.projectiles.at(-1).ttl,.95);
 });
 
 test('animação tem oito quadros distintos em loop e pode mudar FPS por mob',()=>{

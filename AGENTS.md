@@ -6,8 +6,8 @@
 - Todo chefe (subchefe e chefes raros, lista `TIPOS_CHEFE` em `shared/enemies.mjs`) leva "BOSS" no nome — placa, alvo, Bestiário e avisos — para se diferenciar dos mobs comuns; chefe novo só precisa entrar na lista (Pedro, 10/11/2026).
 
 - Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/GOKU_NOVO.md` (Pedro, 11/11/2026).
-- Escada de transformações (Pedro, 11/11/2026): um botão só na barra (tecla 3 ou T) com a forma mais forte que o nível liberou — Kaioken → Super Saiyajin → Super Saiyajin 2; liberar o SSJ tira a Kaioken. SSJ2 = SSJ × 1,5 nos danos, mesmo dreno de Ki. Nível do SSJ2 provisório (50), o Pedro decide depois. Barra: 1 Cura · 2 Kame · 3 Transformação · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis. Escada e danos em `shared/formas.mjs`.
-- Super Saiyajin 3 (Pedro, 12/11/2026): topo da escada (Kaioken → SSJ → SSJ2 → SSJ3), nível 70 provisório; dano SSJ2 × 1,5; seis folhas sobre as do SSJ2 (cabelo longo, sem sobrancelhas); sem os raios (só o SSJ2 tem). O Ryuken (Punho do Dragão, no lugar do Kamehameha no SSJ3) está em espera, fora deste ramo.
+- Escada implementada (Pedro, 13/11/2026): o terceiro dos cinco slots existentes, tecla 3/T, atualiza nome e ícone e ativa a forma mais forte liberada — Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900. Uma forma por vez; todas drenam 3,5 Ki/s. Gogeta dura 3.600 s.
+- Multiplicadores de dano mantêm a progressão de 1,5× por degrau SSJ; as formas de fusão seguem o mesmo incremento. Ainda não há sprites próprias de SSJ4, Gogeta ou Vegetto: usar fallback visual em folhas existentes e não desenhar assets novos sem solicitação.
 - Transformações são grátis e sem recarga; uma forma por vez, mantida enquanto houver Ki. Todas drenam Ki continuamente (3,5 Ki/s é valor provisório); Ki zerado, morte, viagem e desconexão devolvem à base. Repetir a técnica desliga a forma; ativar outra a substitui. Recuperação natural de Ki bloqueada em qualquer forma; forma não persiste no save (Pedro, 09/11/2026).
 
 - Auto Hunt seleciona mobs a até 700 unidades (aproximadamente 22 SQMs), somente na mesma hunt e com caminho alcançável; raio confirmado pelo Pedro em 09/11/2026.
@@ -54,7 +54,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 
 ## Decisões que devem ser preservadas
 
-- Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em cada planeta de hunt, a Vila (segura) e as hunts: Namekusei com quatro desde 09/11/2026; Planeta Vegeta com cinco (níveis 30–60). Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
+- Mundo compartilhado, dividido em lugares fechados (decisão do Pedro, 03/11/2026): Terra (lobby) e, em cada planeta de hunt, a Vila (segura) e as hunts: Namekusei com quatro; Planeta Vegeta com cinco hunts existentes, agora recomendadas entre os níveis 40–150. Não se anda de um lugar para outro; troca-se só por portal. Nada atravessa de um lugar para outro (dano, alvo, projétil, loot, o que cada jogador recebe).
 - Sem PvP nesta versão (decisão do Pedro, 03/11/2026). Quando voltar, só em área marcada como pvp, validado para todos os tipos de dano.
 - Movimento por teclado/toque e caça automática opcional, que roda a hunt inteira onde o jogador está.
 - Aggro por ameaça (decisão do Pedro, 05/11/2026): mob agressivo nota quem chega perto, todo mob reage a quem o ataca, persegue quem causou mais ameaça e volta à origem (curando-se) ao passar do limite. Raio, limite e agressividade configuráveis por mob em enemies.mjs.
@@ -75,7 +75,10 @@ Use testes quando alterar regras de combate, recuperação, progressão e invent
 ### Estado atual implementado
 
 - Goku é a única vocação jogável. `public/shared/vocacoes.mjs` já fornece um catálogo compartilhado, mas atualmente registra somente `goku`; valores desconhecidos voltam para Goku. Os campos de personagem/vocação já podem ser salvos, sem que isso signifique que outras vocações estejam disponíveis.
-- A progressão atual usa `statsFor` e `xpForLevel` em `public/shared/characters.mjs`. A criação do personagem limita o nível a 100 e a simulação interrompe os ganhos de nível nesse teto. A curva atual não equivale ao planejamento futuro até 1.000.
+- A progressão autoritativa do servidor aceita níveis de 1 a 1.000. `public/shared/progressao.mjs` define a curva de XP e a redução gradual de recompensas por diferença de nível; `public/shared/characters.mjs` calcula e restaura progresso e atributos. A fórmula histórica de XP até o nível 100 é preservada.
+- Desbloqueios atuais de habilidades: Cura e ataque básico no nível 1; Rajada de Ki e Imagem Residual 20; Kamehameha 40; Barreira de Ki 80; Genki Dama 200. `CONFIG.skills` é a referência autoritativa usada pelo servidor e pela HUD. A Genki Dama coincide com o marco planejado do SSJ2.
+- Kamehameha começa no nível 40 e evolui em 40/80/120/160/200; alcance e escala máxima atuais são atingidos no nível 200. Os marcos de arte antigos (pacotes 1/20/50/100/150) não são marcos de nível do personagem.
+- As nove hunts atuais cobrem recomendações entre os níveis 1 e 150: Namekusei vai até 40 e Planeta Vegeta de 40 a 150. Os atributos dos mobs existentes em Vegeta acompanham essa curva; não adicionar criaturas ou hunts sem solicitação.
 - Goku já possui atributos, habilidades, sprites e a escada de transformações implementada para esta versão. As regras atuais estão em `public/shared/config.mjs`, `public/shared/formas.mjs`, `public/shared/game.mjs` e `public/art/`; preservá-las é obrigatório.
 
 ### Diretrizes permanentes de arquitetura e balanceamento
@@ -88,7 +91,9 @@ Use testes quando alterar regras de combate, recuperação, progressão e invent
 
 ### Planejamento futuro — ainda não implementado
 
-- A progressão de longo prazo prevê nível máximo 1.000, XP gradual e habilidades distribuídas pela progressão. Isso não altera o teto atual de 100 nem autoriza mudar a curva, os saves ou os desbloqueios.
+- A forma Gogeta no nível 700 e Vegetto no 900 são jogáveis; a janela de fusão de Gogeta está ajustada para uma hora, em `CONFIG.transformacao.gogetaDuracao`.
+- Marcos planejados para técnicas futuras: Ryuken no nível 300 junto ao SSJ3; Super Kamehameha no nível 500 junto ao SSJ4. `CONFIG.plannedSkillUnlocks` registra a intenção, sem liberar ou ativar as técnicas antes de serem implementadas.
+- Hunts, planetas e desafios acima do nível 150 ainda serão adicionados gradualmente. O teto 1.000 existe e o God Mode de teste usa esse nível, mas isso não implica que todo esse percurso tenha conteúdo ou balanceamento pronto.
 - Cada vocação poderá ter habilidades e transformações próprias, configuradas sobre estruturas compartilhadas. Referências de design (Vegeta: ofensiva explosiva; Gohan: críticos e grande impacto; Cell: regeneração, resistência e absorção; Buu: sobrevivência e recuperação) são diretrizes, não atributos ou habilidades já disponíveis.
 - Após o nível 1.000, o planejamento prevê Ascensão em cinco estágios, com evolução, transformações, habilidades, Poder de Combate, desafios, chefes e recompensas específicos por vocação. Esse sistema ainda não existe.
 - Endgame e futuras vocações devem manter competitividade entre estilos diferentes, sem tornar uma opção superior em todos os aspectos.

@@ -1,14 +1,14 @@
 # Kamehameha evolutivo — 07/11/2026
 
-Pedido confirmado nesta sessão: evolução conforme o **nível do personagem**, sem treino por uso ou nível individual da habilidade. O desbloqueio continua no nível 3. A faixa 1–19 usa a arte 1; 20–49 usa 20; 50–99 usa 50; 100–149 usa 100; 150+ usa 150. O estágio é escolhido em cada disparo, sem reiniciar, e permanece estável até o fim da animação.
+Progressão atual: desbloqueia no nível 40 e evolui conforme o **nível do personagem**, sem treino por uso ou nível individual da habilidade. Os cinco marcos são 40, 80, 120, 160 e 200. Eles reutilizam, em ordem, os pacotes de arte 1, 20, 50, 100 e 150; os pacotes são referências visuais, não os níveis de desbloqueio. O estágio é escolhido em cada disparo, sem reiniciar, e permanece estável até o fim da animação. No nível 200, ao chegar à Genki Dama, o Kamehameha atinge seu alcance e tamanho máximos atuais.
 
-Os alcances são 4, 6, 8, 10 e 12 tiles dos pacotes (32 unidades por tile): 128, 192, 256, 320 e 384 unidades a partir das mãos. O mundo não usa grade de tiles; a escala do solo não multiplica alcances. As mãos ficam 20 unidades à frente do personagem; a apresentação sobe 28 unidades para alinhar o efeito ao corpo.
+Os alcances nos níveis 40, 80, 120, 160 e 200 são 4, 6, 8, 10 e 12 tiles dos pacotes (32 unidades por tile): 128, 192, 256, 320 e 384 unidades a partir das mãos. A escala visual e a largura da colisão aumentam proporcionalmente ao alcance. O mundo não usa grade de tiles; a escala do solo não multiplica alcances. As mãos ficam 20 unidades à frente do personagem; a apresentação sobe 28 unidades para alinhar o efeito ao corpo.
 
 Preservados: carga de 0,65 s, custo de 25 Ki, recarga de 5 s, dano de 4,2×ATK (6×ATK transformado), bônus de Kaioken e defesa do alvo. O feixe cresce durante a animação e atinge cada inimigo no máximo uma vez. O servidor confere comprimento e largura afunilada de cada quadro, área/planeta e ausência de PvP. O efeito termina ao entrar na safe zone, viajar, morrer ou desconectar. A caça automática verifica o novo alcance antes de usar Kamehameha.
 
 ## Arte e implementação
 
-- `public/assets/skills/kamehameha/nivel-{1,20,50,100,150}/`: somente spritesheet e JSON originais de cada ZIP; frames soltos não foram duplicados.
+- `public/assets/skills/kamehameha/nivel-{1,20,50,100,150}/`: pacotes de arte usados em ordem pelos marcos de nível 40, 80, 120, 160 e 200; somente spritesheet e JSON originais de cada ZIP, sem duplicar frames soltos.
 - `public/shared/kamehameha-dados.mjs`: medidas de origem luminosa, extremidade e largura nos 16 quadros de cada pacote.
 - `public/shared/kamehameha.mjs`: seleção do estágio, tempo, escala e colisão compartilhados entre cliente e servidor.
 - `public/shared/game.mjs`: carga, feixe autoritativo e conjunto de alvos atingidos por disparo; snapshot envia só os efeitos da mesma hunt.
@@ -21,6 +21,6 @@ Os quatro primeiros quadros de formação ocupam os últimos 320 ms da carga. O 
 
 Execute `npm.cmd start` no Windows (ou `npm start` em outros sistemas). Abra `http://localhost:3000/kamehameha.html`: escolha o estágio, a direção e reproduza ou avance pelo controle de frames. A página não conecta um jogador nem grava progresso. O círculo pontilhado representa o alcance máximo; o efeito cresce dentro dele. No jogo normal, saia da safe zone, alinhe vários mobs e use a tecla **1** ou técnicas automáticas; o estágio acompanha seu nível atual.
 
-O limite de nível do personagem continua em **100**. Portanto, o estágio 150 pode ser visto na prévia e testado na simulação, mas ainda não é alcançável pela progressão normal. Não foram alterados o limite, as outras habilidades ou o formato do save.
+O teto do personagem é 1.000, mas o conteúdo atual de hunts é balanceado até 150. O estágio máximo do Kamehameha é alcançável no nível 200, junto da Genki Dama; não foram alterados dano, custo, recarga ou formato do save nesta revisão.
 
 Validação: testes de regras, múltiplos alvos, alcance exato nos cinco estágios, oito direções, dano sem duplicação, safe zones/portal/desconexão/morte, carregamento e reutilização dos assets. Conferidos no navegador os cinco estágios, diagonal e disparo real: dois alvos dentro do alcance receberam dano uma vez e o terceiro, fora, não recebeu. Sem erros de JavaScript durante a conferência.

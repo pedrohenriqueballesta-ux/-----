@@ -3,7 +3,7 @@ import { desenharKameComProfundidade, carregarKame } from './kamehameha.mjs';
 import { drawGoku } from '../art/goku.mjs';
 
 const $ = id => document.getElementById(id), canvas = $('previa'), ctx = canvas.getContext('2d');
-let nivel = 1, tocando = true, inicio = performance.now(), idade = 0;
+let nivel = ESTAGIOS_KAME[0].nivel, tocando = true, inicio = performance.now(), idade = 0;
 for (const e of ESTAGIOS_KAME) {
   const b = document.createElement('button'); b.textContent = 'Nível ' + e.nivel + ' · ' + e.alcance / 32 + ' tiles';
   b.dataset.nivel = e.nivel; b.setAttribute('aria-pressed', String(e.nivel === nivel));

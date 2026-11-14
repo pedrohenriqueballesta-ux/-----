@@ -25,6 +25,7 @@ import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from './variacao-combate.mjs';
+import { xpAjustadoPorNivel } from './progressao.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
@@ -84,7 +85,7 @@ export class Game {
   }
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
-    p.forma = 'base';
+    p.forma = 'base'; p.formaAte = 0;
     p.genkiLancado = null; p.genkiDirecao = null;
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
@@ -232,7 +233,7 @@ export class Game {
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
-      this.notify(p, p.godmode ? 'God mode LIGADO: nível 100, invencível, Zeni e peso infinitos.' : 'God mode desligado: status restaurados.');
+      this.notify(p, p.godmode ? 'God mode LIGADO: nível 1.000, invencível, Zeni e peso infinitos.' : 'God mode desligado: status restaurados.');
       return { ok: true };
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
@@ -364,13 +365,13 @@ export class Game {
       return { ok: true };
     }
     if (skill === 'dash') {
-      if (p.level < CONFIG.skills.dash || this.time < p.dashReady) return automated ? { ok: false } : this.reject(p, 'Imagem Residual: nível 2 e recarga de 4s.');
+      if (p.level < CONFIG.skills.dash || this.time < p.dashReady) return automated ? { ok: false } : this.reject(p, 'Imagem Residual: nível ' + CONFIG.skills.dash + ' e recarga de 4s.');
       const dir = Math.hypot(p.input.x, p.input.y) > 0.1 ? norm(p.input.x, p.input.y) : this.aimDirection(p, null);
       p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + (p.godmode ? 1 : 4); p.charge = null;
       this.emit('dash', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
     }
     if (skill === 'ki') {
-      if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível 2.');
+      if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + CONFIG.skills.ki + '.');
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
@@ -381,7 +382,7 @@ export class Game {
       return { ok: true };
     }
     if (skill === 'kame') {
-      if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível 3.');
+      if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
       if (p.charge || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
       const alcance = estagioKame(p.level).alcance + KAME.mao;
@@ -395,14 +396,14 @@ export class Game {
       return { ok: true };
     }
     if (skill === 'barrier') {
-      if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível 2.');
+      if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível ' + CONFIG.skills.barrier + '.');
       if (this.time < p.barrierReady || p.ki < CONFIG.skillCosts.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira em recarga ou Ki insuficiente.');
       p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.barrier);
       p.barrierStarted = this.time; // Só sincroniza a animação nos clientes.
       this.emit('barrier', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Barreira de Ki ativada!'); return { ok: true };
     }
     if (skill === 'genki') {
-      if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível 10.');
+      if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível ' + CONFIG.skills.genki + '.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
       p.genkiLancado = null;p.genkiDirecao = null;
@@ -420,16 +421,17 @@ export class Game {
     const disponivel = formaDisponivel(p.level);
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
-    if (p.forma !== 'base') { p.forma = 'base'; this.notify(p, 'Forma base.'); return { ok: true }; }
+    if (p.forma !== 'base') { p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
     p.forma = disponivel.forma;
+    p.formaAte = disponivel.duracao ? this.time + disponivel.duracao : 0;
     if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
-    this.notify(p, disponivel.nome + ' ativado!');
+    this.notify(p, disponivel.nome + ' ativado!' + (disponivel.duracao ? ' Duração: ' + Math.round(disponivel.duracao / 60) + ' min.' : ''));
     return { ok: true };
   }
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
-      p.forma = 'base'; this.notify(p, 'Ki esgotado. Forma base.');
+      p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Ki esgotado. Forma base.');
     }
   }
   atualizarGenkis(dt) {
@@ -532,11 +534,13 @@ export class Game {
     if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
-      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
+      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.formaAte = 0; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
-          const experiencia=variarExperiencia(target.xp,this.randomCombat);analisar(attacker,'xp',experiencia);const zeniAntes=attacker.zeni; this.awardXp(attacker, experiencia); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
+          const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
+          analisar(attacker,'xp',experiencia);const zeniAntes=attacker.zeni; this.awardXp(attacker, experiencia); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
@@ -556,12 +560,19 @@ export class Game {
     return true;
   }
   awardXp(p, amount) {
+    if (p.level >= CONFIG.progression.nivelMaximo) return;
     p.xp += amount;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
       p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
-      const unlock = p.level === 2 ? ' Kaioken, Barreira de Ki e Imagem Residual liberados!' : p.level === 3 ? ' Kamehameha liberado!' : p.level === 5 ? ' Super Saiyajin liberado!' : p.level === 10 ? ' Genki Dama liberada!' : '';
+      const skillsUnlock = [
+        ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
+        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama']
+      ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
+      const formsUnlock = FORMAS.filter(forma => forma.nivel === p.level).map(forma => forma.nome);
+      const desbloqueios = [...skillsUnlock, ...formsUnlock];
+      const unlock = desbloqueios.length ? ' Desbloqueado: ' + desbloqueios.join(' e ') + '!' : '';
       this.notify(p, 'Nível ' + p.level + '! Todos os atributos aumentaram.' + unlock);
     }
   }
@@ -656,13 +667,16 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) { p.forma = 'base'; return; }
+    if (!p.connected) { p.forma = 'base'; p.formaAte = 0; return; }
     if (p.godmode) { p.hp = p.stats.hp; p.ki = p.stats.ki; }
     if (p.hp <= 0) {
-      p.forma = 'base';
+      p.forma = 'base'; p.formaAte = 0;
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
+    }
+    if (p.forma === 'gogeta' && p.formaAte > 0 && this.time >= p.formaAte) {
+      p.forma = 'base'; p.formaAte = 0; this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;
@@ -1002,7 +1016,9 @@ export class Game {
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
-        naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level, xp: self.xp, xpNext: xpForLevel(self.level), stats: self.stats,
+        naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
+        xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
+        xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
         hotkeysConsumiveis:{...self.hotkeysConsumiveis},hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
@@ -1014,7 +1030,7 @@ export class Game {
         kameRemaining: Math.max(0, self.kameReady - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
-        genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: 0,
+        genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
         novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,

@@ -40,9 +40,12 @@ test('subir de nível aumenta todos os atributos automaticamente e libera técni
   game.awardXp(p, xpForLevel(1));
   assert.equal(p.level, 2);
   for (const key of Object.keys(before)) assert.ok(p.stats[key] > before[key], key + ' deve aumentar');
+  for (let nivel = 2; nivel < CONFIG.skills.ki; nivel++) game.awardXp(p, xpForLevel(nivel));
+  assert.equal(p.level, CONFIG.skills.ki);
   assert.equal(game.cast(p, 'ki').ok, true);
   assert.equal(game.cast(p, 'kame').ok, false);
-  game.awardXp(p, xpForLevel(2));
+  for (let nivel = CONFIG.skills.ki; nivel < CONFIG.skills.kame; nivel++) game.awardXp(p, xpForLevel(nivel));
+  assert.equal(p.level, CONFIG.skills.kame);
   naArea(game,p);
   const alvoKame = game.addMob('melee',p.x+70,p.y,p.area);p.targetId=alvoKame.id;
   const kiBeforeKame = p.ki;
@@ -52,7 +55,7 @@ test('subir de nível aumenta todos os atributos automaticamente e libera técni
 });
 
 test('sem PvP nesta versão: dano entre jogadores é recusado em qualquer lugar, de soco ou Kamehameha', () => {
-  const game = world(), a = game.addPlayer('a', 'Goku', { level: 3 }), b = game.addPlayer('b');
+  const game = world(), a = game.addPlayer('a', 'Goku', { level: CONFIG.skills.kame }), b = game.addPlayer('b');
   assert.equal(game.hit(a, b, 30), false, 'na Terra');
   for (const area of ['inicial', 'media', 'dificil']) {
     naArea(game, a, area); naArea(game, b, area); b.x = a.x + 40;
@@ -118,7 +121,7 @@ test('Saibaman, sentinela, subchefe e chefe transmitem direção e recuperação
 });
 
 test('transformação exige nível e termina quando o Ki acaba', () => {
-  const game = world(), low = game.addPlayer('a'), high = game.addPlayer('b', 'Goku', { level: 5 });
+  const game = world(), low = game.addPlayer('a'), high = game.addPlayer('b', 'Goku', { level: CONFIG.skills.kaioken });
   assert.equal(game.action(low.id, { type: 'transform' }).ok, false);
   const kiBeforeTransform = high.ki;
   assert.equal(game.action(high.id, { type: 'transform' }).ok, true);
@@ -282,7 +285,7 @@ test('chegada protegida permanentemente; sair permite combate e morte volta ao q
 });
 
 test('áreas isoladas: golpe, projétil e aggro não passam de uma área para outra', () => {
-  const game = world(), p = naArea(game, game.addPlayer('a', 'Goku', { level: 10 }), 'inicial');
+  const game = world(), p = naArea(game, game.addPlayer('a', 'Goku', { level: CONFIG.skills.genki }), 'inicial');
   const outra = game.addMob('melee', p.x + 30, p.y, 'media'); outra.attackReady = game.time;
   assert.equal(game.hit(p, outra, 50), false, 'jogador não acerta mob de outra área');
   assert.equal(game.hit(outra, p, 50), false, 'mob de outra área não acerta o jogador');
@@ -338,8 +341,8 @@ test('Kaioken alterna sem custo nem recarga; Barreira preserva duração e recar
   const game = world(), p = game.addPlayer('power', 'Goku', { level: 1 });
   assert.equal(game.cast(p, 'kaioken').ok, false);
   assert.equal(game.cast(p, 'barrier').ok, false);
-  game.awardXp(p, xpForLevel(1));
-  assert.equal(p.level, 2);
+  for (let nivel = 1; nivel < CONFIG.skills.kaioken; nivel++) game.awardXp(p, xpForLevel(nivel));
+  assert.equal(p.level, CONFIG.skills.kaioken);
   const kiBefore = p.ki;
   assert.equal(game.cast(p, 'kaioken').ok, true);
   assert.equal(p.ki, kiBefore, 'Decisão do Pedro em 09/11: ativação gratuita');
@@ -352,7 +355,9 @@ test('Kaioken alterna sem custo nem recarga; Barreira preserva duração e recar
   assert.equal(game.snapshot(p.id).self.kaiokenActive, true, 'Não há duração fixa de seis segundos');
   assert.equal(game.snapshot(p.id).self.kaiokenRemaining, 0);
 
-  const defended = world(), dp = naArea(defended, defended.addPlayer('defended', 'Goku', { level: 2 }));
+  const bloqueada = world(), bp = bloqueada.addPlayer('bloqueada', 'Goku', { level: CONFIG.skills.barrier - 1 });
+  assert.equal(bloqueada.cast(bp, 'barrier').ok, false, 'barreira ainda bloqueada antes do nível configurado');
+  const defended = world(), dp = naArea(defended, defended.addPlayer('defended', 'Goku', { level: CONFIG.skills.barrier }));
   const attacker = defended.addMob('melee', dp.x + 20, dp.y);
   const hpBefore = dp.hp;
   const kiBeforeBarrier = dp.ki;
@@ -365,11 +370,11 @@ test('Kaioken alterna sem custo nem recarga; Barreira preserva duração e recar
   assert.equal(defended.snapshot(dp.id).self.barrierRemaining, CONFIG.skillCooldowns.barrier);
 });
 
-test('Genki Dama só libera no nível 10 e atinge o alvo com projétil de área', () => {
-  const game = world(), p = naArea(game, game.addPlayer('ultimate', 'Goku', { level: 9 }));
+test('Genki Dama só libera no nível 200 e atinge o alvo com projétil de área', () => {
+  const game = world(), p = naArea(game, game.addPlayer('ultimate', 'Goku', { level: CONFIG.skills.genki - 1 }));
   assert.equal(game.cast(p, 'genki').ok, false);
-  game.awardXp(p, xpForLevel(9));
-  assert.equal(p.level, 10);
+  game.awardXp(p, xpForLevel(CONFIG.skills.genki - 1));
+  assert.equal(p.level, CONFIG.skills.genki);
   const target = game.addMob('melee', p.x + 35, p.y - 22);
   const kiBefore = p.ki;
   assert.equal(game.cast(p, 'genki').ok, true);

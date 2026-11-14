@@ -21,7 +21,7 @@ export const ATALHOS=Object.freeze([
  {id:'dash',nome:'Imagem Residual',teclas:['shift'],exibir:'Shift'},
  {id:'cura',nome:'Cura de Vida',teclas:['1']},
  {id:'kame',nome:'Kamehameha',teclas:['2']},
- {id:'transformar',nome:'Transformação (Kaioken → Super Saiyajin → Super Saiyajin 2)',teclas:['3','t']},
+ {id:'transformar',nome:'Buff de transformação (Kaioken → SSJ1 → SSJ2 → SSJ3 → SSJ4 → Gogeta → Vegetto)',teclas:['3','t']},
  {id:'barreira',nome:'Barreira de Ki',teclas:['4']},
  {id:'genki',nome:'Genki-Dama',teclas:['5']},
  {id:'consumivel7',nome:'Consumível do slot 6',teclas:['6','r']},

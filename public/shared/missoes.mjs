@@ -3,8 +3,8 @@ import {bagWeight} from './characters.mjs';
 import {CONFIG} from './config.mjs';
 import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from './itens-negociaveis.mjs';
 export const MISSOES=Object.freeze([
- {id:'primeiros-passos',nome:'Primeiros passos',categoria:'principal',descricao:'Alcance o nível 3 para dominar o Kamehameha.',evento:'nivel',meta:3,recompensa:{zeni:30,xp:10}},
- {id:'dominio-ki',nome:'Domínio do Ki',categoria:'principal',descricao:'Alcance o nível 5, marco da transformação Super Saiyajin.',evento:'nivel',meta:5,requer:'primeiros-passos',recompensa:{zeni:60,xp:20}},
+ {id:'primeiros-passos',nome:'Primeiros passos',categoria:'principal',descricao:'Alcance o nível 40 para dominar o Kamehameha.',evento:'nivel',meta:40,recompensa:{zeni:30,xp:10}},
+ {id:'dominio-ki',nome:'Domínio do Ki',categoria:'principal',descricao:'Alcance o nível 100 para liberar o Super Saiyajin.',evento:'nivel',meta:100,requer:'primeiros-passos',recompensa:{zeni:60,xp:20}},
  {id:'defensor',nome:'Defensor dos campos',categoria:'secundaria',descricao:'Derrote 20 inimigos.',evento:'kills',meta:20,recompensa:{zeni:50}},
  {id:'coletor',nome:'Recursos da expedição',categoria:'secundaria',descricao:'Recolha 10 drops deixados pelos inimigos.',evento:'coleta',meta:10,recompensa:{zeni:25,itens:{ki:1}}},
  {id:'caca-diaria',nome:'Caçada diária',categoria:'diaria',descricao:'Derrote 15 inimigos hoje (UTC).',evento:'kills',meta:15,recompensa:{zeni:40,xp:15}},

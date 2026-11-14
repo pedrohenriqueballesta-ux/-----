@@ -10,7 +10,7 @@ import {GOKU_PASSO} from '../public/art/goku-passo.mjs';
 import {colunaGenki,apresentarGenkiJogador,POSE_GENKI} from '../public/render/genki-personagem.mjs';
 import {geometriaGenki} from '../public/render/genki.mjs';
 const passar=(g,s)=>{for(let i=0;i<Math.round(s/.01);i++)g.tick(.01);};
-function cena(){const g=new Game({now:1000,populate:false}),p=g.addPlayer('goku');g.levar(p,lugar('inicial'));p.x+=300;p.seguroAte=0;p.level=50;p.stats=statsFor(50);p.ki=p.stats.ki;p.hp=p.stats.hp;p.autoAttack=p.autoSkills=false;return {g,p};}
+function cena(){const g=new Game({now:1000,populate:false}),p=g.addPlayer('goku');g.levar(p,lugar('inicial'));p.x+=300;p.seguroAte=0;p.level=CONFIG.skills.genki;p.stats=statsFor(p.level);p.ki=p.stats.ki;p.hp=p.stats.hp;p.autoAttack=p.autoSkills=false;return {g,p};}
 test('folha 6 mantém 5×4, base dos pés e escala de corpo sem cortar mãos',async()=>{
  const f=GOKU_GENKI,png=await readFile(new URL('../public'+f.file,import.meta.url));
  assert.equal(f.rows,5);assert.equal(f.columns,4);assert.equal(png.readUInt32BE(16),f.width);assert.equal(png.readUInt32BE(20),f.height);

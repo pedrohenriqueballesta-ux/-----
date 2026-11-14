@@ -9,7 +9,7 @@ import { KAME, ESTAGIOS_KAME, estagioKame, quadroKame, geometriaKame, origemKame
 
 const mesmaDirecao = (a, b) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y) < 1e-9);
 const passar = (g, s) => { for (let i = 0; i < Math.round(s / .01); i++) g.tick(.01); };
-function cena(nivel = 3) {
+function cena(nivel = CONFIG.skills.kame) {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
   g.levar(p, lugar('inicial')); p.x += 300; p.seguroAte = 0;
   p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
@@ -20,16 +20,16 @@ function cena(nivel = 3) {
   };
   return { g, p, mob };
 }
-test('estágios usam os marcos exatos do personagem, inclusive 150+; frames a cada 80 ms', () => {
-  for (const [nivel, esperado] of [[1,1],[19,1],[20,20],[49,20],[50,50],[99,50],[100,100],[149,100],[150,150],[200,150]]) assert.equal(estagioKame(nivel).nivel, esperado);
+test('estágios começam no desbloqueio e evoluem nos níveis 40, 80, 120, 160 e 200', () => {
+  for (const [nivel, esperado] of [[1,40],[39,40],[40,40],[79,40],[80,80],[119,80],[120,120],[159,120],[160,160],[199,160],[200,200],[1000,200]]) assert.equal(estagioKame(nivel).nivel, esperado);
   for (let i = 0; i < 16; i++) assert.equal(quadroKame(i * .08 + .001), i);
   assert.equal(quadroKame(1.28), -1); assert.equal(quadroKame(-.01), -1);
 });
 for (const e of ESTAGIOS_KAME) {
-  test('pacote ' + e.nivel + ': 16 quadros RGBA, proporção original, alcance máximo exato e ponta completa', async () => {
+  test('estágio ' + e.nivel + ' (arte ' + e.pacote + '): 16 quadros RGBA e alcance máximo exato', async () => {
     const png = await readFile(new URL('../public' + e.imagem, import.meta.url));
     assert.equal(png.readUInt32BE(16), 443 * 4); assert.equal(png.readUInt32BE(20), 221 * 4); assert.equal(png[25], 6);
-    const json = JSON.parse(await readFile(new URL('../public/assets/skills/kamehameha/nivel-' + e.nivel + '/animation.json', import.meta.url)));
+    const json = JSON.parse(await readFile(new URL('../public/assets/skills/kamehameha/nivel-' + e.pacote + '/animation.json', import.meta.url)));
     assert.equal(json.frame_count, 16); assert.equal(json.range_tiles * json.tile_size, e.alcance);
     assert.equal(e.quadros.length, 16);
     const alcances = e.quadros.map((q, i) => {
@@ -39,8 +39,8 @@ for (const e of ESTAGIOS_KAME) {
     assert.ok(Math.abs(Math.max(...alcances) - e.alcance) < .0001);
     assert.equal(alcances[0], 0);
   });
-  test('nível ' + e.nivel + ': acerta alvo selecionado, espalha pela sprite e preserva custo, dano e alcance', () => {
-    const { g, p, mob } = cena(Math.max(3, e.nivel));
+  test('estágio ' + e.nivel + ': acerta alvos e preserva custo e dano', () => {
+    const { g, p, mob } = cena(Math.max(CONFIG.skills.kame, e.nivel));
     const a = mob(25), b = mob(57), longe = mob(e.alcance + 2), atras = mob(-30), lado = mob(50, 150), outroLugar = mob(40, 0, 'media');
     p.targetId = a.id;
     const ki = p.ki; assert.equal(g.cast(p, 'kame').ok, true);
@@ -55,7 +55,7 @@ for (const e of ESTAGIOS_KAME) {
   });
 }
 test('colisão acompanha todas as oito direções', () => {
-  const g = geometriaKame(150, .721);
+  const g = geometriaKame(200, .721);
   for (let i = 0; i < 8; i++) {
     const d = { x: Math.cos(i * Math.PI / 4), y: Math.sin(i * Math.PI / 4) }, o = origemKame({ x: 1000, y: 1000 }, d);
     assert.ok(atingidoPeloKame({ x: o.x + d.x * 100, y: o.y + d.y * 100 }, o, d, g));
@@ -63,9 +63,9 @@ test('colisão acompanha todas as oito direções', () => {
   }
 });
 test('evolução é automática no próximo disparo; estágio atual fica estável', () => {
-  const { g, p, mob } = cena(19); p.targetId = mob(100).id; g.cast(p, 'kame'); assert.equal(p.charge.nivel, 1);
-  p.level = 20; passar(g, .7); assert.equal(g.kamehamehas[0].nivel, 1);
-  passar(g, 4.4); p.ki = p.stats.ki; g.cast(p, 'kame'); assert.equal(p.charge.nivel, 20);
+  const { g, p, mob } = cena(40); p.targetId = mob(100).id; g.cast(p, 'kame'); assert.equal(p.charge.nivel, 40);
+  p.level = 80; p.stats = statsFor(80); passar(g, .7); assert.equal(g.kamehamehas[0].nivel, 40);
+  passar(g, 4.4); p.ki = p.stats.ki; g.cast(p, 'kame'); assert.equal(p.charge.nivel, 80);
 });
 test('safe zone, portal, desconexão e morte cancelam feixe; snapshot não vaza entre hunts', () => {
   for (const sair of [p => { p.connected = false; }, p => { p.hp = 0; }, (p, g) => g.levar(p, lugar('media')), p => { p.x = lugar('inicial').chegada.x; }]) {
@@ -86,7 +86,7 @@ test('dano preserva os multiplicadores de SSJ e Kaioken sem acumular formas (Ped
 
 test('auto técnicas limita a carga ao alcance acrescido da aproximação prevista', () => {
   for (const dentro of [true, false]) {
-    const { g, p, mob } = cena(20), m = mob(dentro ? 100 : 450); p.targetId = m.id; p.autoSkills = true; p.autoHunt = true;
+    const { g, p, mob } = cena(CONFIG.skills.kame), m = mob(dentro ? 100 : 450); p.targetId = m.id; p.autoSkills = true; p.autoHunt = true;
     g.tick(.01); assert.equal(Boolean(p.charge), dentro);
     if (!dentro) assert.equal(p.charge,null,'não prepara contra alvo além da margem de aproximação');
   }
@@ -105,7 +105,7 @@ test('sem alvo selecionado ou fora do alcance não gasta Ki nem entra em recarga
 });
 test('auto caça OFF: soco, rajada e Genki não viram o corpo para o alvo selecionado', () => {
   for (const skill of ['basic', 'ki', 'genki']) {
-    const { g, p, mob } = cena(50), m = mob(30); p.targetId = m.id;
+    const { g, p, mob } = cena(skill === 'genki' ? CONFIG.skills.genki : 50), m = mob(30); p.targetId = m.id;
     p.facing = { x: 0, y: 1 };
     assert.ok(g.cast(p, skill, true).ok); assert.deepEqual(p.facing, { x: 0, y: 1 });
   }
@@ -117,6 +117,7 @@ test('virar durante a carga orienta o feixe; após colisão o impacto fica fixo'
   mesmaDirecao(p.charge.direction, p.facing);
   p.input = { x: 0, y: 0 }; passar(g, .7);
   mesmaDirecao(g.kamehamehas[0].direction, norm(emCima.x-p.x,emCima.y-p.y));
+  passar(g, .25); // O estágio inicial é menor; aguarda o feixe crescer até o alvo.
   assert.ok(emCima.hp < emCima.maxHp);
   const fixo = structuredClone(g.snapshot(p.id).kamehamehas[0]);
   p.facing = { x: 1, y: 0 }; g.tick(.01);
@@ -159,17 +160,17 @@ test('renderização reutiliza imagens e quadros, aguarda carregamento e mantém
   } };
   try {
     const { desenharKame, carregarKame, desenharKameComProfundidade, kameSobrePersonagem } = await import('../public/render/kamehameha.mjs');
-    const efeito = { x: 200, y: 200, direction: { x: -1, y: 0 }, nivel: 150, started: 0 }, escalas = [], rotacoes = [], desenhos = [];
+    const efeito = { x: 200, y: 200, direction: { x: -1, y: 0 }, nivel: 200, started: 0 }, escalas = [], rotacoes = [], desenhos = [];
     const ctx = { save() {}, restore() {}, translate() {}, rotate(a) { rotacoes.push(a); }, scale(x, y) { escalas.push([x, y]); }, drawImage(...args) { desenhos.push(args); } };
     assert.equal(desenharKame(ctx, efeito, .1), false);
-    Object.assign(carregarKame(150), { complete: true, naturalWidth: 1772 });
+    Object.assign(carregarKame(200), { complete: true, naturalWidth: 1772 });
     for (let i = 0; i < 16; i++) assert.ok(desenharKame(ctx, efeito, i * .08 + .001));
     for (let i = 0; i < 100; i++) desenharKame(ctx, efeito, .721);
     assert.equal(imagens.length, 1); assert.equal(canvases.length, 16);
     assert.ok(escalas.every(([x, y]) => x === y)); assert.ok(rotacoes.every(r => r === Math.PI));
-    assert.ok(escalas.every(([x]) => x === estagioKame(150).escala * .5), 'metade do volume anterior');
+    assert.ok(escalas.every(([x]) => x === estagioKame(200).escala * .5), 'metade do volume anterior');
     assert.ok(desenhos.every(([, x]) => x === -2), 'só margem transparente fica atrás das mãos');
-    const g = geometriaKame(150, .721);
+    const g = geometriaKame(200, .721);
     assert.equal(g.raio, g.q.raio * g.estagio.escala * .5, 'largura de dano acompanha o feixe menor');
     assert.equal(desenharKame(ctx, efeito, 1.3), false);
     // O sprite, e não um retângulo de recorte, determina a oclusão quando olhamos para cima.
@@ -237,7 +238,7 @@ test('alvo selecionado colado ou sobreposto ao jogador também é atingido',()=>
   }
 });
 
-for(const nivel of [3,20,50,100,150])test('Auto Hunt nível '+nivel+': antecipa a carga e solta ao entrar no alcance',()=>{
+for(const nivel of [40,80,120,160,200])test('Auto Hunt nível '+nivel+': antecipa a carga e solta ao entrar no alcance',()=>{
   const {g,p,mob}=cena(nivel),alcance=estagioKame(nivel).alcance+KAME.mao;
   const alvo=mob(alcance+p.stats.mobility*KAME.carga-KAME.mao-3);
   p.autoHunt=true;p.autoSkills=true;p.autoAttack=false;
@@ -257,19 +258,19 @@ for(const nivel of [3,20,50,100,150])test('Auto Hunt nível '+nivel+': antecipa 
 });
 test('carga automática pronta aguarda alcance; desligar a caça cancela a espera',()=>{
   for(const cancelar of [false,true]){
-    const {g,p,mob}=cena(20),alcance=estagioKame(20).alcance+KAME.mao;
+    const {g,p,mob}=cena(CONFIG.skills.kame),alcance=estagioKame(CONFIG.skills.kame).alcance+KAME.mao;
     const alvo=mob(alcance+40-KAME.mao);p.autoHunt=true;p.autoSkills=true;
     // Simula aproximação interrompida por terreno sem tornar o alvo inválido.
     g.steer=ent=>{ent.moving=true;return true;};
     g.tick(.01);assert.ok(p.charge);
     passar(g,.9);assert.ok(p.charge);assert.equal(g.kamehamehas.length,0);
     if(cancelar){g.action(p.id,{type:'hunt',enabled:false});g.tick(.01);assert.equal(p.charge,null);}
-    else{alvo.x=p.x+alcance-1;g.tick(.01);assert.equal(p.charge,null);assert.equal(g.kamehamehas.length,1);assert.ok(geometriaKame(20,g.time-g.kamehamehas[0].started));}
+    else{alvo.x=p.x+alcance-1;g.tick(.01);assert.equal(p.charge,null);assert.equal(g.kamehamehas.length,1);assert.ok(geometriaKame(CONFIG.skills.kame,g.time-g.kamehamehas[0].started));}
   }
 });
 
 test('Auto Hunt transfere a carga de Kamehameha para outro mob sem cobrar Ki novamente',()=>{
-  const {g,p,mob}=cena(20),primeiro=mob(120),seguinte=mob(220);
+  const {g,p,mob}=cena(CONFIG.skills.kame),primeiro=mob(120),seguinte=mob(220);
   p.autoHunt=true;p.autoSkills=true;
   g.tick(.01);
   assert.ok(p.charge);assert.equal(p.charge.targetId,primeiro.id);

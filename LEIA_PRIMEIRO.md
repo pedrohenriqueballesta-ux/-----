@@ -32,11 +32,13 @@ Para encerrar, pressione Ctrl+C no Terminal. O progresso fica no arquivo data/sa
 | Mover | WASD, setas, clique no chão ou direcional de toque |
 | Aproximar / afastar | Roda do mouse sobre o mapa ou botões + / − junto ao minimapa |
 | Selecionar alvo | Clique no mob ou em outro jogador |
-| Cura de Vida | 1; cura instantânea de HP com custo de Ki, recarga de 1,5 s; estágios nos níveis 1, 20, 50, 100 e 150+ |
-| Kamehameha | 2; disponível no nível 3; estágios pelo nível do personagem: 1, 20, 50, 100 e 150 |
-| Transformação | 3 ou T; um botão só, com a forma mais forte liberada: Kaioken (nível 2, dano ×1,4) → Super Saiyajin (nível 5) → Super Saiyajin 2 (nível 50, provisório; SSJ × 1,5) → Super Saiyajin 3 (nível 70, provisório; SSJ2 × 1,5). Grátis, sem recarga, drena 3,5 Ki/s |
-| Barreira de Ki | 4, disponível no nível 2; reduz o dano recebido por 2,5 s |
-| Genki Dama | 5, disponível no nível 10; recarga de 45 s |
+| Cura de Vida | 1; cura instantânea de HP com custo de Ki, recarga de 0,7 s; estágios nos níveis 1, 20, 50, 100 e 150+ |
+| Rajada de Ki | Tecla/controle atual; disponível no nível 20 |
+| Imagem Residual | Shift; disponível no nível 20 |
+| Kamehameha | 2; disponível no nível 40; evolui nos níveis 40, 80, 120, 160 e 200, quando alcança tamanho e distância máximos |
+| Buff de transformação | 3 ou T; um único botão mostra a forma mais forte liberada: Kaioken 50 → SSJ1 100 → SSJ2 200 → SSJ3 300 → SSJ4 500 → Gogeta 700 → Vegetto 900. Sem custo/recarga, drena 3,5 Ki/s; Gogeta dura 1 h |
+| Barreira de Ki | 4, disponível no nível 80; reduz o dano recebido por 2,5 s |
+| Genki Dama | 5, disponível no nível 200; recarga de 45 s |
 | Ataque básico | Espaço |
 | Esquiva rápida | Shift |
 | Comer | F |
@@ -52,7 +54,7 @@ O dreno de 3,5 Ki/s e os níveis de desbloqueio são valores provisórios.
 Detalhes e conferência das seis folhas Kaioken em `docs/GOKU_KAIOKEN.md`;
 prévia das poses em `/kaioken.html`.
 
-A HUD nova fica sobre o mapa que continua ativo. O retrato, HP, Ki, experiência, recursos, minimapa, bússola, missões, menu lateral, chat e cinco slots de habilidade são elementos HTML/CSS; os personagens e o mundo continuam renderizados no Canvas. O botão **Mais** abre o painel de status, inventário e caça. A HUD de missões/chat é uma interface de protótipo; o chat mostrado é demonstrativo, não um chat multiplayer persistente.
+A HUD nova fica sobre o mapa que continua ativo. O retrato, HP, Ki, experiência, recursos, minimapa, bússola, missões, menu lateral, chat e os cinco slots originais de técnicas são elementos HTML/CSS; o terceiro slot mantém o buff de transformação e atualiza ícone e nome pela forma liberada. Os personagens e o mundo continuam renderizados no Canvas. O botão **Mais** abre o painel de status, inventário e caça. A HUD de missões/chat é uma interface de protótipo; o chat mostrado é demonstrativo, não um chat multiplayer persistente.
 
 Goku, Super Saiyajin, Saibaman, Sentinela e Guardião da Cratera usam 16 quadros por ciclo de caminhada e ataque básico. As oito direções incluem nordeste, noroeste, sudeste e sudoeste com vistas em três quartos. A velocidade nas diagonais permanece igual à das direções retas. As pernas acompanham a distância realmente percorrida; quando não há deslocamento, o ciclo não avança. Os mobs mantêm a orientação ao parar, e a recuperação da animação continua após o impacto.
 
@@ -62,8 +64,25 @@ Para conferir as sprites sem mexer no progresso, com o servidor ligado abra **ht
 
 1. Entre com um nome e confira a vida, o Ki e o peso inicial da mochila.
 2. Ative a caça nos Campos da Terra. Ela liga os ataques automáticos e as técnicas disponíveis. A comida é renovada automaticamente quando autorizada e houver estoque.
-3. Ao chegar ao nível 2, use a Imagem Residual para sair dos círculos vermelhos anunciados pelos inimigos.
-4. No nível 3, experimente alinhar o Kamehameha. O ataque é direcional e tem preparação.
+3. Ao chegar ao nível 20, use a Imagem Residual para sair dos círculos vermelhos anunciados pelos inimigos.
+4. A partir do nível 40, experimente alinhar o Kamehameha. O ataque é direcional e tem preparação.
+
+## Progressão de transformações implementada
+
+A HUD mantém os cinco slots originais, com o terceiro dedicado ao buff de transformação.
+O botão 3/T ativa somente a forma mais forte liberada, sem empilhar transformações. Os marcos são
+Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900.
+Todas drenam 3,5 Ki/s; zerar o Ki, morrer, viajar ou desconectar retorna à base.
+Gogeta expira depois de uma hora (parâmetro ajustável em `CONFIG.transformacao`).
+Como ainda não existem folhas próprias de SSJ4, Gogeta e Vegetto, eles usam as folhas
+disponíveis mais próximas até a criação de sprites específicas.
+
+## Plano futuro de técnicas especiais
+
+Marcos planejados, ainda sem as respectivas habilidades implementadas: Genki Dama no
+nível 200 junto ao SSJ2; Ryuken no 300 junto ao SSJ3; Super Kamehameha no 500 junto ao
+SSJ4. Os dois últimos níveis estão registrados em `CONFIG.plannedSkillUnlocks`; esses
+marcos não tornam as técnicas utilizáveis antes de sua implementação.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.
 6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
 7. Volte ao mercador da vila, venda materiais e reponha comida e poções.
@@ -102,8 +121,8 @@ Os números e comportamentos abaixo foram escolhidos para o protótipo e podem s
 | Referência da semente | Percentual da vida máxima, limitado à vida máxima |
 | Poção de Ki | 45% do Ki máximo; recarga de 8 segundos |
 | Ki em repouso | Recuperação lenta, fora da caça e dos ataques |
-| Rajada e esquiva | Nível 2 |
-| Kamehameha | Nível 3 |
+| Rajada de Ki e esquiva | Nível 20 |
+| Kamehameha | Nível 40; evolução no 40/80/120/160/200 |
 | Super Saiyajin | Nível 5, com consumo de Ki |
 | Morte | Retorna à vila sem perder XP |
 | Mochila cheia | Continua recebendo XP; itens que não cabem ficam no chão |
@@ -151,3 +170,25 @@ segura; a saída fica dentro dela. Não há passagem a pé para as outras hunts.
 
 Detalhes, números do equilíbrio e instruções: `docs/NAMEK_4A_HUNT.md`. Galeria
 das nove animações, sem usar o save: `/namek-norte.html`.
+
+## Progressão até o nível 1.000 (12/11/2026)
+
+O servidor aceita níveis de 1 a 1.000. A fórmula antiga `30 × nível^1,35` é mantida
+exatamente até o nível 100 para preservar a progressão existente. A partir do 101,
+ela continua ancorada no valor do nível 100 e cresce com expoente 1,5. Nenhuma
+habilidade ou transformação nova é liberada automaticamente por esta expansão.
+
+As nove hunts implementadas agora cobrem recomendações do nível 1 ao 150: Namekusei
+até 40 e as cinco hunts existentes de Vegeta entre 40 e 150. Os mesmos mobs de Vegeta
+recebem níveis de referência e escala proporcional de HP, ataque, defesa e XP; suas
+identidades, quantidades, habilidades e locais permanecem. Criaturas abaixo do nível
+do jogador continuam concedendo XP, reduzido gradualmente por
+`1 / √(1 + diferença/60)` e com piso de 20%. Recomendações continuam sendo avisos,
+nunca bloqueios de portal.
+
+O God Mode de teste eleva Goku ao nível máximo 1.000, com atributos correspondentes,
+HP/Ki cheios e recursos de teste. Desligá-lo restaura nível e recursos anteriores.
+O teto 1.000 já está implementado, mas as hunts existentes foram balanceadas até 150;
+níveis acima disso ainda precisam de conteúdo futuro. Os parâmetros estão em
+`CONFIG.progression` (`public/shared/config.mjs`); as funções de XP estão em
+`public/shared/progressao.mjs` e o escalonamento de mobs em `public/shared/enemies.mjs`.

@@ -4,7 +4,7 @@ import { drawGoku, drawSaibaman, drawAlien, drawVoador, VOADORES,
 const cache = new Map(), FRENTE = { x: 0, y: 1 };
 let retratoGoku = null;
 function chave(entidade, jogador) {
-  return jogador ? 'player:' + (entidade.transformed || entidade.forma === 'ssj' ? 'ssj' : entidade.forma || 'base')
+  return jogador ? 'player:' + (entidade.forma || (entidade.transformed ? 'ssj' : 'base'))
     : 'mob:' + entidade.type + ':' + (entidade.forma || '');
 }
 function desenharCorpoMini(ctx, entidade, jogador) {
