@@ -35,7 +35,7 @@ export class Mercado {
   if(saldoReal(p)<total)return falha('Zeni insuficiente.');
   if((p.inventory[o.item]||0)+quantidade>LIMITE_ESTOQUE_LOJA||bagWeight(p.inventory)+ITENS_NEGOCIAVEIS[o.item].peso*quantidade>p.stats.capacity+.0001)return falha('A mochila não comporta essa quantidade.');
   // Todas as verificações precedem as mudanças. O loop do servidor serializa as operações.
-  if(p.godmode&&p.zeniReal!=null)p.zeniReal-=total;else p.zeni-=total;p.inventory[o.item]=(p.inventory[o.item]||0)+quantidade;
+  if(p.godmode&&p.zeniReal!=null&&!p.godmodeOptions?.zeniInfinite){p.zeniReal-=total;p.zeni=p.zeniReal;}else p.zeni-=total;p.inventory[o.item]=(p.inventory[o.item]||0)+quantidade;
   o.quantidade-=quantidade;if(!o.quantidade)this.ofertas.delete(id);
   this.creditos.set(o.vendedorId,credito+total);this.revisao++;
   return{ok:true,item:o.item,quantidade,total};

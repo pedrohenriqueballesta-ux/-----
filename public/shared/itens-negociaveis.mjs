@@ -8,6 +8,6 @@ export const ITENS_NEGOCIAVEIS = Object.freeze(Object.fromEntries([
 export const saldoReal = p => p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni;
 export function creditarZeni(p,valor) {
  const saldo=saldoReal(p);if(!Number.isSafeInteger(valor)||valor<0||saldo+valor>MAX_ZENI_NORMAL)return false;
- if(p.godmode&&p.zeniReal!=null)p.zeniReal+=valor;else p.zeni+=valor;
+ if(p.godmode&&p.zeniReal!=null){p.zeniReal+=valor;if(!p.godmodeOptions?.zeniInfinite)p.zeni=p.zeniReal;}else p.zeni+=valor;
  return true;
 }

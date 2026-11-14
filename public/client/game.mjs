@@ -64,7 +64,11 @@ function action(data) {
     sendInput();
     return;
   }
-  api('action', data).catch(e => notify(e.message));
+  const requisicao = api('action', data);
+  if (typeof data.type === 'string' && data.type.startsWith('godmode')) {
+    return requisicao.catch(e => { notify(e.message); return { ok: false, reason: e.message }; });
+  }
+  requisicao.catch(e => notify(e.message));
 }
 function connected(ok) {
   // Conectado não mostra nada (sem a pílula "Servidor conectado"); só avisa se a conexão cair.
