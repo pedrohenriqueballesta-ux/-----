@@ -4,7 +4,7 @@ import { DECORACAO_NAMEK } from './decoracao-namek.mjs';
 import { OBJETOS_DECORACAO } from './decoracao-objetos.mjs';
 import { CURA } from './cura.mjs';
 
-// Modo de teste GOD MODE (nivel 100 + HP/Ki infinitos). DESLIGADO por padrao.
+// Modo de teste GOD MODE (nível máximo + HP/Ki infinitos). DESLIGADO por padrão.
 // Liga so no servidor local com a variavel de ambiente DBI_GODMODE=1.
 // Seguro no navegador: process nao existe la, entao fica false (nao afeta o jogo real nem os testes).
 export const GODMODE = typeof process !== 'undefined' && !!process.env && process.env.DBI_GODMODE === '1';
@@ -29,8 +29,13 @@ export const ESCALA_VEGETA = ESCALA_MUNDO;
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
-  // Teto atual do protótipo. A expansão planejada até 1.000 requer uma tarefa própria.
-  progression: Object.freeze({ nivelMaximo: 100 }),
+  progression: Object.freeze({
+    nivelMaximo: 1000,
+    // Mantém literalmente a curva histórica até o nível 100; depois acelera gradualmente.
+    curvaXP: Object.freeze({ preservarAteNivel: 100, coeficiente: 30, expoentePreservado: 1.35, expoenteAvancado: 1.5 }),
+    // Acima do nível da criatura, a recompensa cai suavemente e nunca zera.
+    penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 })
+  }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
@@ -44,11 +49,15 @@ export const CONFIG = Object.freeze({
   itemWeights: { food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.7, crystal: 0.45 },
   prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
-  transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5 }),
+  transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),
   skillCosts: { kame: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
   skillCooldowns: { kame: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
-  // ssj2 e ssj3: VALORES PROVISÓRIOS (o Pedro decide os níveis depois, 11–12/11/2026); escada em shared/formas.mjs.
-  skills: { ki: 2, dash: 2, kame: 3, kaioken: 2, barrier: 2, transform: 5, ssj2: 50, ssj3: 70, genki: 10 }
+  // Marcos atuais das formas de Goku; parâmetros e comportamento compartilhados em shared/formas.mjs.
+  // Habilidades implementadas progridem até a Genki Dama, alinhada ao marco do SSJ2.
+  // Transformações atuais permanecem inalteradas até a implementação da nova escada.
+  skills: { ki: 20, dash: 20, kame: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, ssj4: 500, gogeta: 700, vegito: 900, genki: 200 },
+  // Marcos planejados para técnicas futuras; não liberam nem ativam habilidades ainda inexistentes.
+  plannedSkillUnlocks: Object.freeze({ ryuken: 300, superKamehameha: 500 })
 });
 // Áreas fechadas de Namekusei (modelo do Pedro, 03/11/2026). Cada área é um lugar à parte: não se anda
 // de uma para outra, troca-se pelos portais (PORTAIS). A caixa (x, y, w, h, em px da imagem) limita onde
@@ -73,14 +82,14 @@ export const ZONES = [
   // Planeta Vegeta: cidade no centro e 5 hunts, cada uma numa ilha cercada de abismo, com uma estrada até a
   // cidade (nomes e temas propostos, a confirmar pelo Pedro). Caixas = contorno de cada ilha na máscara
   // (vegeta-passagem.mjs, que também diz a que área cada pedaço de chão pertence); chegada onde a estrada
-  // entra. Níveis 30–60 em degraus de 6 (decisão do Pedro, 04/11).
+  // entra. Faixas revisadas até o nível 150 para aproveitar as cinco hunts existentes.
   ...zonasEmPx('vegeta', ESCALA_VEGETA, [
     { id: 'vegeta-cidade', name: 'Cidade dos Saiyajins', segura: true, cor: '#5fb6ff', x: 1800, y: 936, w: 1026, h: 756, chegada: { x: 2301, y: 1323 } },
-    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [30, 36], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1340, y: 1340 } },
-    { id: 'vegeta-canions', name: 'Cânions', nivel: [36, 42], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1715, y: 755 } },
-    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [42, 48], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
-    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [48, 54], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
-    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [54, 60], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
+    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [40, 62], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1340, y: 1340 } },
+    { id: 'vegeta-canions', name: 'Cânions', nivel: [62, 72], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1715, y: 755 } },
+    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [72, 106], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
+    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [106, 128], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
+    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [128, 150], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;

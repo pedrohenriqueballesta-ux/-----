@@ -14,7 +14,8 @@ import { strikeColumn } from '../render/camera.mjs';
 export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
   // Base, Kaioken e Super Saiyajin usam as mesmas poses (folhas da base como molde), na escala da base.
   if (!player.dead) {
-    const ssj3 = player.forma === 'ssj3', ssj2 = player.forma === 'ssj2', ssj = !ssj2 && !ssj3 && (player.transformed || player.forma === 'ssj');
+    const ssj3 = ['ssj3', 'ssj4'].includes(player.forma), ssj2 = player.forma === 'ssj2',
+      ssj = !ssj2 && !ssj3 && (player.transformed || ['ssj', 'gogeta', 'vegito'].includes(player.forma));
     const folhas = ssj3 ? FOLHAS_GOKU_SSJ3 : ssj2 ? FOLHAS_GOKU_SSJ2 : ssj ? FOLHAS_GOKU_SSJ : player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
     let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
     const genki = colunaGenki(player,time);

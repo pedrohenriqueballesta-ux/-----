@@ -10,6 +10,8 @@ import { clamp } from './math.mjs';
 import { CONFIG, PLANETS, GODMODE } from './config.mjs';
 import { restaurarNovidades } from './novidades.mjs';
 import { CURA } from './cura.mjs';
+import { xpForLevel } from './progressao.mjs';
+export { xpForLevel } from './progressao.mjs';
 
 export function statsFor(level, vocacao = 'goku') {
   return vocacaoDoPersonagem(vocacao).atributos(level);
@@ -19,7 +21,7 @@ export function statsFor(level, vocacao = 'goku') {
 export const GODMODE_ZENI = 999999999;
 export const GODMODE_CAPACITY = 999999999999;
 
-// Liga/desliga o god mode de um jogador: nível 100, HP/Ki sempre cheios (invencível),
+// Liga/desliga o god mode de um jogador: nível máximo, HP/Ki sempre cheios (invencível),
 // peso máximo e Zeni praticamente infinitos. Ao ligar guarda nível, Zeni, HP e Ki REAIS;
 // ao desligar restaura tudo ao que estava antes (o inventário não é tocado pelo god mode).
 export function aplicarGodmode(p, on) {
@@ -28,8 +30,8 @@ export function aplicarGodmode(p, on) {
     if (p.zeniReal == null) p.zeniReal = p.zeni;
     if (p.hpReal == null) p.hpReal = p.hp;
     if (p.kiReal == null) p.kiReal = p.ki;
-    p.godmode = true; p.level = 100;
-    p.stats = statsFor(100, p.vocacao); p.stats.capacity = GODMODE_CAPACITY;
+    p.godmode = true; p.level = CONFIG.progression.nivelMaximo;
+    p.stats = statsFor(p.level, p.vocacao); p.stats.capacity = GODMODE_CAPACITY;
     p.hp = p.stats.hp; p.ki = p.stats.ki; p.zeni = GODMODE_ZENI;
   } else {
     p.godmode = false;
@@ -41,7 +43,6 @@ export function aplicarGodmode(p, on) {
     p.levelReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
   }
 }
-export const xpForLevel = level => Math.round(30 * Math.pow(level, 1.35));
 export function bagWeight(inv) {
   return Object.entries(CONFIG.itemWeights).reduce((sum, pair) => sum + (inv[pair[0]] || 0) * pair[1], 0);
 }
@@ -58,7 +59,8 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
   const p = { montaria:montariaValida(saved?.montaria), battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
-    xp: clamp(Number(saved?.xp) || 0, 0, xpForLevel(level) - 1), stats,
+    // Preserve XP saved at the old level cap: it may exceed the former per-level threshold.
+    xp: Number.isFinite(Number(saved?.xp)) ? clamp(Number(saved.xp), 0, Number.MAX_SAFE_INTEGER) : 0, stats,
     x: PLANETS.terra.spawn.x, y: PLANETS.terra.spawn.y, planet: 'terra', area: null, seguroAte: 0,
     hp: clamp(saved?.hp == null ? stats.hp : Number(saved.hp), 1, stats.hp),
     ki: clamp(saved?.ki == null ? stats.ki : Number(saved.ki), 0, stats.ki),
@@ -76,7 +78,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     barrierReady: 0, barrierUntil: 0, genkiReady: 0,
     // Forma transitória única; o alias mantém os consumidores antigos de SSJ compatíveis.
-    forma: 'base', get transformed() { return ['ssj', 'ssj2', 'ssj3'].includes(this.forma); },
+    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'ssj4', 'gogeta', 'vegito'].includes(this.forma); },
     set transformed(ativa) { this.forma = ativa ? 'ssj' : 'base'; },
     respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
     correioResgatadas:(Array.isArray(saved?.correioResgatadas)?saved.correioResgatadas:[]).filter(id=>typeof id==='string'&&id.length<=120),preferencias:preferenciasValidas(saved?.preferencias),missoes:restaurarMissoes(saved?.missoes),

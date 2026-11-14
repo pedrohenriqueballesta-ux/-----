@@ -15,7 +15,7 @@ export function detalhesHabilidade(chave, estado) {
       return { nome: nomeDaForma(mostrada), linhas: [
         ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? FORMAS[0].nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
         ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],
-        ['Término', 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Uma forma por vez; apertar novamente volta à base'],
+        ['Término', mostrada === 'gogeta' ? 'Após ' + segundos(FORMAS.find(f => f.forma === 'gogeta').duracao) + ' ou se o Ki zerar' : 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Um buff por vez; apertar novamente volta à base'],
         ...(proxima ? [['Próxima', proxima.nome + ' no nível ' + proxima.nivel]] : []),
         ['Estado', !disponivel ? 'Bloqueada · requer nível ' + FORMAS[0].nivel : ativa ? 'ATIVO' : 'Disponível']
       ] };

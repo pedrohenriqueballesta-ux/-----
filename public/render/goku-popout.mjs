@@ -1,12 +1,14 @@
 import { FOLHAS_GOKU_BASE } from '../art/goku-base.mjs';
 import { FOLHAS_GOKU_KAIOKEN } from '../art/goku-kaioken.mjs';
 import { FOLHAS_GOKU_SSJ } from '../art/goku-ssj.mjs';
+import { FOLHAS_GOKU_SSJ3 } from '../art/goku-ssj3.mjs';
 import { SHEET_VIEWS } from '../art/sheet-views.mjs';
 import { spriteFacing, walkStep, strikeColumn } from './camera.mjs';
 
 const CACHE = new Map(), DURACAO_GOLPE = .36;
-const formaFolhas = sprite => sprite.transformed || sprite.forma === 'ssj' ? FOLHAS_GOKU_SSJ
-  : sprite.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
+const formaFolhas = sprite => sprite.forma === 'ssj3' || sprite.forma === 'ssj4' ? FOLHAS_GOKU_SSJ3
+  : sprite.transformed || ['ssj', 'ssj2', 'gogeta', 'vegito'].includes(sprite.forma) ? FOLHAS_GOKU_SSJ
+    : sprite.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
 
 export function poseGokuPopout(sprite, time, travelled = 0) {
   const folhas = formaFolhas(sprite), idade = inicio => Number.isFinite(inicio) ? time - inicio : Infinity;

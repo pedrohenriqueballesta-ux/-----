@@ -91,7 +91,7 @@ test('VFX preserva custo, duração, redução de dano e recarga, e sincroniza o
   const g = new Game({ now: 1000, populate: false });
   const p = g.addPlayer('p'), outro = g.addPlayer('outro'), longe = g.addPlayer('longe');
   g.levar(p, lugar('inicial')); g.levar(outro, lugar('inicial'));
-  p.x += 180; p.seguroAte = 0; p.level = 50; p.stats = statsFor(50); p.hp = p.stats.hp; p.ki = p.stats.ki;
+  p.x += 180; p.seguroAte = 0; p.level = CONFIG.skills.barrier; p.stats = statsFor(p.level); p.hp = p.stats.hp; p.ki = p.stats.ki;
   const ki = p.ki, defesa = p.stats.defense;
   assert.equal(g.cast(p, 'barrier').ok, true);
   assert.equal(p.ki, ki - 30); assert.equal(CONFIG.skillCosts.barrier, 30);

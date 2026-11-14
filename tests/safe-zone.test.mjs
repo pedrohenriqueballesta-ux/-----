@@ -1,7 +1,7 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/game.mjs';
-import { ZONES, PORTAIS, RAIO_PORTAL, zonaSeguraDaHunt, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/config.mjs';
+import { CONFIG, ZONES, PORTAIS, RAIO_PORTAL, zonaSeguraDaHunt, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/config.mjs';
 import { caminhoPorTerra, pesLivres, deslocar } from '../public/shared/passagem.mjs';
 import { pontoNoCirculo, spawnPoints } from '../public/shared/enemies.mjs';
 import { statsFor } from '../public/shared/characters.mjs';
@@ -60,7 +60,7 @@ for (const z of ZONES.filter(z => !z.segura)) {
 }
 test('safe zone bloqueia dano, habilidades, aggro e golpes pendentes; sair restaura combate', () => {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
-  g.levar(p, lugar('inicial')); p.level = 60; p.stats = statsFor(60); p.ki = p.stats.ki;
+  g.levar(p, lugar('inicial')); p.level = CONFIG.skills.genki; p.stats = statsFor(p.level); p.ki = p.stats.ki;
   const m = g.addMob('saibaman', p.x + 50, p.y, p.area), hp = p.hp, mhp = m.hp;
   passar(g, 5);
   assert.equal(p.hp, hp); assert.equal(m.hp, mhp); assert.ok(!m.alvoId);

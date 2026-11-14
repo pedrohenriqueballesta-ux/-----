@@ -26,7 +26,7 @@ Branch feature/novos-atalhos, criada da main atualizada após merge #69.
 | Cura de Vida | 1 |
 | Kamehameha | 2 |
 | Barreira de Ki | 4 |
-| Transformação (Kaioken → Super Saiyajin → Super Saiyajin 2, conforme o nível) | 3 / T |
+| Buff de transformação (Kaioken → SSJ1 → SSJ2 → SSJ3 → SSJ4 → Gogeta → Vegetto, conforme o nível) | 3 / T |
 | Genki-Dama | 5 |
 | Consumível do slot 6 | 6 / R |
 | Consumível do slot 7 | 7 / Q |

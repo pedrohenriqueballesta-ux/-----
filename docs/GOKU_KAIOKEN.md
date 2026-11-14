@@ -44,14 +44,15 @@ Não foi criada aura nova nem usado o ramo `efeitos-skills`.
 
 - **DECIDIDO:** ativação com custo zero, sem recarga, sem duração fixa;
   repetir a técnica desliga, ativar outra substitui. Só uma forma por vez.
-- **VALOR PROVISÓRIO:** `CONFIG.transformacao.drenoKi = 3.5`, comum às formas.
-  Níveis preservados: Kaioken 2 e SSJ 5, ainda provisórios.
+- **VALOR ATUAL:** `CONFIG.transformacao.drenoKi = 3.5`, comum às formas.
+  Marcos: Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900.
+  Gogeta tem duração de 3.600 segundos; o restante das formas não tem duração fixa.
 - Ki chega a zero: forma base e aviso **“Ki esgotado. Forma base.”**
   Isso também vale ao gastar o último Ki em uma técnica. Na base, a recuperação
   natural segue suas condições anteriores; em qualquer forma ela fica bloqueada.
 - Morte, `levar` (portal/viagem/renascimento) e desconexão limpam a forma.
   O save não inclui forma, duração ou recargas de transformação.
-- `p.forma` é a fonte única (`base`, `kaioken`, `ssj`); `transformed` é um alias
+- `p.forma` é a fonte única (`base`, `kaioken`, `ssj`, `ssj2`, `ssj3`, `ssj4`, `gogeta`, `vegito`); `transformed` é um alias
   de acesso para SSJ, preservando consumidores existentes sem duplicar estado.
 - Kaioken: dano ×1,4 em soco, rajada, Kamehameha e Genki; SSJ mantém
   soco ×1,5, rajada ×2,1, Kamehameha ×6 e Genki ×14. Bônus não acumulam.

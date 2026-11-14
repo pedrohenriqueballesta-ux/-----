@@ -1,4 +1,4 @@
-import { formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
+import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
 import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
@@ -151,7 +151,15 @@ export function atualizarHud(snapshot, playerId) {
   $('xpBar').style.width = xpPct + '%';
   $('hudXpBar').style.width = xpPct + '%'; $('hudXpText').textContent = 'EXP ' + Math.round(xpPct) + '%';
   $('formLabel').textContent = !s.forma || s.forma === 'base' ? 'FORMA BASE' : nomeDaForma(s.forma).toUpperCase();
-  $('nextUnlock').textContent = s.level < 2 ? 'Próximo: Kaioken + Barreira de Ki · NV. 2' : s.level < 3 ? 'Próximo: Kamehameha · NV. 3' : s.level < 5 ? 'Próximo: Super Saiyajin · NV. 5' : s.level < 10 ? 'Próximo: Genki Dama · NV. 10' : 'Todas as técnicas principais desbloqueadas.';
+  const proximosDesbloqueios = [
+    ['Rajada de Ki', CONFIG.skills.ki], ['Imagem Residual', CONFIG.skills.dash],
+    ['Kamehameha', CONFIG.skills.kame], ['Barreira de Ki', CONFIG.skills.barrier],
+    ['Genki Dama', CONFIG.skills.genki], ...FORMAS.map(forma => [forma.nome, forma.nivel])
+  ].filter(([, nivel]) => nivel > s.level).sort((a, b) => a[1] - b[1]);
+  const primeiroDesbloqueio = proximosDesbloqueios[0], desbloqueiosNoNivel = primeiroDesbloqueio
+    ? proximosDesbloqueios.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];
+  $('nextUnlock').textContent = s.level >= CONFIG.progression.nivelMaximo ? 'Nível máximo alcançado.' : primeiroDesbloqueio
+    ? `Próximo desbloqueio: ${desbloqueiosNoNivel.join(' e ')} · NV. ${primeiroDesbloqueio[1]}` : 'Todas as habilidades principais desbloqueadas.';
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
@@ -207,7 +215,8 @@ export function atualizarHud(snapshot, playerId) {
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
   if (target) { $('targetName').textContent = target.name + (target.level ? ' • Nv. ' + target.level : ''); $('targetBar').style.width = 100 * target.hp / target.maxHp + '%'; $('targetHp').textContent = integer(target.hp) + ' / ' + integer(target.maxHp); }
   const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
-  const textoTransformacao = 'Sem custo · drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s · volta à forma base quando o Ki zerar · sem recarga';
+  const gogeta = FORMAS.find(f => f.forma === 'gogeta');
+  const textoTransformacao = 'Um buff por vez · sem custo ou recarga · drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s · Gogeta dura ' + Math.round((gogeta?.duracao || 0) / 60) + ' min · Ki zerado volta à base';
   const skillState = {
     heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
       text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
@@ -236,13 +245,16 @@ export function atualizarHud(snapshot, playerId) {
   const transformLocked = !disponivel;
   const nomeForma = nomeDaForma(mostrada), rotulo = $('transformButton').querySelector('strong');
   rotulo.textContent = nomeForma; rotulo.classList.toggle('nome-longo', nomeForma.length > 14);
-  $('transformButton').querySelector('.tecnica-icone').className = 'tecnica-icone ' + (mostrada === 'kaioken' ? 'sprite-kaioken' : 'sprite-transform');
+  const formaConfig = FORMAS.find(f => f.forma === mostrada), iconeTransformacao = $('transformButton').querySelector('.tecnica-icone');
+  iconeTransformacao.className = 'tecnica-icone ' + (formaConfig?.icone ? 'icone-transformacao' : 'sprite-kaioken');
+  iconeTransformacao.style.backgroundImage = formaConfig?.icone ? `url("${formaConfig.icone}")` : '';
   $('transformButton').disabled = transformLocked;
   $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', formaAtiva);
   $('transformButton').classList.remove('cooling');
   let transformCooldown = $('transformButton').querySelector('.cooldown-overlay');
   if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; $('transformButton').append(transformCooldown); }
-  transformCooldown.textContent = formaAtiva ? 'ATIVO' : '';
+  const transformMinutos = Math.ceil((s.transformRemaining || 0) / 60);
+  transformCooldown.textContent = formaAtiva ? (mostrada === 'gogeta' ? 'ATIVO · ' + transformMinutos + 'm' : 'ATIVO') : '';
   transformCooldown.classList.toggle('estado-transformacao', formaAtiva);
   renderSkillMeta(document.getElementById('transformText'), 0, formaAtiva ? 'ATIVO' : 'SEM RECARGA');
   $('transformButton').title = textoTransformacao;

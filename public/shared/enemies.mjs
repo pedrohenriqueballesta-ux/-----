@@ -3,6 +3,8 @@
 
 import { configurarProjetilMob } from './projetil-mob.mjs';
 import { PLANETS, areaPorId, naEscala, pontoNaZonaSegura } from './config.mjs';
+import { statsFor } from './characters.mjs';
+import { xpForLevel } from './progressao.mjs';
 import { podeAndar, pesLivres, pontoAlcancavelDesde } from './passagem.mjs';
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
@@ -17,54 +19,52 @@ const ATRIBUTOS = {
   // Cratera de Nail: atributos PROVISÓRIOS, calibrados por duelos 30/35/40 e caça.
   norte: {
     // Percepção 250 provisória: evita que o tamanho dos corpos atraia grupos inteiros na ilha estreita.
-    nail: { hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:20, aggro:250, name:'Nail' },
-    piccoloDaimaoh: { hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:22, aggro:250, name:'Piccolo Daimaoh' },
-    neva: { hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:25, name:'Neva' }
+    nail: { level:30, hp:2200, attack:64, xp:260, defesa:24, speed:104, corpo:20, aggro:250, name:'Nail' },
+    piccoloDaimaoh: { level:40, hp:4900, attack:120, xp:1100, defesa:40, speed:100, corpo:22, aggro:250, name:'Piccolo Daimaoh' },
+    neva: { level:40, hp:40000, attack:200, xp:35000, defesa:65, speed:85, corpo:25, name:'Neva' }
   },
   inicial: {
-    passaro: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
-    inseto: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Inseto de Namek' },
-    melee: { hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Saibaman' }
+    passaro: { level:5, hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Pássaro de Namek' },
+    inseto: { level:5, hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Inseto de Namek' },
+    melee: { level:5, hp: 42, attack: 8, xp: 10, defesa: 1, speed: 115, name: 'Saibaman' }
   },
   media: {
-    guerreiro: { hp: 210, attack: 17, xp: 45, defesa: 5, speed: 112, name: 'Guerreiro de Namek' },
+    guerreiro: { level:15, hp: 210, attack: 17, xp: 45, defesa: 5, speed: 112, name: 'Guerreiro de Namek' },
     // Veterano de Namek: ataca de longe (rajada de ki) e de perto (soco).
-    veterano: { hp: 190, attack: 16, xp: 45, defesa: 5, speed: 108, name: 'Veterano de Namek' },
-    ranged: { hp: 200, attack: 17, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
-    subboss: { hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela' }
+    veterano: { level:15, hp: 190, attack: 16, xp: 45, defesa: 5, speed: 108, name: 'Veterano de Namek' },
+    ranged: { level:15, hp: 200, attack: 17, xp: 45, defesa: 5, speed: 108, name: 'Sentinela alienígena' },
+    subboss: { level:20, hp: 1800, attack: 45, xp: 400, defesa: 8, speed: 95, name: 'Comandante Sentinela' }
   },
   dificil: {
     // Porunga (decisão do Pedro, 03/11): o mob mais fraco da hunt difícil, voa e ataca de perto (garra).
-    porunga: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Porunga' },
-    melee: { hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
-    ranged: { hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
+    porunga: { level:25, hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Porunga' },
+    melee: { level:25, hp: 380, attack: 33, xp: 90, defesa: 10, speed: 115, name: 'Saibaman de elite' },
+    ranged: { level:25, hp: 320, attack: 30, xp: 90, defesa: 10, speed: 108, name: 'Sentinela de elite' },
     // Chefe raro do Planalto (decisão do Pedro, 03/11): voa, ataque de perto por enquanto, 3× o Goku.
-    boss: { hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Porunga BOSS' }
+    boss: { level:30, hp: 12000, attack: 85, xp: 1500, defesa: 14, speed: 80, name: 'Porunga BOSS' }
   },
-  // Planeta Vegeta (04/11/2026): MOBS PROVISÓRIOS, os de Namekusei com outros números, até o Pedro decidir quem
-  // vive em cada hunt. Números pela mesma curva de Namek (vida 42 → 210 → 380 nos níveis 1, 10 e 20) estendida
-  // ao nível do meio de cada hunt (33, 39, 45, 51, 57): vida ≈ 45 + 17,5 × (nível − 1), ataque ≈ 8 + 1,25 ×,
-  // XP ≈ 10 + 4,2 ×, defesa ≈ 1 + 0,47 ×. Chefe raro da Cratera = o do Planalto × 2,7 (a vida dos mobs).
+  // Os níveis originais dos mobs de Vegeta são mantidos como referência de calibração. mobStats ajusta
+  // HP/ataque/defesa/XP junto das novas faixas recomendadas sem criar criaturas ou mudar seus papéis.
   // Planícies Vermelhas (decisão do Pedro, 05/11/2026): Tsufurujin Guerreiro (o mais fraco), Tsufurujin General
   // (o mediano) e Hatchiyack (o mais forte). Todos socam de perto e disparam ki de longe. Balanceados para um
   // nível 30 NÃO matar com facilidade (pedido do Pedro); números calibrados por simulação, ver PASSAGEM_CLAUDE.md.
   'vegeta-planicies': {
-    tsufuruGuerreiro: { hp: 2000, attack: 64, xp: 220, defesa: 24, speed: 112, name: 'Tsufurujin Guerreiro' },
-    tsufuruGeneral: { hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
-    hatchiyack: { hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
+    tsufuruGuerreiro: { level:40, nivelBase:30, hp: 2000, attack: 64, xp: 220, defesa: 24, speed: 112, name: 'Tsufurujin Guerreiro' },
+    tsufuruGeneral: { level:51, nivelBase:33, hp: 3000, attack: 78, xp: 420, defesa: 28, speed: 108, name: 'Tsufurujin General' },
+    hatchiyack: { level:62, nivelBase:36, hp: 3800, attack: 98, xp: 850, defesa: 34, speed: 100, name: 'Hatchiyack' }
   },
   // Cânions (decisão do Pedro, 06/11/2026): Dodoria (o mais fraco) e Zarbon (o mais forte). Mesmo critério das
   // Planícies, um degrau acima: um nível 36 NÃO mata com facilidade. (Nappa, Raditz e Bardock foram para a Floresta.)
   'vegeta-canions': {
-    dodoria: { hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 104, corpo: 10, name: 'Dodoria' },
-    zarbon: { hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 112, name: 'Zarbon' }
+    dodoria: { level:62, nivelBase:36, hp: 2400, attack: 78, xp: 320, defesa: 28, speed: 104, corpo: 10, name: 'Dodoria' },
+    zarbon: { level:68, nivelBase:42, hp: 4300, attack: 118, xp: 1200, defesa: 40, speed: 112, corpo: 10, name: 'Zarbon' }
   },
   // Floresta Seca (decisão do Pedro, 06/11/2026): Nappa (o mais fraco), Raditz (o mediano) e Bardock (o mais forte),
   // vindos dos Cânions, mais fortes: um nível 42 NÃO mata com facilidade.
   'vegeta-floresta': {
-    nappa: { hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 108, name: 'Nappa' },
-    raditz: { hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 112, name: 'Raditz' },
-    bardock: { hp: 4800, attack: 126, xp: 1800, defesa: 45, speed: 110, name: 'Bardock' }
+    nappa: { level:84, nivelBase:42, hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 108, name: 'Nappa' },
+    raditz: { level:95, nivelBase:45, hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 112, name: 'Raditz' },
+    bardock: { level:106, nivelBase:48, hp: 4800, attack: 126, xp: 1800, defesa: 45, speed: 110, name: 'Bardock' }
   },
   // Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru (o mais fraco) e Oozaru Guerreiro (o mais forte), mesmo
   // critério das outras hunts (nível 48 não mata com facilidade). Oozaru Super = chefe raro (6 a 12 h, em qualquer
@@ -72,23 +72,23 @@ const ATRIBUTOS = {
   'vegeta-lava': {
     // `corpo`: quanto o mob é mais largo que um personagem comum (unidades). Soma no alcance do soco dele e no de quem
     // bate nele: sem isso o gigante encostava no centro do Goku e ficava virando de lado (relato do Pedro, 05/11).
-    oozaru: { hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, corpo: 34, name: 'Oozaru' },
-    oozaruGuerreiro: { hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
+    oozaru: { level:106, nivelBase:48, hp: 3300, attack: 100, xp: 700, defesa: 38, speed: 104, corpo: 34, name: 'Oozaru' },
+    oozaruGuerreiro: { level:128, nivelBase:54, hp: 5300, attack: 142, xp: 1600, defesa: 50, speed: 100, corpo: 38, name: 'Oozaru Guerreiro' },
     // Oozaru Super (dourado DE ARMADURA): fora da Lava desde 06/11 (Pedro), guardado para ser chefe de outro planeta.
-    oozaruSuper: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' },
+    oozaruSuper: { level:128, nivelBase:54, hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Super' },
     // Oozaru Dourado (sem armadura, como no GT): chefe raro da Lava no lugar dele (Pedro, 06/11). Golpes próprios:
     // pancada com os dois punhos (área em volta dele) e laser negro pela boca mirando o personagem. Mesma força por ora.
-    oozaruDourado: { hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Dourado' }
+    oozaruDourado: { level:128, nivelBase:54, hp: 30000, attack: 180, xp: 30000, defesa: 60, speed: 92, corpo: 62, name: 'Oozaru Dourado' }
   },
   // Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte), no lugar dos
   // Porungas provisórios. Mesmo critério das outras hunts: um nível 54 não mata com facilidade.
   'vegeta-cratera': {
-    reiVegeta: { hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 12, name: 'Rei Vegeta' },
-    broly: { hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 30, name: 'Broly' },
-    boss: { hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
+    reiVegeta: { level:128, nivelBase:54, hp: 3900, attack: 118, xp: 1100, defesa: 44, speed: 108, corpo: 12, name: 'Rei Vegeta' },
+    broly: { level:150, nivelBase:60, hp: 5900, attack: 150, xp: 2600, defesa: 52, speed: 106, corpo: 30, name: 'Broly' },
+    boss: { level:150, nivelBase:60, hp: 32000, attack: 200, xp: 4000, defesa: 38, speed: 80, name: 'Porunga BOSS' },
     // Freeza BOSS (ideia do Pedro, 05/11): em pé até 40% da vida (Death Beam), depois na nave, mais forte (Supernova).
     // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
-    freezaBoss: { hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 32, name: 'Freeza',
+    freezaBoss: { level:150, nivelBase:60, hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 32, name: 'Freeza',
       nave: { aPartirDe: 0.4, ataque: 1.35, defesa: 1.25, velocidade: 0.8, corpo: 40, nome: 'Freeza (nave)' } }
   }
 };
@@ -112,9 +112,21 @@ export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'o
 export const nomeDeChefe = nome => /\bBOSS\b/.test(nome) ? nome : nome.replace(/^(.*?)(\s*\([^)]*\))?$/, (_, n, forma = '') => n + ' BOSS' + forma);
 export function mobStats(type, area = 'inicial') {
   const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
+  const nivelBase = base.nivelBase || base.level;
+  const statsNivel = statsFor(base.level), statsNivelBase = statsFor(nivelBase);
+  // Os valores originais foram calibrados nas faixas antigas. A raiz quadrada acompanha a
+  // progressão de atributos sem tornar os mobs duas vezes mais resistentes/deadly no primeiro nível da faixa nova.
+  const atributosEscalados = base.nivelBase ? {
+    hp: Math.round(base.hp * Math.sqrt(statsNivel.hp / statsNivelBase.hp)),
+    attack: Math.round(base.attack * Math.sqrt(statsNivel.attack / statsNivelBase.attack)),
+    defesa: Math.round(base.defesa * Math.sqrt(statsNivel.defense / statsNivelBase.defense)),
+    xp: Math.round(base.xp * xpForLevel(base.level) / xpForLevel(nivelBase))
+  } : {};
   const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
   const chefe = TIPOS_CHEFE.has(type) ? { name: nomeDeChefe(base.name), ...(base.nave ? { nave: { ...base.nave, nome: nomeDeChefe(base.nave.nome) } } : {}) } : {};
-  return { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...base, ...chefe, projetil:configurarProjetilMob(type,base) };
+  const { nivelBase: _nivelBase, ...atributosOriginais } = base;
+  const mob = { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...atributosOriginais, ...atributosEscalados, ...chefe };
+  return { ...mob, projetil:configurarProjetilMob(type,mob) };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.

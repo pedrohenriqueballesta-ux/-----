@@ -11,7 +11,7 @@ const passar = (g, segundos) => { for (let i = 0; i < Math.round(segundos / .01)
 function cena(transformado = false) {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
-  p.level = 50; p.stats = statsFor(50); p.hp = p.stats.hp; p.ki = p.stats.ki;
+  p.level = CONFIG.skills.genki; p.stats = statsFor(p.level); p.hp = p.stats.hp; p.ki = p.stats.ki;
   p.transformed = transformado; p.autoHeal = false; p.autoFood = false;
   const mob = (dx, dy = 0) => {
     const m = g.addMob('melee', p.x + dx, p.y + dy, p.area);

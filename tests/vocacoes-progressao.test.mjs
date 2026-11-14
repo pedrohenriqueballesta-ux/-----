@@ -4,6 +4,7 @@ import { VOCACOES, vocacaoDoPersonagem } from '../public/shared/vocacoes.mjs';
 import { CONFIG, lugar } from '../public/shared/config.mjs';
 import { createPlayer, xpForLevel, statsFor } from '../public/shared/characters.mjs';
 import { Game } from '../public/shared/game.mjs';
+import { perfilPersonagem } from '../public/shared/perfil.mjs';
 
 test('o catálogo mantém apenas a vocação jogável atual e desconhecidas preservam o fallback Goku', () => {
   assert.deepEqual(Object.keys(VOCACOES), ['goku']);
@@ -22,22 +23,39 @@ test('atributos de Goku seguem a configuração do catálogo sem alterar a curva
   assert.deepEqual(statsFor(100, 'vegeta'), statsFor(100, 'goku'));
 });
 
-test('teto atual continua 100 e personagem legado restaura no mesmo nível máximo', () => {
-  assert.equal(CONFIG.progression.nivelMaximo, 100);
-  const p = createPlayer('teste', 'Goku', { character: 'Goku', level: 1000 });
-  assert.equal(p.level, 100);
+test('teto chega ao nível 1.000 e o progresso legado preserva nível e XP acumulado', () => {
+  assert.equal(CONFIG.progression.nivelMaximo, 1000);
+  const p = createPlayer('teste', 'Goku', { character: 'Goku', level: 1000, xp: 123456 });
+  assert.equal(p.level, 1000);
+  assert.equal(p.xp, 123456);
   assert.equal(p.vocacao, 'goku');
   assert.equal(p.character, 'Goku');
+  const game = new Game({ now: 1000, populate: false });
+  const conectado = game.addPlayer('max', 'Goku', { level: 1000, xp: 123456 });
+  assert.deepEqual([game.snapshot(conectado.id).self.xp, game.snapshot(conectado.id).self.xpNext], [0, 0]);
+  assert.deepEqual([perfilPersonagem(conectado).xp, perfilPersonagem(conectado).xpNext], [0, 0]);
+  const salvo = createPlayer('antigo', 'Antigo', { level: 100, xp: xpForLevel(100) * 3 });
+  assert.equal(salvo.level, 100);
+  assert.equal(salvo.xp, xpForLevel(100) * 3, 'XP acumulado no antigo teto não é descartado');
 });
 
-test('ganho de XP não ultrapassa o teto atual nem muda a curva', () => {
+test('curva preserva os níveis existentes e cresce até 1.000 sem saltos ou limites artificiais', () => {
+  for (let level = 1; level <= 100; level++) assert.equal(xpForLevel(level), Math.round(30 * level ** 1.35));
+  for (let level = 1; level < 1000; level++) assert.ok(xpForLevel(level + 1) > xpForLevel(level));
+  assert.equal(xpForLevel(1000), 475468);
+});
+
+test('ganho de XP atravessa a fronteira 999→1.000 e para no nível máximo', () => {
   const game = new Game({ now: 1000, populate: false });
   const p = game.addPlayer('teste');
   game.levar(p, lugar('inicial'));
-  p.level = CONFIG.progression.nivelMaximo;
+  p.level = CONFIG.progression.nivelMaximo - 1;
   p.stats = statsFor(p.level, p.vocacao);
   p.xp = xpForLevel(p.level) - 1;
   game.awardXp(p, 2);
-  assert.equal(p.level, 100);
-  assert.equal(p.xp, xpForLevel(100) + 1);
+  assert.equal(p.level, 1000);
+  assert.equal(p.xp, 1);
+  game.awardXp(p, 50000);
+  assert.equal(p.level, 1000);
+  assert.equal(p.xp, 1, 'o XP não cresce sem limite ao alcançar o teto');
 });

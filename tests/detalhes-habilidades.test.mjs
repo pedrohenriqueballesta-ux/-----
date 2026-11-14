@@ -20,8 +20,8 @@ test('detalhes das skills seguem configuração e progressão, inclusive cura de
   assert.equal(cura.Custo, '14 Ki'); assert.equal(cura.Cura, '3% do HP máximo');
   assert.match(campos(detalhesHabilidade('genki', {...estado,level:1})).Estado, /Bloqueada/);
   assert.match(campos(detalhesHabilidade('kame', {...estado,kameRemaining:2.3})).Estado, /2,3 s/);
-  // Escada: nível 3 mostra Kaioken e avisa o próximo degrau; nível 1 está bloqueado.
-  const k = detalhesHabilidade('transform', {...estado,level:3});
+  // Escada: nível 50 mostra Kaioken e avisa o próximo degrau; nível 1 está bloqueado.
+  const k = detalhesHabilidade('transform', {...estado,level:CONFIG.skills.kaioken});
   assert.equal(k.nome, 'Kaioken'); assert.match(campos(k).Próxima, /Super Saiyajin no nível/);
   assert.match(campos(detalhesHabilidade('transform', {...estado,level:1})).Estado, /Bloqueada/);
 });
