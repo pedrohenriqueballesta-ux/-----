@@ -48,7 +48,7 @@
         </div>
         <button type="button" id="statsPopoutButton" class="hud-popout-button moldura-azul" aria-label="Ativar janela flutuante de status" title="Ativar janela flutuante de status">↗</button>
       </section>
-      <button type="button" id="godmodeToggle" class="hud-godmode moldura-azul" title="Liga/desliga god mode (teste): nível 100, invencível, Zeni e peso infinitos. Ao desligar, tudo volta ao normal.">⚡ GOD MODE: <b>OFF</b></button>
+      <div class="hud-godmode moldura-azul" aria-label="Ferramentas de teste"><button type="button" id="godmodeToggle" class="hud-godmode-toggle" title="Liga ou desliga o God Mode de teste">⚡ GOD MODE: <b>OFF</b></button><button type="button" id="godmodeToolbarSettings" class="hud-godmode-settings" aria-label="Configurar God Mode" title="Configurar God Mode e itens de teste">⚙</button></div>
       <section id="targetHud" class="hud-alvo moldura-azul hidden" aria-label="Alvo"><span id="targetName"></span><div class="barra barra-alvo"><i id="targetBar"></i><b id="targetHp"></b></div></section>
       <section class="hud-mapa moldura" aria-label="Minimapa"><span class="arrasto-alca" title="Arrastar · duplo clique reseta" aria-hidden="true">⠿</span>
         <strong id="regionName">—</strong>
@@ -85,6 +85,26 @@
     <div id="notifications" class="notifications" aria-live="polite"></div>
   </main>
   <dialog id="welcomeDialog" class="entrada" aria-label="Dragon Ball Idle"></dialog>
+  <dialog id="godmodeDialog" class="godmode-dialog" aria-labelledby="godmodeTitle">
+    <header class="godmode-heading"><div><span class="eyebrow">FERRAMENTAS DE DESENVOLVIMENTO</span><h2 id="godmodeTitle">God Mode</h2></div><button type="button" class="close-dialog" data-close="godmodeDialog" aria-label="Fechar">×</button></header>
+    <nav class="godmode-tabs" aria-label="Ferramentas God Mode"><button type="button" data-godmode-tab="config" class="ativa" aria-selected="true">Configuração</button><button type="button" data-godmode-tab="items" aria-selected="false">Pegar itens</button></nav>
+    <section id="godmodeConfigPanel" class="godmode-panel">
+      <p id="godmodeModeStatus" class="godmode-mode-status">Desligado · configure as opções e ative para testar.</p>
+      <button type="button" id="godmodePanelToggle" class="primary godmode-master-toggle">Ligar God Mode</button>
+      <div class="godmode-level-setting"><label for="godmodeLevel">Nível do personagem <output id="godmodeLevelValue">1000</output></label><div class="godmode-level-inputs"><input id="godmodeLevel" type="range" min="1" max="1000" step="1" value="1000" aria-label="Nível do personagem"><input id="godmodeLevelInput" type="number" min="1" max="1000" step="1" value="1000" aria-label="Digitar nível do personagem"></div><button type="button" id="godmodeApply" class="primary godmode-apply" disabled>Aplicar</button></div>
+      <fieldset class="godmode-options"><legend>Recursos de teste</legend>
+        <label><input id="hpInfinite" type="checkbox" checked> HP infinito</label>
+        <label><input id="kiInfinite" type="checkbox" checked> Ki infinito</label>
+        <label><input id="zeniInfinite" type="checkbox" checked> Zeni infinito</label>
+        <label><input id="capacityInfinite" type="checkbox" checked> Capacidade infinita</label>
+      </fieldset>
+      <p id="godmodeStatus" class="godmode-status" aria-live="polite">As opções do God Mode não alteram o progresso real do personagem.</p>
+    </section>
+    <section id="godmodeItemsPanel" class="godmode-panel" hidden>
+      <p id="godmodeItemHint" class="godmode-mode-status">Ative o God Mode para conceder itens.</p>
+      <div id="godmodeItems" class="godmode-items" aria-label="Catálogo de itens"></div>
+    </section>
+  </dialog>
   <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><span class="eyebrow">VILA DO LAGO</span><h2>Mercado de suprimentos</h2><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button id="sellButton" class="primary">Vender todos os materiais</button><small>Todos os preços são provisórios para o protótipo.</small></dialog>
   <!-- Portal: abre ao encostar num portal do mapa; cada cartão é um destino (client/hud.mjs). -->
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></dialog>

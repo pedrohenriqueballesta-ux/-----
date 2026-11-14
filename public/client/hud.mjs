@@ -15,12 +15,13 @@ import { instalarLoja } from '../render/loja.mjs';
 import { instalarBestiario } from '../render/bestiario.mjs';
 import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
 import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
+import { instalarGodmodeHud } from '../render/godmode-hud.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
 let atualizarDetalhes = () => {};
 let novidadesHud = null;
-let lojaHud = null;let abasHud=null;
+let lojaHud = null;let abasHud=null;let godmodeHud=null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
   get: (_, chave) => chave === Symbol.toPrimitive ? () => '' : chave === Symbol.iterator ? [][Symbol.iterator].bind([]) : ['options', 'children'].includes(chave) ? [] : VAZIO,
@@ -169,8 +170,7 @@ export function atualizarHud(snapshot, playerId) {
   }
   $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
   $('autoHuntButton').classList.toggle('ligado', s.autoHunt);
-  $('godmodeToggle').querySelector('b').textContent = s.godmode ? 'ON' : 'OFF';
-  $('godmodeToggle').classList.toggle('ligado', s.godmode);
+  godmodeHud?.atualizar(s);
   const hunt = areaPorId(s.area);
   $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
   $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
@@ -437,6 +437,7 @@ export function alternarAutoHunt() {
 export function ligarHud(contexto) {
   document.getElementById('huntAnalyzerReset')?.addEventListener('click',()=>action({type:'huntAnalyzerReset'}));
   ctx = contexto;
+  godmodeHud = instalarGodmodeHud(action);
   instalarIconesAnimados();
   instalarHuntAnalyzer(alternarAutoHunt);
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});

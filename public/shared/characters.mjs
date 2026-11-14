@@ -20,28 +20,64 @@ export function statsFor(level, vocacao = 'goku') {
 // Valores "praticamente infinitos" usados pelo god mode de teste.
 export const GODMODE_ZENI = 999999999;
 export const GODMODE_CAPACITY = 999999999999;
+export const GODMODE_PADRAO = Object.freeze({ level: CONFIG.progression.nivelMaximo, hpInfinite: true, kiInfinite: true, zeniInfinite: true, capacityInfinite: true });
 
-// Liga/desliga o god mode de um jogador: nível máximo, HP/Ki sempre cheios (invencível),
-// peso máximo e Zeni praticamente infinitos. Ao ligar guarda nível, Zeni, HP e Ki REAIS;
-// ao desligar restaura tudo ao que estava antes (o inventário não é tocado pelo god mode).
-export function aplicarGodmode(p, on) {
+export function opcoesGodmodeValidas(valor = {}) {
+  const limite = CONFIG.progression.nivelMaximo;
+  const level = Number(valor.level);
+  return {
+    level: Number.isSafeInteger(level) ? clamp(level, 1, limite) : GODMODE_PADRAO.level,
+    hpInfinite: valor.hpInfinite !== false,
+    kiInfinite: valor.kiInfinite !== false,
+    zeniInfinite: valor.zeniInfinite !== false,
+    capacityInfinite: valor.capacityInfinite !== false
+  };
+}
+
+// God Mode de teste permite escolher o nível e ativar recursos infinitos separadamente.
+// Ao ligar, guarda os valores reais e os restaura ao desligar; itens de teste permanecem na mochila.
+export function aplicarGodmode(p, on, opcoes = p.godmodeOptions) {
   if (on) {
     if (p.levelReal == null) p.levelReal = p.level;
+    if (p.xpReal == null) p.xpReal = p.xp;
     if (p.zeniReal == null) p.zeniReal = p.zeni;
     if (p.hpReal == null) p.hpReal = p.hp;
     if (p.kiReal == null) p.kiReal = p.ki;
-    p.godmode = true; p.level = CONFIG.progression.nivelMaximo;
-    p.stats = statsFor(p.level, p.vocacao); p.stats.capacity = GODMODE_CAPACITY;
-    p.hp = p.stats.hp; p.ki = p.stats.ki; p.zeni = GODMODE_ZENI;
+    p.godmodeOptions = opcoesGodmodeValidas(opcoes);
+    p.godmode = true; p.level = p.godmodeOptions.level; p.xp = 0;
+    p.stats = statsFor(p.level, p.vocacao);
+    aplicarOpcoesGodmode(p);
   } else {
     p.godmode = false;
     if (p.levelReal != null) p.level = p.levelReal;
+    if (p.xpReal != null) p.xp = p.xpReal;
     if (p.zeniReal != null) p.zeni = p.zeniReal;
     p.stats = statsFor(p.level, p.vocacao);
     p.hp = Math.min(p.hpReal != null ? p.hpReal : p.hp, p.stats.hp);
     p.ki = Math.min(p.kiReal != null ? p.kiReal : p.ki, p.stats.ki);
-    p.levelReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
+    p.levelReal = null; p.xpReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
   }
+}
+
+export function configurarGodmode(p, opcoes) {
+  p.godmodeOptions = opcoesGodmodeValidas(opcoes);
+  if (!p.godmode) return;
+  const hpRatio = p.stats.hp > 0 ? p.hp / p.stats.hp : 1;
+  const kiRatio = p.stats.ki > 0 ? p.ki / p.stats.ki : 1;
+  p.level = p.godmodeOptions.level; p.xp = 0;
+  p.stats = statsFor(p.level, p.vocacao);
+  p.hp = p.godmodeOptions.hpInfinite ? p.stats.hp : Math.min(p.stats.hp, Math.round(p.stats.hp * hpRatio));
+  p.ki = p.godmodeOptions.kiInfinite ? p.stats.ki : Math.min(p.stats.ki, Math.round(p.stats.ki * kiRatio));
+  if (p.godmodeOptions.capacityInfinite) p.stats.capacity = GODMODE_CAPACITY;
+  p.zeni = p.godmodeOptions.zeniInfinite ? GODMODE_ZENI : (p.zeniReal ?? p.zeni);
+}
+
+function aplicarOpcoesGodmode(p) {
+  const opcoes = p.godmodeOptions;
+  p.hp = opcoes.hpInfinite ? p.stats.hp : Math.min(p.hp, p.stats.hp);
+  p.ki = opcoes.kiInfinite ? p.stats.ki : Math.min(p.ki, p.stats.ki);
+  if (opcoes.capacityInfinite) p.stats.capacity = GODMODE_CAPACITY;
+  p.zeni = opcoes.zeniInfinite ? GODMODE_ZENI : (p.zeniReal ?? p.zeni);
 }
 export function bagWeight(inv) {
   return Object.entries(CONFIG.itemWeights).reduce((sum, pair) => sum + (inv[pair[0]] || 0) * pair[1], 0);
@@ -58,9 +94,10 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
   const p = { montaria:montariaValida(saved?.montaria), battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
-    levelReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
+    levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     // Preserve XP saved at the old level cap: it may exceed the former per-level threshold.
     xp: Number.isFinite(Number(saved?.xp)) ? clamp(Number(saved.xp), 0, Number.MAX_SAFE_INTEGER) : 0, stats,
+    godmodeOptions: opcoesGodmodeValidas(saved?.godmodeOptions),
     x: PLANETS.terra.spawn.x, y: PLANETS.terra.spawn.y, planet: 'terra', area: null, seguroAte: 0,
     hp: clamp(saved?.hp == null ? stats.hp : Number(saved.hp), 1, stats.hp),
     ki: clamp(saved?.ki == null ? stats.ki : Number(saved.ki), 0, stats.ki),
@@ -90,9 +127,9 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
 
 // Campos persistidos no save do servidor.
 export function exportPlayer(p) {
-  return { montaria:montariaValida(p.montaria), battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.xp, x: p.x, y: p.y,
+  return { montaria:montariaValida(p.montaria), battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.godmode && p.xpReal != null ? p.xpReal : p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
-    zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode,
+    zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
     novidades: restaurarNovidades(p.novidades),
     hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,

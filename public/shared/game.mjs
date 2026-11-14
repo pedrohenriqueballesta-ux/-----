@@ -11,7 +11,7 @@ import {Guildas} from './guildas.mjs';
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
@@ -233,7 +233,24 @@ export class Game {
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
-      this.notify(p, p.godmode ? 'God mode LIGADO: nível 1.000, invencível, Zeni e peso infinitos.' : 'God mode desligado: status restaurados.');
+      this.notify(p, p.godmode ? 'God Mode de teste ligado no nível ' + p.level + '.' : 'God Mode desligado: status reais restaurados.');
+      return { ok: true };
+    }
+    if (kind === 'godmodeConfig') {
+      const options = data.options;
+      if (!options || !Number.isSafeInteger(options.level) || options.level < 1 || options.level > CONFIG.progression.nivelMaximo ||
+        ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean'))
+        return { ok: false, reason: 'Configuração de God Mode inválida.' };
+      configurarGodmode(p, opcoesGodmodeValidas(options));
+      return { ok: true };
+    }
+    if (kind === 'godmodeGrantItem') {
+      const item = Object.hasOwn(ITENS_NEGOCIAVEIS, data.item) ? ITENS_NEGOCIAVEIS[data.item] : null, quantidade = data.quantidade;
+      if (!p.godmode) return { ok: false, reason: 'Ative o God Mode para pegar itens de teste.' };
+      if (!item || !Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 9999 || (p.inventory[item.id] || 0) + quantidade > 99999)
+        return { ok: false, reason: 'Item ou quantidade inválidos.' };
+      p.inventory[item.id] = (p.inventory[item.id] || 0) + quantidade;
+      this.notify(p, '+' + quantidade + ' × ' + item.nome + ' adicionado à mochila de teste.');
       return { ok: true };
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
@@ -315,11 +332,14 @@ export class Game {
     if (!Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > LIMITE_ESTOQUE_LOJA)
       return this.reject(p, 'Escolha uma quantidade inteira entre 1 e ' + LIMITE_ESTOQUE_LOJA + '.');
     const total = CONFIG.prices[item] * quantidade;
-    if (p.zeni < total) return this.reject(p, 'Zeni insuficiente para essa quantidade.');
+    const saldoDisponivel = p.godmode && p.zeniReal != null && !p.godmodeOptions?.zeniInfinite ? p.zeniReal : p.zeni;
+    if (saldoDisponivel < total) return this.reject(p, 'Zeni insuficiente para essa quantidade.');
     if ((p.inventory[item] || 0) + quantidade > LIMITE_ESTOQUE_LOJA) return this.reject(p, 'Limite de estoque desse item atingido.');
     // A compra inteira é validada antes de descontar Zeni; nunca entrega um lote parcial.
     if (!this.addItem(p, item, quantidade)) return this.reject(p, 'A mochila está sem capacidade para essa quantidade.');
-    p.zeni -= total; this.notify(p, 'Compra concluída: ' + quantidade + (quantidade === 1 ? ' item.' : ' itens.'));
+    if (p.godmode && p.zeniReal != null && !p.godmodeOptions?.zeniInfinite) { p.zeniReal -= total; p.zeni = p.zeniReal; }
+    else p.zeni -= total;
+    this.notify(p, 'Compra concluída: ' + quantidade + (quantidade === 1 ? ' item.' : ' itens.'));
     return { ok:true, item, quantidade, total };
   }
   buyAll(p,itens) {
@@ -560,7 +580,9 @@ export class Game {
     return true;
   }
   awardXp(p, amount) {
-    if (p.level >= CONFIG.progression.nivelMaximo) return;
+    // God Mode é uma sessão de teste com nível selecionável; XP de combate continua
+    // contabilizado no Hunt Analyzer, mas não altera o nível escolhido nem o save real.
+    if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) return;
     p.xp += amount;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
       p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
@@ -668,7 +690,10 @@ export class Game {
     analisar(p,'segundos',dt);
     p.moving = false;
     if (!p.connected) { p.forma = 'base'; p.formaAte = 0; return; }
-    if (p.godmode) { p.hp = p.stats.hp; p.ki = p.stats.ki; }
+    if (p.godmode) {
+      if (p.godmodeOptions?.hpInfinite !== false) p.hp = p.stats.hp;
+      if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
+    }
     if (p.hp <= 0) {
       p.forma = 'base'; p.formaAte = 0;
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
@@ -1033,6 +1058,7 @@ export class Game {
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
         novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
+        godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
