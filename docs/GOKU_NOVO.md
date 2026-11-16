@@ -113,7 +113,7 @@ Ryuken (Punho do Dragão) no lugar do Kamehameha enquanto em SSJ3: ver a seção
 
 ## Ryuken / Punho do Dragão (12/11/2026)
 
-Decisões do Pedro: técnica do SSJ3 **no lugar do Kamehameha** (tecla 2); o dragão dourado sai do soco, voa até o alvo
+Decisões do Pedro: técnica do SSJ3 (libera no nível 300, junto com o SSJ3, desde a progressão até 1.000 do PR #97) **no lugar do Kamehameha** (tecla 2); o dragão dourado sai do soco, voa até o alvo
 selecionado acompanhando-o e explode **só nele** (sem área); dano ×13,5 do ataque (1,5× o Kamehameha), 40 Ki, 10 s de
 recarga, alcance do Kamehameha no nível. Constantes em `shared/ryuken.mjs`; servidor em `Game.lancarRyuken` (chamado
 pelo `cast('kame')` quando a forma é SSJ3) e `atualizarRyukens` (lançamento de 0,96 s, depois o projétil `ryuken` que

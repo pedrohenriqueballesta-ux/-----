@@ -80,7 +80,7 @@ disponíveis mais próximas até a criação de sprites específicas.
 ## Plano futuro de técnicas especiais
 
 Marcos planejados, ainda sem as respectivas habilidades implementadas: Genki Dama no
-nível 200 junto ao SSJ2; Ryuken no 300 junto ao SSJ3; Super Kamehameha no 500 junto ao
+nível 200 junto ao SSJ2; Ryuken no 300 junto ao SSJ3 (implementado: no SSJ3 a tecla 2 solta o Punho do Dragão); Super Kamehameha no 500 junto ao
 SSJ4. Os dois últimos níveis estão registrados em `CONFIG.plannedSkillUnlocks`; esses
 marcos não tornam as técnicas utilizáveis antes de sua implementação.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.

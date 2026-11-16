@@ -93,7 +93,7 @@ Use testes quando alterar regras de combate, recuperação, progressão e invent
 ### Planejamento futuro — ainda não implementado
 
 - A forma Gogeta no nível 700 e Vegetto no 900 são jogáveis; a janela de fusão de Gogeta está ajustada para uma hora, em `CONFIG.transformacao.gogetaDuracao`.
-- Marcos planejados para técnicas futuras: Ryuken no nível 300 junto ao SSJ3; Super Kamehameha no nível 500 junto ao SSJ4. `CONFIG.plannedSkillUnlocks` registra a intenção, sem liberar ou ativar as técnicas antes de serem implementadas.
+- Ryuken implementado no nível 300 junto ao SSJ3 (`CONFIG.skills.ryuken`). Marco planejado para técnica futura: Super Kamehameha no nível 500 junto ao SSJ4. `CONFIG.plannedSkillUnlocks` registra a intenção, sem liberar ou ativar a técnica antes de ser implementada.
 - Hunts, planetas e desafios acima do nível 150 ainda serão adicionados gradualmente. O teto 1.000 existe e o God Mode de teste usa esse nível, mas isso não implica que todo esse percurso tenha conteúdo ou balanceamento pronto.
 - Cada vocação poderá ter habilidades e transformações próprias, configuradas sobre estruturas compartilhadas. Referências de design (Vegeta: ofensiva explosiva; Gohan: críticos e grande impacto; Cell: regeneração, resistência e absorção; Buu: sobrevivência e recuperação) são diretrizes, não atributos ou habilidades já disponíveis.
 - Após o nível 1.000, o planejamento prevê Ascensão em cinco estágios, com evolução, transformações, habilidades, Poder de Combate, desafios, chefes e recompensas específicos por vocação. Esse sistema ainda não existe.
