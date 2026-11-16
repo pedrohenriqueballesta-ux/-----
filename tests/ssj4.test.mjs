@@ -9,7 +9,7 @@ import {FOLHAS_GOKU_SSJ4} from '../public/art/goku-ssj4.mjs';
 import {FOLHAS_GOKU_SSJ3} from '../public/art/goku-ssj3.mjs';
 
 // Super Saiyajin 4 (Pedro, 16/11/2026): folhas próprias; tem Kamehameha (azul, tecla 2), Ryuken (tecla 8) e
-// Super Kamehameha (técnica própria, tecla 9, vermelho-carmesim no último nível).
+// Super Kamehameha (técnica própria, atribuível à barra, vermelho-carmesim no último nível).
 function cena(level=CONFIG.skills.ssj4,dx=120){
   const g=new Game({now:1000,populate:false}),p=g.addPlayer('p','Goku',{level});
   g.levar(p,lugar('inicial'));p.x+=300;p.seguroAte=0;p.autoHeal=p.autoFood=false;

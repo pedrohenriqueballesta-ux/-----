@@ -55,7 +55,7 @@ export const CONFIG = Object.freeze({
   // Marcos atuais das formas de Goku; parâmetros e comportamento compartilhados em shared/formas.mjs.
   // Habilidades implementadas progridem até a Genki Dama, alinhada ao marco do SSJ2.
   // Transformações atuais permanecem inalteradas até a implementação da nova escada.
-  // ryuken (SSJ3 e SSJ4, tecla 8) e superKamehameha (SSJ4, tecla 9): técnicas próprias, implementadas (Pedro, 12 e
+  // ryuken (SSJ3 e SSJ4) e superKamehameha (SSJ4): técnicas próprias nos oito slots configuráveis (Pedro, 12 e
   // 16/11/2026); o Kamehameha continua em todas as formas (shared/ryuken.mjs, shared/kamehameha.mjs).
   skills: { ki: 20, dash: 20, kame: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, ryuken: 300, ssj4: 500, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
   // Marcos planejados para técnicas futuras; não liberam nem ativam habilidades ainda inexistentes.

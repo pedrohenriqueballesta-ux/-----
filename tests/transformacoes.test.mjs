@@ -71,13 +71,13 @@ test('escada libera a forma mais forte nos níveis 50, 100, 200, 300, 500, 700 e
   }
   const {g,p}=cena(100);g.cast(p,'transform');assert.equal(g.snapshot(p.id).self.transformRemaining,0);assert.equal(g.snapshot(p.id).self.kaiokenRemaining,0);
 });
-test('a HUD preserva os cinco slots originais e mantém a transformação na terceira posição',async()=>{
+test('a HUD inicial oferece oito slots e mantém a transformação na terceira posição',async()=>{
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
   assert.equal((html.match(/id="transformButton"/g)||[]).length,1);
-  // Os quatro data-skill originais + Ryuken (tecla 8) e Super Kamehameha (tecla 9), depois dos consumíveis (Pedro, 16/11/2026).
-  assert.equal((html.match(/<button[^>]*data-skill=/g)||[]).length,6);
+  // Super Kamehameha entra em qualquer um dos oito slots pelo catálogo, sem criar uma nona tecla fixa.
+  assert.equal((html.match(/<button[^>]*data-skill=/g)||[]).length,5);
   assert.ok(html.indexOf('data-skill="ryuken"')>html.indexOf('id="kiPotionButton"'));
-  assert.ok(html.indexOf('data-skill="superKamehameha"')>html.indexOf('data-skill="ryuken"'));
+  assert.doesNotMatch(html,/<kbd>9<\/kbd>/);
   assert.doesNotMatch(html,/hud-buffslot/);
   assert.ok(html.indexOf('id="transformButton"')>html.indexOf('data-skill="kame"'));
   assert.ok(html.indexOf('id="transformButton"')<html.indexOf('data-skill="barrier"'));

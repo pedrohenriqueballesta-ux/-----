@@ -1,6 +1,7 @@
 import {montariaValida} from './montarias.mjs';
 import {restaurarBattlePass} from './battle-pass.mjs';
 import {hotkeysConsumiveisValidas} from './consumiveis-hotkeys.mjs';
+import {barraPadrao,barraValida,atualizarBarraPadrao} from './barra-tecnicas.mjs';
 import {vocacaoDoPersonagem} from './vocacoes.mjs';
 import {preferenciasValidas} from './preferencias.mjs';
 import {restaurarMissoes} from './missoes.mjs';
@@ -46,6 +47,7 @@ export function aplicarGodmode(p, on, opcoes = p.godmodeOptions) {
     p.godmodeOptions = opcoesGodmodeValidas(opcoes);
     p.godmode = true; p.level = p.godmodeOptions.level; p.xp = 0;
     p.stats = statsFor(p.level, p.vocacao);
+    atualizarBarraPadrao(p);
     aplicarOpcoesGodmode(p);
   } else {
     p.godmode = false;
@@ -53,6 +55,7 @@ export function aplicarGodmode(p, on, opcoes = p.godmodeOptions) {
     if (p.xpReal != null) p.xp = p.xpReal;
     if (p.zeniReal != null) p.zeni = p.zeniReal;
     p.stats = statsFor(p.level, p.vocacao);
+    atualizarBarraPadrao(p);
     p.hp = Math.min(p.hpReal != null ? p.hpReal : p.hp, p.stats.hp);
     p.ki = Math.min(p.kiReal != null ? p.kiReal : p.ki, p.stats.ki);
     p.levelReal = null; p.xpReal = null; p.zeniReal = null; p.hpReal = null; p.kiReal = null;
@@ -66,6 +69,7 @@ export function configurarGodmode(p, opcoes) {
   const kiRatio = p.stats.ki > 0 ? p.ki / p.stats.ki : 1;
   p.level = p.godmodeOptions.level; p.xp = 0;
   p.stats = statsFor(p.level, p.vocacao);
+  atualizarBarraPadrao(p);
   p.hp = p.godmodeOptions.hpInfinite ? p.stats.hp : Math.min(p.stats.hp, Math.round(p.stats.hp * hpRatio));
   p.ki = p.godmodeOptions.kiInfinite ? p.stats.ki : Math.min(p.stats.ki, Math.round(p.stats.ki * kiRatio));
   if (p.godmodeOptions.capacityInfinite) p.stats.capacity = GODMODE_CAPACITY;
@@ -93,6 +97,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const stats = statsFor(level, vocacao.id);
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
+  const hotkeys=hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected);
+  const barraSalva=barraValida(saved?.barraTecnicas,hotkeys,saved?.seedSelected);
+  // Saves anteriores não tinham este indicador: só uma barra diferente do padrão antigo revela edição manual.
+  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected)[i]));
+  const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
   const p = { montaria:montariaValida(saved?.montaria), battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     // Preserve XP saved at the old level cap: it may exceed the former per-level threshold.
@@ -104,7 +113,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     zeni: clamp(Number(saved?.zeni ?? 200), 0, 9999999), inventory, kills: Number(saved?.kills) || 0,
     input: { x: 0, y: 0 }, facing: { x: 1, y: 0 }, aim: null, inputAt: now,
     autoAttack: false, autoSkills: false, autoHunt: false, targetId: null,
-    hotkeysConsumiveis:hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected),
+    hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
     basicReady: 0, shotReady: 0, kameReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
@@ -122,6 +131,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     novidades: restaurarNovidades(saved?.novidades),
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
+  atualizarBarraPadrao(p);
   return p;
 }
 
@@ -132,7 +142,7 @@ export function exportPlayer(p) {
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
     novidades: restaurarNovidades(p.novidades),
-    hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
+    hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),barraPersonalizada:!!p.barraPersonalizada,barraKameManual:!!p.barraKameManual,barraTecnicas:barraValida(p.barraTecnicas),inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
     kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,

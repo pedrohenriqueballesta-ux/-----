@@ -9,6 +9,13 @@ const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDi
 
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
+  if(chave?.startsWith('skill:'))chave=chave.slice(6);
+  if(chave?.startsWith('item:'))chave=chave.slice(5);
+  if(chave?.startsWith('form:')&&chave!=='form:auto'){
+    const forma=FORMAS.find(f=>f.forma===chave.slice(5));if(!forma)return null;
+    return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
+  }
+  if(chave==='form:auto')chave='transform';
   if (chave === 'ryuken') {
     const restante = estado.ryukenRemaining || 0, nivel = CONFIG.skills.ryuken;
     return { nome: 'Ryuken (Punho do Dragão)', linhas: [
