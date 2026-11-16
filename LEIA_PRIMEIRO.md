@@ -74,7 +74,8 @@ O botão 3/T ativa somente a forma mais forte liberada, sem empilhar transforma�
 Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900.
 Todas drenam 3,5 Ki/s; zerar o Ki, morrer, viajar ou desconectar retorna à base.
 Gogeta expira depois de uma hora (parâmetro ajustável em `CONFIG.transformacao`).
-Como ainda não existem folhas próprias de SSJ4, Gogeta e Vegetto, eles usam as folhas
+O SSJ4 tem folhas próprias e um Kamehameha vermelho-carmesim, sempre no visual do último nível.
+Como ainda não existem folhas próprias de Gogeta e Vegetto, eles usam as folhas
 disponíveis mais próximas até a criação de sprites específicas.
 
 ## Plano futuro de técnicas especiais

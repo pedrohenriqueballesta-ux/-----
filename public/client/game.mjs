@@ -12,7 +12,7 @@ import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
 import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 carregarImpactoKame();
-import { KAME, origemKame } from '../shared/kamehameha.mjs';
+import { KAME, origemKame, nivelDoKame, corDoKame } from '../shared/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/raios-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ2 } from '../art/goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from '../art/goku-ssj3.mjs';
@@ -90,7 +90,10 @@ function conectarMundo(data){
         renderPositions.clear(); floating = []; pointerAim = null;
       }
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
-      carregarKame(snapshot.self?.level || 1);
+      // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
+      const formaPropria = snapshot.players?.find(j => j.id === snapshot.selfId)?.forma;
+      carregarKame(nivelDoKame(snapshot.self?.level || 1, formaPropria), corDoKame(formaPropria));
+      carregarImpactoKame(corDoKame(formaPropria));
       carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
       carregarGenki(); carregarRyuken();

@@ -15,7 +15,7 @@ import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializ
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
-import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
+import { KAME, estagioKame, nivelDoKame, corDoKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
 import { Mercado } from './mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
@@ -413,14 +413,13 @@ export class Game {
       if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
       if (p.charge || p.ryuken || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
-      const alcance = estagioKame(p.level).alcance + KAME.mao;
+      const nivel = nivelDoKame(p.level, p.forma), alcance = estagioKame(nivel).alcance + KAME.mao;
       const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * KAME.carga : 0;
       if (!alvoKame || alvoKame.hp <= 0 || !this.mesmoLugar(p, alvoKame) || naZonaSegura(alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance + antecipacao)
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Kamehameha.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
       p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
-      const nivel = estagioKame(p.level).nivel;
-      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
+      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel, cor: corDoKame(p.forma) };
       return { ok: true };
     }
     if (skill === 'barrier') {
@@ -864,7 +863,7 @@ export class Game {
     const cargaNoAlcance = p.charge && (!p.charge.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(p.charge.nivel).alcance + KAME.mao);
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
-        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, started: this.time - KAME.primeiroFeixe * KAME.quadro,
+        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, started: this.time - KAME.primeiroFeixe * KAME.quadro,
         damage: p.stats.attack * multiplicadorDaForma(p.forma, 'kame'), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
