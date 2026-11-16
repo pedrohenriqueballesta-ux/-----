@@ -1,7 +1,7 @@
 import {desenharNimbus} from './nimbus.mjs';
 
 import {el,botao,numero,barra} from './hud-elementos.mjs';
-import {MAGIAS_PERSONAGEM,barraValida} from '../shared/barra-tecnicas.mjs';
+import {MAGIAS_PERSONAGEM,barraValida,tecnicaDisponivel} from '../shared/barra-tecnicas.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
 export function montarPerfil(container,{acao}={}){
  let montaria=null;
@@ -29,7 +29,16 @@ export function montarPerfil(container,{acao}={}){
  });
  const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
- for(const {t,card,detalhes,estado,seletor} of cards){const d=dadosTecnica(t,s.self),liberada=s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);detalhes.textContent=`Nv. ${t.nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;estado.textContent=slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+t.nivel;seletor.disabled=!liberada;}
+ for(const {t,card,detalhes,estado,seletor} of cards){
+  const d=dadosTecnica(t,s.self),liberada=s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
+  const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
+   ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
+   : '';
+  card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);
+  detalhes.textContent=`Nv. ${t.nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;
+  estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+t.nivel)+requerForma;
+  seletor.disabled=!liberada;
+ }
  montaria=s.self.montaria;montar.textContent=montaria==='nimbus'?'Desmontar Nimbus':'Montar Nimbus';nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
  const valores=[numero(p.hp)+' / '+numero(p.stats.hp),numero(p.ki)+' / '+numero(p.stats.ki),numero(p.ataqueAtual)+' (base '+numero(p.base.attack)+' + bônus '+numero(p.bonusAtaque)+')','Multiplicadores por técnica',numero(p.stats.defense),numero(p.stats.mobility),numero(p.regeneracao)+' HP/s',numero(p.poder),numero(p.stats.capacity)+' kg',numero(p.stats.lootChance*100)+'%',numero(p.kills)+' mobs · '+numero(p.bossKills)+' chefes raros'];linhas.forEach((e,i)=>e.textContent=valores[i]);buffs.textContent=p.buffs.length?p.buffs.join(' '):'Nenhum buff ativo.';
  const c=canvas.getContext('2d');c.clearRect(0,0,240,220);c.save();c.imageSmoothingEnabled=false;const montado=montaria==='nimbus';c.translate(120,montado?170:186);c.scale(montado?1.8:2.2,montado?1.8:2.2);const jogador={...s.players.find(v=>v.id===s.selfId),moving:false,charge:null,facing:{x:0,y:1}},g=desenharNimbus(c,jogador,{x:0,y:0},s.time,{flutuar:!s.self.preferencias.reduzirAnimacoes});drawGoku?.(c,jogador,g?.personagem||{x:0,y:0},s.time);c.restore();};

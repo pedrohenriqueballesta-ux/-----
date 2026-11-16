@@ -81,9 +81,13 @@ disponíveis mais próximas até a criação de sprites específicas.
 ## Plano futuro de técnicas especiais
 
 Marcos das técnicas especiais, todos implementados: Genki Dama no nível 200 junto ao SSJ2;
-Ryuken no 300 junto ao SSJ3 (botão próprio na tecla 8, no SSJ3 e no SSJ4); Super Kamehameha
-no 500 junto ao SSJ4 (botão próprio na tecla 9, só no SSJ4). O Kamehameha continua na tecla 2
-em todas as formas. `CONFIG.plannedSkillUnlocks` fica para técnicas futuras ainda não implementadas.
+Ryuken no 300 junto ao SSJ3 (no SSJ3 e no SSJ4); Super Kamehameha
+no 500 junto ao SSJ4 (só no SSJ4). Ambas podem ser colocadas em qualquer um dos oito slots
+configuráveis. A partir do nível 500, o Super Kamehameha ocupa o slot padrão do Kamehameha
+enquanto SSJ4 está ativo; ao sair dessa forma, o slot volta ao Kamehameha normal.
+Uma escolha manual para esse slot é preservada. O Super Kamehameha só pode ser usado em SSJ4.
+`CONFIG.plannedSkillUnlocks`
+fica para técnicas futuras ainda não implementadas.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.
 6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
 7. Volte ao mercador da vila, venda materiais e reponha comida e poções.

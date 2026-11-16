@@ -26,9 +26,20 @@ const ids=new Set(TECNICAS.map(t=>t.id));
 export const MAGIAS_PERSONAGEM=Object.freeze(TECNICAS.filter(t=>['skill:heal','skill:kame','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha'].includes(t.id)||(t.id.startsWith('form:')&&t.id!=='form:auto')));
 export const tecnicaPorId=id=>TECNICAS.find(t=>t.id===id)||null;
 export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
-export function barraPadrao(hotkeys={},semente=15){
+export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base'){
  const item=n=>consumivelValido(hotkeys[n])?'item:'+hotkeys[n]:hotkeys[n]===null?null:n===7?'item:seed'+(CONFIG.seedPotencies.includes(semente)?semente:15):'item:ki';
- return ['skill:heal','skill:kame','form:auto','skill:barrier','skill:genki',item(7),item(8),'skill:ryuken'];
+ return ['skill:heal',nivel>=CONFIG.skills.superKamehameha&&forma==='ssj4'?'skill:superKamehameha':'skill:kame','form:auto','skill:barrier','skill:genki',item(7),item(8),'skill:ryuken'];
+}
+export function atualizarBarraPadrao(p){
+ if(p.barraKameManual||!['skill:kame','skill:superKamehameha'].includes(p.barraTecnicas?.[1]))return;
+ const proxima=barraPadrao(p.hotkeysConsumiveis,p.seedSelected,p.level,p.forma)[1];
+ if(!p.barraTecnicas.includes(proxima))p.barraTecnicas[1]=proxima;
+}
+export function tecnicaDisponivel(id,estado){
+ const tecnica=tecnicaPorId(id);
+ return Boolean(tecnica&&estado?.level>=tecnica.nivel&&
+   (id!=='skill:ryuken'||RYUKEN.formas.includes(estado.forma))&&
+   (id!=='skill:superKamehameha'||estado.forma===SUPER_KAME.forma));
 }
 export function barraValida(valor,hotkeys={},semente=15){
  if(!Array.isArray(valor)||valor.length!==8)return barraPadrao(hotkeys,semente);

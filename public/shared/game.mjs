@@ -13,7 +13,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
-import {barraValida} from './barra-tecnicas.mjs';
+import {barraValida,atualizarBarraPadrao} from './barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
@@ -88,6 +88,7 @@ export class Game {
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
     p.forma = 'base'; p.formaAte = 0;
+    atualizarBarraPadrao(p);
     p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
     this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
@@ -196,7 +197,8 @@ export class Game {
       if(!Array.isArray(data.slots)||data.slots.length!==8||data.slots.some(v=>v!==null&&typeof v!=='string'))return {ok:false,reason:'Barra inválida.'};
       const validada=barraValida(data.slots);
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
-      p.barraTecnicas=validada;return {ok:true};
+      if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
+      p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};p.montaria=data.valor;return{ok:true};}
     if(kind==='atribuirConsumivelHotkey'){
@@ -416,7 +418,7 @@ export class Game {
       if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3 ou 4.');
       return this.lancarRyuken(p, automated);
     }
-    // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4 (tecla 9), mesma mecânica do Kamehameha,
+    // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4, atribuível à barra, mesma mecânica do Kamehameha,
     // vermelho-carmesim e no último nível; recarga e custo próprios.
     if (skill === 'kame' || skill === 'superKamehameha') {
       const superKame = skill === 'superKamehameha', nome = superKame ? 'Super Kamehameha' : 'Kamehameha';
@@ -464,9 +466,10 @@ export class Game {
     if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível.');
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
-    if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Forma base.'); return { ok: true }; }
+    if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
     p.forma = disponivel.forma;
+    atualizarBarraPadrao(p);
     p.formaAte = disponivel.duracao ? this.time + disponivel.duracao : 0;
     if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
     this.notify(p, disponivel.nome + ' ativado!' + (disponivel.duracao ? ' Duração: ' + Math.round(disponivel.duracao / 60) + ' min.' : ''));
@@ -474,7 +477,7 @@ export class Game {
   }
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
-      p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Ki esgotado. Forma base.');
+      p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'Ki esgotado. Forma base.');
     }
   }
   lancarRyuken(p, automated = false) {
@@ -628,7 +631,7 @@ export class Game {
     if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
-      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.formaAte = 0; target.charge = null; this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
+      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.formaAte = 0; target.charge = null; atualizarBarraPadrao(target); this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
@@ -660,6 +663,7 @@ export class Game {
     p.xp += amount;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
       p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
+      if(p.level===CONFIG.skills.superKamehameha)atualizarBarraPadrao(p);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
       const skillsUnlock = [
@@ -763,19 +767,20 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) { p.forma = 'base'; p.formaAte = 0; return; }
+    if (!p.connected) { p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
     if (p.godmode) {
       if (p.godmodeOptions?.hpInfinite !== false) p.hp = p.stats.hp;
       if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
     }
     if (p.hp <= 0) {
       p.forma = 'base'; p.formaAte = 0;
+      atualizarBarraPadrao(p);
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
     }
     if (p.forma === 'gogeta' && p.formaAte > 0 && this.time >= p.formaAte) {
-      p.forma = 'base'; p.formaAte = 0; this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
+      p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;

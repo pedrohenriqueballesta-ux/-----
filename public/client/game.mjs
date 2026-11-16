@@ -1,5 +1,5 @@
 import {apresentarGenkiJogador,POSE_GENKI} from '../render/genki-personagem.mjs';
-import {acaoDaTecnica,barraValida} from '../shared/barra-tecnicas.mjs';
+import {acaoDaTecnica,barraValida,tecnicaDisponivel} from '../shared/barra-tecnicas.mjs';
 import {instalarAtalhosInterface} from './atalhos.mjs';
 import {desenharNimbus,nimbusCarregada} from '../render/nimbus.mjs';
 import {geometriaNimbus} from '../shared/montarias.mjs';
@@ -146,8 +146,7 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  if (/^[1-8]$/.test(key)) {const id=barraValida(snapshot?.self?.barraTecnicas,snapshot?.self?.hotkeysConsumiveis,snapshot?.self?.seedSelected)[Number(key)-1];const uso=acaoDaTecnica(id);if(uso)action(uso);}
-  else if (key === '9') action({type:'skill',skill:'superKamehameha'});
+  if (/^[1-8]$/.test(key)) {const id=barraValida(snapshot?.self?.barraTecnicas,snapshot?.self?.hotkeysConsumiveis,snapshot?.self?.seedSelected)[Number(key)-1];if(tecnicaDisponivel(id,snapshot?.self)){const uso=acaoDaTecnica(id);if(uso)action(uso);}}
   else if (key === ' ') action({type:'skill',skill:'basic'});
   else if (key === 'shift') action({type:'skill',skill:'dash'});
   else if (key === 't') action({ type: 'transform' });
