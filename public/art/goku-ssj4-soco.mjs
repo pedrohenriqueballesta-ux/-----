@@ -1,0 +1,9 @@
+// Folha desenhada quadro a quadro (ChatGPT), recortada e alinhada pela cabeça com
+// ferramentas/fatiar_caminhada.py e gerada por gerar_modulo.py. Não edite à mão: gere de novo.
+// Linhas: Sul, Sudeste, Leste, Nordeste, Norte. Colunas: poses do Super Saiyajin 4 fornecidas pelo Pedro.
+// Cada quadro: [sourceX, sourceY, largura, altura, âncoraX (centro do tronco), âncoraY (chão)].
+export const GOKU_SSJ4_SOCO = {
+  file: '/assets/goku/ssj4/soco.png', width: 916, height: 1525,
+  rows: 5, columns: 4, referenceHeight: 267, idleColumn: 0,
+  frames: [[[0,0,229,305,116.5,299],[229,0,229,305,345.5,299],[458,0,229,305,574.5,299],[687,0,229,305,803.5,299]],[[0,305,229,305,112.0,604],[229,305,229,305,341.0,604],[458,305,229,305,570.0,604],[687,305,229,305,799.0,604]],[[0,610,229,305,113.0,909],[229,610,229,305,342.0,909],[458,610,229,305,571.0,909],[687,610,229,305,800.0,909]],[[0,915,229,305,108.5,1214],[229,915,229,305,337.5,1214],[458,915,229,305,566.5,1214],[687,915,229,305,795.5,1214]],[[0,1220,229,305,114.0,1519],[229,1220,229,305,343.0,1519],[458,1220,229,305,572.0,1519],[687,1220,229,305,801.0,1519]]]
+};
