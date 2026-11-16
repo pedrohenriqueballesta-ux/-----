@@ -376,7 +376,7 @@ export class Game {
     if (!p.connected || p.hp <= 0) return { ok: false };
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -403,11 +403,15 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
-    // No Super Saiyajin 3 a tecla do Kamehameha solta o Ryuken (Pedro, 12/11/2026).
-    if (skill === 'kame' && usaRyuken(p)) return this.lancarRyuken(p, automated);
+    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3, na tecla 8; o Kamehameha continua na 2.
+    if (skill === 'ryuken') {
+      if (p.level < CONFIG.skills.ryuken) return automated ? { ok: false } : this.reject(p, 'Ryuken libera no nível ' + CONFIG.skills.ryuken + '.');
+      if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3.');
+      return this.lancarRyuken(p, automated);
+    }
     if (skill === 'kame') {
       if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
-      if (p.charge || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
+      if (p.charge || p.ryuken || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
       const alcance = estagioKame(p.level).alcance + KAME.mao;
       const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * KAME.carga : 0;
@@ -645,7 +649,7 @@ export class Game {
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
       const skillsUnlock = [
         ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
-        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama']
+        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken']
       ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
       const formsUnlock = FORMAS.filter(forma => forma.nivel === p.level).map(forma => forma.nome);
       const desbloqueios = [...skillsUnlock, ...formsUnlock];
@@ -840,7 +844,10 @@ export class Game {
       const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const noAlcanceKame = this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
-      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) this.cast(p, 'kame', true);
+      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) {
+        // No SSJ3 o Auto Hunt solta o Ryuken quando ele está pronto; senão, o Kamehameha.
+        if (!(usaRyuken(p) && p.level >= CONFIG.skills.ryuken && this.cast(p, 'ryuken', true).ok)) this.cast(p, 'kame', true);
+      }
       else if (!morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico) this.cast(p, 'ki', true);
     }
     if (p.charge) {

@@ -74,7 +74,9 @@ test('escada libera a forma mais forte nos níveis 50, 100, 200, 300, 500, 700 e
 test('a HUD preserva os cinco slots originais e mantém a transformação na terceira posição',async()=>{
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
   assert.equal((html.match(/id="transformButton"/g)||[]).length,1);
-  assert.equal((html.match(/<button[^>]*data-skill=/g)||[]).length,4);
+  // Os quatro data-skill originais + o Ryuken (Pedro, 16/11/2026: botão próprio, tecla 8, depois dos consumíveis).
+  assert.equal((html.match(/<button[^>]*data-skill=/g)||[]).length,5);
+  assert.ok(html.indexOf('data-skill="ryuken"')>html.indexOf('id="kiPotionButton"'));
   assert.doesNotMatch(html,/hud-buffslot/);
   assert.ok(html.indexOf('id="transformButton"')>html.indexOf('data-skill="kame"'));
   assert.ok(html.indexOf('id="transformButton"')<html.indexOf('data-skill="barrier"'));

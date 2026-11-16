@@ -142,9 +142,10 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  // Barra (Pedro, 11/11/2026): 1 Cura · 2 Kame · 3 Transformação (ou T) · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis.
+  // Barra (Pedro, 11/11/2026): 1 Cura · 2 Kame · 3 Transformação (ou T) · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis
+  // · 8 Ryuken (só no SSJ3; Pedro, 16/11/2026).
   // Os consumíveis seguem salvos como "slot 7" e "slot 8" (só a tecla mudou), para não mexer nos saves.
-  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
+  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', '8': 'ryuken', ' ': 'basic', 'shift': 'dash' };
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
   else if (key === '3' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });

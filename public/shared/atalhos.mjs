@@ -26,6 +26,7 @@ export const ATALHOS=Object.freeze([
  {id:'genki',nome:'Genki-Dama',teclas:['5']},
  {id:'consumivel7',nome:'Consumível do slot 6',teclas:['6','r']},
  {id:'consumivel8',nome:'Consumível do slot 7',teclas:['7','q']},
+ {id:'ryuken',nome:'Ryuken (só no Super Saiyajin 3)',teclas:['8']},
  {id:'comida',nome:'Usar comida',teclas:['f']},
  {id:'zoom',nome:'Zoom do mapa sob o cursor / câmera',teclas:[],exibir:'Roda do mouse'},
  {id:'navegar',nome:'Navegar até um ponto pelo minimapa',teclas:[],exibir:'Clique no minimapa'}

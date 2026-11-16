@@ -13,5 +13,5 @@ export const RYUKEN = Object.freeze({
   cabecaAFrente: 90,
   sustentacao: 0.6           // segundos com o braço esticado depois que o dragão sai
 });
-// Só no SSJ3 (que libera no mesmo marco, CONFIG.skills.ryuken = 300).
+// Só no SSJ3 (que libera no mesmo marco, CONFIG.skills.ryuken = 300); tecla 8, o Kamehameha segue na 2.
 export const usaRyuken = p => p?.forma === RYUKEN.forma;
