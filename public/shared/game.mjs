@@ -85,9 +85,9 @@ export class Game {
   anunciarChefe(m) {
     for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, m.name + ' ' + (CHEFES_RAROS[m.area]?.aviso || 'apareceu!'));
   }
-  // Leva o jogador para a chegada de um lugar (portal ou renascimento).
-  levar(p, destino) {
-    p.forma = 'base'; p.formaAte = 0;
+  // Portais preservam a forma; renascimento e deslocamentos internos a encerram.
+  levar(p, destino, {preservarForma = false} = {}) {
+    if (!preservarForma) { p.forma = 'base'; p.formaAte = 0; }
     atualizarBarraPadrao(p);
     p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
     this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
@@ -102,7 +102,7 @@ export class Game {
     const portal = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destinoId) && distance(p, o) <= RAIO_PORTAL + 45);
     const destino = lugar(destinoId);
     if (!portal || !destino) return this.reject(p, 'Chegue perto de um portal para viajar.');
-    this.levar(p, destino);
+    this.levar(p, destino, {preservarForma:true});
     const aviso = destino.nivel && p.level < destino.nivel[0] ? ' Recomendado a partir do nível ' + destino.nivel[0] + ': cuidado!' : '';
     this.notify(p, 'Portal: ' + destino.name + '.' + aviso); return { ok: true };
   }
