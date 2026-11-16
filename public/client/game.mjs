@@ -1,4 +1,5 @@
 import {apresentarGenkiJogador,POSE_GENKI} from '../render/genki-personagem.mjs';
+import {acaoDaTecnica,barraValida} from '../shared/barra-tecnicas.mjs';
 import {instalarAtalhosInterface} from './atalhos.mjs';
 import {desenharNimbus,nimbusCarregada} from '../render/nimbus.mjs';
 import {geometriaNimbus} from '../shared/montarias.mjs';
@@ -141,14 +142,13 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  // Barra (Pedro, 11/11/2026): 1 Cura · 2 Kame · 3 Transformação (ou T) · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis.
-  // Os consumíveis seguem salvos como "slot 7" e "slot 8" (só a tecla mudou), para não mexer nos saves.
-  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', ' ': 'basic', 'shift': 'dash' };
-  if (skills[key]) action({ type: 'skill', skill: skills[key] });
-  else if (key === '3' || key === 't') action({ type: 'transform' });
+  if (/^[1-8]$/.test(key)) {const id=barraValida(snapshot?.self?.barraTecnicas,snapshot?.self?.hotkeysConsumiveis,snapshot?.self?.seedSelected)[Number(key)-1];const uso=acaoDaTecnica(id);if(uso)action(uso);}
+  else if (key === ' ') action({type:'skill',skill:'basic'});
+  else if (key === 'shift') action({type:'skill',skill:'dash'});
+  else if (key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'q' || key === '7') action({ type: 'usarConsumivelHotkey',slot:8 });
-  else if (key === 'r' || key === '6') action({ type: 'usarConsumivelHotkey',slot:7 });
+  else if (key === 'q') action({ type: 'usarConsumivelHotkey',slot:8 });
+  else if (key === 'r') action({ type: 'usarConsumivelHotkey',slot:7 });
 });
 document.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); sendInput(); });
 window.addEventListener('blur', () => { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); });

@@ -13,6 +13,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
+import {barraValida} from './barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
@@ -189,6 +190,12 @@ export class Game {
   action(id, data) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if(kind==='configurarBarra'){
+      if(!Array.isArray(data.slots)||data.slots.length!==8||data.slots.some(v=>v!==null&&typeof v!=='string'))return {ok:false,reason:'Barra inválida.'};
+      const validada=barraValida(data.slots);
+      if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
+      p.barraTecnicas=validada;return {ok:true};
+    }
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};p.montaria=data.valor;return{ok:true};}
     if(kind==='atribuirConsumivelHotkey'){
       if(![7,8].includes(data.slot)||!consumivelValido(data.item)||!(p.inventory[data.item]>0))return {ok:false,reason:'Arraste um consumível da mochila para os slots 7 ou 8.'};
@@ -290,7 +297,7 @@ export class Game {
       return resultado;
     }
     if (kind === 'transform') {
-      return this.cast(p, 'transform');
+      return this.cast(p, 'transform', false, data.forma ?? null);
     }
     if (kind === 'portal') return this.usePortal(p, data.destino);
     if (kind === 'skill') return this.cast(p, data.skill);
@@ -365,14 +372,14 @@ export class Game {
     p.inventory.scrap = 0; p.inventory.crystal = 0;
     this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
   }
-  cast(p,skill,automated=false){
-    const r=this.executarTecnica(p,skill,automated);
+  cast(p,skill,automated=false,formaSolicitada=null){
+    const r=this.executarTecnica(p,skill,automated,formaSolicitada);
     this.verificarKiDaForma(p);
     if(r.ok&&skill!=='basic'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
   }
-  executarTecnica(p, skill, automated = false) {
+  executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
-    if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated);
+    if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
     if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
@@ -437,11 +444,12 @@ export class Game {
   }
   // Um botão só (decisão do Pedro, 11/11/2026): transformado → volta à base; na base → ativa a forma mais forte
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
-  alternarForma(p, tecnica, automatica = false) {
-    const disponivel = formaDisponivel(p.level);
+  alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
+    const disponivel = formaSolicitada===null?formaDisponivel(p.level):FORMAS.find(f=>f.forma===formaSolicitada);
+    if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível.');
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
-    if (p.forma !== 'base') { p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Forma base.'); return { ok: true }; }
+    if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
     p.forma = disponivel.forma;
     p.formaAte = disponivel.duracao ? this.time + disponivel.duracao : 0;
@@ -1044,7 +1052,7 @@ export class Game {
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
-        hotkeysConsumiveis:{...self.hotkeysConsumiveis},hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
         kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,

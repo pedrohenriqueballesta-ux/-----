@@ -1,6 +1,6 @@
-// Escada de transformações (decisão do Pedro, 11/11/2026): o jogador tem UMA transformação por vez na barra — a mais
-// forte que o nível já liberou. Quando o Super Saiyajin libera, a Kaioken deixa de estar disponível; depois o
-// A forma mais forte liberada ocupa um único botão de buff. A duração de Gogeta é limitada por CONFIG.transformacao.
+// Uma forma ativa por vez. A barra pode equipar qualquer forma desbloqueada;
+// o atalho "melhor transformação" mantém o comportamento automático antigo.
+// A duração de Gogeta é limitada por CONFIG.transformacao.
 import { CONFIG } from './config.mjs';
 
 export const FORMAS = Object.freeze([

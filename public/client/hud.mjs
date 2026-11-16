@@ -1,8 +1,8 @@
-import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
+import { FORMAS, nomeDaForma } from '../shared/formas.mjs';
 import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
-import {instalarConsumiveisHud,atualizarConsumiveisHud} from '../render/consumiveis-hud.mjs';
+import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/barra-tecnicas-hud.mjs';
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/janelas-hud.mjs';
 import {instalarAbasHud} from '../render/abas-hud.mjs';
@@ -16,7 +16,6 @@ import { instalarBestiario } from '../render/bestiario.mjs';
 import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
 import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
 import { instalarGodmodeHud } from '../render/godmode-hud.mjs';
-import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
 
 let atualizarDetalhes = () => {};
@@ -42,19 +41,7 @@ const action = data => ctx?.action(data);
 const integer = v => Math.round(v).toLocaleString('pt-BR');
 const clock = seconds => { const n = Math.max(0, Math.ceil(seconds)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); };
 
-function renderSkillMeta(element, cost, detail) {
-  if (!element) return;
-  if (cost == null) { element.textContent = detail; return; }
-  const costBadge = document.createElement('span'); costBadge.className = 'skill-cost'; costBadge.setAttribute('aria-label', cost + ' Ki');
-  const costValue = document.createElement('b'); costValue.className = 'skill-cost-value'; costValue.textContent = cost;
-  const costUnit = document.createElement('span'); costUnit.className = 'skill-cost-unit'; costUnit.textContent = 'KI';
-  costBadge.replaceChildren(costValue, costUnit);
-  const detailLabel = document.createElement('span');
-  const isCooldown = /^(?:\d+(?:[.,]\d+)?s|\d+:\d{2})$/.test(detail);
-  detailLabel.className = isCooldown ? 'skill-cost-detail skill-cooldown' : 'skill-cost-detail';
-  detailLabel.textContent = detail;
-  element.replaceChildren(costBadge, detailLabel);
-}
+
 
 // Chat com canais em abas que a pessoa escolhe (padrão: só Global + o botão "+").
 // Cada canal tem sua própria conversa e uma introdução curta; Sistema é um canal à parte.
@@ -185,7 +172,7 @@ export function atualizarHud(snapshot, playerId) {
   atualizarMochila(s);abasHud?.atualizar(snapshot);
   if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
   for (const option of $('seedSelect').options) option.textContent = option.value + '% · ' + (s.inventory['seed' + option.value] || 0);
-  atualizarConsumiveisHud(s);
+  atualizarBarraTecnicas(s);
   $('seedStatus').textContent = s.seedRemaining > 0 ? 'Todas as sementes em recarga · ' + Math.ceil(s.seedRemaining) + 's' : 'Cura instantânea · recarga compartilhada de 20s';
   $('seedStatus').classList.toggle('waiting', s.seedRemaining > 0);
   $('kiPotionText').textContent = s.kiRemaining > 0 ? 'Recarga: ' + Math.ceil(s.kiRemaining) + 's' : 'Recupera 45% · Q';
@@ -214,50 +201,6 @@ export function atualizarHud(snapshot, playerId) {
   const target = snapshot.mobs.find(m => m.id === s.targetId) || snapshot.players.find(v => v.id === s.targetId);
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
   if (target) { $('targetName').textContent = target.name + (target.level ? ' • Nv. ' + target.level : ''); $('targetBar').style.width = 100 * target.hp / target.maxHp + '%'; $('targetHp').textContent = integer(target.hp) + ' / ' + integer(target.maxHp); }
-  const cura = s.cura || { ...curaPorNivel(s.level), cooldown: CURA.cooldown, remaining: 0 };
-  const gogeta = FORMAS.find(f => f.forma === 'gogeta');
-  const textoTransformacao = 'Um buff por vez · sem custo ou recarga · drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s · Gogeta dura ' + Math.round((gogeta?.duracao || 0) / 60) + ' min · Ki zerado volta à base';
-  const skillState = {
-    heal: { required: 1, cost: cura.custo, cooldown: cura.cooldown, remaining: cura.remaining,
-      text: (cura.remaining > 0 ? cura.remaining.toFixed(1) : cura.cooldown.toFixed(1).replace('.', ',')) + 's',
-      detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
-    kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
-    barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
-    genki: { required: CONFIG.skills.genki, cost: CONFIG.skillCosts.genki, cooldown: CONFIG.skillCooldowns.genki, remaining: s.genkiRemaining || 0, text: s.level < CONFIG.skills.genki ? CONFIG.skillCooldowns.genki + 's' : s.genkiRemaining > 0 ? s.genkiRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.genki + 's' }
-  };
-  for (const button of document.querySelectorAll('[data-skill]')) {
-    const skill = button.dataset.skill, state = skillState[skill]; if (!state) continue;
-    const locked = s.level < state.required;
-    button.classList.toggle('locked', locked); button.disabled = locked || state.remaining > 0 || (skill === 'barrier' && s.barrierActive);
-    if (skill === 'heal') button.disabled ||= s.hp <= 0 || s.hp >= s.stats.hp || s.ki < cura.custo;
-    button.classList.toggle('active', Boolean(state.active));
-    const label = button.querySelector('small');
-    renderSkillMeta(label, state.cost, state.text);
-    let cooldown = button.querySelector('.cooldown-overlay');
-    if (!cooldown) { cooldown = document.createElement('span'); cooldown.className = 'cooldown-overlay'; cooldown.setAttribute('aria-hidden', 'true'); button.append(cooldown); }
-    const remaining = state.remaining;
-    cooldown.textContent = remaining > 0 ? (remaining >= 10 ? Math.ceil(remaining) : remaining.toFixed(1)) + 's' : '';
-    button.classList.toggle('cooling', remaining > 0);
-    button.title = state.detail || (button.querySelector('strong')?.textContent || skill) + ' · ' + state.text + (button.querySelector('kbd') ? ' · tecla ' + button.querySelector('kbd').textContent : '');
-  }
-  // Um botão de transformação: mostra a forma ativa ou, na base, a mais forte que o nível liberou.
-  const formaAtiva = s.forma && s.forma !== 'base', disponivel = formaDisponivel(s.level), mostrada = formaAtiva ? s.forma : disponivel?.forma || 'kaioken';
-  const transformLocked = !disponivel;
-  const nomeForma = nomeDaForma(mostrada), rotulo = $('transformButton').querySelector('strong');
-  rotulo.textContent = nomeForma; rotulo.classList.toggle('nome-longo', nomeForma.length > 14);
-  const formaConfig = FORMAS.find(f => f.forma === mostrada), iconeTransformacao = $('transformButton').querySelector('.tecnica-icone');
-  iconeTransformacao.className = 'tecnica-icone ' + (formaConfig?.icone ? 'icone-transformacao' : 'sprite-kaioken');
-  iconeTransformacao.style.backgroundImage = formaConfig?.icone ? `url("${formaConfig.icone}")` : '';
-  $('transformButton').disabled = transformLocked;
-  $('transformButton').classList.toggle('locked', transformLocked); $('transformButton').classList.toggle('active', formaAtiva);
-  $('transformButton').classList.remove('cooling');
-  let transformCooldown = $('transformButton').querySelector('.cooldown-overlay');
-  if (!transformCooldown) { transformCooldown = document.createElement('span'); transformCooldown.className = 'cooldown-overlay'; $('transformButton').append(transformCooldown); }
-  const transformMinutos = Math.ceil((s.transformRemaining || 0) / 60);
-  transformCooldown.textContent = formaAtiva ? (mostrada === 'gogeta' ? 'ATIVO · ' + transformMinutos + 'm' : 'ATIVO') : '';
-  transformCooldown.classList.toggle('estado-transformacao', formaAtiva);
-  renderSkillMeta(document.getElementById('transformText'), 0, formaAtiva ? 'ATIVO' : 'SEM RECARGA');
-  $('transformButton').title = textoTransformacao;
   atualizarDetalhes(s);
   novidadesHud?.atualizar(s);
   lojaHud?.atualizar();
@@ -477,7 +420,6 @@ export function ligarHud(contexto) {
   $('chatInput').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') $('chatInput').blur(); });
   // Ataque e técnicas automáticos (a caça automática é o botão quickHunt).
   for (const btn of document.querySelectorAll('[data-toggle]')) btn.onclick = () => action({ type: 'toggle', key: btn.dataset.toggle, value: !ctx.snapshot()?.self?.[btn.dataset.toggle] });
-  for (const button of document.querySelectorAll('[data-skill]')) button.addEventListener('click', () => action({ type: 'skill', skill: button.dataset.skill }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
   $('autoHeal').onchange = () => action({ type: 'toggle', key: 'autoHeal', value: $('autoHeal').checked });
   for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) $(key).onchange = () => {
@@ -513,9 +455,8 @@ export function ligarHud(contexto) {
   });
   $('huntButton').addEventListener('click', alternarCaca);
   $('foodButton').onclick = () => action({ type: 'food' });
-  instalarConsumiveisHud(action);
+  instalarBarraTecnicas(action);
   $('seedSelect').onchange = () => action({ type: 'selectSeed', potency: Number($('seedSelect').value) });
-  $('transformButton').onclick = () => action({ type: 'transform' });
   $('godmodeToggle').onclick = () => action({ type: 'godmode' });
   $('helpButton').onclick = () => { ctx.soltarTeclas(); $('helpDialog').showModal(); };
   $('panelButton').onclick = () => { const open = $('panel').classList.toggle('open'); $('panelButton').setAttribute('aria-expanded', String(open)); };
