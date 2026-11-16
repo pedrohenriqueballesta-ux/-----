@@ -7,19 +7,22 @@ import {barraValida,acaoDaTecnica,TECNICAS,MAGIAS_PERSONAGEM} from '../public/sh
 test('barra antiga migra para oito teclas e preserva consumíveis configurados',()=>{
  const b=barraValida(null,{7:'seed30',8:'food'},15);
  assert.equal(b.length,8);assert.deepEqual(b.slice(0,3),['skill:heal','skill:kame','form:auto']);
- assert.deepEqual(b.slice(5),['item:seed30','item:food',null]);
+ assert.deepEqual(b.slice(5),['item:seed30','item:food','skill:ryuken']);
  assert.equal(acaoDaTecnica('form:kaioken').forma,'kaioken');
  assert.deepEqual(acaoDaTecnica('item:seed30'),{type:'seed',potency:30});
 });
 
 test('catálogo lista habilidades e todas as formas com desbloqueios corretos',()=>{
- for(const id of ['skill:heal','skill:ki','skill:dash','skill:kame','skill:barrier','skill:genki','form:kaioken','form:ssj','form:ssj2','form:ssj3','form:ssj4','form:gogeta','form:vegito'])assert.ok(TECNICAS.some(t=>t.id===id));
+ for(const id of ['skill:heal','skill:ki','skill:dash','skill:kame','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha','form:kaioken','form:ssj','form:ssj2','form:ssj3','form:ssj4','form:gogeta','form:vegito'])assert.ok(TECNICAS.some(t=>t.id===id));
  assert.equal(TECNICAS.find(t=>t.id==='form:ssj').nivel,100);
  assert.equal(TECNICAS.find(t=>t.id==='form:kaioken').nivel,50);
+ assert.equal(TECNICAS.find(t=>t.id==='skill:ryuken').nivel,300);
+ assert.equal(TECNICAS.find(t=>t.id==='skill:superKamehameha').nivel,500);
+ assert.deepEqual(acaoDaTecnica('skill:superKamehameha'),{type:'skill',skill:'superKamehameha'});
 });
 
 test('aba Técnicas contém só magias e formas, cada uma com seu ícone disponível',()=>{
- assert.deepEqual(MAGIAS_PERSONAGEM.filter(t=>t.id.startsWith('skill:')).map(t=>t.id),['skill:heal','skill:kame','skill:barrier','skill:genki']);
+ assert.deepEqual(MAGIAS_PERSONAGEM.filter(t=>t.id.startsWith('skill:')).map(t=>t.id),['skill:heal','skill:kame','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha']);
  assert.deepEqual(MAGIAS_PERSONAGEM.filter(t=>t.id.startsWith('form:')).map(t=>t.id),['form:kaioken','form:ssj','form:ssj2','form:ssj3','form:ssj4','form:gogeta','form:vegito']);
  assert.ok(MAGIAS_PERSONAGEM.every(t=>Boolean(t.imagem||t.icone)));
  for(const t of MAGIAS_PERSONAGEM)if(t.imagem)assert.ok(existsSync(new URL('../public'+t.imagem,import.meta.url)),t.imagem);

@@ -163,6 +163,10 @@ button{cursor:pointer}
 .sprite-kame{background-position:4.6% 8.2%}.sprite-kaioken{background-position:50.1% 8.2%}.sprite-barrier{background-position:95.8% 8.2%}
 .sprite-transform{background-position:26.3% 88.7%}.sprite-genki{background-position:73.4% 88.7%}
 .icone-transformacao{background-color:transparent!important;background-size:100% 100%!important;background-position:center!important;background-repeat:no-repeat!important}
+/* Ryuken (SSJ3): ícone próprio, a cabeça do dragão da arte da equipe. */
+.tecnica-icone.sprite-ryuken{background:#1c160a url('/assets/skills/ryuken/icone.png') center/cover no-repeat}
+/* Super Kamehameha (SSJ4): a origem do feixe carmesim da arte da equipe. */
+.tecnica-icone.sprite-super-kame{background:#1a080a url('/assets/skills/kamehameha/carmesim/icone.png') center/cover no-repeat}
 .sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}
 .sprite-semente{background-image:url('/assets/items/semente-deuses.png');background-size:cover;background-position:center}
 .sprite-pocao-ki{background-image:url('/assets/items/pocao-ki.png');background-size:cover;background-position:center}
@@ -176,6 +180,7 @@ button{cursor:pointer}
 .recarga-item{position:absolute;top:calc(44 * var(--u));left:0;right:0;font-weight:800;font-size:calc(14 * var(--u));text-shadow:0 0 calc(3 * var(--u)) #000}
 .tecnica:hover .tecnica-icone{border-color:var(--ouro-claro);box-shadow:var(--brilho)}
 .tecnica.locked .tecnica-icone,.tecnica:disabled .tecnica-icone{filter:grayscale(1) brightness(.55)}
+.tecnica.fora-da-forma .tecnica-icone{filter:grayscale(1) brightness(.55)}
 .tecnica.locked .tecnica-icone::after{content:"🔒";font-size:calc(24 * var(--u))}
 .tecnica.active .tecnica-icone{border-color:#ffe066;box-shadow:0 0 calc(12 * var(--u)) #ffe066}
 .cooldown-overlay{position:absolute;top:calc(28 * var(--u));left:0;right:0;z-index:2;font-weight:900;font-size:calc(18 * var(--u));text-shadow:0 0 calc(3 * var(--u)) #000,0 0 calc(3 * var(--u)) #000}

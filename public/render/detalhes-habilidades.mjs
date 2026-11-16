@@ -1,6 +1,8 @@
 ﻿import { CONFIG } from '../shared/config.mjs';
 import { CURA, curaPorNivel } from '../shared/cura.mjs';
 import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
+import { RYUKEN, danoRyuken } from '../shared/ryuken.mjs';
+import { SUPER_KAME } from '../shared/kamehameha.mjs';
 
 const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
@@ -14,6 +16,22 @@ export function detalhesHabilidade(chave, estado) {
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
   }
   if(chave==='form:auto')chave='transform';
+  if (chave === 'ryuken') {
+    const restante = estado.ryukenRemaining || 0, nivel = CONFIG.skills.ryuken;
+    return { nome: 'Ryuken (Punho do Dragão)', linhas: [
+      ['Desbloqueia', 'Nível ' + nivel], ['Forma', 'Só no Super Saiyajin 3 e 4'], ['Custo', RYUKEN.custo + ' Ki'], ['Cooldown', segundos(RYUKEN.recarga)],
+      ['Dano', '×' + String(RYUKEN.dano).replace('.', ',') + ' do ataque (SSJ3) · ×' + String(danoRyuken('ssj4')).replace('.', ',') + ' (SSJ4)'], ['Alvo', 'Mob selecionado; o dragão acompanha e acerta só ele'],
+      ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : !RYUKEN.formas.includes(estado.forma) ? 'Transforme-se em Super Saiyajin 3 ou 4' : 'Disponível']
+    ] };
+  }
+  if (chave === 'superKamehameha') {
+    const restante = estado.superKameRemaining || 0, nivel = CONFIG.skills.superKamehameha;
+    return { nome: 'Super Kamehameha', linhas: [
+      ['Desbloqueia', 'Nível ' + nivel], ['Forma', 'Só no Super Saiyajin 4'], ['Custo', SUPER_KAME.custo + ' Ki'], ['Cooldown', segundos(SUPER_KAME.recarga)],
+      ['Dano', '×' + SUPER_KAME.dano.toLocaleString('pt-BR') + ' do ataque'], ['Alvo', 'Mob selecionado; feixe carmesim do último nível, com área no impacto'],
+      ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : estado.forma !== SUPER_KAME.forma ? 'Transforme-se em Super Saiyajin 4' : 'Disponível']
+    ] };
+  }
   if (NOMES[chave]) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".

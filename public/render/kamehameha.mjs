@@ -1,15 +1,16 @@
-import { KAME, estagioKame, geometriaKame, IMPACTO_KAME } from '../shared/kamehameha.mjs';
+import { KAME, estagioKame, geometriaKame, IMPACTO_KAME, SUPER_KAME } from '../shared/kamehameha.mjs';
 
 const imagens = new Map(), quadros = new Map();
-let imagemImpacto;
-export function carregarImpactoKame() {
-  if (!imagemImpacto) { imagemImpacto = new Image(); imagemImpacto.src = IMPACTO_KAME.imagem; }
-  return imagemImpacto;
-}
+const carregar = url => {
+  if (!imagens.has(url)) { const imagem = new Image(); imagem.src = url; imagens.set(url, imagem); }
+  return imagens.get(url);
+};
+// `cor` 'carmesim' = Super Kamehameha do Super Saiyajin 4 (folhas próprias, mesmo desenho).
+export const carregarImpactoKame = cor => carregar(cor === SUPER_KAME.cor ? SUPER_KAME.impacto : IMPACTO_KAME.imagem);
 function desenharImpacto(ctx, efeito, tempo) {
   const frame = Math.floor((tempo - efeito.impacto.started) / IMPACTO_KAME.quadro + 1e-8);
   if (frame < 0 || frame >= IMPACTO_KAME.quadros) return false;
-  const imagem = carregarImpactoKame();
+  const imagem = carregarImpactoKame(efeito.cor);
   if (!imagem.complete || !imagem.naturalWidth) return false;
   ctx.save();ctx.translate(efeito.impacto.contatoX, efeito.impacto.contatoY - KAME.alturaMao);
   ctx.rotate(Math.atan2(efeito.direction.y, efeito.direction.x));
@@ -28,17 +29,15 @@ export function desenharKameComProfundidade(ctx, efeito, tempo, redesenharLancad
   if (desenhou && !kameSobrePersonagem(efeito.direction)) redesenharLancador?.();
   return desenhou;
 }
-export function carregarKame(nivel) {
-  const e = estagioKame(nivel);
-  if (!imagens.has(e.nivel)) { const imagem = new Image(); imagem.src = e.imagem; imagens.set(e.nivel, imagem); }
-  return imagens.get(e.nivel);
+export function carregarKame(nivel, cor = null) {
+  return carregar(cor === SUPER_KAME.cor ? SUPER_KAME.imagem : estagioKame(nivel).imagem);
 }
 export function desenharKame(ctx, efeito, tempo) {
   const g = geometriaKame(efeito.nivel, tempo - efeito.started);
   if (!g) return efeito.impacto ? desenharImpacto(ctx, efeito, tempo) : false;
-  const imagem = carregarKame(g.estagio.nivel);
+  const imagem = carregarKame(g.estagio.nivel, efeito.cor);
   if (!imagem.complete || !imagem.naturalWidth) return false;
-  const chave = g.estagio.nivel + ':' + g.frame;
+  const chave = g.estagio.nivel + ':' + (efeito.cor || '') + ':' + g.frame;
   if (!quadros.has(chave)) {
     // Origem e ponta ficam na proporção original, com metade do volume. O corpo se repete
     // entre elas para conservar o alcance sem esticar a arte ou deixar dano invisível.

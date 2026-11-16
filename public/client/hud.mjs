@@ -142,7 +142,8 @@ export function atualizarHud(snapshot, playerId) {
   const proximosDesbloqueios = [
     ['Rajada de Ki', CONFIG.skills.ki], ['Imagem Residual', CONFIG.skills.dash],
     ['Kamehameha', CONFIG.skills.kame], ['Barreira de Ki', CONFIG.skills.barrier],
-    ['Genki Dama', CONFIG.skills.genki], ...FORMAS.map(forma => [forma.nome, forma.nivel])
+    ['Genki Dama', CONFIG.skills.genki], ['Ryuken', CONFIG.skills.ryuken],
+    ['Super Kamehameha', CONFIG.skills.superKamehameha], ...FORMAS.map(forma => [forma.nome, forma.nivel])
   ].filter(([, nivel]) => nivel > s.level).sort((a, b) => a[1] - b[1]);
   const primeiroDesbloqueio = proximosDesbloqueios[0], desbloqueiosNoNivel = primeiroDesbloqueio
     ? proximosDesbloqueios.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];

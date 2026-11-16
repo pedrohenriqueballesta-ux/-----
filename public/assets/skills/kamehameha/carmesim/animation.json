@@ -1,0 +1,18 @@
+{
+  "skill": "kamehameha",
+  "stage": 5,
+  "level_min": 150,
+  "level_max": null,
+  "range_tiles": 12,
+  "tile_size": 32,
+  "range_pixels": 384,
+  "direction": "right",
+  "frame_count": 16,
+  "frame_width": 443,
+  "frame_height": 221,
+  "frame_duration_ms": 80,
+  "spritesheet_columns": 4,
+  "spritesheet_rows": 4,
+  "notes": "Kamehameha do Super Saiyajin 4 (16/11/2026): o desenho do último nível (nivel-150), quadro a quadro, em vermelho-carmesim.",
+  "color": "carmesim"
+}

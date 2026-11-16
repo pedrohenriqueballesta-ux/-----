@@ -16,7 +16,7 @@ import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import {barraValida} from './barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
-import { KAME, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
+import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
 import { Mercado } from './mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
@@ -25,6 +25,7 @@ import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
+import { RYUKEN, usaRyuken, danoRyuken } from './ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from './variacao-combate.mjs';
 import { xpAjustadoPorNivel } from './progressao.mjs';
 
@@ -44,7 +45,7 @@ export class Game {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
-    this.genkiCharges = []; this.genkiExplosions = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
+    this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
   }
   uid(prefix) { return prefix + (++this.serial); }
@@ -87,7 +88,8 @@ export class Game {
   // Leva o jogador para a chegada de um lugar (portal ou renascimento).
   levar(p, destino) {
     p.forma = 'base'; p.formaAte = 0;
-    p.genkiLancado = null; p.genkiDirecao = null;
+    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
+    this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
@@ -381,7 +383,7 @@ export class Game {
     if (!p.connected || p.hp <= 0) return { ok: false };
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -408,18 +410,31 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
-    if (skill === 'kame') {
-      if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
-      if (p.charge || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
+    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4, na tecla 8; o Kamehameha continua na 2.
+    if (skill === 'ryuken') {
+      if (p.level < CONFIG.skills.ryuken) return automated ? { ok: false } : this.reject(p, 'Ryuken libera no nível ' + CONFIG.skills.ryuken + '.');
+      if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3 ou 4.');
+      return this.lancarRyuken(p, automated);
+    }
+    // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4 (tecla 9), mesma mecânica do Kamehameha,
+    // vermelho-carmesim e no último nível; recarga e custo próprios.
+    if (skill === 'kame' || skill === 'superKamehameha') {
+      const superKame = skill === 'superKamehameha', nome = superKame ? 'Super Kamehameha' : 'Kamehameha';
+      if (p.level < CONFIG.skills[skill]) return automated ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[skill] + '.');
+      if (superKame && !usaSuperKame(p)) return automated ? { ok: false } : this.reject(p, 'O Super Kamehameha só sai no Super Saiyajin 4.');
+      const custo = superKame ? SUPER_KAME.custo : CONFIG.skillCosts.kame, pronto = superKame ? p.superKameReady || 0 : p.kameReady;
+      if (p.charge || p.ryuken || this.time < pronto || p.ki < custo) return automated ? { ok: false } : this.reject(p, nome + ' em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
-      const alcance = estagioKame(p.level).alcance + KAME.mao;
+      const nivel = superKame ? ESTAGIOS_KAME.at(-1).nivel : estagioKame(p.level).nivel, alcance = estagioKame(nivel).alcance + KAME.mao;
       const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * KAME.carga : 0;
       if (!alvoKame || alvoKame.hp <= 0 || !this.mesmoLugar(p, alvoKame) || naZonaSegura(alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance + antecipacao)
-        return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Kamehameha.');
+        return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
-      p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
-      const nivel = estagioKame(p.level).nivel;
-      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel };
+      p.ki -= custo;
+      if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
+      else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
+      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
+        ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
     }
     if (skill === 'barrier') {
@@ -460,6 +475,57 @@ export class Game {
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
       p.forma = 'base'; p.formaAte = 0; this.notify(p, 'Ki esgotado. Forma base.');
+    }
+  }
+  lancarRyuken(p, automated = false) {
+    if (p.charge || p.ryuken || this.time < p.ryukenReady || p.ki < RYUKEN.custo)
+      return automated ? { ok: false } : this.reject(p, 'Ryuken em recarga ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    const alcance = estagioKame(p.level).alcance + KAME.mao;
+    const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * RYUKEN.lancamento : 0;
+    if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
+      return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
+    const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
+    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
+    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
+    this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
+    this.verificarKiDaForma(p);
+    return { ok: true };
+  }
+  // Ryuken: lançamento (pose + energia no punho), depois o dragão persegue o alvo e explode só nele.
+  atualizarRyukens(dt) {
+    this.ryukenExplosoes = this.ryukenExplosoes.filter(e => this.time - e.started < RYUKEN.impacto);
+    const ativo = p => p && p.connected && p.hp > 0 && !naZonaSegura(p);
+    const alvoValido = (alvo, ref) => alvo && alvo.hp > 0 && this.mesmoLugar(alvo, ref) && !naZonaSegura(alvo);
+    for (const p of this.players.values()) {
+      if (!p.ryuken) { if (p.ryukenLancado && this.time - p.ryukenLancado > RYUKEN.sustentacao) p.ryukenLancado = null; continue; }
+      const alvo = this.mobs.get(p.ryuken.targetId);
+      if (!ativo(p) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
+      p.ryuken.direction = norm(alvo.x - p.x, alvo.y - p.y); p.facing = p.ryuken.direction;
+      if (this.time + 1e-9 < p.ryuken.until) continue;
+      const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
+      origem.y -= KAME.alturaMao;
+      // Continua de onde o lançamento terminou (sem passar do alvo, se ele estiver mais perto que isso).
+      const avanco = Math.min(RYUKEN.cabecaAFrente, Math.max(0, Math.hypot(alvo.x - origem.x, alvo.y - RYUKEN.alturaAlvo - origem.y) - RYUKEN.colisao));
+      origem.x += d.x * avanco; origem.y += d.y * avanco;
+      this.projectiles.push({ id: this.uid('s'), kind: 'ryuken', owner: p.id, ownerType: 'player', ...origem, planet: p.planet, area: p.area,
+        dx: d.x, dy: d.y, speed: RYUKEN.velocidade, targetId: alvo.id, damage: p.ryuken.damage, started: this.time, ttl: 1 });
+      p.ryukenLancado = this.time; p.ryuken = null;
+    }
+    for (const s of this.projectiles) {
+      if (s.kind !== 'ryuken' || s.ttl <= 0) continue;
+      const p = this.players.get(s.owner), alvo = this.mobs.get(s.targetId);
+      if (!ativo(p) || !alvoValido(alvo, s)) { s.ttl = 0; continue; }
+      const ax = alvo.x, ay = alvo.y - RYUKEN.alturaAlvo, falta = Math.hypot(ax - s.x, ay - s.y);
+      const d = norm(ax - s.x, ay - s.y); s.dx = d.x; s.dy = d.y;
+      const passo = s.speed * dt;
+      // Só o alvo: o dragão atravessa os outros mobs (decisão do Pedro: sem dano em área).
+      if (falta <= passo + RYUKEN.colisao + (alvo.corpo || 0)) {
+        s.x = ax - d.x * Math.min(falta, RYUKEN.colisao); s.y = ay - d.y * Math.min(falta, RYUKEN.colisao);
+        this.hit(p, alvo, s.damage);
+        this.ryukenExplosoes.push({ id: this.uid('rx'), x: ax, y: ay, dx: d.x, dy: d.y, planet: s.planet, area: s.area, started: this.time });
+        s.ttl = 0;
+      } else { s.x += d.x * passo; s.y += d.y * passo; }
     }
   }
   atualizarGenkis(dt) {
@@ -598,7 +664,7 @@ export class Game {
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
       const skillsUnlock = [
         ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
-        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama']
+        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken'], ['superKamehameha', 'Super Kamehameha']
       ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
       const formsUnlock = FORMAS.filter(forma => forma.nivel === p.level).map(forma => forma.nome);
       const desbloqueios = [...skillsUnlock, ...formsUnlock];
@@ -793,7 +859,11 @@ export class Game {
       const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const noAlcanceKame = this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
-      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) this.cast(p, 'kame', true);
+      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) {
+        // Auto Hunt: no SSJ4 tenta o Super Kamehameha, no SSJ3/SSJ4 o Ryuken, e por fim o Kamehameha (o que estiver pronto).
+        const tentou = skill => this.cast(p, skill, true).ok;
+        if (!(usaSuperKame(p) && tentou('superKamehameha')) && !(usaRyuken(p) && tentou('ryuken'))) this.cast(p, 'kame', true);
+      }
       else if (!morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico) this.cast(p, 'ki', true);
     }
     if (p.charge) {
@@ -810,8 +880,8 @@ export class Game {
     const cargaNoAlcance = p.charge && (!p.charge.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(p.charge.nivel).alcance + KAME.mao);
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
-        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * multiplicadorDaForma(p.forma, 'kame'), automated: p.charge.automated, atingidos: new Set() });
+        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, started: this.time - KAME.primeiroFeixe * KAME.quadro,
+        damage: p.stats.attack * (p.charge.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
@@ -1006,8 +1076,9 @@ export class Game {
     for (const m of this.mobs.values()) this.updateMob(m, dt);
     this.separarMobs();
     this.atualizarGenkis(dt);
+    this.atualizarRyukens(dt);
     for (const s of this.projectiles) {
-      if (s.kind === 'genki') continue;
+      if (s.kind === 'genki' || s.kind === 'ryuken') continue;
       if (s.kind === 'mobKiTarget') {
         const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
         if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
@@ -1046,6 +1117,10 @@ export class Game {
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
+        ryuken: p.ryuken ? { started: p.ryuken.started, until: p.ryuken.until, direction: p.ryuken.direction } : null,
+        ryukenLancado: Number.isFinite(p.ryukenLancado) ? p.ryukenLancado : null,
+        // Enquanto o dragão voa, o Goku segura o soco (a pose não volta antes do impacto).
+        ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
@@ -1060,10 +1135,11 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        kameRemaining: Math.max(0, self.kameReady - this.time), superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
+        ryukenRemaining: Math.max(0, (self.ryukenReady || 0) - this.time),
         novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
@@ -1072,6 +1148,7 @@ export class Game {
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
       genkiCharges: this.genkiCharges.filter(aqui).map(({ damage, ...g }) => g),
       genkiExplosions: this.genkiExplosions.filter(aqui),
+      ryukenExplosoes: this.ryukenExplosoes.filter(aqui),
       projectiles: this.projectiles.filter(aqui), loot: this.loot.filter(aqui), events: this.events.filter(e => (!e.playerId || e.playerId === id || e.type !== 'message') && (!e.planet || aqui(e))) };
   }
 }
