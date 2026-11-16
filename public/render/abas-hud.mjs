@@ -21,7 +21,14 @@ export function instalarAbasHud(ctx,{autoHunt,avisar}){
   if(!Object.hasOwn(nomes,nome))return false;
   if(!ctx.snapshot()?.self){avisar('Aguarde a conexão com o servidor.');return true;}
   if(janela.open&&aba===nome){janela.close();return true;}
-  fecharOutrasJanelas(janela);limpar();aba=nome;status.textContent='';titulo.textContent=nomes[nome];corpo.replaceChildren();origem=document.querySelector('[data-menu="'+nome+'"]');
+  fecharOutrasJanelas(janela);limpar();aba=nome;janela.dataset.hudView=nome;janela.classList.remove('hud-minimizada');const minimizar=janela.querySelector('.hud-botao-minimizar');if(minimizar){minimizar.textContent='−';minimizar.setAttribute('aria-expanded','true');minimizar.setAttribute('aria-label','Minimizar janela');minimizar.title='Minimizar janela';}status.textContent='';titulo.textContent=nomes[nome];corpo.replaceChildren();origem=document.querySelector('[data-menu="'+nome+'"]');
+  janela.querySelectorAll('.missao-nuvem').forEach(nuvem=>nuvem.remove());
+  if(nome==='missoes')for(const canto of ['top-left','top-right','bottom-left','bottom-right']){
+   const nuvem=el('img',null,'missao-nuvem missao-nuvem-'+canto);
+   const arte=canto.startsWith('top-')?canto.replace('top-','bottom-'):canto;
+   nuvem.src='/assets/hud/clouds/cloud-'+arte+'.png';nuvem.alt='';nuvem.setAttribute('aria-hidden','true');
+   janela.append(nuvem);
+  }
   const fabrica={personagem:montarPerfil,ajustes:montarConfiguracoes,missoes:montarMissoes,correio:montarCorreio,ranking:montarRanking,guilda:montarGuildas}[nome];
   const r=fabrica(corpo,opcoes);if(typeof r==='function')atualizador=r;else{modulo=r;atualizador=s=>r.atualizar(s);}
   // As novas telas seguem o modelo não modal da Mochila: o mundo continua simulando.

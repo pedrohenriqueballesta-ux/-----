@@ -34,7 +34,7 @@ export function instalarRedimensionamento(painel,chave,{eixo='livre'}={}){
  const aplicar=(valor,ancora=null)=>{
   if(!visivel()||aplicando)return;aplicando=true;
   const r=painel.getBoundingClientRect(),tela={w:innerWidth,h:innerHeight};
-  if(janela){const size=limitarTamanhoHud(valor.w,valor.h,tela);painel.classList.add('hud-tamanho-manual');painel.style.setProperty('--hud-largura',size.w+'px');painel.style.setProperty('--hud-altura',size.h+'px');}
+  if(janela){const minimo=painel.id==='hudFuncionalDialog'&&painel.dataset.hudView==='missoes'?{w:420,h:240}:{w:220,h:160};const size=limitarTamanhoHud(valor.w,valor.h,tela,minimo);painel.classList.add('hud-tamanho-manual');painel.style.setProperty('--hud-largura',size.w+'px');painel.style.setProperty('--hud-altura',size.h+'px');}
   else if(vertical){const largura=painel.getBoundingClientRect().width,altura=limitarAlturaHud(valor.h,tela);painel.classList.add('hud-tamanho-manual');painel.style.setProperty('--hud-largura',largura+'px');painel.style.setProperty('--hud-altura',altura+'px');}
   else{const atual=Number(painel.style.scale)||1;const escala=limitarEscalaHud(valor.escala,{w:r.width/atual,h:r.height/atual},tela,grade?1:.6,grade ? 0.05 : 0);painel.style.transformOrigin='top left';painel.style.scale=String(escala);}
   fixar(ancora?.x??r.left,ancora?.y??r.top);aplicando=false;

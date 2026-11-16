@@ -27,3 +27,11 @@ footer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 8px;
 footer span{color:#a9bedc;font-size:10px;font-weight:900;letter-spacing:.08em}
 footer strong{color:#ffe08a;font-size:17px;font-variant-numeric:tabular-nums}
 footer small{grid-column:1/-1;color:#7990aa;font-size:9px}
+
+/* Janela independente: a mesma paleta da HUD aprovada, sem ornamentos sobre os dados. */
+:root{--status-ouro:#ffb519;--status-azul:#1673a8;--status-fundo:#031323}
+body{background:var(--status-fundo)}
+.status-card{border:2px solid var(--status-ouro);background:linear-gradient(145deg,#0b355f,#061d38 48%,var(--status-fundo));box-shadow:0 5px 20px #0008,inset 0 0 0 1px #0b3a65}
+.avatar figcaption,header strong,footer strong{color:#ffd440}
+.meter-track{border-color:#2f779d;background:#041728}
+footer{border-top-color:var(--status-azul)}

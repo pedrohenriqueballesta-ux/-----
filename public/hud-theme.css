@@ -1,0 +1,276 @@
+/* Identidade compartilhada das HUDs. Missões mantém a composição aprovada em style.css. */
+:root {
+  --db-hud-navy: #031323;
+  --db-hud-panel: #061d38;
+  --db-hud-panel-raised: #092b50;
+  --db-hud-header: linear-gradient(180deg, #0755a5, #06377b 58%, #002a65);
+  --db-hud-gold: #ffb519;
+  --db-hud-gold-soft: #ffd440;
+  --db-hud-blue-line: #1673a8;
+  --db-hud-text: #edf6ff;
+  --db-hud-muted: #a9cbe0;
+  --db-hud-button: linear-gradient(180deg, #2188e8, #064681 65%, #00356c);
+  --db-hud-button-hover: linear-gradient(180deg, #4ca5f3, #0961aa 65%, #044479);
+  --db-hud-card: linear-gradient(145deg, #0a355f, #041a31);
+  --db-hud-shadow: 0 12px 38px #0009, inset 0 0 0 2px #071221;
+  --painel: rgba(5, 27, 53, .86);
+  --painel-2: rgba(2, 17, 35, .9);
+}
+
+/* Barra de navegação: moldura CSS compacta, sem fundos raster antigos. */
+.hud-topo {
+  --tamanho-icone: calc(42 * var(--u));
+  top: calc(5 * var(--u));
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  min-height: calc(66 * var(--u));
+  height: auto;
+  padding: calc(5 * var(--u)) calc(34 * var(--u));
+  border: calc(2 * var(--u)) solid var(--db-hud-gold);
+  border-radius: calc(17 * var(--u));
+  background: var(--db-hud-header);
+  box-shadow: 0 3px 0 #7d4104, 0 10px 24px #0008, inset 0 0 0 2px #07315b;
+  isolation: isolate;
+}
+.hud-menus { gap: calc(2 * var(--u)); }
+.hud-menus .hud-premium-icone i { width: var(--tamanho-icone); height: var(--tamanho-icone); }
+.hud-menus .hud-premium-icone .hud-ico { width: 100%; height: 100%; }
+.hud-menus button {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: calc(9 * var(--u));
+  transition: background-color .12s ease, border-color .12s ease, transform .12s ease;
+}
+.hud-menus button:hover, .hud-menus button:focus-visible { background: #4b9ce43a; border-color: #8bd5ff91; }
+.hud-menus button:active { transform: translateY(1px); background: #2070b458; }
+.hud-menus button:disabled { opacity: .45; cursor: default; }
+body:has(#hudFuncionalDialog[open][data-hud-view="personagem"]) .hud-menus [data-menu="personagem"],
+body:has(#hudFuncionalDialog[open][data-hud-view="missoes"]) .hud-menus [data-menu="missoes"],
+body:has(#hudFuncionalDialog[open][data-hud-view="ranking"]) .hud-menus [data-menu="ranking"],
+body:has(#hudFuncionalDialog[open][data-hud-view="guilda"]) .hud-menus [data-menu="guilda"],
+body:has(#hudFuncionalDialog[open][data-hud-view="correio"]) .hud-menus [data-menu="correio"],
+body:has(#hudFuncionalDialog[open][data-hud-view="ajustes"]) .hud-menus [data-menu="ajustes"],
+body:has(#mochilaDialog[open]) .hud-menus [data-menu="mochila"],
+body:has(#bestiarioDialog[open]) .hud-menus [data-menu="bestiario"],
+body:has(#mapaDialog[open]) .hud-menus [data-menu="mapa"],
+body:has(#shopDialog[open]) .hud-menus [data-menu="loja"],
+body:has(#storeDialog[open]) .hud-menus [data-menu="store"],
+body:has(#battlePassDialog[open]) .hud-menus [data-menu="battlepass"] {
+  filter: drop-shadow(0 0 5px #ffe469);
+}
+@media (max-width: 1100px) {
+  .hud-topo { width: max(44px, calc(58 * var(--u))); min-height: max(44px, calc(56 * var(--u))); padding: calc(4 * var(--u)); justify-content: center; }
+  .hud-menu-alternar { margin: 0; padding: 0; width: 100%; min-height: 40px; line-height: 1; font-size: max(28px, calc(34 * var(--u))); }
+  .hud-menus { top: calc(100% + 5px); right: 0; width: min(270px, calc(100vw - 24px)); margin: 0; padding: 6px; border: 2px solid var(--db-hud-gold); border-radius: 12px; background: linear-gradient(155deg, #07335f, #031527); box-shadow: var(--db-hud-shadow); }
+  .hud-menus { --tamanho-icone: 30px; }
+  .hud-menus button { min-height: 44px; border-bottom: 1px solid #4c7292; font-size: 12px; }
+  .hud-menus i { flex-shrink: 0; }
+}
+
+/* Molduras e ornamentos são filhos do contêiner externo; o conteúdo possui sua própria rolagem. */
+.hud-tema:not([data-hud-view="missoes"]) {
+  --db-corner-size: 84px;
+  --db-corner-x: -9px;
+  --db-corner-y: -19px;
+  border: 2px solid var(--db-hud-gold);
+  border-radius: 18px;
+  color: var(--db-hud-text);
+  background: linear-gradient(160deg, #082d56, var(--db-hud-panel) 36%, var(--db-hud-navy));
+  box-shadow: var(--db-hud-shadow);
+  overflow: visible;
+  isolation: isolate;
+}
+.hud-tema-superior:not([data-hud-view="missoes"]) { --db-corner-size: 66px; --db-corner-x: -7px; --db-corner-y: -15px; }
+#shopDialog.hud-tema { --db-corner-size: 106px; --db-corner-x: -12px; --db-corner-y: -24px; }
+.hud-tema:not([data-hud-view="missoes"]) > .hud-tema-nuvem {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  width: var(--db-corner-size);
+  height: var(--db-corner-size);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+.hud-tema:not([data-hud-view="missoes"]) > .hud-tema-nuvem-top-left { top: var(--db-corner-y); left: var(--db-corner-x); transform: scaleY(-1); }
+.hud-tema:not([data-hud-view="missoes"]) > .hud-tema-nuvem-top-right { top: var(--db-corner-y); right: var(--db-corner-x); transform: scaleY(-1); }
+.hud-tema:not([data-hud-view="missoes"]) > .hud-tema-nuvem-bottom-left { bottom: var(--db-corner-y); left: var(--db-corner-x); }
+.hud-tema:not([data-hud-view="missoes"]) > .hud-tema-nuvem-bottom-right { bottom: var(--db-corner-y); right: var(--db-corner-x); }
+.hud-funcional[data-hud-view="missoes"] > .hud-tema-nuvem { display: none; }
+.hud-tema:not([data-hud-view="missoes"]) > :is(header, .worlds-card) { position: relative; z-index: auto; }
+.hud-tema:not([data-hud-view="missoes"]) > header :is(h2, .worlds-title) { color: #fff; text-shadow: 0 2px 2px #00152a; }
+.hud-tema:not([data-hud-view="missoes"]) .janela-acoes { position: relative; z-index: 4; }
+.hud-tema:not([data-hud-view="missoes"]) .janela-acoes > .hud-botao-fechar:focus-visible { outline: 0; filter: brightness(1.15) drop-shadow(0 0 4px #fff9); }
+.hud-tema:not([data-hud-view="missoes"]).hud-tamanho-manual { overflow: visible !important; }
+.hud-tema:not([data-hud-view="missoes"]) > .hud-redimensionar { z-index: 5; right: -2px !important; bottom: -2px !important; }
+.hud-tema.hud-minimizada > .hud-redimensionar { display: none !important; }
+.hud-tema.hud-minimizada { --db-corner-size: 46px; --db-corner-x: -5px; --db-corner-y: -10px; }
+
+/* Janelas funcionais: Personagem, Ranking, Guilda, Correio e Configurações. */
+.hud-funcional.hud-tema:not([data-hud-view="missoes"])[open] {
+  display: flex;
+  flex-direction: column;
+  height: min(730px, calc(100dvh - max(82px, calc(90 * var(--u))) - 20px));
+  min-height: 0;
+}
+.hud-funcional.hud-tema:not([data-hud-view="missoes"]) > header {
+  flex: 0 0 auto;
+  min-height: 74px;
+  padding: 10px 18px 10px 74px;
+  border-bottom: 2px solid #0876ba;
+  border-radius: 16px 16px 0 0;
+  background: var(--db-hud-header);
+}
+.hud-funcional.hud-tema:not([data-hud-view="missoes"]) > header h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-funcional.hud-tema:not([data-hud-view="missoes"]) > .hud-funcional-corpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 86px;
+}
+.hud-funcional.hud-tema:not([data-hud-view="missoes"]) > .hud-status { flex: 0 0 auto; }
+.premium-janela.hud-funcional.hud-tema[open] { height: min(760px, calc(100dvh - 100px)); }
+.premium-janela.hud-tema > .premium-saldo { flex: 0 0 auto; background: #082b50; border-bottom: 1px solid #1c699d; }
+.premium-janela.hud-tema > .premium-abas { flex: 0 0 auto; }
+.premium-janela.hud-tema > .premium-corpo { flex: 1 1 auto; min-height: 0; overflow: auto; padding-bottom: 88px; }
+#battlePassDialog.hud-tema { height: min(800px, calc(100dvh - 100px)); }
+
+/* Janelas grandes com fluxos próprios. */
+.bestiario.hud-tema[open] { padding: 0; overflow: visible; }
+.bestiario.hud-tema > header, .godmode-dialog.hud-tema > header, #shopDialog.hud-tema > header, .novidades-hud.hud-tema > header {
+  flex: 0 0 auto;
+  min-height: 70px;
+  margin: 0;
+  padding: 10px 18px 10px 74px;
+  border-bottom: 2px solid #0876ba;
+  border-radius: 16px 16px 0 0;
+  background: var(--db-hud-header);
+}
+.bestiario.hud-tema > header h2, .godmode-dialog.hud-tema > header h2, #shopDialog.hud-tema > header h2, .novidades-hud.hud-tema > header h2 { margin: 0; color: #fff; }
+.bestiario.hud-tema > .bestiario-filtros, .bestiario.hud-tema > .bestiario-resumo { margin-inline: 18px; }
+.bestiario.hud-tema > .bestiario-corpo { min-height: 0; margin: 0 18px; padding-bottom: 0; }
+.bestiario.hud-tema .bestiario-lista, .bestiario.hud-tema .bestiario-detalhe { scrollbar-width: thin; scrollbar-color: var(--db-hud-gold) var(--db-hud-panel); }
+.godmode-dialog.hud-tema[open] { display: flex; flex-direction: column; height: min(720px, calc(100dvh - 24px)); padding: 0; }
+.godmode-dialog.hud-tema > .godmode-tabs { flex: 0 0 auto; margin: 0; padding: 12px 18px; }
+.godmode-dialog.hud-tema > .godmode-panel:not([hidden]) { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 18px 76px; }
+#shopDialog.hud-tema[open] { display: flex; flex-direction: column; height: min(700px, calc(100dvh - 32px)); padding: 0; }
+#shopDialog.hud-tema > header { padding-left: 86px; }
+#shopDialog.hud-tema > .shop-scroll-content { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 20px 40px; scrollbar-width: thin; scrollbar-color: var(--db-hud-gold) var(--db-hud-panel); }
+.worlds-dialog.hud-tema[open] { display: flex; flex-direction: column; width: min(740px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+#portalDialog.hud-tema { width: min(560px, calc(100vw - 24px)); }
+.worlds-dialog.hud-tema > .worlds-card { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; max-height: none; padding: 0; border: 0; border-radius: inherit; background: transparent; box-shadow: none; overflow: visible; }
+.worlds-dialog.hud-tema .worlds-head { flex: 0 0 auto; min-height: 70px; margin: 0; padding: 10px 18px 10px 74px; border-bottom: 2px solid #0876ba; border-radius: 16px 16px 0 0; background: var(--db-hud-header); }
+.worlds-dialog.hud-tema .worlds-title { color: #fff; text-shadow: 0 2px 2px #00152a; }
+.worlds-dialog.hud-tema .worlds-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 20px 22px 86px; scrollbar-width: thin; scrollbar-color: var(--db-hud-gold) var(--db-hud-panel); }
+.worlds-dialog.hud-tema .worlds-x { font-size: 0; }
+.worlds-dialog.hud-tema .worlds-grid { gap: 16px; }
+.novidades-hud.hud-tema[open] { display: flex; flex-direction: column; height: min(540px, calc(100dvh - 120px)); padding: 0; }
+.novidades-hud.hud-tema > .novidades-lista { flex: 1 1 auto; min-height: 0; max-height: none; margin: 0; padding: 14px 18px; overflow: auto; }
+.novidades-hud.hud-tema > .novidades-lidas { flex: 0 0 auto; margin: 10px 18px 18px; }
+
+/* Janelas médias e compactas mantêm suas áreas de interação e tamanhos. */
+.mochila.hud-tema { background: linear-gradient(160deg, #0a315c, #061d38 42%, #031323); }
+.mochila.hud-tema > .mochila-topo, .auto-hunt-panel.hud-tema > .auto-hunt-head {
+  position: relative;
+  z-index: auto;
+  background: var(--db-hud-header);
+  border-bottom: 2px solid #0876ba;
+  border-radius: 16px 16px 0 0;
+}
+.mochila.hud-tema > .mochila-topo { padding-left: calc(40 * var(--um)); padding-right: calc(8 * var(--um)); }
+.mochila.hud-tema .mochila-grade .slot, .mochila.hud-tema .slot-equip { background: #04172ed9; border-color: #2f78aa; }
+.mochila.hud-tema .mochila-abas button.ativa { border-color: var(--db-hud-gold); background: var(--db-hud-button); }
+.auto-hunt-panel.hud-tema[open] { overflow: visible; }
+.auto-hunt-panel.hud-tema > .auto-hunt-head { padding-left: 42px; padding-right: 8px; }
+.auto-hunt-panel.hud-tema > .auto-hunt-body { min-height: 0; overflow: auto; }
+.auto-hunt-panel.hud-tema .hunt-analyzer { background: #061d38ad; border-color: var(--db-hud-blue-line); }
+.auto-hunt-panel.hud-tema .auto-hunt-start .auto { background: var(--db-hud-button); border-color: var(--db-hud-gold); box-shadow: none; }
+.auto-hunt-panel.hud-tema .auto-hunt-start .auto.ligado { background: linear-gradient(#326846,#153b29); border-color: #9be28c; }
+.auto-hunt-panel.hud-tema fieldset { background: #061d38b0; border-color: var(--db-hud-blue-line); }
+
+/* Cards, filtros, campos e ações compartilham as mesmas cores. */
+:is(.hud-funcional:not([data-hud-view="missoes"]) .hud-card, .premium-card, .premium-missao, .passe-previa, .shop-item, .venda-item, .mercado-oferta, .bestiario-lista button, .godmode-level-setting, .godmode-item, .perfil-montaria, .tutorial-caixa) {
+  border: 1px solid var(--db-hud-blue-line);
+  border-radius: 12px;
+  background: var(--db-hud-card);
+}
+.passe-recompensa { border-color: var(--db-hud-blue-line); background: var(--db-hud-card); }
+.passe-recompensa.premium { border-color: #c69a3d; background: linear-gradient(145deg, #4b3a1c, #1b2434); }
+.premium-confirmacao { background: #493719; border-color: var(--db-hud-gold); }
+.bestiario-lista button[aria-pressed="true"] { border-color: var(--db-hud-gold); background: #164f82; }
+:is(.hud-funcional:not([data-hud-view="missoes"]), .premium-janela, .bestiario, .godmode-dialog, #shopDialog, .worlds-dialog, .auto-hunt-panel, .mochila) :is(input:not([type="checkbox"]):not([type="range"]), select, textarea) {
+  background: #061b32;
+  border-color: #4a86aa;
+  color: var(--db-hud-text);
+}
+:is(.hud-funcional:not([data-hud-view="missoes"]), .premium-janela, .bestiario, .godmode-dialog, #shopDialog, .auto-hunt-panel, .mochila) :is(button, input, select):focus-visible,
+.worlds-dialog :is(button, input, select):focus-visible,
+.hud-topo button:focus-visible { outline: 2px solid var(--db-hud-gold-soft); outline-offset: 2px; }
+.hud-tema .janela-acoes > .hud-botao-fechar:focus-visible { outline: 0; filter: brightness(1.15) drop-shadow(0 0 4px #fff9); }
+:is(.premium-abas, .shop-abas, .godmode-tabs, .mochila-abas, .hunt-analyzer-abas) button[aria-pressed="true"],
+:is(.shop-abas, .godmode-tabs, .mochila-abas) button.ativa { border-color: var(--db-hud-gold); color: #fff; background: var(--db-hud-button); }
+:is(.premium-abas, .shop-abas, .godmode-tabs, .mochila-abas, .hunt-analyzer-abas) button:hover:not(:disabled) { border-color: #92d8ff; background: var(--db-hud-button-hover); }
+:is(.hud-funcional:not([data-hud-view="missoes"]) .hud-funcional-corpo, .premium-corpo, #shopDialog .shop-scroll-content, .godmode-dialog .godmode-panel, .auto-hunt-body) button:not(.hud-botao-fechar):not(.hud-botao-minimizar):not(.hud-cadeado):not(.passe-ver):not(.auto) {
+  border-color: #246c9f;
+  background: var(--db-hud-button);
+  color: #fff;
+}
+:is(.hud-funcional:not([data-hud-view="missoes"]) .hud-funcional-corpo, .premium-corpo, #shopDialog .shop-scroll-content, .godmode-dialog .godmode-panel, .auto-hunt-body) button:hover:not(:disabled):not(.passe-ver):not(.auto) { background: var(--db-hud-button-hover); border-color: var(--db-hud-gold); }
+:is(.hud-funcional:not([data-hud-view="missoes"]) .hud-funcional-corpo, .premium-corpo, #shopDialog .shop-scroll-content, .godmode-dialog .godmode-panel, .auto-hunt-body) button:disabled { background: linear-gradient(#647486, #3c4d60); border-color: #344b5e; color: #d5e0e8; opacity: .58; }
+.premium-corpo .passe-ver, .premium-corpo .passe-recompensa .passe-ver { background: transparent; border: 0; }
+progress { accent-color: #05bfed; }
+:is(.premium-janela, .godmode-dialog, .auto-hunt-panel, .worlds-dialog) progress { height: 13px; border: 1px solid #092237; border-radius: 999px; overflow: hidden; background: #22262d; }
+:is(.premium-janela, .godmode-dialog, .auto-hunt-panel, .worlds-dialog) progress::-webkit-progress-bar { background: #22262d; border-radius: 999px; }
+:is(.premium-janela, .godmode-dialog, .auto-hunt-panel, .worlds-dialog) progress::-webkit-progress-value { background: linear-gradient(#71e9ff, #02aadb); border-radius: 999px; }
+:is(.premium-janela, .godmode-dialog, .auto-hunt-panel, .worlds-dialog) progress::-moz-progress-bar { background: linear-gradient(#71e9ff, #02aadb); border-radius: 999px; }
+:is(.hud-funcional-corpo, .premium-corpo, .bestiario-corpo, .worlds-body, .shop-scroll-content, .auto-hunt-body, .hunt-loot-dados, .hud-chat-linhas, .mochila-grade) { scrollbar-width: thin; scrollbar-color: var(--db-hud-gold) var(--db-hud-panel); }
+
+/* Interfaces permanentes: ornamentos mínimos, mapa e ícones continuam em destaque. */
+.moldura { border-color: var(--db-hud-gold); background: linear-gradient(160deg, var(--painel), var(--painel-2)); box-shadow: 0 6px 18px #0008, inset 0 0 0 1px #0a3654; }
+.moldura-azul { border-color: #3e88b2; background: linear-gradient(160deg, var(--painel), var(--painel-2)); box-shadow: 0 4px 14px #0008, inset 0 0 0 1px #0a3654; }
+.hud-jogador, .hud-mapa, .hud-tecnicas { border-width: calc(2 * var(--u)); }
+.hud-mapa #regionName { color: #fff; text-shadow: 0 1px 2px #000; }
+.hud-mapa canvas { border-color: #286f9d; }
+.hud-chat nav button, .hud-chat-form button { background: var(--db-hud-button); border: 1px solid #2679b4; }
+.hud-chat nav button.ativa { border-color: var(--db-hud-gold); box-shadow: inset 0 -2px var(--db-hud-gold); }
+.hud-chat-form input { background: #04172ec9; border-color: #4a86aa; }
+.hud-auto > .auto, #autoHuntButton { background: linear-gradient(180deg, #123f64e8, #0a2d49e8); border-color: var(--db-hud-gold); box-shadow: 0 5px 16px #0008; }
+#autoHuntButton.ligado { background: linear-gradient(#326846,#153b29); border-color: #9be28c; }
+.hud-godmode { background: linear-gradient(160deg, #10385be8, #071b33ef); }
+.hud-pilulas .pilula, .hud-buff, .hud-missao, .hunt-analyzer-mini, .hunt-loot-window { background: linear-gradient(150deg, #092d51ed, #041729f2); border-color: var(--db-hud-gold); box-shadow: 0 5px 18px #0008; }
+.hunt-analyzer-mini header, .hunt-loot-window header { padding: 3px 6px; border-bottom: 1px solid #327cac; background: #0b3863; border-radius: 7px; }
+.hunt-loot-status { background: #08284b; }
+.detalhes-habilidade, .toast, .chat-menu, .tutorial-caixa, .entrada-info { border-color: var(--db-hud-gold); background: linear-gradient(145deg, #0b355eeb, #04182ff3); box-shadow: 0 8px 25px #0009; }
+.toast { border-radius: 9px; color: var(--db-hud-text); }
+.respawn { background: #031323d9; }
+.respawn b { color: var(--db-hud-gold-soft); }
+
+/* Entrada e seleção mantêm cenário e arte, adotando as mesmas peças de painel. */
+.entrada-painel, .entrada-lateral, .entrada-info { border-color: #e1ad42; background: linear-gradient(145deg, #0b355dec, #04182fed); box-shadow: 0 14px 36px #0008, inset 0 0 0 1px #0b3a65; }
+.entrada-painel input, .entrada-painel select, .entrada-painel .entrada-personagem { border-color: #397ba7; background: #061d38; }
+.entrada-painel .entrada-personagem.selecionado { border-color: var(--db-hud-gold); background: #0b3b69; }
+.entrada-painel button:not(.entrada-primario):hover:not(:disabled), .entrada-info button:hover:not(:disabled) { background: var(--db-hud-button-hover); border-color: var(--db-hud-gold); }
+.entrada-info header button { flex: 0 0 38px; width: 38px; height: 38px; padding: 0; border: 0; background: transparent url('/assets/hud/window-close.png') center/190% no-repeat; color: transparent; font-size: 0; }
+.entrada-info header button:hover { background: transparent url('/assets/hud/window-close.png') center/190% no-repeat; filter: brightness(1.12); }
+.entrada-info header button:focus-visible { outline: 0; filter: brightness(1.15) drop-shadow(0 0 4px #fff9); }
+
+@media (max-width: 650px) {
+  .hud-tema:not([data-hud-view="missoes"]) { --db-corner-size: 54px; --db-corner-x: -6px; --db-corner-y: -12px; }
+  #shopDialog.hud-tema { --db-corner-size: 74px; --db-corner-x: -8px; --db-corner-y: -17px; }
+  .hud-funcional.hud-tema:not([data-hud-view="missoes"]) > header, .bestiario.hud-tema > header, .godmode-dialog.hud-tema > header, #shopDialog.hud-tema > header, .novidades-hud.hud-tema > header, .worlds-dialog.hud-tema .worlds-head { min-height: 60px; padding: 8px 8px 8px 42px; }
+  .hud-funcional.hud-tema:not([data-hud-view="missoes"]) > header h2, .bestiario.hud-tema > header h2, .worlds-dialog.hud-tema .worlds-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
+  .hud-funcional.hud-tema:not([data-hud-view="missoes"]) > .hud-funcional-corpo { padding: 14px 14px 64px; }
+  .bestiario.hud-tema[open] { height: min(740px, calc(100dvh - 84px)); max-height: calc(100dvh - 84px); }
+  .bestiario.hud-tema > .bestiario-corpo { display: flex; flex: 1 1 auto; flex-direction: column; overflow: auto; padding-bottom: 0; }
+  .bestiario.hud-tema .bestiario-lista { flex: 0 0 auto; max-height: 155px; }
+  .bestiario.hud-tema .bestiario-detalhe { flex: 0 0 auto; overflow: visible; }
+  .worlds-dialog.hud-tema .worlds-body { padding: 14px 14px 64px; }
+  .godmode-dialog.hud-tema > .godmode-panel:not([hidden]) { padding: 4px 14px 64px; }
+  .auto-hunt-panel.hud-tema > .auto-hunt-head { padding-left: 36px; padding-right: 6px; }
+  .mochila.hud-tema > .mochila-topo { padding-left: calc(32 * var(--um)); padding-right: calc(6 * var(--um)); }
+  .hud-topo { max-width: calc(100vw - 18px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-menus button { transition: none; }
+}

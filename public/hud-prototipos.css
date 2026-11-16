@@ -1,0 +1,266 @@
+/* Quatro HUDs permanentes aprovadas. A janela de Missões não é afetada. */
+.hud-topo, .hud-tecnicas, .hud-mapa, .hud-jogador {
+  box-sizing: border-box;
+  color: #f5faff;
+  border: calc(2 * var(--u)) solid #ffc12c;
+  background: linear-gradient(180deg, #064783f5 0%, #062d61f4 11%, #061d3df5 52%, #03152df7 100%);
+  box-shadow: 0 2px 0 #fff4a9 inset, 0 0 0 2px #78400b inset,
+    0 0 calc(15 * var(--u)) #ffbc4040, 0 calc(9 * var(--u)) calc(24 * var(--u)) #0009;
+  isolation: isolate;
+}
+.hud-mapa::before, .hud-mapa::after {
+  position: absolute;
+  content: "";
+  display: block;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: contain;
+  z-index: 3;
+}
+
+/* Navegação superior: os 12 atalhos mantêm sua ordem, com as sprites livres. */
+.hud-topo {
+  --tamanho-icone: calc(44 * var(--u));
+  top: calc(7 * var(--u));
+  min-height: calc(75 * var(--u));
+  padding: calc(7 * var(--u)) calc(37 * var(--u));
+  border-radius: calc(19 * var(--u));
+  background: linear-gradient(180deg, #07549cf7 0%, #06346efa 23%, #031a3afc 100%);
+}
+.hud-topo .hud-menus { position: relative; z-index: 1; gap: calc(4 * var(--u)); }
+.hud-topo .hud-menus button {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: calc(51 * var(--u));
+  height: calc(53 * var(--u));
+  padding: calc(3 * var(--u));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.hud-topo .hud-menus button::before { content: none; display: none; }
+.hud-topo .hud-menus button > i { z-index: 1; width: var(--tamanho-icone); height: var(--tamanho-icone); }
+.hud-topo .hud-menus button .hud-ico { width: 100%; height: 100%; object-fit: contain; }
+.hud-topo .hud-menus button:hover > i, .hud-topo .hud-menus button:focus-visible > i { filter: drop-shadow(0 0 calc(6 * var(--u)) #6bd4ff); }
+.hud-topo button:is(:focus, :focus-visible) { outline: 0 !important; }
+.hud-topo .hud-menus button:is(:focus, :focus-visible) > i { filter: drop-shadow(0 0 calc(6 * var(--u)) #6bd4ff); }
+.hud-topo .hud-menu-alternar:focus-visible { color: #aef5ff; text-shadow: 0 0 6px #6bd4ff; }
+.hud-topo .hud-menus button:disabled { opacity: .55; }
+.hud-topo .hud-menus .hud-premium-icone > i { width: calc(49 * var(--u)); height: calc(49 * var(--u)); background: transparent; border: 0; }
+.hud-topo .hud-menus .hud-premium-icone .hud-ico { filter: none; opacity: 1; }
+.hud-topo .hud-menus .hud-premium-icone .premium-gif-fallback { mix-blend-mode: screen; }
+.hud-topo .hud-menus .hud-premium-icone .icone-premium-transparente { mix-blend-mode: normal; }
+
+/* Hotbar: moldura fixa, trilho rolável em larguras pequenas, sem cortar números ou ícones. */
+.hud-tecnicas {
+  max-width: calc(100vw - 18px);
+  width: max-content;
+  padding: calc(9 * var(--u)) calc(27 * var(--u)) calc(8 * var(--u));
+  border-radius: calc(22 * var(--u));
+}
+.hud-tecnicas-trilho {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: calc(6 * var(--u));
+  max-width: calc(100vw - 74 * var(--u));
+  padding: calc(3 * var(--u)) calc(2 * var(--u)) calc(5 * var(--u));
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #4ebdff #031a35;
+}
+.hud-tecnicas .tecnica {
+  box-sizing: border-box;
+  flex: 0 0 calc(85 * var(--u));
+  width: calc(85 * var(--u));
+  min-height: calc(98 * var(--u));
+  gap: calc(3 * var(--u));
+  align-content: start;
+  padding: calc(3 * var(--u));
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+.hud-tecnicas .tecnica-icone {
+  box-sizing: border-box;
+  width: calc(76 * var(--u));
+  height: calc(76 * var(--u));
+  border: calc(2 * var(--u)) solid #48c7ff;
+  border-radius: calc(10 * var(--u));
+  box-shadow: inset 0 2px 0 #bceeffbd, inset 0 -3px 0 #032350,
+    0 0 calc(5 * var(--u)) #28aaff6b;
+}
+.hud-tecnicas .tecnica:hover .tecnica-icone, .hud-tecnicas .tecnica:focus-visible .tecnica-icone {
+  border-color: #ffda55;
+  box-shadow: 0 0 calc(10 * var(--u)) #ffda55aa;
+}
+.hud-tecnicas .tecnica:focus-visible { outline: 2px solid #fff2bc; outline-offset: 1px; border-radius: calc(8 * var(--u)); }
+.hud-tecnicas .tecnica kbd {
+  top: 0;
+  left: calc(1 * var(--u));
+  min-width: calc(22 * var(--u));
+  border: calc(1.5 * var(--u)) solid #ffe4a0;
+  border-radius: calc(5 * var(--u));
+  background: #030a18f5;
+  font-size: calc(13 * var(--u));
+  box-shadow: 0 2px 2px #000c;
+}
+.hud-tecnicas .tecnica strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: calc(11.5 * var(--u));
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 2px 2px #000;
+}
+.hud-tecnicas .tecnica strong.nome-longo { font-size: calc(10 * var(--u)); }
+.hud-tecnicas .tecnica .contagem {
+  right: calc(5 * var(--u));
+  top: calc(51 * var(--u));
+  z-index: 2;
+  font-size: calc(17 * var(--u));
+}
+.hud-tecnicas .tecnica .estado-transformacao { top: calc(54 * var(--u)); }
+.hud-tecnicas .tecnica .recarga-item { top: calc(51 * var(--u)); }
+.hud-tecnicas .tecnica .cooldown-overlay { top: calc(30 * var(--u)); }
+.hud-tecnicas .tecnica.locked .tecnica-icone, .hud-tecnicas .tecnica:disabled .tecnica-icone { box-shadow: none; }
+
+/* Minimapa: título e status são faixas próprias; o canvas mantém as medidas reais para o clique. */
+.hud-mapa {
+  gap: calc(6 * var(--u));
+  padding: calc(10 * var(--u));
+  border-radius: calc(17 * var(--u));
+}
+.hud-mapa::before, .hud-mapa::after {
+  top: calc(-12 * var(--u));
+  width: calc(53 * var(--u));
+  height: calc(53 * var(--u));
+}
+.hud-mapa::before { left: calc(-14 * var(--u)); background-image: url('/assets/hud/clouds/cloud-top-left.png'); }
+.hud-mapa::after { right: calc(-14 * var(--u)); background-image: url('/assets/hud/clouds/cloud-top-right.png'); }
+.hud-mapa #regionName {
+  justify-self: stretch;
+  margin: 0 calc(19 * var(--u)) calc(2 * var(--u));
+  padding: calc(3 * var(--u)) calc(5 * var(--u));
+  border: calc(1 * var(--u)) solid #39b5ff;
+  border-bottom-color: #ffbf2d;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #04468b, #032356);
+  box-shadow: inset 0 1px 1px #c3f4ff8a, 0 2px 3px #0008;
+  font-size: calc(15 * var(--u));
+  text-shadow: 0 2px 1px #000;
+}
+.hud-mapa #minimap {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: auto;
+  border: calc(2 * var(--u)) solid #25c3ff;
+  border-radius: calc(10 * var(--u));
+  background: #051b31;
+  box-shadow: 0 0 0 calc(2 * var(--u)) #00142c, 0 0 calc(8 * var(--u)) #00aaff8f;
+}
+.hud-mapa .minimapa-controles {
+  min-width: 0;
+  gap: calc(4 * var(--u));
+  margin: calc(2 * var(--u)) 0;
+}
+.hud-mapa .minimapa-controles button {
+  box-sizing: border-box;
+  flex: 0 0 calc(25 * var(--u));
+  width: calc(25 * var(--u));
+  height: calc(25 * var(--u));
+  border: calc(1 * var(--u)) solid #36c8ff;
+  background: linear-gradient(#126fc2, #03356e);
+  box-shadow: inset 0 1px 1px #d1f7ff8f, 0 2px 2px #0009;
+  color: #fff;
+  cursor: pointer;
+}
+.hud-mapa .minimapa-controles button:hover, .hud-mapa .minimapa-controles button:focus-visible { border-color: #ffd454; filter: brightness(1.16); }
+.hud-mapa #minimapZoomLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: calc(3 * var(--u));
+  border: 0;
+  border-top: 1px solid #249dce;
+  border-bottom: 1px solid #249dce;
+  color: #e9f7ff;
+  font-size: calc(11 * var(--u));
+  font-weight: 800;
+}
+.hud-mapa .hud-area {
+  display: block;
+  margin: 0 calc(7 * var(--u));
+  padding: calc(4 * var(--u));
+  border: 1px solid #1c76ae;
+  border-radius: 999px;
+  background: linear-gradient(#07396d, #041e3c);
+  text-shadow: 0 2px 2px #000;
+  font-size: calc(13 * var(--u));
+}
+.hud-mapa .hud-redimensionar { z-index: 5; background: #082f5f!important; color: #ffe26b!important; opacity: 1; }
+
+/* Cartão do jogador: retrato, atributos e recursos em duas zonas de leitura. */
+.hud-jogador {
+  gap: calc(10 * var(--u));
+  padding: calc(10 * var(--u)) calc(13 * var(--u));
+  border-radius: calc(18 * var(--u));
+}
+.hud-jogador > :not(.arrasto-alca):not(.hud-redimensionar) { position: relative; z-index: 1; }
+.hud-jogador .hud-retrato {
+  flex: 0 0 calc(78 * var(--u));
+  width: calc(78 * var(--u));
+  height: calc(78 * var(--u));
+  border: calc(3 * var(--u)) solid #ffca30;
+  background: radial-gradient(circle, #1175be, #041b41);
+  box-shadow: 0 0 0 calc(2 * var(--u)) #0d77c3, 0 0 calc(9 * var(--u)) #ffbf49a8;
+}
+.hud-jogador .hud-status { width: calc(185 * var(--u)); gap: calc(4 * var(--u)); }
+.hud-jogador .hud-nome { margin-bottom: calc(2 * var(--u)); }
+.hud-jogador .hud-nome strong { color: #fff; text-shadow: 0 2px 2px #000; }
+.hud-jogador #levelBadge { color: #ffdc75; }
+.hud-jogador .barra { height: calc(16 * var(--u)); border: 1px solid #6c9fcb; background: #020e20; box-shadow: inset 0 1px 3px #000; }
+.hud-jogador .barra b { line-height: calc(15 * var(--u)); font-size: calc(10.5 * var(--u)); }
+.hud-jogador .barra-hp i { background: linear-gradient(#72f941, #1ea51d); }
+.hud-jogador .barra-ki i { background: linear-gradient(#70f1ff, #0878db); }
+.hud-jogador .barra-exp i { background: linear-gradient(#d785ff, #8129dc); }
+.hud-jogador .hud-recursos { gap: calc(5 * var(--u)); padding-left: calc(10 * var(--u)); border-left: 1px solid #ffbf4288; }
+.hud-jogador .hud-recursos > * {
+  box-sizing: border-box;
+  min-height: calc(39 * var(--u));
+  padding: calc(3 * var(--u)) calc(6 * var(--u));
+  border: 1px solid #1eb8fa;
+  border-radius: calc(8 * var(--u));
+  background: linear-gradient(#07529a, #032657);
+  box-shadow: inset 0 1px 1px #b1efff8f, 0 2px 3px #0007;
+  white-space: nowrap;
+}
+.hud-jogador .hud-recursos button:hover, .hud-jogador .hud-recursos button:focus-visible { border-color: #ffd45a; filter: brightness(1.12); }
+.hud-jogador .hud-recursos i { flex-basis: calc(30 * var(--u)); width: calc(30 * var(--u)); height: calc(30 * var(--u)); }
+.hud-jogador .hud-recursos span, .hud-jogador .hud-recursos b { font-size: calc(12 * var(--u)); }
+.hud-jogador .hud-mochila span b { color: #ffda6a; }
+.hud-jogador .hud-popout-button { border-color: #34c7ff; background: linear-gradient(#126ac0, #05346b); box-shadow: inset 0 1px 1px #a8efff, 0 2px 3px #0008; }
+.hud-jogador .hud-popout-button:hover, .hud-jogador .hud-popout-button:focus-visible { border-color: #ffdb58; filter: brightness(1.16); }
+
+@media (max-width: 1100px) {
+  .hud-topo { width: max(44px, calc(58 * var(--u))); min-height: max(44px, calc(56 * var(--u))); padding: calc(4 * var(--u)); }
+  .hud-topo .hud-menus { position: absolute; gap: 3px; }
+  .hud-topo .hud-menus button { width: 100%; min-height: 47px; height: auto; justify-content: flex-start; }
+  .hud-topo .hud-menus button > i { flex: 0 0 30px; width: 30px; height: 30px; }
+  .hud-topo .hud-menus .hud-premium-icone > i { flex-basis: 39px; width: 39px; height: 39px; }
+  .hud-topo .hud-menus button span { position: relative; z-index: 1; }
+}
+@media (max-width: 650px) {
+  .hud-tecnicas { padding-inline: 16px; }
+  .hud-tecnicas-trilho { max-width: calc(100vw - 58px); }
+  .hud-mapa::before, .hud-mapa::after { width: calc(34 * var(--u)); height: calc(34 * var(--u)); }
+  .hud-jogador { gap: calc(5 * var(--u)); padding: calc(6 * var(--u)); }
+  .hud-jogador .hud-status { width: calc(150 * var(--u)); }
+  .hud-jogador .hud-recursos { padding-left: calc(5 * var(--u)); }
+  .hud-jogador .hud-recursos > * { padding: calc(2 * var(--u)); }
+}
