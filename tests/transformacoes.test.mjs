@@ -33,12 +33,11 @@ for(const {forma,nivel} of FORMAS)for(const tecnica of ['kaioken','transform']) 
     assert.equal(g.events.filter(e=>e.text==='Ki esgotado. Forma base.').length,1);
     g.tick(.05);assert.ok(p.ki>0);assert.equal(g.events.filter(e=>e.text==='Ki esgotado. Forma base.').length,1);
   });
-  test(forma+' ('+tecnica+'): morte, viagem e desconexão encerram forma; save/reconexão começa na base',()=>{
+  test(forma+' ('+tecnica+'): morte, renascimento e desconexão encerram forma; save/reconexão começa na base',()=>{
     for(const encerrar of [
       (g,p)=>{p.hp=0;p.respawnAt=Infinity;g.tick(.05);},
       (g,p)=>g.levar(p,lugar('media')),
-      (g,p)=>{p.connected=false;g.tick(.05);},
-      (g,p)=>{const tp=PORTAIS.find(o=>o.area===p.area);p.x=tp.x;p.y=tp.y;assert.ok(g.usePortal(p,tp.destinos[0]).ok);}
+      (g,p)=>{p.connected=false;g.tick(.05);}
     ]) {const {g,p}=cena_();g.cast(p,tecnica);encerrar(g,p);assert.equal(p.forma,'base');assert.equal(p.transformed,false);}
     const {g,p}=cena_();g.cast(p,tecnica);const salvo=g.exportPlayer(p);
     for(const chave of ['forma','formaAte','transformed','kaiokenUntil','kaiokenReady','transformReady'])assert.equal(chave in salvo,false);
@@ -54,6 +53,22 @@ for(const {forma,nivel} of FORMAS)for(const tecnica of ['kaioken','transform']) 
     assert.match(d.Manutenção,/3,5 Ki\/s/);assert.match(d.Término,/Ki zerar/);
   });
 }
+test('portais preservam todas as transformações, o Ki e o prazo restante de Gogeta',()=>{
+  for(const {forma,nivel} of FORMAS){
+    const {g,p}=cena(nivel);assert.equal(g.action(p.id,{type:'transform',forma}).ok,true);
+    const ki=p.ki,prazo=p.formaAte,tp=PORTAIS.find(o=>o.area===p.area);
+    p.x=tp.x;p.y=tp.y;p.targetId='alvo-antigo';
+    assert.equal(g.usePortal(p,tp.destinos[0]).ok,true);
+    assert.equal(p.forma,forma);
+    assert.equal(p.ki,ki);
+    assert.equal(p.formaAte,prazo);
+    assert.equal(p.targetId,null,'alvo de outra área não atravessa o portal');
+    assert.equal(g.snapshot(p.id).self.forma,forma);
+    g.tick(.05);
+    assert.equal(p.forma,forma,'forma continua ativa após o teleporte');
+    assert.ok(p.ki<ki,'dreno de Ki continua após o teleporte');
+  }
+});
 test('escada libera a forma mais forte nos níveis 50, 100, 200, 300, 500, 700 e 900',()=>{
   assert.deepEqual(FORMAS.map(f=>[f.forma,f.nivel]),[
     ['kaioken',50],['ssj',100],['ssj2',200],['ssj3',300],['ssj4',500],['gogeta',700],['vegito',900]
