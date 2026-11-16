@@ -15,7 +15,7 @@ import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializ
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
-import { KAME, estagioKame, nivelDoKame, corDoKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
+import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
 import { Mercado } from './mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from './itens-negociaveis.mjs';
@@ -24,7 +24,7 @@ import { CURA, curaPorNivel } from './cura.mjs';
 import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
 import { validarNovidade } from './novidades.mjs';
 import { GENKI } from './genki.mjs';
-import { RYUKEN, usaRyuken } from './ryuken.mjs';
+import { RYUKEN, usaRyuken, danoRyuken } from './ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from './variacao-combate.mjs';
 import { xpAjustadoPorNivel } from './progressao.mjs';
 
@@ -376,7 +376,7 @@ export class Game {
     if (!p.connected || p.hp <= 0) return { ok: false };
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -403,23 +403,31 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
-    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3, na tecla 8; o Kamehameha continua na 2.
+    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4, na tecla 8; o Kamehameha continua na 2.
     if (skill === 'ryuken') {
       if (p.level < CONFIG.skills.ryuken) return automated ? { ok: false } : this.reject(p, 'Ryuken libera no nível ' + CONFIG.skills.ryuken + '.');
-      if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3.');
+      if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3 ou 4.');
       return this.lancarRyuken(p, automated);
     }
-    if (skill === 'kame') {
-      if (p.level < CONFIG.skills.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha libera no nível ' + CONFIG.skills.kame + '.');
-      if (p.charge || p.ryuken || this.time < p.kameReady || p.ki < CONFIG.skillCosts.kame) return automated ? { ok: false } : this.reject(p, 'Kamehameha em recarga ou Ki insuficiente.');
+    // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4 (tecla 9), mesma mecânica do Kamehameha,
+    // vermelho-carmesim e no último nível; recarga e custo próprios.
+    if (skill === 'kame' || skill === 'superKamehameha') {
+      const superKame = skill === 'superKamehameha', nome = superKame ? 'Super Kamehameha' : 'Kamehameha';
+      if (p.level < CONFIG.skills[skill]) return automated ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[skill] + '.');
+      if (superKame && !usaSuperKame(p)) return automated ? { ok: false } : this.reject(p, 'O Super Kamehameha só sai no Super Saiyajin 4.');
+      const custo = superKame ? SUPER_KAME.custo : CONFIG.skillCosts.kame, pronto = superKame ? p.superKameReady || 0 : p.kameReady;
+      if (p.charge || p.ryuken || this.time < pronto || p.ki < custo) return automated ? { ok: false } : this.reject(p, nome + ' em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
-      const nivel = nivelDoKame(p.level, p.forma), alcance = estagioKame(nivel).alcance + KAME.mao;
+      const nivel = superKame ? ESTAGIOS_KAME.at(-1).nivel : estagioKame(p.level).nivel, alcance = estagioKame(nivel).alcance + KAME.mao;
       const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * KAME.carga : 0;
       if (!alvoKame || alvoKame.hp <= 0 || !this.mesmoLugar(p, alvoKame) || naZonaSegura(alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance + antecipacao)
-        return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Kamehameha.');
+        return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
-      p.ki -= CONFIG.skillCosts.kame; p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
-      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel, cor: corDoKame(p.forma) };
+      p.ki -= custo;
+      if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
+      else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
+      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
+        ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
     }
     if (skill === 'barrier') {
@@ -471,7 +479,7 @@ export class Game {
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
     p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
-    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * RYUKEN.dano };
+    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
     this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
     this.verificarKiDaForma(p);
     return { ok: true };
@@ -648,7 +656,7 @@ export class Game {
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
       const skillsUnlock = [
         ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
-        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken']
+        ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken'], ['superKamehameha', 'Super Kamehameha']
       ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
       const formsUnlock = FORMAS.filter(forma => forma.nivel === p.level).map(forma => forma.nome);
       const desbloqueios = [...skillsUnlock, ...formsUnlock];
@@ -844,8 +852,9 @@ export class Game {
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const noAlcanceKame = this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
       if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) {
-        // No SSJ3 o Auto Hunt solta o Ryuken quando ele está pronto; senão, o Kamehameha.
-        if (!(usaRyuken(p) && p.level >= CONFIG.skills.ryuken && this.cast(p, 'ryuken', true).ok)) this.cast(p, 'kame', true);
+        // Auto Hunt: no SSJ4 tenta o Super Kamehameha, no SSJ3/SSJ4 o Ryuken, e por fim o Kamehameha (o que estiver pronto).
+        const tentou = skill => this.cast(p, skill, true).ok;
+        if (!(usaSuperKame(p) && tentou('superKamehameha')) && !(usaRyuken(p) && tentou('ryuken'))) this.cast(p, 'kame', true);
       }
       else if (!morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico) this.cast(p, 'ki', true);
     }
@@ -864,7 +873,7 @@ export class Game {
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
         targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * multiplicadorDaForma(p.forma, 'kame'), automated: p.charge.automated, atingidos: new Set() });
+        damage: p.stats.attack * (p.charge.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
@@ -1118,7 +1127,7 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        kameRemaining: Math.max(0, self.kameReady - this.time), superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,

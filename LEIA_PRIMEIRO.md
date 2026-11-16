@@ -74,16 +74,16 @@ O botão 3/T ativa somente a forma mais forte liberada, sem empilhar transforma�
 Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900.
 Todas drenam 3,5 Ki/s; zerar o Ki, morrer, viajar ou desconectar retorna à base.
 Gogeta expira depois de uma hora (parâmetro ajustável em `CONFIG.transformacao`).
-O SSJ4 tem folhas próprias e um Kamehameha vermelho-carmesim, sempre no visual do último nível.
+O SSJ4 tem folhas próprias, o Kamehameha azul, o Ryuken e o Super Kamehameha (vermelho-carmesim, sempre no visual do último nível).
 Como ainda não existem folhas próprias de Gogeta e Vegetto, eles usam as folhas
 disponíveis mais próximas até a criação de sprites específicas.
 
 ## Plano futuro de técnicas especiais
 
-Marcos planejados, ainda sem as respectivas habilidades implementadas: Genki Dama no
-nível 200 junto ao SSJ2; Ryuken no 300 junto ao SSJ3 (implementado: botão próprio na tecla 8, só no SSJ3; o Kamehameha continua na 2); Super Kamehameha no 500 junto ao
-SSJ4. Os dois últimos níveis estão registrados em `CONFIG.plannedSkillUnlocks`; esses
-marcos não tornam as técnicas utilizáveis antes de sua implementação.
+Marcos das técnicas especiais, todos implementados: Genki Dama no nível 200 junto ao SSJ2;
+Ryuken no 300 junto ao SSJ3 (botão próprio na tecla 8, no SSJ3 e no SSJ4); Super Kamehameha
+no 500 junto ao SSJ4 (botão próprio na tecla 9, só no SSJ4). O Kamehameha continua na tecla 2
+em todas as formas. `CONFIG.plannedSkillUnlocks` fica para técnicas futuras ainda não implementadas.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.
 6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
 7. Volte ao mercador da vila, venda materiais e reponha comida e poções.

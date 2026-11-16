@@ -1,5 +1,6 @@
 import { FORMAS, formaDisponivel, nomeDaForma } from '../shared/formas.mjs';
 import { RYUKEN } from '../shared/ryuken.mjs';
+import { SUPER_KAME } from '../shared/kamehameha.mjs';
 import {instalarIconesAnimados} from '../render/icones-animados.mjs';
 import {instalarStore} from '../render/store.mjs';
 import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
@@ -224,10 +225,13 @@ export function atualizarHud(snapshot, playerId) {
       detail: `Cura de Vida · Nv. ${cura.nivel} · ${Number((cura.percentual * 100).toFixed(1))}% do HP máximo · ${cura.custo} Ki · recarga ${cura.cooldown.toFixed(1).replace('.', ',')}s · tecla 1` },
     kame: { required: CONFIG.skills.kame, cost: CONFIG.skillCosts.kame, cooldown: CONFIG.skillCooldowns.kame, remaining: s.kameRemaining || 0, text: s.level < CONFIG.skills.kame ? CONFIG.skillCooldowns.kame + 's' : s.kameRemaining > 0 ? s.kameRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.kame + 's' },
     barrier: { required: CONFIG.skills.barrier, cost: CONFIG.skillCosts.barrier, cooldown: CONFIG.skillCooldowns.barrier, remaining: s.barrierRemaining || 0, text: s.level < CONFIG.skills.barrier ? CONFIG.skillCooldowns.barrier + 's' : s.barrierActive ? 'PROTEGIDO' : s.barrierRemaining > 0 ? s.barrierRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.barrier + 's', active: s.barrierActive },
-    // Ryuken (Pedro, 16/11/2026): botão próprio, tecla 8; só sai no Super Saiyajin 3 (fora dele fica apagado).
-    ryuken: { required: CONFIG.skills.ryuken, cost: RYUKEN.custo, cooldown: RYUKEN.recarga, remaining: s.ryukenRemaining || 0, foraDaForma: s.forma !== RYUKEN.forma,
-      text: s.level < CONFIG.skills.ryuken ? RYUKEN.recarga + 's' : s.ryukenRemaining > 0 ? s.ryukenRemaining.toFixed(1) + 's' : s.forma !== RYUKEN.forma ? 'SSJ3' : RYUKEN.recarga + 's',
-      detail: 'Ryuken (Punho do Dragão) · ' + RYUKEN.custo + ' Ki · recarga ' + RYUKEN.recarga + 's · só no Super Saiyajin 3 · dragão no alvo selecionado (só nele) · tecla 8' },
+    // Ryuken e Super Kamehameha (Pedro, 16/11/2026): botões próprios (teclas 8 e 9); fora da forma ficam apagados.
+    ryuken: { required: CONFIG.skills.ryuken, cost: RYUKEN.custo, cooldown: RYUKEN.recarga, remaining: s.ryukenRemaining || 0, foraDaForma: !RYUKEN.formas.includes(s.forma),
+      text: s.level < CONFIG.skills.ryuken ? RYUKEN.recarga + 's' : s.ryukenRemaining > 0 ? s.ryukenRemaining.toFixed(1) + 's' : !RYUKEN.formas.includes(s.forma) ? 'SSJ3' : RYUKEN.recarga + 's',
+      detail: 'Ryuken (Punho do Dragão) · ' + RYUKEN.custo + ' Ki · recarga ' + RYUKEN.recarga + 's · só no Super Saiyajin 3 e 4 · dragão no alvo selecionado (só nele) · tecla 8' },
+    superKamehameha: { required: CONFIG.skills.superKamehameha, cost: SUPER_KAME.custo, cooldown: SUPER_KAME.recarga, remaining: s.superKameRemaining || 0, foraDaForma: s.forma !== SUPER_KAME.forma,
+      text: s.level < CONFIG.skills.superKamehameha ? SUPER_KAME.recarga + 's' : s.superKameRemaining > 0 ? s.superKameRemaining.toFixed(1) + 's' : s.forma !== SUPER_KAME.forma ? 'SSJ4' : SUPER_KAME.recarga + 's',
+      detail: 'Super Kamehameha · ' + SUPER_KAME.custo + ' Ki · recarga ' + SUPER_KAME.recarga + 's · só no Super Saiyajin 4 · tecla 9' },
     genki: { required: CONFIG.skills.genki, cost: CONFIG.skillCosts.genki, cooldown: CONFIG.skillCooldowns.genki, remaining: s.genkiRemaining || 0, text: s.level < CONFIG.skills.genki ? CONFIG.skillCooldowns.genki + 's' : s.genkiRemaining > 0 ? s.genkiRemaining.toFixed(1) + 's' : CONFIG.skillCooldowns.genki + 's' }
   };
   for (const button of document.querySelectorAll('[data-skill]')) {

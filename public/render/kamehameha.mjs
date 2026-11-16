@@ -1,12 +1,12 @@
-import { KAME, estagioKame, geometriaKame, IMPACTO_KAME, KAME_CARMESIM } from '../shared/kamehameha.mjs';
+import { KAME, estagioKame, geometriaKame, IMPACTO_KAME, SUPER_KAME } from '../shared/kamehameha.mjs';
 
 const imagens = new Map(), quadros = new Map();
 const carregar = url => {
   if (!imagens.has(url)) { const imagem = new Image(); imagem.src = url; imagens.set(url, imagem); }
   return imagens.get(url);
 };
-// `cor` 'carmesim' = Kamehameha do Super Saiyajin 4 (folhas próprias, mesmo desenho).
-export const carregarImpactoKame = cor => carregar(cor === 'carmesim' ? KAME_CARMESIM.impacto : IMPACTO_KAME.imagem);
+// `cor` 'carmesim' = Super Kamehameha do Super Saiyajin 4 (folhas próprias, mesmo desenho).
+export const carregarImpactoKame = cor => carregar(cor === SUPER_KAME.cor ? SUPER_KAME.impacto : IMPACTO_KAME.imagem);
 function desenharImpacto(ctx, efeito, tempo) {
   const frame = Math.floor((tempo - efeito.impacto.started) / IMPACTO_KAME.quadro + 1e-8);
   if (frame < 0 || frame >= IMPACTO_KAME.quadros) return false;
@@ -30,7 +30,7 @@ export function desenharKameComProfundidade(ctx, efeito, tempo, redesenharLancad
   return desenhou;
 }
 export function carregarKame(nivel, cor = null) {
-  return carregar(cor === 'carmesim' ? KAME_CARMESIM.imagem : estagioKame(nivel).imagem);
+  return carregar(cor === SUPER_KAME.cor ? SUPER_KAME.imagem : estagioKame(nivel).imagem);
 }
 export function desenharKame(ctx, efeito, tempo) {
   const g = geometriaKame(efeito.nivel, tempo - efeito.started);

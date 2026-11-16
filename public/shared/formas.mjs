@@ -18,7 +18,7 @@ export const nomeDaForma = forma => FORMAS.find(f => f.forma === forma)?.nome ||
 
 // Multiplicador do ataque por golpe e forma. Base, Kaioken (base × 1,4) e SSJ são os valores que já existiam;
 // SSJ2 = SSJ × 1,5 e SSJ3 = SSJ2 × 1,5 (decisões do Pedro, 11–12/11/2026). Bônus não acumulam: uma forma por vez.
-// No SSJ3 o Kamehameha continua valendo; o Ryuken (Punho do Dragão) é uma técnica à parte (shared/ryuken.mjs).
+// O Kamehameha vale em todas as formas; Ryuken (SSJ3/SSJ4) e Super Kamehameha (SSJ4) são técnicas à parte.
 const BASE = { soco: 1, rajada: 1.4, kame: 4.2, genki: 10 };
 const SSJ = { soco: 1.5, rajada: 2.1, kame: 6, genki: 14 };
 const vezes = (t, k) => Object.fromEntries(Object.entries(t).map(([g, v]) => [g, Math.round(v * k * 1000) / 1000]));

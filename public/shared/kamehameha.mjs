@@ -10,12 +10,14 @@ export const ESTAGIOS_KAME = NIVEIS_ESTAGIO_KAME.map((nivel, i) => {
   return Object.freeze({ nivel, alcance, quadros, escala: alcance / Math.max(...quadros.slice(4).map(q => q.ponta - q.origemX)),
     pacote, imagem: '/assets/skills/kamehameha/nivel-' + pacote + '/spritesheet.png' });
 });
-// Super Saiyajin 4 (Pedro, 16/11/2026): o Kamehameha dele é sempre o do último nível e vermelho-carmesim
-// (as outras formas são azuis). Mesmo desenho da folha azul do nivel-150, só a cor muda.
-export const KAME_CARMESIM = Object.freeze({ forma: 'ssj4', imagem: '/assets/skills/kamehameha/carmesim/spritesheet.png',
-  impacto: '/assets/skills/kamehameha/impacto-carmesim/spritesheet.png' });
-export const corDoKame = forma => forma === KAME_CARMESIM.forma ? 'carmesim' : null;
-export const nivelDoKame = (level, forma) => corDoKame(forma) ? ESTAGIOS_KAME.at(-1).nivel : estagioKame(level).nivel;
+// Super Kamehameha (Pedro, 16/11/2026): técnica própria do Super Saiyajin 4 (tecla 9), vermelho-carmesim e sempre
+// no visual e no alcance do último nível; o Kamehameha azul continua na tecla 2. Mesma mecânica do Kamehameha
+// (carga, feixe, dano completo no alvo e área no impacto). Mesmo desenho da folha azul do nivel-150, só a cor muda.
+// Custo, recarga e dano (SSJ4 Kamehameha × 1,5) são PROVISÓRIOS.
+export const SUPER_KAME = Object.freeze({ forma: 'ssj4', custo: 50, recarga: 12, dano: 30.375, cor: 'carmesim',
+  imagem: '/assets/skills/kamehameha/carmesim/spritesheet.png', impacto: '/assets/skills/kamehameha/impacto-carmesim/spritesheet.png',
+  icone: '/assets/skills/kamehameha/carmesim/icone.png' });
+export const usaSuperKame = p => p?.forma === SUPER_KAME.forma;
 export const estagioKame = nivel => ESTAGIOS_KAME.findLast(e => Number(nivel) >= e.nivel) || ESTAGIOS_KAME[0];
 export function quadroKame(idade) {
   return idade < 0 || idade >= KAME.quadros * KAME.quadro ? -1 : Math.min(15, Math.floor(idade / KAME.quadro + 1e-8));

@@ -165,6 +165,8 @@ button{cursor:pointer}
 .icone-transformacao{background-color:transparent!important;background-size:100% 100%!important;background-position:center!important;background-repeat:no-repeat!important}
 /* Ryuken (SSJ3): ícone próprio, a cabeça do dragão da arte da equipe. */
 .tecnica-icone.sprite-ryuken{background:#1c160a url('/assets/skills/ryuken/icone.png') center/cover no-repeat}
+/* Super Kamehameha (SSJ4): a origem do feixe carmesim da arte da equipe. */
+.tecnica-icone.sprite-super-kame{background:#1a080a url('/assets/skills/kamehameha/carmesim/icone.png') center/cover no-repeat}
 .sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}
 .sprite-semente{background-image:url('/assets/items/semente-deuses.png');background-size:cover;background-position:center}
 .sprite-pocao-ki{background-image:url('/assets/items/pocao-ki.png');background-size:cover;background-position:center}

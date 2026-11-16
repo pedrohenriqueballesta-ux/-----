@@ -12,7 +12,7 @@ import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/config.mjs';
 import { desenharRachaduras } from '../render/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/kamehameha.mjs';
 carregarImpactoKame();
-import { KAME, origemKame, nivelDoKame, corDoKame } from '../shared/kamehameha.mjs';
+import { KAME, origemKame, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame } from '../shared/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/raios-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ2 } from '../art/goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from '../art/goku-ssj3.mjs';
@@ -91,9 +91,9 @@ function conectarMundo(data){
       }
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
-      const formaPropria = snapshot.players?.find(j => j.id === snapshot.selfId)?.forma;
-      carregarKame(nivelDoKame(snapshot.self?.level || 1, formaPropria), corDoKame(formaPropria));
-      carregarImpactoKame(corDoKame(formaPropria));
+      carregarKame(snapshot.self?.level || 1);
+      // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
+      if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
       carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
       carregarGenki(); carregarRyuken();
@@ -146,9 +146,9 @@ document.addEventListener('keydown', e => {
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
   // Barra (Pedro, 11/11/2026): 1 Cura · 2 Kame · 3 Transformação (ou T) · 4 Barreira · 5 Genki · 6/R e 7/Q consumíveis
-  // · 8 Ryuken (só no SSJ3; Pedro, 16/11/2026).
+  // · 8 Ryuken (SSJ3 e SSJ4) · 9 Super Kamehameha (SSJ4) (Pedro, 16/11/2026).
   // Os consumíveis seguem salvos como "slot 7" e "slot 8" (só a tecla mudou), para não mexer nos saves.
-  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', '8': 'ryuken', ' ': 'basic', 'shift': 'dash' };
+  const skills = { '1': 'heal', '2': 'kame', '4': 'barrier', '5': 'genki', '8': 'ryuken', '9': 'superKamehameha', ' ': 'basic', 'shift': 'dash' };
   if (skills[key]) action({ type: 'skill', skill: skills[key] });
   else if (key === '3' || key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });

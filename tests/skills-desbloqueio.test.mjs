@@ -46,8 +46,8 @@ test('Kamehameha libera no nível 40, Barreira no 80 e Genki Dama no 200', () =>
   assert.equal(genki.game.cast(genki.p, 'genki').ok, true);
 });
 
-test('Ryuken implementado no marco do SSJ3; Super Kamehameha segue só planejado', () => {
+test('Ryuken no marco do SSJ3 e Super Kamehameha no do SSJ4, ambos implementados', () => {
   assert.equal(CONFIG.skills.ryuken, CONFIG.skills.ssj3);
-  assert.deepEqual(CONFIG.plannedSkillUnlocks, { superKamehameha: 500 });
-  assert.equal(CONFIG.skills.superKamehameha, undefined);
+  assert.equal(CONFIG.skills.superKamehameha, CONFIG.skills.ssj4);
+  assert.deepEqual(CONFIG.plannedSkillUnlocks, {});
 });

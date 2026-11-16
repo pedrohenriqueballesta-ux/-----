@@ -22,12 +22,14 @@ export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
     const folhas = ssj4 ? FOLHAS_GOKU_SSJ4 : ssj3 ? FOLHAS_GOKU_SSJ3 : ssj2 ? FOLHAS_GOKU_SSJ2 : ssj ? FOLHAS_GOKU_SSJ : player.forma === 'kaioken' ? FOLHAS_GOKU_KAIOKEN : FOLHAS_GOKU_BASE;
     let estado = player.moving ? 'andar' : 'parado', coluna = Math.floor(time * 3) % 4;
     const genki = colunaGenki(player,time);
-    // Ryuken (SSJ3): postura e carga durante o lançamento; soco e sustentação enquanto o dragão sai.
+    // Ryuken (SSJ3 e SSJ4): postura e carga durante o lançamento; soco e sustentação enquanto o dragão sai.
     const lancado = Number.isFinite(player.ryukenLancado) ? time - player.ryukenLancado : Infinity;
-    if (ssj3 && (player.ryuken || player.ryukenVoando || lancado < RYUKEN.sustentacao)) {
+    if ((ssj3 || ssj4) && (player.ryuken || player.ryukenVoando || lancado < RYUKEN.sustentacao)) {
       const coluna = player.ryuken ? (time - player.ryuken.started < RYUKEN.lancamento * .5 ? 0 : time - player.ryuken.started < RYUKEN.lancamento * .85 ? 1 : 2) : lancado < .2 ? 2 : 3;
-      const altura = 70 * GOKU_SSJ3_RYUKEN.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
-      if (drawSheet(ctx, GOKU_SSJ3_RYUKEN, art.gokuSsj3Ryuken, pos, altura, player.ryuken?.direction || player.facing, coluna)) return true;
+      // SSJ4 ainda sem folha própria do Ryuken: usa a folha de soco dele (preparação, avanço, impacto segurado).
+      const [folha, imagem] = ssj4 ? [FOLHAS_GOKU_SSJ4.soco[0], art[FOLHAS_GOKU_SSJ4.soco[1]]] : [GOKU_SSJ3_RYUKEN, art.gokuSsj3Ryuken];
+      const altura = 70 * folha.referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+      if (drawSheet(ctx, folha, imagem, pos, altura, player.ryuken?.direction || player.facing, ssj4 ? Math.min(coluna, 2) : coluna)) return true;
     }
     if (genki !== null) { estado = 'genki';coluna = genki; }
     else if (player.charge) {
