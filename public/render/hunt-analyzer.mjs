@@ -50,7 +50,7 @@ function visibilidade(){
  mini.hidden=!huntAtivo||Boolean(document.getElementById('welcomeDialog')?.open)||dialog.open;
  if(!mini.hidden&&lootPosicaoPendente)requestAnimationFrame(posicionarLootAcima);
 }
-export function instalarHuntAnalyzer(expandir){
+export function instalarHuntAnalyzer(){
  if(instalado)return;instalado=true;
  const mini=document.getElementById('huntAnalyzerMini'),root=document.getElementById('huntAnalyzer'),dialog=document.getElementById('autoHuntDialog');
  instalarArrasto(mini,mini.querySelector('header'),'dbi-hunt-analyzer-mini');
@@ -71,7 +71,6 @@ export function instalarHuntAnalyzer(expandir){
  const observar=new MutationObserver(visibilidade);observar.observe(dialog,{attributes:true,attributeFilter:['open']});
  const login=document.getElementById('welcomeDialog');if(login)observar.observe(login,{attributes:true,attributeFilter:['open']});
  addEventListener('resize',()=>{if(!loot.hidden&&!lootPosicaoPersonalizada){lootPosicaoPendente=true;requestAnimationFrame(()=>{if(!mini.hidden)posicionarLootAcima();});}});
- document.getElementById('huntAnalyzerExpand').onclick=()=>{if(!dialog.open)expandir();root.open=true;dialog.querySelector('.auto-hunt-body').scrollTop=0;visibilidade();};
 }
 function atualizarMini(a,id){
  const ativo=Boolean(a.ativo),loot=document.getElementById('lootTrackerWindow');

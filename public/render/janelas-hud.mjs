@@ -1,6 +1,18 @@
 import {instalarRedimensionamento} from './redimensionar-hud.mjs';
 import {instalarArrasto} from './painel-movel.mjs';
 const controles=new WeakMap();let instalado=false;
+function aplicarOrnamentos(janela){
+ const grandes=janela.matches('.hud-funcional,.bestiario,.godmode-dialog,.worlds-dialog,#shopDialog');
+ const medias=janela.matches('.mochila,.auto-hunt-panel,.novidades-hud');
+ if(!grandes&&!medias)return;
+ janela.classList.add('hud-tema',grandes?'hud-tema-quatro':'hud-tema-superior');
+ const cantos=grandes?['top-left','top-right','bottom-left','bottom-right']:['top-left','top-right'];
+ for(const canto of cantos){
+  const img=document.createElement('img');img.className='hud-tema-nuvem hud-tema-nuvem-'+canto;
+  img.src='/assets/hud/clouds/cloud-'+(canto.endsWith('left')?'bottom-left':'bottom-right')+'.png';
+  img.alt='';img.draggable=false;img.setAttribute('aria-hidden','true');janela.append(img);
+ }
+}
 export function fecharOutrasJanelas(atual){
  // A mochila é um painel persistente: abrir outra janela não deve fechá-la. Ao abrir a
  // mochila, também preserva a janela que já estava aberta para permitir consultar as duas.
@@ -36,7 +48,21 @@ export function instalarJanelasHud(){
   cadeado.onclick=()=>{travada=!travada;travar(travada);try{localStorage.setItem(chaveTrava,String(travada));}catch{}};
   const acoes=document.createElement('div');acoes.className='janela-acoes';
   const botoes=[...cabecalho.querySelectorAll('button')];
-  acoes.append(cadeado,...botoes);cabecalho.append(acoes);
+  for(const botao of botoes){
+   if(botao.getAttribute('aria-label')?.startsWith('Fechar'))botao.classList.add('hud-botao-fechar');
+   if(botao.id==='mochilaMinimizar')botao.classList.add('hud-botao-minimizar');
+  }
+  const podeMinimizar=['hudFuncionalDialog','bestiarioDialog','storeDialog','battlePassDialog'].includes(janela.id);
+  let minimizar=null;
+  if(podeMinimizar){
+   minimizar=document.createElement('button');minimizar.type='button';minimizar.className='hud-botao-minimizar';
+   const atualizar=()=>{const reduzida=janela.classList.contains('hud-minimizada');minimizar.textContent=reduzida?'▢':'−';minimizar.setAttribute('aria-expanded',String(!reduzida));minimizar.setAttribute('aria-label',reduzida?'Restaurar janela':'Minimizar janela');minimizar.title=minimizar.getAttribute('aria-label');};
+   minimizar.onclick=()=>{janela.classList.toggle('hud-minimizada');atualizar();};
+   janela.addEventListener('close',()=>{janela.classList.remove('hud-minimizada');atualizar();});
+   atualizar();
+  }
+  acoes.append(cadeado,...(minimizar?[minimizar]:[]),...botoes);cabecalho.append(acoes);
+  aplicarOrnamentos(janela);
   // Auto Hunt já possui seu controlador de arrasto e altura próprios.
   if(janela.id==='autoHuntDialog'){controles.set(janela,null);return;}
   const controle=instalarArrasto(janela,cabecalho,'dbi-janela-'+(janela.id||janela.className.split(' ')[0]));controles.set(janela,controle);

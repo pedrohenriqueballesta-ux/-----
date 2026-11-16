@@ -1,18 +1,38 @@
 // Renderização dos GIFs originais com transparência; não recria nem altera as artes.
-export function removerFundoEscuro(pixels,w,h,limite=12){
+import {decodificarGif} from './gif-quadros.mjs';
+export function removerFundoEscuro(pixels,w,h,limite=32){
  const visitados=new Uint8Array(w*h),fila=new Uint32Array(w*h);let inicio=0,fim=0;
- const incluir=i=>{if(visitados[i])return;const p=i*4;if(pixels[p+3]!==0&&Math.max(pixels[p],pixels[p+1],pixels[p+2])>limite)return;visitados[i]=1;fila[fim++]=i;};
+ // A borda do GIF usa poucas cores planas. Limpar toda cor escura conectada
+ // à borda também apaga os contornos do baú e do emblema.
+ const frequencia=new Map(),perimetro=2*(w+h);
+ const contar=i=>{const p=i*4;if(!pixels[p+3]||Math.max(pixels[p],pixels[p+1],pixels[p+2])>limite)return;const cor=pixels[p]<<16|pixels[p+1]<<8|pixels[p+2];frequencia.set(cor,(frequencia.get(cor)||0)+1);};
+ for(let x=0;x<w;x++){contar(x);contar((h-1)*w+x);}for(let y=0;y<h;y++){contar(y*w);contar(y*w+w-1);}
+ const coresFundo=new Set([...frequencia].filter(([,n])=>n>=Math.max(2,Math.floor(perimetro*.005))).map(([cor])=>cor));
+ const incluir=i=>{if(visitados[i])return;const p=i*4,cor=pixels[p]<<16|pixels[p+1]<<8|pixels[p+2];if(!pixels[p+3]||!coresFundo.has(cor))return;visitados[i]=1;fila[fim++]=i;};
  for(let x=0;x<w;x++){incluir(x);incluir((h-1)*w+x);}for(let y=0;y<h;y++){incluir(y*w);incluir(y*w+w-1);}
  while(inicio<fim){const i=fila[inicio++],x=i%w,y=Math.floor(i/w);pixels[i*4+3]=0;if(x>0)incluir(i-1);if(x<w-1)incluir(i+1);if(y>0)incluir(i-w);if(y<h-1)incluir(i+w);}
  return pixels;
 }
 const fontes=new Map(),tratadas=new WeakSet(),instancias=new Set();let instalado=false,raf=0;
+function carregarSemWebCodecs(dados){
+ const gif=decodificarGif(dados),frames=gif.frames.map(frame=>{
+  removerFundoEscuro(frame.rgba,gif.largura,gif.altura);
+  const canvas=document.createElement('canvas');canvas.width=gif.largura;canvas.height=gif.altura;
+  const ctx=canvas.getContext('2d'),imagem=ctx.createImageData(gif.largura,gif.altura);
+  imagem.data.set(frame.rgba);ctx.putImageData(imagem,0,0);
+  return {imagem:canvas,duracao:frame.duracao};
+ });
+ return {frames,total:frames.reduce((n,f)=>n+f.duracao,0)};
+}
 async function carregar(url){
  if(fontes.has(url))return fontes.get(url);
  const trabalho=(async()=>{
-  if(typeof ImageDecoder==='undefined'||!await ImageDecoder.isTypeSupported('image/gif'))throw Error('Decodificador indisponível');
   const resposta=await fetch(url);if(!resposta.ok)throw Error('GIF indisponível');
-  const decoder=new ImageDecoder({data:await resposta.arrayBuffer(),type:'image/gif',preferAnimation:true});
+  const dados=await resposta.arrayBuffer();
+  let suportado=false;
+  try{suportado=typeof ImageDecoder!=='undefined'&&await ImageDecoder.isTypeSupported('image/gif');}catch{}
+  if(!suportado)return carregarSemWebCodecs(dados);
+  const decoder=new ImageDecoder({data:dados,type:'image/gif',preferAnimation:true});
   const frames=[];try{
    await decoder.tracks.ready;const count=decoder.tracks.selectedTrack.frameCount;
    for(let i=0;i<count;i++){
@@ -23,7 +43,7 @@ async function carregar(url){
     }finally{image.close();}
    }
    return {frames,total:frames.reduce((n,f)=>n+f.duracao,0)};
-  }catch(e){for(const f of frames)f.imagem.close();throw e;}finally{decoder.close();}
+  }catch(e){for(const f of frames)f.imagem.close();return carregarSemWebCodecs(dados);}finally{decoder.close();}
  })();fontes.set(url,trabalho);return trabalho;
 }
 function animar(agora){
@@ -31,9 +51,24 @@ function animar(agora){
  for(const item of instancias){
   if(!item.canvas.isConnected){instancias.delete(item);continue;}if(!item.canvas.getClientRects().length)continue;
   let t=agora%item.animacao.total,indice=0;while(indice<item.animacao.frames.length-1&&t>=item.animacao.frames[indice].duracao)t-=item.animacao.frames[indice++].duracao;
-  if(indice===item.indice)continue;item.indice=indice;const ctx=item.canvas.getContext('2d');ctx.clearRect(0,0,item.canvas.width,item.canvas.height);ctx.drawImage(item.animacao.frames[indice].imagem,0,0);
+  if(indice===item.indice)continue;item.indice=indice;desenharQuadro(item.canvas,item.animacao.frames[indice].imagem);
  }
  if(instancias.size)raf=requestAnimationFrame(animar);
+}
+function desenharQuadro(canvas,imagem){
+ const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+ ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(imagem,0,0,canvas.width,canvas.height);
+}
+function canvasPremium(img,w,h){
+ const canvas=document.createElement('canvas');
+ const larguraExibida=img.getBoundingClientRect?.().width||0;
+ const escala=Math.min(3,Math.max(1,globalThis.devicePixelRatio||1));
+ canvas.width=larguraExibida?Math.min(w,Math.max(1,Math.round(larguraExibida*escala))):w;
+ canvas.height=Math.max(1,Math.round(canvas.width*h/w));
+ canvas.className=img.className.replace('premium-gif-fallback','').trim()+' icone-premium-transparente';
+ canvas.dataset.iconeAnimado=new URL(img.src).pathname.split('/').pop();
+ if(img.alt){canvas.setAttribute('role','img');canvas.setAttribute('aria-label',img.alt);}else canvas.setAttribute('aria-hidden','true');
+ return canvas;
 }
 const recortes=new Map();
 function prepararCatalogo(img){
@@ -66,13 +101,11 @@ function prepararCatalogo(img){
 function preparar(img){
  if(/^\/assets\/premium\/catalogo\/.*\.png$/.test(new URL(img.src,location.href).pathname)||new URL(img.src,location.href).pathname==='/assets/montarias/nimbus/sprites/nimbus_s_01.png'){prepararCatalogo(img);return;}
  if(tratadas.has(img)||!/^\/assets\/premium\/(store|battle-pass)\.gif$/.test(new URL(img.src,location.href).pathname))return;tratadas.add(img);
- // Fallback mantém o GIF animado em navegadores sem ImageDecoder.
+ // Durante o carregamento, o GIF original permanece animado no navegador.
  img.classList.add('premium-gif-fallback');
  carregar(img.src).then(animacao=>{
-  if(!img.isConnected)return;const canvas=document.createElement('canvas');canvas.width=animacao.frames[0].imagem.width;canvas.height=animacao.frames[0].imagem.height;
-  canvas.className=img.className.replace('premium-gif-fallback','')+' icone-premium-transparente';canvas.dataset.iconeAnimado=new URL(img.src).pathname.split('/').pop();
-  if(img.alt){canvas.setAttribute('role','img');canvas.setAttribute('aria-label',img.alt);}else canvas.setAttribute('aria-hidden','true');
-  canvas.getContext('2d').drawImage(animacao.frames[0].imagem,0,0);img.replaceWith(canvas);instancias.add({canvas,animacao,indice:-1});if(!raf)raf=requestAnimationFrame(animar);
+  if(!img.isConnected)return;const canvas=canvasPremium(img,animacao.frames[0].imagem.width,animacao.frames[0].imagem.height);
+  desenharQuadro(canvas,animacao.frames[0].imagem);img.replaceWith(canvas);instancias.add({canvas,animacao,indice:-1});if(!raf)raf=requestAnimationFrame(animar);
  }).catch(()=>{});
 }
 export function instalarIconesAnimados(){

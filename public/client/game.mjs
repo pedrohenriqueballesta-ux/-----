@@ -178,12 +178,15 @@ function ajustarHudMinimapa() {
   redesenharMini(); encaixarAutoHunt();
 }
 mini?.closest('.hud-mapa')?.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.stopPropagation(); });
-mini?.addEventListener('wheel', e => {
-  e.preventDefault(); e.stopPropagation();
+function alterarZoomMini(delta, modo = 0) {
   if (arrastoMini) return;
-  zoomMini = zoomMinimapa(zoomMini, e.deltaY, e.deltaMode);
+  zoomMini = zoomMinimapa(zoomMini, delta, modo);
   $('minimapZoomLabel').textContent = 'Zoom ' + Math.round(zoomMini * 100) + '%';
   redesenharMini();
+}
+mini?.addEventListener('wheel', e => {
+  e.preventDefault(); e.stopPropagation();
+  alterarZoomMini(e.deltaY, e.deltaMode);
 }, { passive: false });
 mini?.addEventListener('pointerdown', e => {
   if (e.button !== 0 || !snapshot || snapshot.self?.hp <= 0 || transicaoTeleport.ativa ||
@@ -226,6 +229,8 @@ function terminarArrastoMini(e) {
 }
 for (const tipo of ['pointerup', 'pointercancel', 'lostpointercapture']) mini?.addEventListener(tipo, terminarArrastoMini);
 $('minimapCenter').onclick = () => { centroMini = null; redesenharMini(); };
+$('minimapZoomOut').onclick = () => alterarZoomMini(120);
+$('minimapZoomIn').onclick = () => alterarZoomMini(-120);
 if (mini) new ResizeObserver(ajustarHudMinimapa).observe(mini.closest('.hud-mapa'));
 ajustarHudMinimapa();
 $('zoomOut').onclick = () => setZoom(zoom / 1.2);

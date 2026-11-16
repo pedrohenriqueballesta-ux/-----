@@ -439,7 +439,7 @@ export function ligarHud(contexto) {
   ctx = contexto;
   godmodeHud = instalarGodmodeHud(action);
   instalarIconesAnimados();
-  instalarHuntAnalyzer(alternarAutoHunt);
+  instalarHuntAnalyzer();
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);
