@@ -486,6 +486,43 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 
 .mochila-zeni i{display:grid;place-items:center;width:calc(26 * var(--um));height:calc(26 * var(--um));flex-shrink:0}.mochila-zeni i img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
 .perfil-montaria{margin-top:18px;padding:16px;border:1px solid #cba34780;border-radius:10px;background:#163046}.perfil-montaria p{font-size:12px}.perfil-montaria a{display:inline-block;margin:12px;color:#a7dcff}.perfil-montaria button{padding:10px 16px}
+.perfil-personalizacao{display:grid;gap:10px;justify-items:center;text-align:center;max-width:420px;margin-top:42px}.perfil-skin,.perfil-montaria{position:relative;width:100%;box-sizing:border-box}.perfil-personalizacao-canvas{display:block;image-rendering:pixelated;background:#071a2c;border:1px solid #42617e;border-radius:10px;margin:auto}.perfil-personalizacao-seletor{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin:auto;pointer-events:none}.perfil-personalizacao-seletor button{box-sizing:border-box;flex:0 0 44px;width:44px;min-width:44px;height:44px;padding:0;font-size:25px;line-height:1;pointer-events:auto}.perfil-personalizacao-seletor strong{display:block;min-width:0;text-align:center}.perfil-personalizacao-nome{font-size:16px;color:#ffe08b}.perfil-skin>h3{margin:4px 0;color:#ffe08b}.perfil-montaria-canvas{margin:0 auto}.perfil-skin>.perfil-silhueta{position:absolute;top:54px}.perfil-skin>.perfil-silhueta:first-of-type{left:4px}.perfil-skin>.perfil-silhueta:nth-of-type(2){right:4px}.perfil-skin>.perfil-personalizacao-seletor{position:absolute;top:112px;left:0;right:0}.perfil-montaria>.perfil-silhueta{position:absolute;top:48px}.perfil-montaria>.perfil-silhueta:first-of-type{left:4px}.perfil-montaria>.perfil-silhueta:nth-of-type(2){right:4px}.perfil-montaria>.perfil-personalizacao-seletor{position:absolute;top:58px;left:0;right:0}.perfil-personalizacao .perfil-montaria{background:transparent;border:0;box-shadow:none;padding:0}
+.perfil-personalizacao>button{justify-self:center;min-width:130px}
+.perfil-personalizacao-acoes{display:flex;justify-content:center;gap:10px}.perfil-personalizacao-acoes button{min-width:130px}.perfil-personalizacao-acoes .perfil-resetar-skin{background:linear-gradient(#e84b4b,#941b1b);border-color:#ff8989;color:#fff}
+.perfil-personalizacao-seletor strong{display:block;min-width:0;text-align:center}.perfil-montaria-canvas{border-color:transparent;background:transparent}
+.perfil-silhueta{width:42px;height:58px;object-fit:contain;image-rendering:pixelated;background:transparent;filter:brightness(0);mix-blend-mode:screen;opacity:.42;vertical-align:middle;margin:0 8px}.perfil-silhueta-montaria{width:54px;height:34px}.perfil-montaria{display:grid;grid-template-columns:1fr 1fr;justify-items:center;align-items:center}.perfil-montaria h3,.perfil-montaria p,.perfil-montaria button,.perfil-montaria .perfil-personalizacao-seletor{grid-column:1/-1}.perfil-montaria-canvas{grid-column:1/-1}
+.perfil-skin .perfil-montaria{background:transparent;border:0;box-shadow:none;padding:0}
+.perfil-skin,.perfil-skin .perfil-montaria{background:#163046;border:1px solid #cba34780;border-radius:10px;box-shadow:none;padding:16px}
+.perfil-skin{display:block;max-width:560px;margin:42px auto 0;text-align:center}
+.perfil-skin>h3,.perfil-montaria>h3{margin:0 0 14px;color:#ffe08b;text-align:center}
+.perfil-skin>.perfil-personalizacao-canvas{width:200px;height:180px;margin:0 auto 14px}
+.perfil-skin>.perfil-silhueta{top:72px;width:46px;height:64px}
+.perfil-skin>.perfil-silhueta:first-of-type{left:28px}
+.perfil-skin>.perfil-silhueta:nth-of-type(2){right:28px}
+.perfil-skin>.perfil-personalizacao-seletor{top:124px;left:20px;right:20px;width:auto}
+.perfil-skin>.perfil-personalizacao-seletor strong{font-size:18px;line-height:1.2;color:#fff;text-shadow:0 2px 2px #0008}
+.perfil-skin>p{max-width:480px;margin:8px auto 20px;text-align:center}
+.perfil-skin .perfil-montaria{display:block;width:100%;margin:0;padding:16px!important}
+.perfil-montaria>.perfil-personalizacao-canvas{width:200px;height:130px;margin:10px auto 14px}
+.perfil-montaria>.perfil-silhueta{top:96px;width:58px;height:38px}
+.perfil-montaria>.perfil-silhueta:first-of-type{left:34px}
+.perfil-montaria>.perfil-silhueta:nth-of-type(2){right:34px}
+.perfil-montaria>.perfil-personalizacao-seletor{top:104px;left:28px;right:28px;width:auto}
+.perfil-montaria>.perfil-personalizacao-seletor strong{font-size:18px;line-height:1.2;color:#fff;text-shadow:0 2px 2px #0008}
+.perfil-montaria>p{margin:8px auto 16px;text-align:center}
+.perfil-personalizacao-acoes{margin-top:18px}
+
+/* Armário: acabamento final e alinhamento consistente dos dois seletores. */
+.perfil-skin{display:block;max-width:560px;margin:42px auto 0;text-align:center}
+.perfil-skin>.perfil-personalizacao-seletor{top:124px;left:20px;right:20px;width:auto}
+.perfil-skin>.perfil-silhueta{top:72px;width:46px;height:64px}
+.perfil-skin>.perfil-silhueta:first-of-type{left:28px}.perfil-skin>.perfil-silhueta:nth-of-type(2){right:28px}
+.perfil-montaria>.perfil-personalizacao-seletor{top:104px;left:28px;right:28px;width:auto}
+.perfil-montaria>.perfil-silhueta{top:96px;width:58px;height:38px}
+.perfil-montaria>.perfil-silhueta:first-of-type{left:34px}.perfil-montaria>.perfil-silhueta:nth-of-type(2){right:34px}
+.perfil-skin>.perfil-personalizacao-canvas{margin:0 auto 14px}.perfil-montaria>.perfil-personalizacao-canvas{margin:10px auto 14px}
+.perfil-skin>.perfil-personalizacao-seletor strong,.perfil-montaria>.perfil-personalizacao-seletor strong{position:absolute;left:0;right:0;top:100%;margin-top:10px;pointer-events:none}
+.perfil-skin>p{margin-top:42px}.perfil-montaria>p{margin-top:42px}
 .atalhos-tabela{max-height:360px;overflow:auto;margin:12px 0}.atalhos-tabela table{width:100%;border-collapse:collapse;font-size:12px}.atalhos-tabela th,.atalhos-tabela td{text-align:left;padding:9px 10px;border-bottom:1px solid #6f9eb244}.atalhos-tabela th{color:#ffdb86;background:#13354b;position:sticky;top:0}.atalhos-tabela kbd{display:inline-block;font:600 11px system-ui;background:#0a2336;padding:4px 7px;border:1px solid #65849b;border-radius:4px;white-space:normal}.tutorial-caixa .atalhos-tabela{max-height:220px}.tutorial-caixa:has(.atalhos-tabela){max-height:calc(100dvh - 160px);overflow:auto;bottom:90px}
 
 /* Trava de posição das janelas e cabeçalhos de arrasto (pedido de 08/11/2026). */

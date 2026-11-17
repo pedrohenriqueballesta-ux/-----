@@ -15,6 +15,9 @@ import { KAME } from '../shared/kamehameha.mjs';
 import { strikeColumn } from '../render/camera.mjs';
 
 export function drawGoku(ctx, player, pos, time, strikeProgress = null) {
+  // `skin` é apenas visual; a forma real continua controlando regras, custos e atributos no servidor.
+  const skinVisual = player.forma && player.forma !== 'base' ? player.forma : (player.skin || 'base');
+  if (skinVisual) player = { ...player, forma: skinVisual, transformed: !['base', 'kaioken'].includes(skinVisual) };
   // Base, Kaioken e Super Saiyajin usam as mesmas poses (folhas da base como molde), na escala da base.
   if (!player.dead) {
     const ssj4 = player.forma === 'ssj4', ssj3 = player.forma === 'ssj3', ssj2 = player.forma === 'ssj2',

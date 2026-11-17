@@ -201,6 +201,11 @@ export class Game {
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};p.montaria=data.valor;return{ok:true};}
+    if(kind==='skin'){
+      const skin=String(data.skin||''),forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin);
+      if(!forma)return this.reject(p,'Skin inválida.');
+      p.skin=skin;return{ok:true};
+    }
     if(kind==='atribuirConsumivelHotkey'){
       if(![7,8].includes(data.slot)||!consumivelValido(data.item)||!(p.inventory[data.item]>0))return {ok:false,reason:'Arraste um consumível da mochila para os slots 7 ou 8.'};
       p.hotkeysConsumiveis[data.slot]=data.item;return {ok:true};
@@ -479,7 +484,7 @@ export class Game {
     if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível.');
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
-    if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
+    if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { const formaAnterior=p.forma; p.forma = 'base'; p.formaAte = 0; if (p.skin===formaAnterior) p.skin='base'; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
     p.forma = disponivel.forma;
     atualizarBarraPadrao(p);
@@ -1131,7 +1136,7 @@ export class Game {
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
-        montaria:p.montaria,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
+        montaria:p.montaria,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
