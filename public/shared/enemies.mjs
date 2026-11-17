@@ -108,6 +108,14 @@ export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 // Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
 // diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
 export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
+// Apenas chefes que têm um spawn real no mundo; compartilhado pelo God Mode e pela validação no servidor.
+export const CHEFES_TESTE = Object.freeze([
+  { type:'subboss', area:'media' },
+  { type:'neva', area:'norte' },
+  { type:'boss', area:'dificil' },
+  { type:'oozaruDourado', area:'vegeta-lava' },
+  { type:'freezaBoss', area:'vegeta-cratera' }
+]);
 // Forma entre parênteses fica no fim: "Freeza (nave)" → "Freeza BOSS (nave)".
 export const nomeDeChefe = nome => /\bBOSS\b/.test(nome) ? nome : nome.replace(/^(.*?)(\s*\([^)]*\))?$/, (_, n, forma = '') => n + ' BOSS' + forma);
 export function mobStats(type, area = 'inicial') {

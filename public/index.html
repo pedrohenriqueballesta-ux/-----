@@ -91,7 +91,7 @@
   <dialog id="welcomeDialog" class="entrada" aria-label="Dragon Ball Idle"></dialog>
   <dialog id="godmodeDialog" class="godmode-dialog" aria-labelledby="godmodeTitle">
     <header class="godmode-heading"><div><span class="eyebrow">FERRAMENTAS DE DESENVOLVIMENTO</span><h2 id="godmodeTitle">God Mode</h2></div><button type="button" class="close-dialog" data-close="godmodeDialog" aria-label="Fechar">×</button></header>
-    <nav class="godmode-tabs" aria-label="Ferramentas God Mode"><button type="button" data-godmode-tab="config" class="ativa" aria-selected="true">Configuração</button><button type="button" data-godmode-tab="items" aria-selected="false">Pegar itens</button></nav>
+    <nav class="godmode-tabs" aria-label="Ferramentas God Mode"><button type="button" data-godmode-tab="config" class="ativa" aria-selected="true">Configuração</button><button type="button" data-godmode-tab="items" aria-selected="false">Pegar itens</button><button type="button" data-godmode-tab="bosses" aria-selected="false">Invocar chefes</button></nav>
     <section id="godmodeConfigPanel" class="godmode-panel">
       <p id="godmodeModeStatus" class="godmode-mode-status">Desligado · configure as opções e ative para testar.</p>
       <button type="button" id="godmodePanelToggle" class="primary godmode-master-toggle">Ligar God Mode</button>
@@ -107,6 +107,13 @@
     <section id="godmodeItemsPanel" class="godmode-panel" hidden>
       <p id="godmodeItemHint" class="godmode-mode-status">Ative o God Mode para conceder itens.</p>
       <div id="godmodeItems" class="godmode-items" aria-label="Catálogo de itens"></div>
+    </section>
+    <section id="godmodeBossesPanel" class="godmode-panel" hidden>
+      <p>Selecione um chefe para fazê-lo aparecer imediatamente no local habitual de nascimento. Se ele já estiver vivo, sua posição não será alterada.</p>
+      <label for="godmodeBossSelect">Chefe</label>
+      <select id="godmodeBossSelect" class="godmode-boss-select"></select>
+      <button type="button" id="godmodeSpawnBoss" class="primary">Invocar chefe</button>
+      <p id="godmodeBossStatus" class="godmode-status" role="status" aria-live="polite">Ative o God Mode para invocar um chefe.</p>
     </section>
   </dialog>
   <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><h2>Mercado de suprimentos</h2><div class="shop-scroll-content"><span class="eyebrow">VILA DO LAGO</span><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button id="sellButton" class="primary">Vender todos os materiais</button><small>Todos os preços são provisórios para o protótipo.</small></div></dialog>

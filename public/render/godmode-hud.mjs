@@ -1,5 +1,6 @@
 import { ITENS_NEGOCIAVEIS } from '../shared/itens-negociaveis.mjs';
-import { CONFIG } from '../shared/config.mjs';
+import { CONFIG, areaPorId } from '../shared/config.mjs';
+import { CHEFES_TESTE, mobStats } from '../shared/enemies.mjs';
 
 const $ = id => document.getElementById(id);
 const criar = (tag, classe, texto = null) => {
@@ -68,6 +69,7 @@ export function instalarGodmodeHud(acao) {
     }
     $('godmodeConfigPanel').hidden = nome !== 'config';
     $('godmodeItemsPanel').hidden = nome !== 'items';
+    $('godmodeBossesPanel').hidden = nome !== 'bosses';
   };
   for (const botao of janela.querySelectorAll('[data-godmode-tab]')) botao.addEventListener('click', () => selecionarAba(botao.dataset.godmodeTab));
   $('godmodeToolbarSettings')?.addEventListener('click', () => { if (!janela.open) janela.showModal(); });
@@ -92,6 +94,20 @@ export function instalarGodmodeHud(acao) {
   });
   botaoAplicar.addEventListener('click', enviarConfig);
   for (const key of opcoes) $(key).addEventListener('change', marcarAlteracao);
+
+  const bossSelect = $('godmodeBossSelect'), bossButton = $('godmodeSpawnBoss'), bossStatus = $('godmodeBossStatus');
+  for (const boss of CHEFES_TESTE) {
+    const option = criar('option', null, mobStats(boss.type, boss.area).name + ' · ' + areaPorId(boss.area).name);
+    option.value = boss.type; bossSelect.append(option);
+  }
+  bossButton.addEventListener('click', async () => {
+    bossButton.disabled = true;
+    try {
+      const result = await acao({ type:'godmodeSpawnBoss', boss:bossSelect.value });
+      bossStatus.textContent = result?.ok ? 'Chefe invocado no local habitual.' : result?.reason || 'Não foi possível invocar o chefe.';
+    } catch (erro) { bossStatus.textContent = erro.message || 'Não foi possível invocar o chefe.'; }
+    finally { bossButton.disabled = false; }
+  });
 
   for (const item of Object.values(ITENS_NEGOCIAVEIS)) {
     const card = criar('article', 'godmode-item'); card.dataset.godmodeItem = item.id;
@@ -129,6 +145,7 @@ export function instalarGodmodeHud(acao) {
       botaoAplicar.disabled = aplicando || !alteracoesPendentes;
       for (const btn of grade.querySelectorAll('.godmode-item-grant')) btn.disabled = !estado.godmode;
       $('godmodeItemHint').textContent = estado.godmode ? 'Escolha a quantidade e adicione diretamente à mochila de teste.' : 'Ative o God Mode para conceder itens.';
+      bossButton.disabled = !estado.godmode;
     }
   };
 }

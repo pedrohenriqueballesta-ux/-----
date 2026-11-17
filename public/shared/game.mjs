@@ -14,7 +14,7 @@ import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, multiplicadorDaForma } from './formas.mjs';
 import {barraValida,atualizarBarraPadrao} from './barra-tecnicas.mjs';
-import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
+import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from './passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from './kamehameha.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from './projetil-mob.mjs';
@@ -263,6 +263,19 @@ export class Game {
       p.inventory[item.id] = (p.inventory[item.id] || 0) + quantidade;
       this.notify(p, '+' + quantidade + ' × ' + item.nome + ' adicionado à mochila de teste.');
       return { ok: true };
+    }
+    if (kind === 'godmodeSpawnBoss') {
+      if (!p.godmode) return { ok:false, reason:'Ative o God Mode para invocar chefes de teste.' };
+      const escolha = CHEFES_TESTE.find(b => b.type === data.boss);
+      if (!escolha) return { ok:false, reason:'Chefe inválido.' };
+      const chefe = [...this.mobs.values()].find(m => m.type === escolha.type && m.area === escolha.area);
+      if (!chefe) return { ok:false, reason:'Este chefe não está disponível neste mundo.' };
+      if (chefe.hp > 0) return { ok:false, reason:chefe.name + ' já está vivo em ' + areaPorId(chefe.area).name + '.' };
+      // O mesmo ciclo de renascimento reposiciona o chefe no local próprio e limpa o estado de combate.
+      chefe.deadUntil = this.time;
+      this.updateMob(chefe, 0);
+      this.notify(p, chefe.name + ' invocado em ' + areaPorId(chefe.area).name + '.');
+      return { ok:true };
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
       const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
