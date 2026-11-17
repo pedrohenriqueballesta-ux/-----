@@ -274,6 +274,29 @@ progress { accent-color: #05bfed; }
 @media (prefers-reduced-motion: reduce) {
   .hud-menus button { transition: none; }
 }
+
+/* O tema global de cards também alcança .perfil-montaria; o seletor de skins
+   usa apenas o painel da própria HUD, sem uma segunda caixa azul. */
+.perfil-personalizacao .perfil-montaria {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.perfil-skin .perfil-montaria {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.perfil-skin,
+.perfil-skin .perfil-montaria {
+  border: 1px solid #cba34780 !important;
+  border-radius: 10px !important;
+  background: #163046 !important;
+  box-shadow: none !important;
+  padding: 16px !important;
+}
 /* Catálogo de técnicas no perfil: mesma moldura, lista legível em telas pequenas. */
 .perfil-abas{display:flex;gap:8px;margin:0 0 14px}.perfil-abas button{flex:1;min-width:0}.perfil-abas button[aria-pressed="true"]{border-color:var(--db-hud-gold);color:#ffe08b;background:#164f82}
 .perfil-painel[hidden]{display:none!important}.perfil-tecnicas-lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:10px}
