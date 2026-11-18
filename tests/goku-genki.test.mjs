@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Game} from '../public/shared/game.mjs';
-import {lugar,CONFIG} from '../public/shared/config.mjs';
-import {statsFor} from '../public/shared/characters.mjs';
-import {GENKI} from '../public/shared/genki.mjs';
-import {GOKU_GENKI} from '../public/art/goku-genki.mjs';
-import {GOKU_PASSO} from '../public/art/goku-passo.mjs';
-import {colunaGenki,apresentarGenkiJogador,POSE_GENKI} from '../public/render/genki-personagem.mjs';
-import {geometriaGenki} from '../public/render/genki.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {lugar,CONFIG} from '../public/shared/nucleo/config.mjs';
+import {statsFor} from '../public/shared/nucleo/characters.mjs';
+import {GENKI} from '../public/shared/tecnicas/genki.mjs';
+import {GOKU_GENKI} from '../public/art/personagens/goku/goku-genki.mjs';
+import {GOKU_PASSO} from '../public/art/personagens/goku/goku-passo.mjs';
+import {colunaGenki,apresentarGenkiJogador,POSE_GENKI} from '../public/render/vfx/genki-personagem.mjs';
+import {geometriaGenki} from '../public/render/vfx/genki.mjs';
 const passar=(g,s)=>{for(let i=0;i<Math.round(s/.01);i++)g.tick(.01);};
 function cena(){const g=new Game({now:1000,populate:false}),p=g.addPlayer('goku');g.levar(p,lugar('inicial'));p.x+=300;p.seguroAte=0;p.level=CONFIG.skills.genki;p.stats=statsFor(p.level);p.ki=p.stats.ki;p.hp=p.stats.hp;p.autoAttack=p.autoSkills=false;return {g,p};}
 test('folha 6 mantém 5×4, base dos pés e escala de corpo sem cortar mãos',async()=>{

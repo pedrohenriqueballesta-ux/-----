@@ -4,10 +4,12 @@ import { readFile, readdir } from 'node:fs/promises';
 
 // Todas as folhas desenhadas (art/*-passo.mjs e art/*-golpe.mjs) entram aqui sozinhas.
 const pasta = new URL('../public/art/', import.meta.url);
-const modulos = (await readdir(pasta)).filter(n => /-(passo|golpe)\.mjs$/.test(n)).sort();
+const modulos = (await readdir(pasta, {recursive: true}))
+  .map(n => n.split('\\').join('/'))
+  .filter(n => /-(passo|golpe)\.mjs$/.test(n)).sort();
 
 test('existem folhas desenhadas para conferir', () => {
-  assert.ok(modulos.includes('goku-passo.mjs') && modulos.includes('saibaman-passo.mjs'), modulos.join(', '));
+  assert.ok(modulos.some(n => n.endsWith('/goku-passo.mjs')) && modulos.some(n => n.endsWith('/saibaman-passo.mjs')), modulos.join(', '));
 });
 
 for (const nome of modulos) {

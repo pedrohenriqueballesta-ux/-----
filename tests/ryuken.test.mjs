@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {CONFIG,lugar} from '../public/shared/config.mjs';
-import {RYUKEN} from '../public/shared/ryuken.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {CONFIG,lugar} from '../public/shared/nucleo/config.mjs';
+import {RYUKEN} from '../public/shared/tecnicas/ryuken.mjs';
 
 // Ryuken / Punho do Dragão (Pedro, 12/11/2026): só no SSJ3, alvo único, ×13,5, 40 Ki, 10 s.
 // Desde 16/11/2026 é técnica própria (tecla 8): no SSJ3 o Kamehameha continua na tecla 2.
@@ -62,15 +62,15 @@ test('sem alvo ou fora do alcance não lança; sair do SSJ3 ou morrer cancela',(
 });
 
 test('tooltip: o botão 2 segue Kamehameha no SSJ3 e o botão 8 mostra o Ryuken',async()=>{
-  const {detalhesHabilidade}=await import('../public/render/detalhes-habilidades.mjs');
+  const {detalhesHabilidade}=await import('../public/render/hud/detalhes-habilidades.mjs');
   const r=detalhesHabilidade('ryuken',{level:CONFIG.skills.ryuken,forma:'ssj3'}),l=Object.fromEntries(r.linhas);
   assert.match(r.nome,/Ryuken/);assert.equal(l.Custo,'40 Ki');assert.equal(l.Estado,'Disponível');
   assert.match(Object.fromEntries(detalhesHabilidade('ryuken',{level:CONFIG.skills.ryuken,forma:'ssj2'}).linhas).Estado,/Super Saiyajin 3/);
   assert.equal(detalhesHabilidade('kame',{level:CONFIG.skills.ryuken,forma:'ssj3'}).nome,'Kamehameha');
 });
 test('Ryuken começa no slot 8, que pode receber outras técnicas',async()=>{
-  const {ATALHOS}=await import('../public/shared/atalhos.mjs');
-  const {barraPadrao,barraValida}=await import('../public/shared/barra-tecnicas.mjs');
+  const {ATALHOS}=await import('../public/shared/tecnicas/atalhos.mjs');
+  const {barraPadrao,barraValida}=await import('../public/shared/tecnicas/barra-tecnicas.mjs');
   assert.deepEqual(ATALHOS.filter(a=>a.teclas.includes('8')).map(a=>a.id),['barraTecnicas']);
   assert.equal(ATALHOS.some(a=>a.teclas.includes('9')),false);
   assert.equal(barraPadrao()[7],'skill:ryuken');
@@ -84,6 +84,6 @@ test('voo começa onde o lançamento terminou (cabeça à frente do punho) e o �
   const s=g.projectiles.find(x=>x.kind==='ryuken');assert.ok(s);
   const punhoX=p.x+20;assert.ok(s.x-punhoX>=RYUKEN.cabecaAFrente-1,'cabeça já à frente do punho');
   globalThis.Image=globalThis.Image||class{complete=true;naturalWidth=1024;};
-  const {quadroRyuken}=await import('../public/render/ryuken.mjs');
+  const {quadroRyuken}=await import('../public/render/vfx/ryuken.mjs');
   assert.equal(quadroRyuken('lancamento',RYUKEN.lancamento+.2),-1,'sem segurar, o lançamento some');
 });

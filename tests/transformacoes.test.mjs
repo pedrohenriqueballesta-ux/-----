@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Game} from '../public/shared/game.mjs';
-import {CONFIG,lugar,PORTAIS} from '../public/shared/config.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {CONFIG,lugar,PORTAIS} from '../public/shared/nucleo/config.mjs';
 import {createGameServer} from '../server.mjs';
 import {criarSessaoTeste,reentrarSessaoTeste,postTeste} from './auth-helper.mjs';
-import {detalhesHabilidade} from '../public/render/detalhes-habilidades.mjs';
-import {FORMAS,formaDisponivel,DANO_DA_FORMA} from '../public/shared/formas.mjs';
+import {detalhesHabilidade} from '../public/render/hud/detalhes-habilidades.mjs';
+import {FORMAS,formaDisponivel,DANO_DA_FORMA} from '../public/shared/tecnicas/formas.mjs';
 
 function cena(level=50) {
   const g=new Game({now:1000,populate:false}),p=g.addPlayer('p','Goku',{level});

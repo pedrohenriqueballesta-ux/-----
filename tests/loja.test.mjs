@@ -1,10 +1,10 @@
 import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {MERCHANT,CONFIG} from '../public/shared/config.mjs';
-import {bagWeight} from '../public/shared/characters.mjs';
-import {limiteCompra,LIMITE_ESTOQUE_LOJA} from '../public/shared/loja.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {MERCHANT,CONFIG} from '../public/shared/nucleo/config.mjs';
+import {bagWeight} from '../public/shared/nucleo/characters.mjs';
+import {limiteCompra,LIMITE_ESTOQUE_LOJA} from '../public/shared/sistemas/loja.mjs';
 import {createGameServer} from '../server.mjs';
 function cena(){const g=new Game({populate:false}),p=g.addPlayer('p');Object.assign(p,MERCHANT);return{g,p};}
 

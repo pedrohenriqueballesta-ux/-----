@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {CONFIG,lugar} from '../public/shared/config.mjs';
-import {ESTAGIOS_KAME,KAME,SUPER_KAME,estagioKame} from '../public/shared/kamehameha.mjs';
-import {RYUKEN,danoRyuken} from '../public/shared/ryuken.mjs';
-import {multiplicadorDaForma} from '../public/shared/formas.mjs';
-import {FOLHAS_GOKU_SSJ4} from '../public/art/goku-ssj4.mjs';
-import {FOLHAS_GOKU_SSJ3} from '../public/art/goku-ssj3.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {CONFIG,lugar} from '../public/shared/nucleo/config.mjs';
+import {ESTAGIOS_KAME,KAME,SUPER_KAME,estagioKame} from '../public/shared/tecnicas/kamehameha.mjs';
+import {RYUKEN,danoRyuken} from '../public/shared/tecnicas/ryuken.mjs';
+import {multiplicadorDaForma} from '../public/shared/tecnicas/formas.mjs';
+import {FOLHAS_GOKU_SSJ4} from '../public/art/personagens/goku/goku-ssj4.mjs';
+import {FOLHAS_GOKU_SSJ3} from '../public/art/personagens/goku/goku-ssj3.mjs';
 
 // Super Saiyajin 4 (Pedro, 16/11/2026): folhas próprias; tem Kamehameha (azul, tecla 2), Ryuken (tecla 8) e
 // Super Kamehameha (técnica própria, atribuível à barra, vermelho-carmesim no último nível).

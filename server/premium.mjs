@@ -1,9 +1,9 @@
 import {randomBytes} from 'node:crypto';
-import {PRODUTOS_STORE,COLECIONAVEIS,MAX_PREMIUM,recompensaPasse,temporadaEm} from '../public/shared/premium-config.mjs';
-import {passeDoPersonagem,resumoBattlePass,temporadaAtiva,resgatarMissaoPasse,vincularPasseConta} from '../public/shared/battle-pass.mjs';
-import {CONFIG} from '../public/shared/config.mjs';
-import {bagWeight} from '../public/shared/characters.mjs';
-import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from '../public/shared/itens-negociaveis.mjs';
+import {PRODUTOS_STORE,COLECIONAVEIS,MAX_PREMIUM,recompensaPasse,temporadaEm} from '../public/shared/sistemas/premium-config.mjs';
+import {passeDoPersonagem,resumoBattlePass,temporadaAtiva,resgatarMissaoPasse,vincularPasseConta} from '../public/shared/sistemas/battle-pass.mjs';
+import {CONFIG} from '../public/shared/nucleo/config.mjs';
+import {bagWeight} from '../public/shared/nucleo/characters.mjs';
+import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from '../public/shared/sistemas/itens-negociaveis.mjs';
 import {PagamentoSimulado} from './pagamentos.mjs';
 const falha=reason=>({ok:false,reason});
 export class EconomiaPremium{

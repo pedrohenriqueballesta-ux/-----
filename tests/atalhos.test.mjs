@@ -1,5 +1,5 @@
 ﻿import test from 'node:test';import assert from 'node:assert/strict';
-import {ATALHOS,atalhoDeInterface} from '../public/shared/atalhos.mjs';
+import {ATALHOS,atalhoDeInterface} from '../public/shared/tecnicas/atalhos.mjs';
 const evento=(key,extras={})=>({key,...extras});
 test('todas as teclas de menus, combate e movimento têm uma única função',()=>{
  const usadas=new Map();for(const a of ATALHOS)for(const k of a.teclas){assert.equal(usadas.has(k),false,'Conflito: '+k);usadas.set(k,a.id);}assert.equal(usadas.get('r'),'consumivel7');assert.equal(usadas.get('q'),'consumivel8');assert.equal(usadas.get('t'),'transformar');

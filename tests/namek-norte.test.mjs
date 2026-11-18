@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Game,CHEFES,SOCA_E_ATIRA} from '../public/shared/game.mjs';
-import {PLANETS,PORTAIS,ZONES,DECORACAO,areaPorId,lugar,naEscala,naZonaSegura,zonaSeguraDaHunt,RAIO_PORTAL} from '../public/shared/config.mjs';
-import {emTerra,pesLivres,deslocar,caminhoPorTerra} from '../public/shared/passagem.mjs';
-import {spawnPoints,CHEFES_RAROS,TEMPO_CHEFE_RARO,pontoNoCirculo,mobStats} from '../public/shared/enemies.mjs';
-import {PROJETEIS_POR_MOB} from '../public/shared/projetil-mob.mjs';
-import {criarBestiario} from '../public/shared/bestiario.mjs';
-import {RECOMPENSAS_MOBS} from '../public/shared/recompensas-mobs.mjs';
-import {FOLHAS_NAMEK_NORTE} from '../public/art/namek-norte.mjs';
+import {Game,CHEFES,SOCA_E_ATIRA} from '../public/shared/nucleo/game.mjs';
+import {PLANETS,PORTAIS,ZONES,DECORACAO,areaPorId,lugar,naEscala,naZonaSegura,zonaSeguraDaHunt,RAIO_PORTAL} from '../public/shared/nucleo/config.mjs';
+import {emTerra,pesLivres,deslocar,caminhoPorTerra} from '../public/shared/mundo/passagem.mjs';
+import {spawnPoints,CHEFES_RAROS,TEMPO_CHEFE_RARO,pontoNoCirculo,mobStats} from '../public/shared/nucleo/enemies.mjs';
+import {PROJETEIS_POR_MOB} from '../public/shared/mundo/projetil-mob.mjs';
+import {criarBestiario} from '../public/shared/sistemas/bestiario.mjs';
+import {RECOMPENSAS_MOBS} from '../public/shared/sistemas/recompensas-mobs.mjs';
+import {FOLHAS_NAMEK_NORTE} from '../public/art/cenario/namek-norte.mjs';
 import {duelo,caca} from '../ferramentas/simular_namek_norte.mjs';
 globalThis.Image=class {complete=true;naturalWidth=1024;};
 const {LUTADORES,drawLutador}=await import('../public/art/lutadores.mjs');
 const {art}=await import('../public/art/assets.mjs');
-const {DIRECTIONS}=await import('../public/render/camera.mjs');
+const {DIRECTIONS}=await import('../public/render/mapa/camera.mjs');
 const passar=(g,s)=>{for(let i=0;i<Math.round(s/.05);i++)g.tick(.05);};
 function cena(){const g=new Game({now:1000,populate:false,random:()=>.5}),p=g.addPlayer('p','Teste',{level:35});g.levar(p,lugar('norte'));p.x=naEscala(2730);p.y=naEscala(400);p.seguroAte=0;p.autoFood=p.autoHeal=false;return{g,p};}
 

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../public/render/minimapa.mjs';
-import { Game } from '../public/shared/game.mjs';
-import { PLANETS, ZONES, OBSTACLES } from '../public/shared/config.mjs';
-import { zoomFromWheel } from '../public/render/camera.mjs';
+import { MINIMAPA, tamanhoMinimapa, zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../public/render/mapa/minimapa.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { PLANETS, ZONES, OBSTACLES } from '../public/shared/nucleo/config.mjs';
+import { zoomFromWheel } from '../public/render/mapa/camera.mjs';
 
 test('tamanho fica entre o atual e o dobro; zoom do minimapa tem limites independentes da câmera', () => {
   assert.equal(tamanhoMinimapa(.5), 1); assert.equal(tamanhoMinimapa(3), 2);

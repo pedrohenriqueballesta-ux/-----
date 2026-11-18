@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CAMERA, MIN_ZOOM, MAX_ZOOM, clampZoom, zoomFromWheel, cameraView, worldFromPointer, spriteFacing, walkStep, DIRECTIONS, strikeFrame, mobStrikeProgress, advancePose } from '../public/render/camera.mjs';
+import { CAMERA, MIN_ZOOM, MAX_ZOOM, clampZoom, zoomFromWheel, cameraView, worldFromPointer, spriteFacing, walkStep, DIRECTIONS, strikeFrame, mobStrikeProgress, advancePose } from '../public/render/mapa/camera.mjs';
 
 test('roda do mouse aproxima para cima, afasta para baixo e respeita os limites', () => {
   assert.ok(zoomFromWheel(1, -120) > 1);

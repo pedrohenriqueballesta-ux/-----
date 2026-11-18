@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {FOLHAS_GOKU_BASE} from '../public/art/goku-base.mjs';
-import {FOLHAS_GOKU_SSJ2} from '../public/art/goku-ssj2.mjs';
-import {DIRECTIONS} from '../public/render/camera.mjs';
+import {FOLHAS_GOKU_BASE} from '../public/art/personagens/goku/goku-base.mjs';
+import {FOLHAS_GOKU_SSJ2} from '../public/art/personagens/goku/goku-ssj2.mjs';
+import {DIRECTIONS} from '../public/render/mapa/camera.mjs';
 globalThis.Image=class {complete=true;naturalWidth=1024;};
-const {drawGoku}=await import('../public/art/goku.mjs');
+const {drawGoku}=await import('../public/art/personagens/goku/goku.mjs');
 const {art}=await import('../public/art/assets.mjs');
-const {RAIOS_SSJ2,quadroRaios,desenharRaiosSsj2,carregarRaiosSsj2}=await import('../public/render/raios-ssj2.mjs');
+const {RAIOS_SSJ2,quadroRaios,desenharRaiosSsj2,carregarRaiosSsj2}=await import('../public/render/vfx/raios-ssj2.mjs');
 
 // Super Saiyajin 2 (Pedro, 11/11/2026): folhas sobre as do SSJ (mesmo corpo, cabelo mais cheio) + raios animados à parte.
 test('seis folhas SSJ2 com as chaves da base, grade 5×4 e âncoras nos pés',async()=>{

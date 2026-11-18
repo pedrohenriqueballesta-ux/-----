@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {fatorCombateAleatorio,variarExperiencia,VARIACAO_COMBATE} from '../public/shared/variacao-combate.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {fatorCombateAleatorio,variarExperiencia,VARIACAO_COMBATE} from '../public/shared/tecnicas/variacao-combate.mjs';
 
 test('fator variável fica limitado a ±10% e mantém o valor-base no centro',()=>{
  assert.equal(fatorCombateAleatorio(()=>0),.9);

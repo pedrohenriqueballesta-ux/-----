@@ -1,6 +1,6 @@
 import {tradutor} from './i18n.mjs';
-import {areaPorId} from '../shared/config.mjs';
-import {preferenciasValidas} from '../shared/preferencias.mjs';
+import {areaPorId} from '../shared/nucleo/config.mjs';
+import {preferenciasValidas} from '../shared/sistemas/preferencias.mjs';
 let instancia=null;
 export const consultarEstadoAudio=()=>instancia?.estado()||null;
 export const testarMusica=()=>instancia?.testar();

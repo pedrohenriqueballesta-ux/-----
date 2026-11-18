@@ -1,5 +1,5 @@
 import { CANAL_STATUS_POPUP } from './stats-popout.mjs';
-import { desenharGokuPopout } from '../render/goku-popout.mjs';
+import { desenharGokuPopout } from '../render/hud/goku-popout.mjs';
 
 const $ = id => document.getElementById(id);
 const inteiro = valor => Math.round(Number(valor) || 0).toLocaleString('pt-BR');

@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Game} from '../public/shared/game.mjs';
-import {MERCHANT,CONFIG} from '../public/shared/config.mjs';
-import {Mercado} from '../public/shared/mercado.mjs';
-import {MAX_ZENI_NORMAL} from '../public/shared/itens-negociaveis.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {MERCHANT,CONFIG} from '../public/shared/nucleo/config.mjs';
+import {Mercado} from '../public/shared/sistemas/mercado.mjs';
+import {MAX_ZENI_NORMAL} from '../public/shared/sistemas/itens-negociaveis.mjs';
 import {createGameServer} from '../server.mjs';
 function cena(){const g=new Game({populate:false});const a=g.addPlayer('a','Vendedor'),b=g.addPlayer('b','Comprador');for(const p of[a,b]){Object.assign(p,MERCHANT);p.stats.capacity=10000;p.zeni=1000;p.inventory.food=10;}return{g,a,b,m:g.mercado};}
 test('NPC paga metade dos consumíveis e mantém preços dos materiais',()=>{const{g,a}=cena();for(const item of Object.keys(CONFIG.prices)){a.inventory[item]=3;const saldo=a.zeni;assert.ok(g.action(a.id,{type:'venderItem',item,quantidade:2}).ok);assert.equal(a.zeni-saldo,CONFIG.prices[item]);assert.equal(a.inventory[item],1);}a.inventory.scrap=2;const saldo=a.zeni;assert.ok(g.venderItem(a,'scrap',2).ok);assert.equal(a.zeni-saldo,16);});

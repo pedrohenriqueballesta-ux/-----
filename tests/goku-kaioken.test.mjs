@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {FOLHAS_GOKU_BASE} from '../public/art/goku-base.mjs';
-import {FOLHAS_GOKU_KAIOKEN} from '../public/art/goku-kaioken.mjs';
-import {DIRECTIONS} from '../public/render/camera.mjs';
+import {FOLHAS_GOKU_BASE} from '../public/art/personagens/goku/goku-base.mjs';
+import {FOLHAS_GOKU_KAIOKEN} from '../public/art/personagens/goku/goku-kaioken.mjs';
+import {DIRECTIONS} from '../public/render/mapa/camera.mjs';
 globalThis.Image=class {complete=true;naturalWidth=1024;};
-const {drawGoku}=await import('../public/art/goku.mjs');
+const {drawGoku}=await import('../public/art/personagens/goku/goku.mjs');
 const {art}=await import('../public/art/assets.mjs');
 
 test('seis folhas Kaioken correspondem às chaves da base e mantêm grade, âncoras e altura',async()=>{

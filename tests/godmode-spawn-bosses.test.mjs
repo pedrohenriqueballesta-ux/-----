@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CHEFES_TESTE, CHEFES_RAROS } from '../public/shared/enemies.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CHEFES_TESTE, CHEFES_RAROS } from '../public/shared/nucleo/enemies.mjs';
 
 test('God Mode invoca cada chefe no spawn habitual sem duplicá-lo', () => {
   const game = new Game({ now:1000, random:() => 0.5 });

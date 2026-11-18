@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {createPlayer,exportPlayer} from '../public/shared/characters.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {createPlayer,exportPlayer} from '../public/shared/nucleo/characters.mjs';
 const cena=()=>{const g=new Game({now:1000,populate:false});return {g,p:g.addPlayer('p')};};
 test('slots 7 e 8 recebem somente consumíveis existentes, sem gastar estoque',()=>{
  const {g,p}=cena();const antes=JSON.stringify(p.inventory);

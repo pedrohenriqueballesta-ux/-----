@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {criarTrilhaSonora,ambienteMusical,TRILHAS,seguirSaidaPadrao} from '../public/client/audio.mjs';
-import {Game} from '../public/shared/game.mjs';
-import {preferenciasValidas} from '../public/shared/preferencias.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {preferenciasValidas} from '../public/shared/sistemas/preferencias.mjs';
 import {createGameServer} from '../server.mjs';
 const cidade={self:{planet:'namek',area:'vila'}},hunt={self:{planet:'namek',area:'inicial'}};
 class AudioTeste{
@@ -38,7 +38,7 @@ test('promessa antiga rejeitada não altera a faixa nova e destruir impede novas
  const p=criarTrilhaSonora({audio:a,aoEstado:s=>estados.push(s)});p.atualizar(null,true);p.atualizar(hunt);await esperar();rejeitar(Object.assign(new Error(),{name:'NotAllowedError'}));await esperar();assert.equal(estados.at(-1).ambiente,'hunts');assert.equal(estados.at(-1).bloqueado,false);p.destruir();p.desbloquear();p.atualizar(cidade);assert.equal(a.tocadas,2);assert.equal(a.paused,true);assert.equal(a.eventos.size,0);
 });
 test('preferências de áudio são validadas e permanecem no save',()=>{
- const g=new Game({populate:false}),p=g.addPlayer('p');assert.equal(p.preferencias.musicaAtiva,true);assert.equal(p.preferencias.volumeMusica,.4);
+ const g=new Game({populate:false}),p=g.addPlayer('p');assert.equal(p.preferencias.musicaAtiva,false);assert.equal(p.preferencias.volumeMusica,.4);
  g.action(p.id,{type:'preferencias',valor:{musicaAtiva:false,volumeMusica:.15}});const r=g.addPlayer('r','Teste',g.exportPlayer(p));assert.equal(r.preferencias.musicaAtiva,false);assert.equal(r.preferencias.volumeMusica,.15);assert.equal(preferenciasValidas({volumeMusica:20}).volumeMusica,1);assert.equal(preferenciasValidas({volumeMusica:NaN,musicaAtiva:'false'}).volumeMusica,.4);assert.equal(preferenciasValidas({volumeMusica:0}).volumeMusica,0);
 });
 test('servidor entrega os três MP3 com tipo, tamanho e conteúdo corretos',async()=>{

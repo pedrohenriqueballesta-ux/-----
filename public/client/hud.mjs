@@ -1,22 +1,22 @@
-import { FORMAS, nomeDaForma } from '../shared/formas.mjs';
-import {instalarIconesAnimados} from '../render/icones-animados.mjs';
-import {instalarStore} from '../render/store.mjs';
-import {instalarBattlePass} from '../render/battle-pass-hud.mjs';
-import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/barra-tecnicas-hud.mjs';
-import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hunt-analyzer.mjs';
-import {instalarJanelasHud} from '../render/janelas-hud.mjs';
-import {instalarAbasHud} from '../render/abas-hud.mjs';
+import { FORMAS, nomeDaForma } from '../shared/tecnicas/formas.mjs';
+import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
+import {instalarStore} from '../render/hud/store.mjs';
+import {instalarBattlePass} from '../render/hud/battle-pass-hud.mjs';
+import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/hud/barra-tecnicas-hud.mjs';
+import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hud/hunt-analyzer.mjs';
+import {instalarJanelasHud} from '../render/hud/janelas-hud.mjs';
+import {instalarAbasHud} from '../render/hud/abas-hud.mjs';
 // HUD: tudo o que o jogo mostra e liga na página (barras, botões, painéis, notificações, loja,
 // janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
 import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
-import { instalarLoja } from '../render/loja.mjs';
-import { instalarBestiario } from '../render/bestiario.mjs';
-import { instalarNovidadesHud } from '../render/novidades-hud.mjs';
-import { instalarDetalhesHabilidades } from '../render/detalhes-habilidades.mjs';
-import { instalarGodmodeHud } from '../render/godmode-hud.mjs';
-import { instalarPainelMovel, instalarArrasto } from '../render/painel-movel.mjs';
+import { instalarLoja } from '../render/hud/loja.mjs';
+import { instalarBestiario } from '../render/hud/bestiario.mjs';
+import { instalarNovidadesHud } from '../render/hud/novidades-hud.mjs';
+import { instalarDetalhesHabilidades } from '../render/hud/detalhes-habilidades.mjs';
+import { instalarGodmodeHud } from '../render/hud/godmode-hud.mjs';
+import { instalarPainelMovel, instalarArrasto } from '../render/hud/painel-movel.mjs';
 
 let atualizarDetalhes = () => {};
 let novidadesHud = null;

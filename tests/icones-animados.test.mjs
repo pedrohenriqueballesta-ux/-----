@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {removerFundoEscuro,instalarIconesAnimados} from '../public/render/icones-animados.mjs';
-import {decodificarGif} from '../public/render/gif-quadros.mjs';
+import {removerFundoEscuro,instalarIconesAnimados} from '../public/render/hud/icones-animados.mjs';
+import {decodificarGif} from '../public/render/previas/gif-quadros.mjs';
 test('remove apenas fundo escuro conectado à borda, preservando preto interno e cor da arte',()=>{
  const w=5,h=5,p=new Uint8ClampedArray(w*h*4);for(let i=0;i<w*h;i++)p.set([4,2,0,255],i*4);
  for(let y=1;y<4;y++)for(let x=1;x<4;x++)if(x===1||x===3||y===1||y===3)p.set([220,160,20,255],(y*w+x)*4);

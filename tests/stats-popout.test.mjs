@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CANAL_STATUS_POPUP, resumirStatusPopout, instalarStatusPopout } from '../public/client/stats-popout.mjs';
-import { poseGokuPopout } from '../public/render/goku-popout.mjs';
+import { poseGokuPopout } from '../public/render/hud/goku-popout.mjs';
 
 function snapshot({ hp = 60, autoHunt = true, moving = false } = {}) {
   return {

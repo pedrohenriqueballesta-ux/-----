@@ -1,5 +1,5 @@
-import {tabelaAtalhos} from '../render/atalhos-hud.mjs';
-import {el,botao} from '../render/hud-elementos.mjs';
+import {tabelaAtalhos} from '../render/hud/atalhos-hud.mjs';
+import {el,botao} from '../render/hud/hud-elementos.mjs';
 import {requisitarAuth} from './entrada.mjs';
 const ALVOS=[[],['[data-menu=personagem]','.hud-jogador'],['[data-menu=mochila]'],['[data-menu=missoes]'],['#autoHuntButton'],['.hud-tecnicas'],['[data-menu=bestiario]'],['[data-menu=mapa]','.hud-mapa'],['[data-menu=loja]'],['[data-menu=ranking]','[data-menu=guilda]','[data-menu=correio]'],['[data-menu=ajustes]'],[]];
 export function instalarTutorial({entrada,liberarTeclas}){

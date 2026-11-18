@@ -1,6 +1,6 @@
 ﻿import test from 'node:test';import assert from 'node:assert/strict';import {readFile,readdir} from 'node:fs/promises';
-import {Game} from '../public/shared/game.mjs';import {createPlayer,exportPlayer} from '../public/shared/characters.mjs';
-import {DIRECOES_NIMBUS,NIMBUS,APOIOS_NIMBUS,direcaoNimbus,quadroNimbus,geometriaNimbus} from '../public/shared/montarias.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';import {createPlayer,exportPlayer} from '../public/shared/nucleo/characters.mjs';
+import {DIRECOES_NIMBUS,NIMBUS,APOIOS_NIMBUS,direcaoNimbus,quadroNimbus,geometriaNimbus} from '../public/shared/sistemas/montarias.mjs';
 test('Nimbus usa todas as oito direções específicas e cinco quadros a cada 130 ms',()=>{
  for(let i=0;i<8;i++){const a=(i-2)*Math.PI/4;assert.equal(direcaoNimbus({x:Math.cos(a),y:Math.sin(a)}),DIRECOES_NIMBUS[i]);}
  for(let i=0;i<10;i++)assert.equal(quadroNimbus(i*.13+.001),i%5);assert.equal(quadroNimbus(-1),0);assert.equal(direcaoNimbus({x:0,y:0}),'s');

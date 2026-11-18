@@ -1,9 +1,9 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CONFIG } from '../public/shared/config.mjs';
-import { CURA } from '../public/shared/cura.mjs';
-import { formaDisponivel } from '../public/shared/formas.mjs';
-import { detalhesHabilidade, posicaoDetalhes } from '../public/render/detalhes-habilidades.mjs';
+import { CONFIG } from '../public/shared/nucleo/config.mjs';
+import { CURA } from '../public/shared/tecnicas/cura.mjs';
+import { formaDisponivel } from '../public/shared/tecnicas/formas.mjs';
+import { detalhesHabilidade, posicaoDetalhes } from '../public/render/hud/detalhes-habilidades.mjs';
 const estado = { level: 50, inventory: { ki: 3, seed30: 2, food: 1 }, seedSelected: 30 };
 const campos = detalhe => Object.fromEntries(detalhe.linhas);
 

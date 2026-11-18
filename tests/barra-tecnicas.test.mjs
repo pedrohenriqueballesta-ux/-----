@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
 import {existsSync} from 'node:fs';
-import {barraPadrao,barraValida,acaoDaTecnica,tecnicaDisponivel,TECNICAS,MAGIAS_PERSONAGEM} from '../public/shared/barra-tecnicas.mjs';
-import {xpForLevel,statsFor,aplicarGodmode} from '../public/shared/characters.mjs';
+import {barraPadrao,barraValida,acaoDaTecnica,tecnicaDisponivel,TECNICAS,MAGIAS_PERSONAGEM} from '../public/shared/tecnicas/barra-tecnicas.mjs';
+import {xpForLevel,statsFor,aplicarGodmode} from '../public/shared/nucleo/characters.mjs';
 
 test('barra antiga migra para oito teclas e preserva consumíveis configurados',()=>{
  const b=barraValida(null,{7:'seed30',8:'food'},15);

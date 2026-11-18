@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG } from '../public/shared/config.mjs';
-import { GODMODE_CAPACITY, bagWeight, exportPlayer, statsFor } from '../public/shared/characters.mjs';
-import { ITENS_NEGOCIAVEIS } from '../public/shared/itens-negociaveis.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG } from '../public/shared/nucleo/config.mjs';
+import { GODMODE_CAPACITY, bagWeight, exportPlayer, statsFor } from '../public/shared/nucleo/characters.mjs';
+import { ITENS_NEGOCIAVEIS } from '../public/shared/sistemas/itens-negociaveis.mjs';
 
 function cena() {
   const game = new Game({ populate: false });

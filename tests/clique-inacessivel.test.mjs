@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { lugar, OBSTACLES } from '../public/shared/config.mjs';
-import { pesLivres, caminhoPorTerra } from '../public/shared/passagem.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { lugar, OBSTACLES } from '../public/shared/nucleo/config.mjs';
+import { pesLivres, caminhoPorTerra } from '../public/shared/mundo/passagem.mjs';
 
 function cena(area = 'inicial') {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');

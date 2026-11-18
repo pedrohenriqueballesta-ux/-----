@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
-import { BARREIRA_KI, quadroBarreira, desenharBarreira, carregarBarreira, removerFundoAzul } from '../public/render/barreira-ki.mjs';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
+import { BARREIRA_KI, quadroBarreira, desenharBarreira, carregarBarreira, removerFundoAzul } from '../public/render/vfx/barreira-ki.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
 
 test('Barreira executa abertura uma vez, repete só 4–9 e remove após 10–15', () => {
   const efeito = { started: 100, until: 102.5 };

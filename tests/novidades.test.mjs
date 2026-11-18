@@ -1,7 +1,7 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { novidadesDaAba } from '../public/shared/novidades.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { novidadesDaAba } from '../public/shared/sistemas/novidades.mjs';
 const aviso = (id='mensagem-1',aba='correio') => ({id,aba,titulo:'Mensagem recebida',texto:'Conteúdo real publicado pelo servidor.'});
 
 test('abas começam sem alertas e avisos comuns de combate não geram novidades', () => {

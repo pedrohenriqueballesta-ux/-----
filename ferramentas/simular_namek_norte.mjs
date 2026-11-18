@@ -1,9 +1,9 @@
 // Medição reproduzível: sem navegador, save ou God Mode. Semente 12345.
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {Game} from '../public/shared/game.mjs';
-import {statsFor} from '../public/shared/characters.mjs';
-import {lugar,CONFIG} from '../public/shared/config.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {statsFor} from '../public/shared/nucleo/characters.mjs';
+import {lugar,CONFIG} from '../public/shared/nucleo/config.mjs';
 const sorteio=()=>{let s=12345;return()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);};
 export function duelo(tipo,area,nivel) {
   const g=new Game({populate:false,now:1000,random:sorteio()}),p=g.addPlayer('p','Teste',{level:nivel});

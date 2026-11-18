@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { legPose } from '../public/art/walk-rig.mjs';
-import { DIRECTIONS } from '../public/render/camera.mjs';
+import { DIRECTIONS } from '../public/render/mapa/camera.mjs';
 
 test('em todas as oito direções, as pernas trocam avanço e recuo a cada meia passada', () => {
   for (const direction of DIRECTIONS) {

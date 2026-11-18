@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, PORTAIS, PLANETS, lugar } from '../public/shared/config.mjs';
-import { mobStats, spawnPoints } from '../public/shared/enemies.mjs';
-import { xpAjustadoPorNivel, fatorXPPorDiferencaNivel } from '../public/shared/progressao.mjs';
-import { statsFor, xpForLevel } from '../public/shared/characters.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, PORTAIS, PLANETS, lugar } from '../public/shared/nucleo/config.mjs';
+import { mobStats, spawnPoints } from '../public/shared/nucleo/enemies.mjs';
+import { xpAjustadoPorNivel, fatorXPPorDiferencaNivel } from '../public/shared/sistemas/progressao.mjs';
+import { statsFor, xpForLevel } from '../public/shared/nucleo/characters.mjs';
 
 test('todas as hunts atuais têm nível recomendado e cada mob tem nível de referência próprio', () => {
   const hunts = [...PLANETS.namek.hunts, ...PLANETS.vegeta.hunts];

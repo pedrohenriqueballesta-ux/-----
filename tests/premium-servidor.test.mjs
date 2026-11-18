@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createGameServer} from '../server.mjs';
 import {criarSessaoTeste,reentrarSessaoTeste,postTeste} from './auth-helper.mjs';
-import {registrarMissao} from '../public/shared/missoes.mjs';
+import {registrarMissao} from '../public/shared/sistemas/missoes.mjs';
 const get=(base,token)=>fetch(base+'/api/premium',{headers:{Authorization:'Bearer '+token}}).then(r=>r.json());
 test('API premium exige autenticação, isola contas, é idempotente e persiste conta/passe após reiniciar',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'dbi-premium-'));let app;

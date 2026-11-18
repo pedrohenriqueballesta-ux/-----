@@ -4,7 +4,7 @@
 // O quadro de impacto (coluna 3) cai no instante do dano, como no Saibaman.
 import { art } from './assets.mjs';
 import { drawWalk, drawSheet, GOLPE } from './atlas.mjs';
-import { strikeColumn } from '../render/camera.mjs';
+import { strikeColumn } from '../render/mapa/camera.mjs';
 
 export const ALTURA_GUERREIRO = 70;   // mesma altura do Goku (provisório)
 export function drawGuerreiro(ctx, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tempo = null) {

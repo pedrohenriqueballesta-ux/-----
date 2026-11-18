@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, MERCADORES, HOUSES, DECORACAO, zonasDe, lugar } from '../public/shared/index.mjs';
-import { casaBloqueia, decoracaoBloqueia } from '../public/shared/config.mjs';
-import { podeAndar } from '../public/shared/passagem.mjs';
+import { casaBloqueia, decoracaoBloqueia } from '../public/shared/nucleo/config.mjs';
+import { podeAndar } from '../public/shared/mundo/passagem.mjs';
 
 // Regras que valem para todo planeta de hunt (Namekusei hoje; Planeta Vegeta em seguida): quando um
 // planeta novo entrar, estes testes conferem a ficha dele sem precisar de teste novo.
@@ -75,7 +75,7 @@ test('casas e árvores só bloqueiam no planeta delas', () => {
 });
 
 test('árvores e cristais da Floresta Seca bloqueiam pela base na máscara do Planeta Vegeta', async () => {
-  const { VEGETA_OBJETOS } = await import('../public/art/vegeta-objetos.mjs');
+  const { VEGETA_OBJETOS } = await import('../public/art/cenario/vegeta-objetos.mjs');
   for (const objeto of VEGETA_OBJETOS) {
     const x = objeto.x * PLANETS.vegeta.escala, y = objeto.y * PLANETS.vegeta.escala;
     assert.equal(podeAndar('vegeta', x, y, 'vegeta-floresta'), false, objeto.id + ': a base está marcada como obstáculo');
@@ -83,7 +83,7 @@ test('árvores e cristais da Floresta Seca bloqueiam pela base na máscara do Pl
 });
 
 test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível recomendado sem travar', async () => {
-  const { statsFor } = await import('../public/shared/characters.mjs');
+  const { statsFor } = await import('../public/shared/nucleo/characters.mjs');
   for (const area of PLANETS.vegeta.hunts) {
     const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a'), nivel = lugar(area).nivel[0];
     p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
@@ -99,7 +99,7 @@ test('Planeta Vegeta: caça automática roda cada uma das 5 hunts no nível reco
 });
 
 test('Namekusei: caça automática nas três hunts originais sem ficar presa em água ou obstáculos', async () => {
-  const { statsFor } = await import('../public/shared/characters.mjs');
+  const { statsFor } = await import('../public/shared/nucleo/characters.mjs');
   for (const area of ['inicial','media','dificil']) {
     const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a'), nivel = lugar(area).nivel[0];
     p.level = nivel; p.stats = statsFor(nivel); p.hp = p.stats.hp; p.ki = p.stats.ki;
@@ -112,7 +112,7 @@ test('Namekusei: caça automática nas três hunts originais sem ficar presa em 
 });
 
 test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os três socam e disparam ki', async () => {
-  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const { SOCA_E_ATIRA } = await import('../public/shared/nucleo/game.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-planicies');
   const n = t => mobs.filter(m => m.type === t).length;
@@ -124,7 +124,7 @@ test('Planícies Vermelhas: Tsufurujin Guerreiro < General < Hatchiyack, os trê
 });
 
 test('Cânions: Dodoria < Zarbon, 10 na hunt (6 / 4); Floresta Seca: Nappa < Raditz < Bardock, 16 (8 / 5 / 3)', async () => {
-  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const { SOCA_E_ATIRA } = await import('../public/shared/nucleo/game.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const em = area => [...game.mobs.values()].filter(m => m.area === area);
   const n = (area, t) => em(area).filter(m => m.type === t).length;
@@ -140,9 +140,9 @@ test('Cânions: Dodoria < Zarbon, 10 na hunt (6 / 4); Floresta Seca: Nappa < Rad
 });
 
 test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de 6 a 12 h, em qualquer ponto da hunt', async () => {
-  const { SOCA_E_ATIRA, CHEFES } = await import('../public/shared/game.mjs');
-  const { renasceEm, pontoNoCirculo } = await import('../public/shared/enemies.mjs');
-  const { podeAndar } = await import('../public/shared/passagem.mjs');
+  const { SOCA_E_ATIRA, CHEFES } = await import('../public/shared/nucleo/game.mjs');
+  const { renasceEm, pontoNoCirculo } = await import('../public/shared/nucleo/enemies.mjs');
+  const { podeAndar } = await import('../public/shared/mundo/passagem.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-lava');
   const n = t => mobs.filter(m => m.type === t).length;
@@ -163,8 +163,8 @@ test('Campos de Lava: Oozaru < Oozaru Guerreiro; Oozaru Dourado é chefe raro de
 });
 
 test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica mais forte (Supernova)', async () => {
-  const { CHEFES, FREEZA } = await import('../public/shared/game.mjs');
-  const { statsFor } = await import('../public/shared/characters.mjs');
+  const { CHEFES, FREEZA } = await import('../public/shared/nucleo/game.mjs');
+  const { statsFor } = await import('../public/shared/nucleo/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
   p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.x += 180; p.seguroAte = 0;
   const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
@@ -190,7 +190,7 @@ test('Freeza BOSS: nasce em pé (Death Beam), entra na nave a 40% da vida e fica
 });
 
 test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continua como chefe raro', async () => {
-  const { SOCA_E_ATIRA } = await import('../public/shared/game.mjs');
+  const { SOCA_E_ATIRA } = await import('../public/shared/nucleo/game.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()].filter(m => m.area === 'vegeta-cratera');
   const n = t => mobs.filter(m => m.type === t).length;
@@ -203,7 +203,7 @@ test('Grande Cratera: Rei Vegeta < Broly no lugar dos Porungas; o Freeza continu
 });
 
 test('Supernova mira o personagem: a área acompanha o alvo até explodir nele', async () => {
-  const { statsFor } = await import('../public/shared/characters.mjs');
+  const { statsFor } = await import('../public/shared/nucleo/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
   p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-cratera')); p.x += 180; p.seguroAte = 0;
   const f = game.addMob('freezaBoss', p.x + 200, p.y, 'vegeta-cratera');
@@ -222,7 +222,7 @@ test('Supernova mira o personagem: a área acompanha o alvo até explodir nele',
 });
 
 test('Oozaru Dourado: bola negra mira o personagem; de perto, pancada em área com os dois punhos', async () => {
-  const { statsFor } = await import('../public/shared/characters.mjs');
+  const { statsFor } = await import('../public/shared/nucleo/characters.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 }), p = game.addPlayer('a');
   p.level = 60; p.stats = statsFor(60); p.hp = p.stats.hp; game.levar(p, lugar('vegeta-lava')); p.x += 180; p.seguroAte = 0;
   const o = game.addMob('oozaruDourado', p.x + 350, p.y, 'vegeta-lava'); o.attackReady = 0;

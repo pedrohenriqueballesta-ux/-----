@@ -1,10 +1,10 @@
 import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CURA, curaPorNivel } from '../public/shared/cura.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
-import { lugar } from '../public/shared/config.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CURA, curaPorNivel } from '../public/shared/tecnicas/cura.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
+import { lugar } from '../public/shared/nucleo/config.mjs';
 import { createGameServer } from '../server.mjs';
 
 function cena(nivel = 1) {

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Game} from '../public/shared/game.mjs';
-import {registrar,resumo,agruparLootPorRaridade} from '../public/shared/hunt-analyzer.mjs';
-import {CONFIG} from '../public/shared/config.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {registrar,resumo,agruparLootPorRaridade} from '../public/shared/sistemas/hunt-analyzer.mjs';
+import {CONFIG} from '../public/shared/nucleo/config.mjs';
 const indexHtml=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 function cena(){const g=new Game({now:1000,populate:false});const p=g.addPlayer('p');Object.assign(p,{planet:'namek',area:'inicial',x:1500,y:1500,autoHunt:true,autoFood:false,autoHeal:false,autoAttack:false,autoSkills:false,seguroAte:0});return {g,p};}
 test('sessão conta tempo ativo, pausa, não acumula offline e calcula XP/h',()=>{

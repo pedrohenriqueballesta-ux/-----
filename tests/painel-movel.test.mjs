@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { instalarPainelMovel, limitarPosicaoPainel } from '../public/render/painel-movel.mjs';
+import { instalarPainelMovel, limitarPosicaoPainel } from '../public/render/hud/painel-movel.mjs';
 
 test('limita janela à tela sem perder cabeçalho ou botão de fechar', () => {
   assert.deepEqual(limitarPosicaoPainel({ x: -30, y: -20 }, { w: 340, h: 300 }, { w: 800, h: 600 }), { x: 8, y: 8 });
