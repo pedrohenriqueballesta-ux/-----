@@ -1,84 +1,84 @@
 // Animação de caminhada e golpe dos personagens.
 // Goku/SSJ usam folhas desenhadas quadro a quadro (passo/golpe); Saibaman/Alien
 // usam pernas geradas proceduralmente (walk-rig) a partir de um desenho parado.
-import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+import { FOLHAS_NAMEK_NORTE } from './cenario/namek-norte.mjs';
 import { PARADO } from './parado.mjs';
 import { art, loaded } from './assets.mjs';
 import { SHEET_VIEWS } from './sheet-views.mjs';
 export { SHEET_VIEWS } from './sheet-views.mjs';
-import { spriteFacing, walkStep, strikeFrame, DIRECTIONS } from '../render/camera.mjs';
+import { spriteFacing, walkStep, strikeFrame, DIRECTIONS } from '../render/mapa/camera.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
 import { makeWalkAtlas, walkBob } from './walk-rig.mjs';
-import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
-import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
-import { FOLHAS_GOKU_SSJ2 } from './goku-ssj2.mjs';
-import { FOLHAS_GOKU_SSJ3 } from './goku-ssj3.mjs';
-import { FOLHAS_GOKU_SSJ4 } from './goku-ssj4.mjs';
-import { GOKU_PASSO } from './goku-passo.mjs';
+import { FOLHAS_GOKU_KAIOKEN } from './personagens/goku/goku-kaioken.mjs';
+import { FOLHAS_GOKU_SSJ } from './personagens/goku/goku-ssj.mjs';
+import { FOLHAS_GOKU_SSJ2 } from './personagens/goku/goku-ssj2.mjs';
+import { FOLHAS_GOKU_SSJ3 } from './personagens/goku/goku-ssj3.mjs';
+import { FOLHAS_GOKU_SSJ4 } from './personagens/goku/goku-ssj4.mjs';
+import { GOKU_PASSO } from './personagens/goku/goku-passo.mjs';
 import { SSJ_PASSO } from './ssj-passo.mjs';
-import { GOKU_GOLPE } from './goku-golpe.mjs';
+import { GOKU_GOLPE } from './personagens/goku/goku-golpe.mjs';
 import { SSJ_GOLPE } from './ssj-golpe.mjs';
-import { SAIBAMAN_PASSO } from './saibaman-passo.mjs';
-import { SAIBAMAN_GOLPE } from './saibaman-golpe.mjs';
-import { SENTINELA_PASSO } from './sentinela-passo.mjs';
+import { SAIBAMAN_PASSO } from './personagens/saibaman/saibaman-passo.mjs';
+import { SAIBAMAN_GOLPE } from './personagens/saibaman/saibaman-golpe.mjs';
+import { SENTINELA_PASSO } from './personagens/sentinela/sentinela-passo.mjs';
 import { GUERREIRO_PASSO } from './guerreiro-passo.mjs';
 import { GUERREIRO_GOLPE } from './guerreiro-golpe.mjs';
-import { VETERANO_PASSO } from './veterano-passo.mjs';
-import { VETERANO_SOCO } from './veterano-soco.mjs';
-import { VETERANO_KI } from './veterano-ki.mjs';
+import { VETERANO_PASSO } from './personagens/veterano/veterano-passo.mjs';
+import { VETERANO_SOCO } from './personagens/veterano/veterano-soco.mjs';
+import { VETERANO_KI } from './personagens/veterano/veterano-ki.mjs';
 // Planeta Vegeta, Planícies Vermelhas (decisão do Pedro, 05/11/2026): Tsufurujin Guerreiro e General, Hatchiyack.
-import { TSUFURU_GUERREIRO_PASSO } from './tsufuru-guerreiro-passo.mjs';
-import { TSUFURU_GUERREIRO_SOCO } from './tsufuru-guerreiro-soco.mjs';
-import { TSUFURU_GUERREIRO_KI } from './tsufuru-guerreiro-ki.mjs';
-import { TSUFURU_GENERAL_PASSO } from './tsufuru-general-passo.mjs';
-import { TSUFURU_GENERAL_SOCO } from './tsufuru-general-soco.mjs';
-import { TSUFURU_GENERAL_KI } from './tsufuru-general-ki.mjs';
-import { HATCHIYACK_PASSO } from './hatchiyack-passo.mjs';
-import { HATCHIYACK_SOCO } from './hatchiyack-soco.mjs';
-import { HATCHIYACK_KI } from './hatchiyack-ki.mjs';
+import { TSUFURU_GUERREIRO_PASSO } from './personagens/tsufuru/tsufuru-guerreiro-passo.mjs';
+import { TSUFURU_GUERREIRO_SOCO } from './personagens/tsufuru/tsufuru-guerreiro-soco.mjs';
+import { TSUFURU_GUERREIRO_KI } from './personagens/tsufuru/tsufuru-guerreiro-ki.mjs';
+import { TSUFURU_GENERAL_PASSO } from './personagens/tsufuru/tsufuru-general-passo.mjs';
+import { TSUFURU_GENERAL_SOCO } from './personagens/tsufuru/tsufuru-general-soco.mjs';
+import { TSUFURU_GENERAL_KI } from './personagens/tsufuru/tsufuru-general-ki.mjs';
+import { HATCHIYACK_PASSO } from './personagens/hatchiyack/hatchiyack-passo.mjs';
+import { HATCHIYACK_SOCO } from './personagens/hatchiyack/hatchiyack-soco.mjs';
+import { HATCHIYACK_KI } from './personagens/hatchiyack/hatchiyack-ki.mjs';
 // Cânions (decisão do Pedro, 05/11/2026): Nappa, Raditz e Bardock.
-import { NAPPA_PASSO } from './nappa-passo.mjs';
-import { NAPPA_SOCO } from './nappa-soco.mjs';
-import { NAPPA_KI } from './nappa-ki.mjs';
-import { RADITZ_PASSO } from './raditz-passo.mjs';
-import { RADITZ_SOCO } from './raditz-soco.mjs';
-import { RADITZ_KI } from './raditz-ki.mjs';
-import { BARDOCK_PASSO } from './bardock-passo.mjs';
-import { BARDOCK_SOCO } from './bardock-soco.mjs';
-import { BARDOCK_KI } from './bardock-ki.mjs';
+import { NAPPA_PASSO } from './personagens/nappa/nappa-passo.mjs';
+import { NAPPA_SOCO } from './personagens/nappa/nappa-soco.mjs';
+import { NAPPA_KI } from './personagens/nappa/nappa-ki.mjs';
+import { RADITZ_PASSO } from './personagens/raditz/raditz-passo.mjs';
+import { RADITZ_SOCO } from './personagens/raditz/raditz-soco.mjs';
+import { RADITZ_KI } from './personagens/raditz/raditz-ki.mjs';
+import { BARDOCK_PASSO } from './personagens/bardock/bardock-passo.mjs';
+import { BARDOCK_SOCO } from './personagens/bardock/bardock-soco.mjs';
+import { BARDOCK_KI } from './personagens/bardock/bardock-ki.mjs';
 // Campos de Lava (decisão do Pedro, 05/11/2026): Oozaru, Oozaru Guerreiro e o chefe raro Oozaru Super.
-import { OOZARU_PASSO } from './oozaru-passo.mjs';
-import { OOZARU_SOCO } from './oozaru-soco.mjs';
-import { OOZARU_KI } from './oozaru-ki.mjs';
-import { OOZARU_GUERREIRO_PASSO } from './oozaru-guerreiro-passo.mjs';
-import { OOZARU_GUERREIRO_SOCO } from './oozaru-guerreiro-soco.mjs';
-import { OOZARU_GUERREIRO_KI } from './oozaru-guerreiro-ki.mjs';
-import { OOZARU_SUPER_PASSO } from './oozaru-super-passo.mjs';
-import { OOZARU_SUPER_SOCO } from './oozaru-super-soco.mjs';
-import { OOZARU_SUPER_KI } from './oozaru-super-ki.mjs';
+import { OOZARU_PASSO } from './personagens/oozaru/oozaru-passo.mjs';
+import { OOZARU_SOCO } from './personagens/oozaru/oozaru-soco.mjs';
+import { OOZARU_KI } from './personagens/oozaru/oozaru-ki.mjs';
+import { OOZARU_GUERREIRO_PASSO } from './personagens/oozaru/oozaru-guerreiro-passo.mjs';
+import { OOZARU_GUERREIRO_SOCO } from './personagens/oozaru/oozaru-guerreiro-soco.mjs';
+import { OOZARU_GUERREIRO_KI } from './personagens/oozaru/oozaru-guerreiro-ki.mjs';
+import { OOZARU_SUPER_PASSO } from './personagens/oozaru/oozaru-super-passo.mjs';
+import { OOZARU_SUPER_SOCO } from './personagens/oozaru/oozaru-super-soco.mjs';
+import { OOZARU_SUPER_KI } from './personagens/oozaru/oozaru-super-ki.mjs';
 // Freeza BOSS (ideia do Pedro, 05/11/2026): em pé (Death Beam) e, a partir de 40% da vida, na nave (Supernova).
-import { FREEZA_PE_PASSO } from './freeza-pe-andar.mjs';
-import { FREEZA_PE_DEATHBEAM } from './freeza-pe-deathbeam.mjs';
-import { FREEZA_NAVE_PASSO } from './freeza-nave-flutuar.mjs';
-import { FREEZA_NAVE_SUPERNOVA } from './freeza-nave-supernova.mjs';
+import { FREEZA_PE_PASSO } from './personagens/freeza/freeza-pe-andar.mjs';
+import { FREEZA_PE_DEATHBEAM } from './personagens/freeza/freeza-pe-deathbeam.mjs';
+import { FREEZA_NAVE_PASSO } from './personagens/freeza/freeza-nave-flutuar.mjs';
+import { FREEZA_NAVE_SUPERNOVA } from './personagens/freeza/freeza-nave-supernova.mjs';
 // Grande Cratera (decisão do Pedro, 06/11/2026): Rei Vegeta (o mais fraco) e Broly (o mais forte).
-import { REI_VEGETA_PASSO } from './rei-vegeta-passo.mjs';
-import { REI_VEGETA_SOCO } from './rei-vegeta-soco.mjs';
-import { REI_VEGETA_KI } from './rei-vegeta-ki.mjs';
-import { BROLY_PASSO } from './broly-passo.mjs';
-import { BROLY_SOCO } from './broly-soco.mjs';
-import { BROLY_KI } from './broly-ki.mjs';
+import { REI_VEGETA_PASSO } from './personagens/rei-vegeta/rei-vegeta-passo.mjs';
+import { REI_VEGETA_SOCO } from './personagens/rei-vegeta/rei-vegeta-soco.mjs';
+import { REI_VEGETA_KI } from './personagens/rei-vegeta/rei-vegeta-ki.mjs';
+import { BROLY_PASSO } from './personagens/broly/broly-passo.mjs';
+import { BROLY_SOCO } from './personagens/broly/broly-soco.mjs';
+import { BROLY_KI } from './personagens/broly/broly-ki.mjs';
 // Oozaru Dourado (sem armadura): chefe raro dos Campos de Lava (Pedro, 06/11): pancada com os dois punhos e laser negro.
-import { OOZARU_DOURADO_PASSO } from './oozaru-dourado-passo.mjs';
-import { OOZARU_DOURADO_PANCADA } from './oozaru-dourado-pancada.mjs';
-import { OOZARU_DOURADO_LASER } from './oozaru-dourado-laser.mjs';
+import { OOZARU_DOURADO_PASSO } from './personagens/oozaru/oozaru-dourado-passo.mjs';
+import { OOZARU_DOURADO_PANCADA } from './personagens/oozaru/oozaru-dourado-pancada.mjs';
+import { OOZARU_DOURADO_LASER } from './personagens/oozaru/oozaru-dourado-laser.mjs';
 // Cânions (decisão do Pedro, 06/11/2026): Dodoria (o mais fraco) e Zarbon (o mais forte).
-import { ZARBON_PASSO } from './zarbon-passo.mjs';
-import { ZARBON_SOCO } from './zarbon-soco.mjs';
-import { ZARBON_KI } from './zarbon-ki.mjs';
-import { DODORIA_PASSO } from './dodoria-passo.mjs';
-import { DODORIA_SOCO } from './dodoria-soco.mjs';
-import { DODORIA_KI } from './dodoria-ki.mjs';
+import { ZARBON_PASSO } from './personagens/zarbon/zarbon-passo.mjs';
+import { ZARBON_SOCO } from './personagens/zarbon/zarbon-soco.mjs';
+import { ZARBON_KI } from './personagens/zarbon/zarbon-ki.mjs';
+import { DODORIA_PASSO } from './personagens/dodoria/dodoria-passo.mjs';
+import { DODORIA_SOCO } from './personagens/dodoria/dodoria-soco.mjs';
+import { DODORIA_KI } from './personagens/dodoria/dodoria-ki.mjs';
 
 // Five distinct views, with the three opposite views mirrored for consistent anatomy.
 // Back-diagonal views use a rear three-quarter drawing, never a side/front substitute.

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, PLANETS, lugar } from '../public/shared/index.mjs';
-import { naEscala } from '../public/shared/config.mjs';
-import { podeAndar, emTerra } from '../public/shared/passagem.mjs';
+import { naEscala } from '../public/shared/nucleo/config.mjs';
+import { podeAndar, emTerra } from '../public/shared/mundo/passagem.mjs';
 
 const world = () => new Game({ now: 1000, populate: false, random: () => 0.99 });
 
@@ -32,7 +32,7 @@ test('quem nasce dentro da água consegue sair dela', () => {
 });
 
 test('regiões e mobs de cada planeta ficam em terra firme, e o mercador na Vila', async () => {
-  const { ZONES, MERCHANT } = await import('../public/shared/config.mjs');
+  const { ZONES, MERCHANT } = await import('../public/shared/nucleo/config.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   const mobs = [...game.mobs.values()];
   assert.ok(mobs.filter(m => m.area === 'inicial').length >= 12, 'Planícies com mobs suficientes');
@@ -48,7 +48,7 @@ test('regiões e mobs de cada planeta ficam em terra firme, e o mercador na Vila
 });
 
 test('a predição do cliente para na beira da água no mesmo ponto que o servidor', async () => {
-  const { deslocar } = await import('../public/shared/passagem.mjs');
+  const { deslocar } = await import('../public/shared/mundo/passagem.mjs');
   const game = world(), p = game.addPlayer('a');
   p.planet = 'namek'; p.x = PLANETS.namek.spawn.x; p.y = PLANETS.namek.spawn.y;
   for (let i = 0; i < 400; i++) { game.setInput(p.id, { x: 1, y: 0 }); game.tick(0.05); }
@@ -59,7 +59,7 @@ test('a predição do cliente para na beira da água no mesmo ponto que o servid
 });
 
 test('ruínas bloqueiam pela base e não tapam a chegada nem o mercador (casas da Vila fora do mapa por ora)', async () => {
-  const { HOUSES, MERCHANT, frenteDaCasa } = await import('../public/shared/config.mjs');
+  const { HOUSES, MERCHANT, frenteDaCasa } = await import('../public/shared/nucleo/config.mjs');
   assert.equal(HOUSES.filter(c => !c.ruina).length, 0, 'casas da Vila guardadas, fora do mapa');
   for (const c of HOUSES) {
     const f = frenteDaCasa(c, c.x);
@@ -71,7 +71,7 @@ test('ruínas bloqueiam pela base e não tapam a chegada nem o mercador (casas d
 });
 
 test('casas destruídas ficam no Campo de Batalha, em terra, longe do subchefe', async () => {
-  const { HOUSES, ZONES } = await import('../public/shared/config.mjs');
+  const { HOUSES, ZONES } = await import('../public/shared/nucleo/config.mjs');
   const campo = ZONES.find(z => z.id === 'media'), ruinas = HOUSES.filter(c => c.ruina);
   assert.equal(ruinas.length, 6);
   const game = new Game({ now: 1000, random: () => 0.5 }), chefe = [...game.mobs.values()].find(m => m.type === 'subboss');
@@ -84,8 +84,8 @@ test('casas destruídas ficam no Campo de Batalha, em terra, longe do subchefe',
 });
 
 test('encostado numa ruína, a predição do cliente para no mesmo ponto que o servidor', async () => {
-  const { deslocar } = await import('../public/shared/passagem.mjs');
-  const { HOUSES } = await import('../public/shared/config.mjs');
+  const { deslocar } = await import('../public/shared/mundo/passagem.mjs');
+  const { HOUSES } = await import('../public/shared/nucleo/config.mjs');
   const casa = HOUSES.find(c => c.ruina && c.sprite === 5), game = world(), p = game.addPlayer('a');
   // Vem de baixo, pela frente da casa, ao lado da porta, e anda para cima até a parede.
   p.planet = 'namek'; p.x = casa.x - casa.w * 0.3; p.y = casa.y + 40;
@@ -96,8 +96,8 @@ test('encostado numa ruína, a predição do cliente para no mesmo ponto que o s
 });
 
 test('áreas fechadas: não se anda de uma área para outra, mesmo onde o chão continua', async () => {
-  const { ZONES } = await import('../public/shared/config.mjs');
-  const { deslocar } = await import('../public/shared/passagem.mjs');
+  const { ZONES } = await import('../public/shared/nucleo/config.mjs');
+  const { deslocar } = await import('../public/shared/mundo/passagem.mjs');
   const inicial = ZONES.find(z => z.id === 'inicial');
   // Ponte de terra entre as Planícies e o Planalto: a borda leste da área inicial é um corte reto.
   const y = naEscala(1230), x = inicial.x + inicial.w - 20;
@@ -108,8 +108,8 @@ test('áreas fechadas: não se anda de uma área para outra, mesmo onde o chão 
 });
 
 test('cada portal fica em chão andável e é alcançável a pé da chegada da sua área', async () => {
-  const { PORTAIS, lugar } = await import('../public/shared/config.mjs');
-  const { pesLivres, caminhoPorTerra } = await import('../public/shared/passagem.mjs');
+  const { PORTAIS, lugar } = await import('../public/shared/nucleo/config.mjs');
+  const { pesLivres, caminhoPorTerra } = await import('../public/shared/mundo/passagem.mjs');
   for (const o of PORTAIS) {
     assert.ok(pesLivres(o.planet, o.x, o.y, 15, o.area), o.id + ' em lugar bloqueado');
     for (const d of o.destinos) assert.ok(lugar(d), o.id + ' leva a um destino que não existe: ' + d);
@@ -118,7 +118,7 @@ test('cada portal fica em chão andável e é alcançável a pé da chegada da s
 });
 
 test('todos os mobs das hunts têm rota contínua e livre de colisões desde a chegada', async () => {
-  const { caminhoPorTerra, pesLivres, pontoAlcancavelDesde } = await import('../public/shared/passagem.mjs');
+  const { caminhoPorTerra, pesLivres, pontoAlcancavelDesde } = await import('../public/shared/mundo/passagem.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 });
   for (const planeta of Object.values(PLANETS).filter(p => p.hunts)) for (const id of planeta.hunts) {
     const hunt = lugar(id), mobs = [...game.mobs.values()].filter(m => m.area === id);
@@ -142,7 +142,7 @@ test('todos os mobs das hunts têm rota contínua e livre de colisões desde a c
 });
 
 test('decoração: só árvores, os troncos bloqueiam, nada no chão vermelho nem perto de portais', async () => {
-  const { DECORACAO, PORTAIS, decoracaoBloqueia } = await import('../public/shared/config.mjs');
+  const { DECORACAO, PORTAIS, decoracaoBloqueia } = await import('../public/shared/nucleo/config.mjs');
   assert.ok(DECORACAO.length > 80, 'mapa decorado');
   assert.equal(DECORACAO.filter(d => d.sprite >= 15).length, 0, 'sem pedras (Pedro, 04/11)');
   assert.equal(DECORACAO.filter(d => d.sprite >= 12 && d.sprite <= 14).length, 0, 'sem arbustos (Pedro, 04/11)');

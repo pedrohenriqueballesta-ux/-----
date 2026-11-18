@@ -1,4 +1,4 @@
-﻿import {ATALHOS,atalhoDeInterface,alvoEditavel,teclasDoAtalho} from '../shared/atalhos.mjs';
+﻿import {ATALHOS,atalhoDeInterface,alvoEditavel,teclasDoAtalho} from '../shared/tecnicas/atalhos.mjs';
 export function instalarAtalhosInterface({ativo,bloqueado,abrirMenu,caca,painelCaca,montaria,soltarTeclas}){
  const consumir=e=>{e.preventDefault();e.stopImmediatePropagation();};
  const onKey=e=>{

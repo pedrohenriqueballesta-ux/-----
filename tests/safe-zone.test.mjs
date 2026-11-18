@@ -1,10 +1,10 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, ZONES, PORTAIS, RAIO_PORTAL, zonaSeguraDaHunt, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/config.mjs';
-import { caminhoPorTerra, pesLivres, deslocar } from '../public/shared/passagem.mjs';
-import { pontoNoCirculo, spawnPoints } from '../public/shared/enemies.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, ZONES, PORTAIS, RAIO_PORTAL, zonaSeguraDaHunt, lugar, naZonaSegura, pontoNaZonaSegura } from '../public/shared/nucleo/config.mjs';
+import { caminhoPorTerra, pesLivres, deslocar } from '../public/shared/mundo/passagem.mjs';
+import { pontoNoCirculo, spawnPoints } from '../public/shared/nucleo/enemies.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
 const passar = (g, s) => { for (let t = 0; t < s; t += .05) g.tick(.05); };
 test('saídas de todas as hunts ficam dentro da safe zone e permitem viajar protegido', () => {
   const g = new Game({ populate: false }), p = g.addPlayer('viajante');

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
-import { norm } from '../public/shared/math.mjs';
-import { KAME, ESTAGIOS_KAME, estagioKame, quadroKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, atingidoPeloImpactoKame } from '../public/shared/kamehameha.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
+import { norm } from '../public/shared/nucleo/math.mjs';
+import { KAME, ESTAGIOS_KAME, estagioKame, quadroKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, atingidoPeloImpactoKame } from '../public/shared/tecnicas/kamehameha.mjs';
 
 const mesmaDirecao = (a, b) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y) < 1e-9);
 const passar = (g, s) => { for (let i = 0; i < Math.round(s / .01); i++) g.tick(.01); };
@@ -159,7 +159,7 @@ test('renderização reutiliza imagens e quadros, aguarda carregamento e mantém
     canvases.push(c); return c;
   } };
   try {
-    const { desenharKame, carregarKame, desenharKameComProfundidade, kameSobrePersonagem } = await import('../public/render/kamehameha.mjs');
+    const { desenharKame, carregarKame, desenharKameComProfundidade, kameSobrePersonagem } = await import('../public/render/vfx/kamehameha.mjs');
     const efeito = { x: 200, y: 200, direction: { x: -1, y: 0 }, nivel: 200, started: 0 }, escalas = [], rotacoes = [], desenhos = [];
     const ctx = { save() {}, restore() {}, translate() {}, rotate(a) { rotacoes.push(a); }, scale(x, y) { escalas.push([x, y]); }, drawImage(...args) { desenhos.push(args); } };
     assert.equal(desenharKame(ctx, efeito, .1), false);

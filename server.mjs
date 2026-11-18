@@ -1,17 +1,17 @@
 import {NovidadesMain} from './server/novidades-main.mjs';
-import {vincularPasseConta} from './public/shared/battle-pass.mjs';
+import {vincularPasseConta} from './public/shared/sistemas/battle-pass.mjs';
 import {EconomiaPremium} from './server/premium.mjs';
 import {Autenticacao,FalhaAuth,AUTH_CONFIG,digest} from './server/auth.mjs';
 import {conteudoEntrada} from './server/entrada-conteudo.mjs';
-import {preferenciasValidas} from './public/shared/preferencias.mjs';
-import {contasDoServidor,rankingServidor} from './public/shared/hud-servidor.mjs';
+import {preferenciasValidas} from './public/shared/sistemas/preferencias.mjs';
+import {contasDoServidor,rankingServidor} from './public/shared/nucleo/hud-servidor.mjs';
 import http from 'node:http';
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
-import { criarBestiario } from './public/shared/bestiario.mjs';
+import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -20,6 +20,8 @@ const types = { '.gif':'image/gif', '.mp3':'audio/mpeg', '.html': 'text/html; ch
 
 export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data'), ambiente=process.env.NODE_ENV||'production',noticiasMain=new NovidadesMain({cacheFile:dataDir?resolve(dataDir,'novidades-main-cache.json'):null}) } = {}) {
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
+  // Só para teste: DBI_SKIP_LOGIN=1 habilita GET /api/auth/dev (login/criação pulados). REMOVER ao desligar o atalho.
+  const pularLogin = process.env.DBI_SKIP_LOGIN === '1';
   const economiaPremium=new EconomiaPremium({ambiente});
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random });
   const sessions = new Map(), streams = new Map(), rates = new Map();
@@ -72,11 +74,13 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       }
       if(req.method==='GET'&&url.pathname==='/api/entrada'){
         let config={};if(dataDir)try{config=JSON.parse(await readFile(resolve(dataDir,'entrada-conteudo.json'),'utf8'));}catch{}
-        const atualizacoes=noticiasMain.obter();return json(res,200,{...conteudoEntrada({...config,noticias:atualizacoes.length?atualizacoes:config.noticias}),online:online()});
+        const atualizacoes=noticiasMain.obter();return json(res,200,{...conteudoEntrada({...config,noticias:atualizacoes.length?atualizacoes:config.noticias}),online:online(),devSkip:pularLogin});
       }
       if(url.pathname.startsWith('/api/auth/')){
         const rota=url.pathname.slice('/api/auth/'.length),ip=req.socket.remoteAddress||'local';
         if(req.method==='GET'&&rota==='sessao'){const a=exigir(req);congelar(a.id);await save();return json(res,200,{ok:true,conta:autenticacao.publico(a.conta)});}
+        // Só para teste (DBI_SKIP_LOGIN): entra com uma conta "dev" pronta, sem login nem criação. REMOVER ao desligar o atalho.
+        if(req.method==='GET'&&rota==='dev'){if(!pularLogin)return json(res,404,{error:'rotaInvalida'});const conta=autenticacao.contaDev();const token=autenticacao.novaSessao(conta);autenticacao.sessao(token).registro.selecionado=conta.personagens[0].id;congelarConta(conta.id);await save();res.setHeader('Set-Cookie',cookie(req,token));return json(res,200,{ok:true,conta:autenticacao.publico(conta)});}
         if(req.method!=='POST')return json(res,405,{error:'metodoInvalido'});
         const d=await body(req);
         if(rota==='cadastro'||rota==='login'){

@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inflateSync} from 'node:zlib';
-import {Game,SOCA_E_ATIRA} from '../public/shared/game.mjs';
-import {CONFIG,lugar} from '../public/shared/config.mjs';
-import {mobStats} from '../public/shared/enemies.mjs';
-import {ARTE_PROJETIL_MOB,configurarProjetilMob,iniciarVooTarget,avancarVooTarget,quadroProjetilMob} from '../public/shared/projetil-mob.mjs';
+import {Game,SOCA_E_ATIRA} from '../public/shared/nucleo/game.mjs';
+import {CONFIG,lugar} from '../public/shared/nucleo/config.mjs';
+import {mobStats} from '../public/shared/nucleo/enemies.mjs';
+import {ARTE_PROJETIL_MOB,configurarProjetilMob,iniciarVooTarget,avancarVooTarget,quadroProjetilMob} from '../public/shared/mundo/projetil-mob.mjs';
 function cena(){
  const g=new Game({now:1000,populate:false}),p=g.addPlayer('p');g.levar(p,lugar('inicial'));p.x+=400;p.seguroAte=0;p.autoHeal=false;p.autoFood=false;p.hp=p.stats.hp=10000;
  const m=g.addMob('veterano',p.x-180,p.y,p.area);m.speed=0;m.attackReady=Infinity;
@@ -113,7 +113,7 @@ test('renderização colore uma vez por tonalidade e rotaciona sem processar pix
  const antigos={Image:globalThis.Image,document:globalThis.document};let preparados=0,desenhos=0;const giros=[];
  globalThis.Image=class{complete=true;naturalWidth=2304;naturalHeight=256;};
  globalThis.document={createElement(){preparados++;return{getContext(){return{drawImage(){}}}}}};
- try{const {desenharProjetilMob}=await import('../public/render/projetil-mob.mjs');const ctx={save(){},restore(){},translate(){},rotate(a){giros.push(a)},drawImage(){desenhos++}};
+ try{const {desenharProjetilMob}=await import('../public/render/vfx/projetil-mob.mjs');const ctx={save(){},restore(){},translate(){},rotate(a){giros.push(a)},drawImage(){desenhos++}};
   for(let i=0;i<100;i++)assert.ok(desenharProjetilMob(ctx,{started:0,dx:0,dy:1,cor:i%2?105:225,fps:12,tamanho:48},{x:0,y:0},.1));
   assert.equal(preparados,2);assert.equal(desenhos,100);assert.ok(giros.every(g=>g===Math.PI/2));
   desenharProjetilMob(ctx,{started:0,dx:1,dy:0,cor:105,fps:12,tamanho:48},{x:0,y:0},.1,2);assert.equal(preparados,3,'zoom cria versão de maior resolução uma única vez');

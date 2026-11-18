@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { Game } from '../public/shared/game.mjs';
-import { GENKI, quadroGenki } from '../public/shared/genki.mjs';
-import { GENKI_ARTE, carregarGenki, desenharGenki, geometriaGenki } from '../public/render/genki.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { GENKI, quadroGenki } from '../public/shared/tecnicas/genki.mjs';
+import { GENKI_ARTE, carregarGenki, desenharGenki, geometriaGenki } from '../public/render/vfx/genki.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
 
 const passar = (g, segundos) => { for (let i = 0; i < Math.round(segundos / .01); i++) g.tick(.01); };
 function cena(transformado = false) {

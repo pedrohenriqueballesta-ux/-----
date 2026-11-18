@@ -3,7 +3,7 @@
 Scripts de apoio usados para preparar arte e mapas. **O jogo não usa esta pasta** (ele roda só com `public/` e
 `server.mjs`, sem dependências). Os scripts Python precisam de `Pillow`, `numpy` e `scipy`
 (`pip3 install --user pillow numpy scipy`). As imagens de entrada (folhas do ChatGPT, partes do mapa) ficam fora do
-repositório; o processo completo está em `docs/COMO_TRABALHAMOS.md`.
+repositório; o processo completo está em `docs/processo/COMO_TRABALHAMOS.md`.
 
 ## Folhas de personagens e mobs
 | Script | Para quê |

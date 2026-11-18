@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, lugar } from '../public/shared/index.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
-import { mobStats } from '../public/shared/enemies.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
+import { mobStats } from '../public/shared/nucleo/enemies.mjs';
 
 // Mundo vazio numa hunt larga do Vegeta, com um mob e jogadores colocados à mão.
 function cena({ tipo = 'oozaru', area = 'vegeta-lava', jogadores = 1 } = {}) {

@@ -1,11 +1,11 @@
 import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { criarBestiario } from '../public/shared/bestiario.mjs';
-import { mobStats, TEMPO_CHEFE_RARO } from '../public/shared/enemies.mjs';
-import { areaPorId } from '../public/shared/config.mjs';
-import { RECOMPENSAS_MOBS } from '../public/shared/recompensas-mobs.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { criarBestiario } from '../public/shared/sistemas/bestiario.mjs';
+import { mobStats, TEMPO_CHEFE_RARO } from '../public/shared/nucleo/enemies.mjs';
+import { areaPorId } from '../public/shared/nucleo/config.mjs';
+import { RECOMPENSAS_MOBS } from '../public/shared/sistemas/recompensas-mobs.mjs';
 import { createGameServer } from '../server.mjs';
 
 test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda mortos', () => {

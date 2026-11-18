@@ -2,24 +2,24 @@
 // caminhada e ficava no meio do passo. Recortadas por fatiar_caminhada.py (modo conectado, 210/150; Hatchiyack em
 // fundo verde). Chave = o mesmo `kind` da caminhada (PASSO em atlas.mjs). drawWalk usa a folha daqui quando o mob
 // não anda. Mob novo: recorte a folha PARADO e acrescente uma linha.
-import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+import { FOLHAS_NAMEK_NORTE } from './cenario/namek-norte.mjs';
 import { GUERREIRO_PARADO } from './guerreiro-parado.mjs';
-import { VETERANO_PARADO } from './veterano-parado.mjs';
-import { SENTINELA_PARADO } from './sentinela-parado.mjs';
-import { TSUFURU_GUERREIRO_PARADO } from './tsufuru-guerreiro-parado.mjs';
-import { TSUFURU_GENERAL_PARADO } from './tsufuru-general-parado.mjs';
-import { HATCHIYACK_PARADO } from './hatchiyack-parado.mjs';
-import { DODORIA_PARADO } from './dodoria-parado.mjs';
-import { ZARBON_PARADO } from './zarbon-parado.mjs';
-import { NAPPA_PARADO } from './nappa-parado.mjs';
-import { RADITZ_PARADO } from './raditz-parado.mjs';
-import { BARDOCK_PARADO } from './bardock-parado.mjs';
-import { OOZARU_PARADO } from './oozaru-parado.mjs';
-import { OOZARU_GUERREIRO_PARADO } from './oozaru-guerreiro-parado.mjs';
-import { OOZARU_DOURADO_PARADO } from './oozaru-dourado-parado.mjs';
-import { REI_VEGETA_PARADO } from './rei-vegeta-parado.mjs';
-import { BROLY_PARADO } from './broly-parado.mjs';
-import { FREEZA_PE_PARADO } from './freeza-pe-parado.mjs';
+import { VETERANO_PARADO } from './personagens/veterano/veterano-parado.mjs';
+import { SENTINELA_PARADO } from './personagens/sentinela/sentinela-parado.mjs';
+import { TSUFURU_GUERREIRO_PARADO } from './personagens/tsufuru/tsufuru-guerreiro-parado.mjs';
+import { TSUFURU_GENERAL_PARADO } from './personagens/tsufuru/tsufuru-general-parado.mjs';
+import { HATCHIYACK_PARADO } from './personagens/hatchiyack/hatchiyack-parado.mjs';
+import { DODORIA_PARADO } from './personagens/dodoria/dodoria-parado.mjs';
+import { ZARBON_PARADO } from './personagens/zarbon/zarbon-parado.mjs';
+import { NAPPA_PARADO } from './personagens/nappa/nappa-parado.mjs';
+import { RADITZ_PARADO } from './personagens/raditz/raditz-parado.mjs';
+import { BARDOCK_PARADO } from './personagens/bardock/bardock-parado.mjs';
+import { OOZARU_PARADO } from './personagens/oozaru/oozaru-parado.mjs';
+import { OOZARU_GUERREIRO_PARADO } from './personagens/oozaru/oozaru-guerreiro-parado.mjs';
+import { OOZARU_DOURADO_PARADO } from './personagens/oozaru/oozaru-dourado-parado.mjs';
+import { REI_VEGETA_PARADO } from './personagens/rei-vegeta/rei-vegeta-parado.mjs';
+import { BROLY_PARADO } from './personagens/broly/broly-parado.mjs';
+import { FREEZA_PE_PARADO } from './personagens/freeza/freeza-pe-parado.mjs';
 
 export const PARADO = {
   guerreiro: [GUERREIRO_PARADO, 'guerreiroParado'],

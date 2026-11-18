@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 globalThis.Image = class { complete = true; naturalWidth = 1024; };
-const { Game } = await import('../public/shared/game.mjs');
+const { Game } = await import('../public/shared/nucleo/game.mjs');
 const { PARADO } = await import('../public/art/parado.mjs');
 const { drawWalk } = await import('../public/art/atlas.mjs');
 const { art } = await import('../public/art/assets.mjs');

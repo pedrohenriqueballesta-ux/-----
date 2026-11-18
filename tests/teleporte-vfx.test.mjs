@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { TELEPORTE, RelogioTeleport, enquadramentoTeleport, criarTransicaoTeleport } from '../public/render/teleporte.mjs';
+import { TELEPORTE, RelogioTeleport, enquadramentoTeleport, criarTransicaoTeleport } from '../public/render/vfx/teleporte.mjs';
 
 test('16 quadros do GIF em exatamente 1,5 segundo, viagem única no trecho coberto e término sem loop', () => {
   assert.equal(TELEPORTE.passo * 16, 1.5);

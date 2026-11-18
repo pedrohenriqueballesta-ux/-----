@@ -5,7 +5,7 @@
 - Todo mob e personagem que anda tem folha PARADO (respiração em loop, pés parados), registrada em `public/art/parado.mjs`; parado, o `drawWalk` usa essa folha em vez de um quadro da caminhada (Pedro, 10/11/2026). Voadores pairam e o Freeza na nave flutua: não precisam.
 - Todo chefe (subchefe e chefes raros, lista `TIPOS_CHEFE` em `shared/enemies.mjs`) leva "BOSS" no nome — placa, alvo, Bestiário e avisos — para se diferenciar dos mobs comuns; chefe novo só precisa entrar na lista (Pedro, 10/11/2026).
 
-- Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/GOKU_NOVO.md` (Pedro, 11/11/2026).
+- Goku Super Saiyajin usa as seis folhas novas feitas sobre as da base (mesmas poses, cabelo SSJ, quimono inteiro); detalhes em `docs/arte/GOKU_NOVO.md` (Pedro, 11/11/2026).
 - Escada implementada (Pedro, 13/11/2026): a transformação automática começa no terceiro dos oito slots configuráveis; a tecla T também ativa a forma mais forte liberada — Kaioken 50, SSJ1 100, SSJ2 200, SSJ3 300, SSJ4 500, Gogeta 700 e Vegetto 900. Uma forma por vez; todas drenam 3,5 Ki/s. Gogeta dura 3.600 s.
 - Multiplicadores de dano mantêm a progressão de 1,5× por degrau SSJ; as formas de fusão seguem o mesmo incremento. Ainda não há sprites próprias de Gogeta ou Vegetto: usar fallback visual em folhas existentes e não desenhar assets novos sem solicitação.
 - Ryuken / Punho do Dragão (Pedro, 12/11/2026): técnica do SSJ3 e SSJ4, disponível no catálogo e inicialmente no slot 8; o Kamehameha continua disponível no SSJ3 (Pedro, 16/11/2026). O Auto Hunt no SSJ3 usa o Ryuken quando está pronto; o dragão persegue o alvo perto ou longe e acerta só ele; dano ×13,5, 40 Ki, 10 s, alcance do Kamehameha. `shared/ryuken.mjs`.
@@ -51,7 +51,7 @@ Este é um protótipo local de RPG idle de Dragon Ball em 2D visto de cima.
 - public/art/ (por assunto: assets, atlas, terrain, goku, saibaman, alien, freeza, sprite-data) e public/render/camera.mjs cuidam, respectivamente, das artes e da câmera, sem alterar as regras do servidor.
 - public/style.css cuida de desktop e telas pequenas.
 - data/save.json é estado local de execução e fica fora das entregas de código.
-- ferramentas/ guarda os scripts de apoio para arte e mapas (não carregados pelo jogo); docs/COMO_TRABALHAMOS.md é o manual de trabalho.
+- ferramentas/ guarda os scripts de apoio para arte e mapas (não carregados pelo jogo); docs/processo/COMO_TRABALHAMOS.md é o manual de trabalho.
 - Sem empacotador: o navegador carrega os módulos pela URL, então o código compartilhado fica dentro de public/.
 
 ## Decisões que devem ser preservadas

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { VOCACOES, vocacaoDoPersonagem } from '../public/shared/vocacoes.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
-import { createPlayer, xpForLevel, statsFor } from '../public/shared/characters.mjs';
-import { Game } from '../public/shared/game.mjs';
-import { perfilPersonagem } from '../public/shared/perfil.mjs';
+import { VOCACOES, vocacaoDoPersonagem } from '../public/shared/sistemas/vocacoes.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
+import { createPlayer, xpForLevel, statsFor } from '../public/shared/nucleo/characters.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { perfilPersonagem } from '../public/shared/sistemas/perfil.mjs';
 
 test('o catálogo mantém apenas a vocação jogável atual e desconhecidas preservam o fallback Goku', () => {
   assert.deepEqual(Object.keys(VOCACOES), ['goku']);

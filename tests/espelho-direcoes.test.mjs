@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readdir,readFile} from 'node:fs/promises';
-import {DIRECTIONS,spriteFacing} from '../public/render/camera.mjs';
-import {origemKame} from '../public/shared/kamehameha.mjs';
+import {DIRECTIONS,spriteFacing} from '../public/render/mapa/camera.mjs';
+import {origemKame} from '../public/shared/tecnicas/kamehameha.mjs';
 // Imagem já carregada: o teste mede as transformações reais enviadas ao canvas.
 globalThis.Image = class {complete=true;naturalWidth=1024;};
 const {drawSheet,SHEET_VIEWS}=await import('../public/art/atlas.mjs');
-const {drawGoku}=await import('../public/art/goku.mjs');
+const {drawGoku}=await import('../public/art/personagens/goku/goku.mjs');
 const {art}=await import('../public/art/assets.mjs');
-const {FOLHAS_GOKU_BASE}=await import('../public/art/goku-base.mjs');
+const {FOLHAS_GOKU_BASE}=await import('../public/art/personagens/goku/goku-base.mjs');
 const pasta=new URL('../public/art/',import.meta.url),folhas=[];
-for(const nome of await readdir(pasta)){
+for(const bruto of await readdir(pasta,{recursive:true})){
+ const nome=bruto.split('\\').join('/');
+ if(!nome.endsWith('.mjs'))continue;
  const texto=await readFile(new URL(nome,pasta),'utf8');
  if(!/export const \w+ = \{\s*file:/.test(texto))continue;
  for(const folha of Object.values(await import(new URL(nome,pasta))))if(folha?.rows===5&&folha.frames)folhas.push([nome,folha]);

@@ -4,10 +4,10 @@
 // Nappa (o mais fraco, o mais corpulento), Raditz (o mediano) e Bardock (o mais forte). Campos de Lava (05/11):
 // Oozaru e Oozaru Guerreiro (gigantes), e o chefe raro Oozaru Super (o maior; a folha de ki é o rugido com rajada pela boca).
 // O quadro de impacto (coluna 3) cai no instante do dano, como no Veterano.
-import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+import { FOLHAS_NAMEK_NORTE } from './cenario/namek-norte.mjs';
 import { art } from './assets.mjs';
 import { drawWalk, drawSheet, GOLPE } from './atlas.mjs';
-import { strikeColumn } from '../render/camera.mjs';
+import { strikeColumn } from '../render/mapa/camera.mjs';
 
 // Altura na tela (Goku = 70). Provisório: o Hatchiyack é maior, o General um pouco maior que o Guerreiro.
 // Pedro, 10/11/2026: Nail, Piccolo e Neva têm 1,25× a altura do Goku (70); antes 2× e depois 1,5×.

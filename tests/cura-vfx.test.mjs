@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { CURA_VFX, quadroCura, carregarCura, desenharCura } from '../public/render/cura.mjs';
-import { Game } from '../public/shared/game.mjs';
-import { statsFor } from '../public/shared/characters.mjs';
-import { lugar } from '../public/shared/config.mjs';
+import { CURA_VFX, quadroCura, carregarCura, desenharCura } from '../public/render/vfx/cura.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { statsFor } from '../public/shared/nucleo/characters.mjs';
+import { lugar } from '../public/shared/nucleo/config.mjs';
 
 test('cura VFX toca exatamente 24 frames a 40 FPS e desaparece em 0,6s sem loop', () => {
   const efeito = { started: 1000 };

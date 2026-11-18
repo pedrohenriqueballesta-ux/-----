@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {instalarRedimensionamento,limitarTamanhoHud,limitarAlturaHud,limitarEscalaHud,modoRedimensionamento} from '../public/render/redimensionar-hud.mjs';
+import {instalarRedimensionamento,limitarTamanhoHud,limitarAlturaHud,limitarEscalaHud,modoRedimensionamento} from '../public/render/hud/redimensionar-hud.mjs';
 test('tamanho das janelas respeita mínimos e limites da tela',()=>{
  assert.deepEqual(limitarTamanhoHud(50,40,{w:1000,h:800}),{w:220,h:160});
  assert.deepEqual(limitarTamanhoHud(5000,5000,{w:420,h:740}),{w:404,h:724});

@@ -442,7 +442,7 @@ test('caça automática sai de fresta sem saída na beira do penhasco (travava o
 });
 
 test('caça automática não persegue um mob isolado atrás de água ou penhasco', async () => {
-  const { caminhoPorTerra } = await import('../public/shared/passagem.mjs');
+  const { caminhoPorTerra } = await import('../public/shared/mundo/passagem.mjs');
   const game = new Game({ now: 1000, populate: false, random: () => 0.5 });
   const p = naArea(game, game.addPlayer('a'), 'media');
   const isolado = game.addMob('guerreiro', 5904, 3708, 'media');
@@ -471,7 +471,7 @@ test('hunt difícil tem Porunga (de perto, voando) no lugar do Saibaman de elite
 });
 
 test('chefe raro: nasce no círculo do planalto entre 45 e 90 minutos, e de novo no mesmo intervalo', async () => {
-  const { CIRCULO_DO_CHEFE } = await import('../public/shared/enemies.mjs');
+  const { CIRCULO_DO_CHEFE } = await import('../public/shared/nucleo/enemies.mjs');
   const game = new Game({ now: 1000, random: () => 0.5 }), chefe = [...game.mobs.values()].find(m => m.type === 'boss');
   assert.equal(chefe.hp, 0, 'não está no mapa quando o servidor liga');
   assert.ok(chefe.deadUntil - game.time >= 45 * 60 && chefe.deadUntil - game.time <= 90 * 60);

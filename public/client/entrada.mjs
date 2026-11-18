@@ -1,6 +1,6 @@
 import {idiomaInicial,tradutor,textoLocal} from './i18n.mjs';
-import {el,botao,campo,selecionar} from '../render/hud-elementos.mjs';
-import {retratoVocacao} from '../render/vocacao-retrato.mjs';
+import {el,botao,campo,selecionar} from '../render/hud/hud-elementos.mjs';
+import {retratoVocacao} from '../render/hud/vocacao-retrato.mjs';
 export async function requisitarAuth(rota,dados){
  const abortar=new AbortController(),prazo=setTimeout(()=>abortar.abort(),15000);
  try{
@@ -59,13 +59,16 @@ export function montarEntrada({entrarNoMundo,sairDoMundo,ajustarAudio,preferenci
   }else if(fase==='loading')formArea.append(el('div','✦','entrada-loading'),el('h1',t('carregando')));
   atualizarNoticias();
  };
- const atualizarNoticias=()=>{online.textContent='● '+t('online')+': '+(news.online==null?t('indisponivel'):news.online);newsLista.replaceChildren(...news.noticias.slice(0,5).map(n=>noticia(n,false)));if(!news.noticias.length)newsLista.append(el('p',t('semNoticias'),'entrada-nota'));};
+ const atualizarNoticias=()=>{online.textContent='● '+t('online')+': '+(news.online==null?t('indisponivel'):news.online);newsLista.replaceChildren(...news.noticias.slice(0,5).map(n=>noticia(n,false)));if(!news.noticias.length)newsLista.append(el('p',t('semNoticias'),'entrada-nota'));devBtn.hidden=!(fase==='login'&&news.devSkip);};
  const noticia=(n,completa)=>{const a=el('article');a.append(el('small',t(n.categoria)+' · '+new Date(n.data).toLocaleDateString(idioma)),el('h3',textoLocal(n.titulo,idioma)),el('p',textoLocal(completa?n.conteudo:n.descricao,idioma)));if(!completa)a.append(botao(t('lerMais'),()=>{modalTitulo.textContent=textoLocal(n.titulo,idioma);modalCorpo.replaceChildren(noticia(n,true));modal.showModal();}));return a;};
  const verNoticias=()=>{modalTitulo.textContent=t('novidades');modalCorpo.replaceChildren(...news.noticias.map(n=>noticia(n,true)));if(!news.noticias.length)modalCorpo.append(el('p',t('semNoticias')));modal.showModal();};
  const pararPoll=()=>{clearTimeout(poll);poll=null;};
  const consultarNoticias=async()=>{pararPoll();if(parado||fase==='world')return;try{const r=await fetch('/api/entrada',{cache:'no-store'});if(!r.ok)throw Error();news=await r.json();if(fase!=='world'){atualizarNoticias();renderLinks();}}catch{news.online=null;atualizarNoticias();}if(!parado&&fase!=='world')poll=setTimeout(consultarNoticias,10000);};
  const abrir=()=>{document.body.classList.add('em-login');for(const d of document.querySelectorAll('dialog[open]'))if(d!==janela)d.close();if(!janela.open)janela.showModal();consultarNoticias();};
  const sair=()=>executar(async()=>{sairDoMundo();let falha=null;try{await requisitarAuth('sair',{});}catch(e){falha=e;}conta=null;selecionado=null;ir('login');abrir();if(falha)erroVisivel(falha);});
+ // Só para teste (botão "Pular login (DEV)"): entra com a conta de teste, sem login nem criação. REMOVER ao desligar o atalho.
+ const entrarDev=()=>executar(async()=>{ir('loading');try{const r=await requisitarAuth('dev');atualizarConta(r.conta);const ok=await entrarNoMundo();if(ok){fase='world';document.title='Dragon Ball Idle';document.body.classList.remove('em-login');janela.close();pararPoll();return;}erroVisivel({code:'conexao'});}catch(e){erroVisivel(e);}ir('login');});
+ const devBtn=botao('Pular login (DEV)',entrarDev);devBtn.className='entrada-dev';devBtn.hidden=true;painel.append(devBtn);
  idiomas.onchange=()=>{idioma=idiomas.value;t=tradutor(idioma);try{localStorage.setItem('dbi-idioma',idioma);}catch{}if(modal.open)modal.close();render();if(conta)requisitarAuth('preferencias',{idioma}).then(r=>{conta=r.conta;}).catch(erroVisivel);};
  const mudarAudio=(persistir=true)=>{audioPref={musicaAtiva:!mute.i.checked,volumeMusica:Number(volume.i.value)/100};ajustarAudio(audioPref);if(conta&&persistir)requisitarAuth('preferencias',{audio:audioPref}).then(r=>{conta=r.conta;}).catch(erroVisivel);};mute.i.onchange=()=>mudarAudio();volume.i.oninput=()=>mudarAudio(false);volume.i.onchange=()=>mudarAudio();
  render();abrir();

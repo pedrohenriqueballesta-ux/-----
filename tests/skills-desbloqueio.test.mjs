@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
 
 function jogador(level) {
   const game = new Game({ now: 1000, populate: false });

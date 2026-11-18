@@ -1,24 +1,24 @@
 // Registro de imagens (sprites e texturas). A arte é separada da simulação
 // autoritativa, que vive em shared/.
-import { FOLHAS_NAMEK_NORTE } from './namek-norte.mjs';
+import { FOLHAS_NAMEK_NORTE } from './cenario/namek-norte.mjs';
 import { PARADO } from './parado.mjs';
 
-import { FOLHAS_GOKU_KAIOKEN } from './goku-kaioken.mjs';
-import { FOLHAS_GOKU_SSJ } from './goku-ssj.mjs';
-import { FOLHAS_GOKU_SSJ2 } from './goku-ssj2.mjs';
-import { FOLHAS_GOKU_SSJ3 } from './goku-ssj3.mjs';
-import { GOKU_SSJ3_RYUKEN } from './goku-ssj3-ryuken.mjs';
-import { FOLHAS_GOKU_SSJ4 } from './goku-ssj4.mjs';
-import { FOLHAS_GOKU_BASE } from './goku-base.mjs';
-import { FOLHAS_GOKU_NATALINO } from './goku-natalino.mjs';
+import { FOLHAS_GOKU_KAIOKEN } from './personagens/goku/goku-kaioken.mjs';
+import { FOLHAS_GOKU_SSJ } from './personagens/goku/goku-ssj.mjs';
+import { FOLHAS_GOKU_SSJ2 } from './personagens/goku/goku-ssj2.mjs';
+import { FOLHAS_GOKU_SSJ3 } from './personagens/goku/goku-ssj3.mjs';
+import { GOKU_SSJ3_RYUKEN } from './personagens/goku/goku-ssj3-ryuken.mjs';
+import { FOLHAS_GOKU_SSJ4 } from './personagens/goku/goku-ssj4.mjs';
+import { FOLHAS_GOKU_BASE } from './personagens/goku/goku-base.mjs';
+import { FOLHAS_GOKU_NATALINO } from './personagens/goku/goku-natalino.mjs';
 import { SPRITE_DATA } from './sprite-data.mjs';
-import { GOKU_PASSO } from './goku-passo.mjs';
+import { GOKU_PASSO } from './personagens/goku/goku-passo.mjs';
 import { SSJ_PASSO } from './ssj-passo.mjs';
-import { GOKU_GOLPE } from './goku-golpe.mjs';
+import { GOKU_GOLPE } from './personagens/goku/goku-golpe.mjs';
 import { SSJ_GOLPE } from './ssj-golpe.mjs';
-import { SAIBAMAN_PASSO } from './saibaman-passo.mjs';
-import { SAIBAMAN_GOLPE } from './saibaman-golpe.mjs';
-import { SENTINELA_PASSO } from './sentinela-passo.mjs';
+import { SAIBAMAN_PASSO } from './personagens/saibaman/saibaman-passo.mjs';
+import { SAIBAMAN_GOLPE } from './personagens/saibaman/saibaman-golpe.mjs';
+import { SENTINELA_PASSO } from './personagens/sentinela/sentinela-passo.mjs';
 
 const imageCache = new Map();
 const loadImage = url => {

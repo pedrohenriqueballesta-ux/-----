@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {createPlayer,exportPlayer} from '../public/shared/characters.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {createPlayer,exportPlayer} from '../public/shared/nucleo/characters.mjs';
 import {EconomiaPremium} from '../server/premium.mjs';
-import {registrarMissao} from '../public/shared/missoes.mjs';
-import {registrarAtividadePasse,passeDoPersonagem,resumoBattlePass,resgatarMissaoPasse,vincularPasseConta} from '../public/shared/battle-pass.mjs';
-import {TEMPORADA,MAX_PREMIUM} from '../public/shared/premium-config.mjs';
+import {registrarMissao} from '../public/shared/sistemas/missoes.mjs';
+import {registrarAtividadePasse,passeDoPersonagem,resumoBattlePass,resgatarMissaoPasse,vincularPasseConta} from '../public/shared/sistemas/battle-pass.mjs';
+import {TEMPORADA,MAX_PREMIUM} from '../public/shared/sistemas/premium-config.mjs';
 const inicio=Date.parse('2026-11-08T12:00:00Z');
 function cena(ambiente='development'){
  let agora=inicio;const economia=new EconomiaPremium({ambiente,agora:()=>agora}),g=new Game({populate:false,now:inicio/1000}),p=g.addPlayer('p','Teste');p.personagemId='c1';g.agora=()=>agora;

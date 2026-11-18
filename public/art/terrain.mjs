@@ -1,7 +1,7 @@
 // Cenário: grama, caminhos, pedras, árvores e a barraca do mercador.
 import { art, loaded, soloDe } from './assets.mjs';
-import { ENTERRA_CASA, PLANETS } from '../shared/config.mjs';
-import { OBJETOS_DECORACAO } from '../shared/decoracao-objetos.mjs';
+import { ENTERRA_CASA, PLANETS } from '../shared/nucleo/config.mjs';
+import { OBJETOS_DECORACAO } from '../shared/mundo/decoracao-objetos.mjs';
 
 const patterns = new WeakMap();
 export const CLEARINGS = [

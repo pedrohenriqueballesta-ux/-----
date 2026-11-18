@@ -51,7 +51,7 @@ ativa novamente volta à base; ativar outra forma substitui a anterior. Não há
 duração fixa. Ki zerado, morte, viagem e desconexão encerram a forma; reconexão
 começa na base. A recuperação natural de Ki fica bloqueada enquanto transformado.
 O dreno de 3,5 Ki/s e os níveis de desbloqueio são valores provisórios.
-Detalhes e conferência das seis folhas Kaioken em `docs/GOKU_KAIOKEN.md`;
+Detalhes e conferência das seis folhas Kaioken em `docs/tecnicas/GOKU_KAIOKEN.md`;
 prévia das poses em `/kaioken.html`.
 
 A HUD nova fica sobre o mapa que continua ativo. O retrato, HP, Ki, experiência, recursos, minimapa, bússola, missões, menu lateral, chat e os cinco slots originais de técnicas são elementos HTML/CSS; o terceiro slot mantém o buff de transformação e atualiza ícone e nome pela forma liberada. Os personagens e o mundo continuam renderizados no Canvas. O botão **Mais** abre o painel de status, inventário e caça. A HUD de missões/chat é uma interface de protótipo; o chat mostrado é demonstrativo, não um chat multiplayer persistente.
@@ -152,7 +152,7 @@ O protótipo tem apenas Goku e um mapa pequeno. Ainda não há contas de produç
 - public/assets/: sprites e texturas em PNG.
 - public/style.css: apresentação e adaptação para telas pequenas.
 - tests/game.test.mjs, tests/view.test.mjs, tests/sprites.test.mjs: testes de regras, câmera e sprites.
-- docs/CONCEITO.md: cópia das decisões do projeto no momento desta entrega.
+- docs/processo/CONCEITO.md: cópia das decisões do projeto no momento desta entrega.
 
 Como o projeto não usa empacotador, o navegador carrega os módulos direto pela URL;
 por isso todo código compartilhado fica dentro de public/.
@@ -173,7 +173,7 @@ ataques curtos e rajadas de Ki TARGET. Neva é o chefe raro da cratera central;
 sua magia da mão ataca de perto, e a rajada segue o alvo de longe. A chegada é
 segura; a saída fica dentro dela. Não há passagem a pé para as outras hunts.
 
-Detalhes, números do equilíbrio e instruções: `docs/NAMEK_4A_HUNT.md`. Galeria
+Detalhes, números do equilíbrio e instruções: `docs/mundo/NAMEK_4A_HUNT.md`. Galeria
 das nove animações, sem usar o save: `/namek-norte.html`.
 
 ## Progressão até o nível 1.000 (12/11/2026)

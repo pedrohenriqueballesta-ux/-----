@@ -4,14 +4,14 @@
 // definitiva (5 direções × 4 quadros de voo + 4 de ataque) foi pedida ao ChatGPT.
 import { art, loaded } from './assets.mjs';
 import { drawSheet } from './atlas.mjs';
-import { spriteFacing, strikeColumn } from '../render/camera.mjs';
-import { PASSARO_VOO } from './passaro-voo.mjs';
-import { PASSARO_ATAQUE } from './passaro-ataque.mjs';
-import { INSETO_VOO } from './inseto-voo.mjs';
-import { PORUNGA_VOO } from './porunga-voo.mjs';
-import { PORUNGA_ATAQUE } from './porunga-ataque.mjs';
-import { PORUNGA_BOSS_VOO } from './porunga-boss-voo.mjs';
-import { PORUNGA_BOSS_ATAQUE } from './porunga-boss-ataque.mjs';
+import { spriteFacing, strikeColumn } from '../render/mapa/camera.mjs';
+import { PASSARO_VOO } from './fauna/passaro-voo.mjs';
+import { PASSARO_ATAQUE } from './fauna/passaro-ataque.mjs';
+import { INSETO_VOO } from './fauna/inseto-voo.mjs';
+import { PORUNGA_VOO } from './personagens/porunga/porunga-voo.mjs';
+import { PORUNGA_ATAQUE } from './personagens/porunga/porunga-ataque.mjs';
+import { PORUNGA_BOSS_VOO } from './personagens/porunga/porunga-boss-voo.mjs';
+import { PORUNGA_BOSS_ATAQUE } from './personagens/porunga/porunga-boss-ataque.mjs';
 
 // Folhas definitivas (5 direções × 4 quadros, lado esquerdo espelhado): voo com a batida de asa de verdade
 // e, quando houver, ataque (o quadro de impacto, coluna 3, cai no instante do dano, como nos outros mobs).

@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {FOLHAS_GOKU_BASE} from '../public/art/goku-base.mjs';
-import {FOLHAS_GOKU_SSJ3} from '../public/art/goku-ssj3.mjs';
-import {DIRECTIONS} from '../public/render/camera.mjs';
+import {FOLHAS_GOKU_BASE} from '../public/art/personagens/goku/goku-base.mjs';
+import {FOLHAS_GOKU_SSJ3} from '../public/art/personagens/goku/goku-ssj3.mjs';
+import {DIRECTIONS} from '../public/render/mapa/camera.mjs';
 globalThis.Image=class {complete=true;naturalWidth=1024;};
-const {drawGoku}=await import('../public/art/goku.mjs');
+const {drawGoku}=await import('../public/art/personagens/goku/goku.mjs');
 const {art}=await import('../public/art/assets.mjs');
-const {desenharRaiosSsj2,carregarRaiosSsj2}=await import('../public/render/raios-ssj2.mjs');
-const {formaDisponivel,DANO_DA_FORMA}=await import('../public/shared/formas.mjs');
-const {CONFIG}=await import('../public/shared/config.mjs');
+const {desenharRaiosSsj2,carregarRaiosSsj2}=await import('../public/render/vfx/raios-ssj2.mjs');
+const {formaDisponivel,DANO_DA_FORMA}=await import('../public/shared/tecnicas/formas.mjs');
+const {CONFIG}=await import('../public/shared/nucleo/config.mjs');
 
 // Super Saiyajin 2 (Pedro, 11/11/2026): folhas sobre as do SSJ (mesmo corpo, cabelo mais cheio) + raios animados à parte.
 test('seis folhas SSJ3 com as chaves da base, grade 5×4 e âncoras nos pés',async()=>{

@@ -1,10 +1,10 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game} from '../public/shared/game.mjs';
-import {createPlayer} from '../public/shared/characters.mjs';
-import {vincularPasseConta,passeDoPersonagem,registrarAtividadePasse,resumoBattlePass,resgatarMissaoPasse} from '../public/shared/battle-pass.mjs';
-import {TEMPORADA,TEMPORADAS,recompensaPasse} from '../public/shared/premium-config.mjs';
-import {resgatarMissao,registrarMissao} from '../public/shared/missoes.mjs';
+import {Game} from '../public/shared/nucleo/game.mjs';
+import {createPlayer} from '../public/shared/nucleo/characters.mjs';
+import {vincularPasseConta,passeDoPersonagem,registrarAtividadePasse,resumoBattlePass,resgatarMissaoPasse} from '../public/shared/sistemas/battle-pass.mjs';
+import {TEMPORADA,TEMPORADAS,recompensaPasse} from '../public/shared/sistemas/premium-config.mjs';
+import {resgatarMissao,registrarMissao} from '../public/shared/sistemas/missoes.mjs';
 import {EconomiaPremium} from '../server/premium.mjs';
 const now=Date.parse('2026-11-08T12:00:00Z');
 test('migração une direitos e resgates antigos sem somar XP duplicado, e não reimporta saves antigos',()=>{

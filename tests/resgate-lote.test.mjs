@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {avaliarResgateLote} from '../public/shared/resgate-lote.mjs';
+import {avaliarResgateLote} from '../public/shared/sistemas/resgate-lote.mjs';
 
 test('resgate em lote calcula o espaço total e informa quanto falta',()=>{
  const r=avaliarResgateLote([{itens:{food:2,ki:1}},{itens:{seed15:1}}],10,10.5);

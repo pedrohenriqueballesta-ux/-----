@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../public/shared/game.mjs';
-import { CONFIG, lugar } from '../public/shared/config.mjs';
-import { CURA } from '../public/shared/cura.mjs';
+import { Game } from '../public/shared/nucleo/game.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
+import { CURA } from '../public/shared/tecnicas/cura.mjs';
 
 function cena() {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
