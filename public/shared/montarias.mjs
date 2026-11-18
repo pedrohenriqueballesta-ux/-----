@@ -1,6 +1,11 @@
 ﻿// Montaria cosmética: nenhuma configuração deste módulo altera colisão, velocidade ou combate.
 export const DIRECOES_NIMBUS=Object.freeze(['n','ne','e','se','s','sw','w','nw']);
 export const NIMBUS=Object.freeze({quadros:5,frameMs:130,tamanho:256,escala:.65,ancoraX:128,ancoraY:110,altura:12,amplitude:2,frequencia:1.6});
+// Ponto de quadril do personagem sentado, relativo ao ponto de apoio da montaria.
+export const ASSENTOS_MONTARIAS=Object.freeze({rena_natalina:Object.freeze({
+  n:{x:4,y:-20},ne:{x:-3,y:-19},e:{x:-6,y:-18},se:{x:-5,y:-18},
+  s:{x:4,y:-21},sw:{x:5,y:-18},w:{x:6,y:-18},nw:{x:3,y:-19}
+})});
 // Apoio no centro da massa espessa, sem considerar rabinho ou partículas.
 // Coordenadas de cada um dos cinco frames no PNG 256×256. A nuvem é alinhada
 // ao personagem, evitando que a variação do recorte faça o corpo oscilar.
@@ -15,7 +20,7 @@ export const APOIOS_NIMBUS=Object.freeze({
  nw:[[129,100],[126,100],[122,96],[117,97],[113,98]]
 });
 export const AJUSTES_NIMBUS=Object.freeze({goku:{x:0,y:-6},'goku:ssj':{x:0,y:-6}});
-export const montariaValida=v=>v==='nimbus'?'nimbus':null;
+export const montariaValida=v=>v==='nimbus'?v:null;
 export function direcaoNimbus(f={x:0,y:1}){
  const x=Number.isFinite(f.x)?f.x:0,y=Number.isFinite(f.y)?f.y:1;
  if(!x&&!y)return 's';return DIRECOES_NIMBUS[((Math.round(Math.atan2(y,x)/(Math.PI/4))+2)%8+8)%8];

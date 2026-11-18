@@ -33,7 +33,7 @@ import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advance
 
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
 const canvas = document.getElementById('world'), ctx = canvas.getContext('2d'), mini = document.getElementById('minimap'), mctx = mini?.getContext('2d');
-const keys = new Set(), renderPositions = new Map(), seenEvents = new Set();
+const keys = new Set(), renderPositions = new Map(), seenEvents = new Set(), montariaTransicoes = new Map();
 let entrada=null,tutorial=null;
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
@@ -90,6 +90,8 @@ function conectarMundo(data){
       if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
         renderPositions.clear(); floating = []; pointerAim = null;
       }
+      const anteriorSnapshot=snapshot;
+      if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
@@ -135,7 +137,7 @@ setInterval(sendInput, 70);
 instalarAtalhosInterface({
  ativo:()=>Boolean(session&&snapshot?.self&&!document.querySelector('#welcomeDialog[open],#tutorialDialog[open]')),
  bloqueado:()=>transicaoTeleport.ativa,abrirMenu:menu=>document.querySelector('[data-menu="'+menu+'"]')?.click(),
- caca:alternarCaca,painelCaca:alternarAutoHunt,montaria:()=>action({type:'montaria',valor:snapshot.self.montaria==='nimbus'?null:'nimbus'}),
+ caca:alternarCaca,painelCaca:alternarAutoHunt,montaria:()=>action({type:'montaria',valor:snapshot.self.montaria?null:(snapshot.self.montariaPreferida||'nimbus')}),
  soltarTeclas:()=>{keys.clear();touchVector={x:0,y:0};sendInput();}
 });
 document.addEventListener('keydown', e => {
@@ -300,10 +302,15 @@ function placa(x, y, texto, hp, max, cor, largura = 52) {
   ctx.restore();
 }
 function drawPlayer(p, pos, time, somenteCorpo = false) {
+  const transicaoRena=montariaTransicoes.get(p.id);
+  if(transicaoRena&&time-transicaoRena.inicio>.65)montariaTransicoes.delete(p.id);
+  if(transicaoRena&&time-transicaoRena.inicio<=.65)p={...p,renaTransition:transicaoRena};
   p = apresentarGenkiJogador(p,snapshot.genkiCharges || [],time);
   if (!somenteCorpo) shadow(pos.x, pos.y, 20);
   const opcoesNimbus={flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes};
-  const montado=somenteCorpo?(p.montaria==='nimbus'&&!p.dead&&nimbusCarregada()?geometriaNimbus(p,pos,time,opcoesNimbus):null):desenharNimbus(ctx,p,pos,time,opcoesNimbus);
+  const origemMontaria={...pos};
+  const usaCamadasRena=p.montaria==='rena_natalina'&&!p.moving&&!p.renaTransition;
+  const montado=somenteCorpo?(p.montaria&&!p.dead&&nimbusCarregada()?geometriaNimbus(p,pos,time,opcoesNimbus):null):desenharNimbus(ctx,usaCamadasRena?{...p,renaCamadas:true,renaCamada:'back'}:p,pos,time,opcoesNimbus);
   if(montado){pos=montado.personagem;p={...p,moving:false};}
   const back = p.facing.y < -0.3;
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
@@ -323,6 +330,9 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
+  if (!somenteCorpo && usaCamadasRena && !p.dead) {
+    desenharNimbus(ctx,{...p,renaCamadas:true,renaCamada:'front'},origemMontaria,time,opcoesNimbus);
+  }
   // Aura envolve o corpo; a recomposição do Kame não cria uma segunda cópia.
   if (!somenteCorpo) desenharCura(ctx, p, pos, time);
   desenharBarreira(ctx, p, pos, time);
