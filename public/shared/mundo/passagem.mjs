@@ -1,8 +1,9 @@
 // Onde dá para andar em cada planeta. Planeta de hunt usa a máscara gerada da imagem do solo
-// (namek-passagem.mjs para Namekusei); planeta sem máscara (a Terra) é livre.
+// (namek-passagem.mjs para Namekusei); a Terra (Cidade do Oeste) usa a planta de shared/mundo/terra.mjs.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
 import { VEGETA_PASSAGEM } from './vegeta-passagem.mjs';
 import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia, pontoNaZonaSegura } from '../nucleo/config.mjs';
+import { andavelNaTerra, dentroDaCidade, GRADE_TERRA } from './terra.mjs';
 
 function decodificar({ cols, rows, linhas }) {
   const grade = new Uint8Array(cols * rows);
@@ -30,12 +31,14 @@ function decodificarAreas({ cols, rows, ids, areas }) {
 // Planeta novo: gere a máscara dele e acrescente aqui.
 const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala, cellH: m.cellH * PLANETS[planet].escala, grade: decodificar(m),
   areas: m.areas ? decodificarAreas(m) : null });
-const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM) };
+// Terra: sem imagem de máscara; a grade só dá tamanho às células da busca de caminho (onde se anda vem de terra.mjs).
+const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM), terra: { ...GRADE_TERRA, grade: null, areas: null } };
 // Planeta com máscara tem água/penhasco: quem persegue precisa de caminho por terra.
 export const temMascara = planet => Boolean(MASCARAS[planet]);
 
 // Só o terreno (mar/lagos), sem contar casas e outras construções.
 export function emTerra(planet, x, y) {
+  if (planet === 'terra') return dentroDaCidade(x, y);
   const m = MASCARAS[planet];
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
@@ -57,6 +60,7 @@ function naArea(area, x, y) {
 export function podeAndar(planet, x, y, area = null) {
   if (!naArea(area, x, y)) return false;
   if (OBSTACLES.some(o => o.planet === planet && Math.hypot(o.x - x, o.y - y) < o.r)) return false;
+  if (planet === 'terra') return andavelNaTerra(x, y);
   const m = MASCARAS[planet];
   if (!m) return true;
   const cx = Math.floor(x / m.cellW), cy = Math.floor(y / m.cellH);
@@ -163,6 +167,9 @@ export function caminhoPorTerra(planet, de, ate, area = null, alcanceFinal = 0, 
   // Ativar a caça dentro do quadrado permite sair. Depois disso a rota usa o bloqueio completo.
   evitarZonaSegura = evitarZonaSegura && !pontoNaZonaSegura(planet, area, de.x, de.y);
   const alcanca = pesLivres(planet, de.x, de.y, 15, area) ? (x, y) => retaLivre(planet, area, de, x, y, 15, evitarZonaSegura) : null;
+  // Cidade do Oeste: chão aberto; com a reta livre vai direto (sem isso, a porta rente ao prédio, fora das células com
+  // folga, fazia o jogador ir e voltar entre a última célula e a porta).
+  if (planet === 'terra' && !alcanceFinal && alcanca?.(ate.x, ate.y)) return [{ x: ate.x, y: ate.y }];
   return buscar(gradeBusca(planet, area, FOLGA_CAMINHO, evitarZonaSegura), de, ate, alcanca, alcanceFinal)
     || buscar(gradeBusca(planet, area, 15, evitarZonaSegura), de, ate, alcanca, alcanceFinal);
 }

@@ -622,3 +622,25 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 
 /* Mantém as duas janelas da caça visíveis em telas menores e organiza cada drop sem sobrepor textos. */
 .hunt-loot-window .hunt-loot-grupo{margin:10px 0}.hunt-loot-window .hunt-loot-grupo h4{margin:8px 0;color:#e8f1ff}.hunt-loot-window .hunt-loot-grade{display:grid;grid-template-columns:1fr;gap:6px}.hunt-loot-window .hunt-loot-item{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:2px 7px;padding:5px 2px;border-bottom:1px solid #526b8966}.hunt-loot-window .hunt-loot-item img{grid-row:span 2}.hunt-loot-window .hunt-loot-item strong{min-width:0;overflow-wrap:anywhere;line-height:1.25}.hunt-loot-window .hunt-loot-item small{grid-column:2/-1;overflow-wrap:anywhere}.hunt-loot-window .hunt-loot-quantidade{white-space:nowrap}
+
+/* Botão de interação com NPC da Terra (provisório): aparece perto da Loja do Karin, do Mercado de comida etc. */
+.botao-interagir{position:fixed;left:50%;bottom:calc(150 * var(--u));transform:translateX(-50%);z-index:40;padding:calc(8 * var(--u)) calc(18 * var(--u));
+  border-radius:calc(10 * var(--u));border:2px solid #f2c94c;background:linear-gradient(#1f3d7a,#0d1a33);color:#fff;font-weight:700;font-size:calc(15 * var(--u));
+  box-shadow:0 0 calc(10 * var(--u)) #f2c94c88;cursor:pointer}
+.botao-interagir[hidden]{display:none}
+.botao-interagir kbd{display:inline-block;margin-right:calc(8 * var(--u));padding:0 calc(6 * var(--u));border-radius:4px;background:#f2c94c;color:#0d1a33}
+/* Loja aberta por um NPC: só o que ele vende (Karin: poções e sementes; cozinheiro: comida). */
+#shopDialog[data-filtro="karin"] .shop-item[data-item-loja="food"]{display:none}
+#shopDialog[data-filtro="comida"] .shop-item:not([data-item-loja="food"]){display:none}
+
+/* Janela de serviços "em breve" (Corporação Cápsula, enquanto o equipamento não existe). */
+.servicos-dialog{min-width:calc(380 * var(--u));border:2px solid var(--ouro);border-radius:calc(12 * var(--u));background:linear-gradient(#13285a,#081430);color:#fff;padding:0}
+.servicos-dialog::backdrop{background:#0008}
+.servicos-dialog header{display:flex;align-items:center;justify-content:space-between;padding:calc(12 * var(--u)) calc(16 * var(--u));border-bottom:1px solid #3d5c98}
+.servicos-dialog h2{margin:0;font-size:calc(20 * var(--u))}
+.servicos-dialog .close-dialog{background:#c0392b;color:#fff;border:0;border-radius:6px;font-size:calc(20 * var(--u));width:calc(32 * var(--u));height:calc(32 * var(--u));cursor:pointer}
+.servicos-selo{margin:calc(12 * var(--u)) calc(16 * var(--u)) 0;color:var(--ouro);font-size:calc(12 * var(--u));letter-spacing:.08em}
+.servicos-dialog ul{list-style:none;margin:calc(10 * var(--u)) calc(16 * var(--u));padding:0;display:grid;gap:calc(8 * var(--u))}
+.servicos-dialog li{display:flex;justify-content:space-between;align-items:center;padding:calc(12 * var(--u)) calc(14 * var(--u));border:1px solid #3d5c98;border-radius:calc(8 * var(--u));background:#0d1a3a}
+.servicos-dialog li span{color:#9fb3d9;font-size:calc(13 * var(--u));border:1px solid #9fb3d955;border-radius:999px;padding:2px calc(10 * var(--u))}
+.servicos-nota{margin:0 calc(16 * var(--u)) calc(14 * var(--u));color:#9fb3d9;font-size:calc(12 * var(--u))}

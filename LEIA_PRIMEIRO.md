@@ -89,8 +89,9 @@ Uma escolha manual para esse slot é preservada. O Super Kamehameha só pode ser
 `CONFIG.plannedSkillUnlocks`
 fica para técnicas futuras ainda não implementadas.
 5. Após sofrer dano, use uma semente. Tente trocar a potência durante os 20 segundos de recarga: todas continuam bloqueadas.
-6. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
-7. Volte ao mercador da vila, venda materiais e reponha comida e poções.
+6. A Terra é a Cidade do Oeste (cidade do rio): por enquanto só o chão; os prédios e as decorações estão sendo feitos.
+7. Abra outra aba para ver um segundo jogador real. Os dois só se veem no mesmo lugar (Terra, Vila ou a mesma hunt). Não há PvP nesta versão: o servidor recusa dano entre jogadores.
+8. Volte ao mercador da vila, venda materiais e reponha comida e poções.
 
 Viagem só por portal: na Terra, o portal leva à Vila de Namekusei; na Vila, um portal para cada uma das quatro hunts e outro de volta à Terra; em cada hunt, a saída fica onde você chegou e leva à Vila ou às outras hunts. Movimentar manualmente interrompe a condução automática.
 

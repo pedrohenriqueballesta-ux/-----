@@ -24,6 +24,7 @@ export const ATALHOS=Object.freeze([
  {id:'consumivel7',nome:'Consumível antigo do slot 6',teclas:['r']},
  {id:'consumivel8',nome:'Consumível antigo do slot 7',teclas:['q']},
  {id:'comida',nome:'Usar comida',teclas:['f']},
+ {id:'interagir',nome:'Falar com o NPC por perto (provisório)',teclas:['e']},
  {id:'zoom',nome:'Zoom do mapa sob o cursor / câmera',teclas:[],exibir:'Roda do mouse'},
  {id:'navegar',nome:'Navegar até um ponto pelo minimapa',teclas:[],exibir:'Clique no minimapa'}
 ]);

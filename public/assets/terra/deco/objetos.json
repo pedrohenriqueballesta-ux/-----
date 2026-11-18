@@ -1,0 +1,82 @@
+{
+ "arvore": [
+  209,
+  252
+ ],
+ "palmeira": [
+  205,
+  292
+ ],
+ "arvore_pequena": [
+  124,
+  145
+ ],
+ "arbusto": [
+  85,
+  41
+ ],
+ "rocha": [
+  117,
+  76
+ ],
+ "pedrinhas": [
+  87,
+  40
+ ],
+ "canteiro": [
+  152,
+  55
+ ],
+ "toco": [
+  117,
+  60
+ ],
+ "poste": [
+  69,
+  161
+ ],
+ "banco": [
+  130,
+  60
+ ],
+ "lixeira": [
+  33,
+  49
+ ],
+ "hidrante": [
+  49,
+  58
+ ],
+ "maquina": [
+  58,
+  98
+ ],
+ "caixa_correio": [
+  52,
+  83
+ ],
+ "placa": [
+  80,
+  107
+ ],
+ "vaso": [
+  95,
+  89
+ ],
+ "nave_pequena": [
+  310,
+  288
+ ],
+ "capsula_saiyajin": [
+  223,
+  127
+ ],
+ "taxi": [
+  195,
+  114
+ ],
+ "onibus": [
+  317,
+  191
+ ]
+}

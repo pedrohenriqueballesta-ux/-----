@@ -51,13 +51,14 @@ test('clique fora da hunt termina na borda caminhável sem atravessar para outro
 });
 
 test('clique dentro de uma estrutura para antes da colisão; teclado cancela a rota corrigida', () => {
-  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p'); p.x = 100; p.y = 300;
-  const o = { planet: 'terra', x: 300, y: 300, r: 55 }; OBSTACLES.push(o);
+  // Avenida de cima da Cidade do Oeste (Terra): chão livre, sem prédios.
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p'); p.x = 700; p.y = 1100;
+  const o = { planet: 'terra', x: 900, y: 1100, r: 55 }; OBSTACLES.push(o);
   try {
-    g.action(p.id, { type: 'moveTo', x: 300, y: 300 }); chegar(g, p);
+    g.action(p.id, { type: 'moveTo', x: 900, y: 1100 }); chegar(g, p);
     assert.ok(Math.hypot(p.x - o.x, p.y - o.y) >= 70);
-    assert.ok(p.x > 220, 'chega ao limite acessível');
-    g.action(p.id, { type: 'moveTo', x: 300, y: 300 });
+    assert.ok(p.x > 820, 'chega ao limite acessível');
+    g.action(p.id, { type: 'moveTo', x: 900, y: 1100 });
     g.setInput(p.id, { x: -1, y: 0 }); assert.equal(p.moveTo, null);
   } finally { OBSTACLES.splice(OBSTACLES.indexOf(o), 1); }
 });

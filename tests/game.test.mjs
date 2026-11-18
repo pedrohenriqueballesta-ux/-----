@@ -83,7 +83,7 @@ test('movimento manual interrompe a caça e desconexão suspende evolução AFK'
 });
 
 test('teclado e condução automática mantêm velocidade igual nas quatro diagonais', () => {
-  // Mede só a velocidade: o mob anda na Terra, sem água nem caminho por terra no meio.
+  // Mede só a velocidade: o mob anda num lugar sem mapa de passagem (sem água, prédios nem caminho por terra no meio).
   for (const [x, y] of [[1, -1], [-1, -1], [1, 1], [-1, 1], [1, 0]]) {
     const game = world(), p = game.addPlayer('a'); p.planet = 'namek'; p.x = 1650; p.y = 900;
     const origin = { x: p.x, y: p.y };
@@ -93,10 +93,13 @@ test('teclado e condução automática mantêm velocidade igual nas quatro diago
     assert.equal(Math.sign(p.y - origin.y), y);
     const direction = game.snapshot(p.id).players[0].facing;
     assert.equal(Math.sign(direction.x), x); assert.equal(Math.sign(direction.y), y);
-    const mob = game.addMob('melee', 550, 380); mob.planet = 'terra'; mob.area = null;
+    // A Terra ganhou mapa de passagem (Cidade do Oeste): o mob anda num lugar vazio criado só para o teste.
+    PLANETS.vazio = { id: 'vazio', w: 1100, h: 760 };
+    const mx = 550, my = 380, mob = game.addMob('melee', mx, my); mob.planet = 'vazio'; mob.area = null;
     game.steer(mob, { x: mob.x + x * 100, y: mob.y + y * 100 }, 0.1, mob.speed);
-    assert.ok(Math.abs(Math.hypot(mob.x - 550, mob.y - 380) - mob.speed * 0.1) < 1e-8);
+    assert.ok(Math.abs(Math.hypot(mob.x - mx, mob.y - my) - mob.speed * 0.1) < 1e-8);
     assert.equal(Math.sign(mob.facing.x), x); assert.equal(Math.sign(mob.facing.y), y);
+    delete PLANETS.vazio;
   }
 });
 

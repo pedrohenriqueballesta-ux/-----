@@ -6,14 +6,15 @@ import { podeAndar, emTerra } from '../public/shared/mundo/passagem.mjs';
 
 const world = () => new Game({ now: 1000, populate: false, random: () => 0.99 });
 
-test('Namekusei: mar bloqueia, praça da Vila e chegada são caminháveis, Terra é livre', () => {
+test('Namekusei: mar bloqueia, praça da Vila e chegada são caminháveis; na Terra, a praça sim e a borda não', () => {
   assert.equal(podeAndar('namek', 60, 60), false, 'canto do mapa é mar');
   // Pontos em px da imagem do solo, levados para o mundo pela escala.
   assert.equal(podeAndar('namek', naEscala(3000), naEscala(1860)), false, 'mar entre a nave e o campo de batalha');
   assert.equal(podeAndar('namek', naEscala(1140), naEscala(2940)), false, 'mar ao sul');
   const { x, y } = PLANETS.namek.spawn;
   assert.equal(podeAndar('namek', x, y), true, 'chegada na praça da Vila');
-  assert.equal(podeAndar('terra', 60, 60), true);
+  assert.equal(podeAndar('terra', PLANETS.terra.spawn.x, PLANETS.terra.spawn.y), true);
+  assert.equal(podeAndar('terra', 60, 60), false, 'floresta da borda da Cidade do Oeste');
 });
 
 test('o personagem para na beira da água e não entra no mar', () => {
