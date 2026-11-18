@@ -9,6 +9,7 @@ export const COLECIONAVEIS=Object.freeze({
  'aura-vip':{nome:'Aura Dourada VIP',tipo:'cosmético',imagem:'/assets/hud/personagem/zeni.png'},
  'nimbus-dourada':{nome:'Nimbus Dourada',tipo:'montaria',imagem:'/assets/montarias/nimbus/sprites/nimbus_s_01.png'},
  'emblema-campeao':{nome:'Emblema do Campeão',tipo:'cosmético',imagem:'/assets/premium/battle-pass.gif'}
+ ,'goku-natalino':{nome:'Skin: Goku Natalino',tipo:'skin',imagem:'/assets/goku/natalino/01_PARADO.png'}
 });
 // Configure explicitamente a próxima temporada nesta lista. Sem configuração, o passe encerra.
 export const TEMPORADA=Object.freeze({id:'s1',nome:'Temporada 1 · Ascensão Saiyajin',inicio:'2026-11-01T00:00:00Z',fim:'2026-12-01T00:00:00Z',niveis:50,xpPorNivel:1000,precoPremium:500});
@@ -26,6 +27,7 @@ export const MISSOES_PASSE=Object.freeze([
 export const RECOMPENSAS_PASSE=Object.fromEntries(['gratis','premium'].map(trilha=>[trilha,Array.from({length:50},(_,i)=>{
  const n=i+1,q=1+Math.floor(n/10),f=trilha==='premium'?2:1;
  const cosm={1:'traje-escarlate',10:'aura-azul',20:'titulo-guardiao',25:'moldura-estelar',35:'efeito-celeste',40:'nimbus-dourada',50:'emblema-campeao'};
+ if(trilha==='gratis'&&n===1)return {colecao:['goku-natalino']};
  if(trilha==='premium'&&cosm[n])return {colecao:[cosm[n]]};
  if(n%10===0)return {bau:true,itens:{ki:3*q*f,crystal:q*f,scrap:2*q*f},zeni:100*q*f};
  if(n%5===0)return {moedas:10*f};

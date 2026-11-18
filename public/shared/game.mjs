@@ -200,10 +200,10 @@ export class Game {
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
-    if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};p.montaria=data.valor;return{ok:true};}
+    if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};if(data.valor!==null)p.montariaPreferida=data.valor;p.montaria=data.valor;return{ok:true};}
     if(kind==='skin'){
       const skin=String(data.skin||''),forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin);
-      if(!forma)return this.reject(p,'Skin inválida.');
+      if(skin!=='natalino'&&!forma)return this.reject(p,'Skin inválida.');
       p.skin=skin;return{ok:true};
     }
     if(kind==='atribuirConsumivelHotkey'){
@@ -1136,7 +1136,7 @@ export class Game {
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
         id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
-        montaria:p.montaria,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
+        montaria:p.montaria,montariaPreferida:p.montariaPreferida,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
         genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
@@ -1146,7 +1146,7 @@ export class Game {
         ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
