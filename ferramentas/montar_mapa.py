@@ -18,6 +18,16 @@ from scipy import ndimage
 
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
 MISTURA = '--mistura' in sys.argv
+# --alinhar (17/11/2026): antes de cortar, mede na sobra o quanto a parte nova está deslocada em relação ao que já está
+# no mapa (cada parte é desenhada separada pela IA e um meio-fio ou uma margem pode vir 10-40 px fora do lugar) e entorta
+# a parte nova para encaixar na emenda, voltando ao normal aos poucos para dentro dela. Sem isso o corte deixava um
+# "degrau" no meio-fio (relato do Pedro na Terra).
+ALINHAR = '--alinhar' in sys.argv
+JANELA, QUEDA, MAX_DESLOC = 192, 360, 45
+# --cor: iguala o tom da parte nova ao do que já está no mapa, medido na sobra (a grama de um pedaço sai mais clara ou
+# mais amarela que a do vizinho e a emenda vira uma "parede" de cor). A correção é suave e some para dentro da parte.
+COR = '--cor' in sys.argv
+QUEDA_COR = 600
 partes = json.loads(Path(args[0]).read_text())
 meta = partes.pop('_meta', {'w': 1536, 'h': 1024, 'sobra': 32})
 pasta, saida = Path(args[1]), Path(args[2])
@@ -40,6 +50,63 @@ def costura(custo):
     x = np.empty(h, int); x[-1] = int(acc[-1].argmin())
     for y in range(h - 1, 0, -1): x[y - 1] = x[y] + de[y, x[y]]
     return x
+
+
+def bordas(a):
+    g = a.mean(2); e = np.hypot(*np.gradient(ndimage.gaussian_filter(g, 1.2)))
+    return (e - e.mean()) / (e.std() + 1e-6)
+
+
+def deslocamento(a, b):
+    """(dy, dx, confiança) que leva `a` a `b`: b(y, x) ≈ a(y + dy, x + dx). Correlação de fase das bordas."""
+    A, B = np.fft.fft2(bordas(a)), np.fft.fft2(bordas(b))
+    R = A * np.conj(B); R /= np.abs(R) + 1e-9
+    c = np.real(np.fft.ifft2(R)); iy, ix = np.unravel_index(c.argmax(), c.shape)
+    dy = iy - c.shape[0] if iy > c.shape[0] // 2 else iy; dx = ix - c.shape[1] if ix > c.shape[1] // 2 else ix
+    return dy, dx, c.max() / (c.std() + 1e-9)
+
+
+def perfil(medidas, n):
+    """Medidas (posição, dy, dx) confiáveis → curva suave de dy e dx ao longo da emenda (0 onde não há medida)."""
+    dy, dx = np.zeros(n), np.zeros(n)
+    if not medidas: return dy, dx
+    pos = np.array([m[0] for m in medidas]); vy = ndimage.median_filter(np.array([m[1] for m in medidas], float), 3)
+    vx = ndimage.median_filter(np.array([m[2] for m in medidas], float), 3)
+    t = np.arange(n); dy = np.interp(t, pos, vy); dx = np.interp(t, pos, vx)
+    return ndimage.gaussian_filter1d(dy, JANELA / 3), ndimage.gaussian_filter1d(dx, JANELA / 3)
+
+
+def alinhar(img, antigo, topo, lado):
+    H, W = img.shape[:2]; DY, DX = np.zeros((H, W)), np.zeros((H, W))
+    if lado > 40:      # emenda vertical (sobra da esquerda): medidas ao longo de y
+        med = []
+        for y0 in range(topo, H - JANELA + 1, JANELA // 2):
+            dy, dx, conf = deslocamento(img[y0:y0 + JANELA, :lado], antigo[y0:y0 + JANELA, :lado])
+            if conf > 8 and abs(dy) <= MAX_DESLOC and abs(dx) <= MAX_DESLOC: med.append((y0 + JANELA // 2, dy, dx))
+        dy, dx = perfil(med, H); w = np.clip(1 - (np.arange(W) - lado) / QUEDA, 0, 1)
+        DY += dy[:, None] * w[None, :]; DX += dx[:, None] * w[None, :]
+    if topo > 40:      # emenda horizontal (sobra de cima): medidas ao longo de x
+        med = []
+        for x0 in range(0, W - JANELA + 1, JANELA // 2):
+            dy, dx, conf = deslocamento(img[:topo, x0:x0 + JANELA], antigo[:topo, x0:x0 + JANELA])
+            if conf > 8 and abs(dy) <= MAX_DESLOC and abs(dx) <= MAX_DESLOC: med.append((x0 + JANELA // 2, dy, dx))
+        dy, dx = perfil(med, W); w = np.clip(1 - (np.arange(H) - topo) / QUEDA, 0, 1)
+        DY += w[:, None] * dy[None, :]; DX += w[:, None] * dx[None, :]
+    if not DY.any() and not DX.any(): return img, 0.0
+    yy, xx = np.mgrid[0:H, 0:W].astype(float)
+    out = np.stack([ndimage.map_coordinates(img[..., c], [yy + DY, xx + DX], order=1, mode='nearest') for c in range(3)], 2)
+    return out, float(np.abs(np.dstack([DY, DX])).max())
+
+
+def igualar_cor(img, antigo, topo, lado):
+    H, W = img.shape[:2]; ajuste = np.zeros_like(img)
+    if lado > 20:
+        d = ndimage.gaussian_filter1d((antigo[:, :lado] - img[:, :lado]).mean(1), 80, axis=0)
+        w = np.clip(1 - (np.arange(W) - lado) / QUEDA_COR, 0, 1); ajuste += d[:, None, :] * w[None, :, None]
+    if topo > 20:
+        d = ndimage.gaussian_filter1d((antigo[:topo] - img[:topo]).mean(0), 80, axis=0)
+        w = np.clip(1 - (np.arange(H) - topo) / QUEDA_COR, 0, 1); ajuste += w[:, None, None] * d[None, :, :]
+    return img + np.clip(ajuste, -40, 40)
 
 
 def parte(nome, W, H):
@@ -71,9 +138,16 @@ for nome, (x, y, w, h) in sorted(partes.items(), key=ordem):
         continue
     antigo, ja = mapa[Y:Y + H, X:X + W], posto[Y:Y + H, X:X + W]
     fica = np.ones((H, W), bool)                      # True = pixel da parte nova
-    dif = ((img - antigo) ** 2).sum(2)
     # Sobra de cima: linhas do topo já preenchidas em toda a largura → costura horizontal.
     topo = int(np.argmin(ja.all(1))) if not ja.all(1).all() else H
+    if ALINHAR and ja.any():
+        lado0 = int(np.argmin(ja[topo:].all(0))) if topo < H and not ja[topo:].all(0).all() else 0
+        img, maior = alinhar(img, antigo, topo if topo < H else 0, lado0)
+        if maior: print(f'  {nome}: entortada até {maior:.0f} px para encaixar')
+    if COR and ja.any():
+        lado1 = int(np.argmin(ja[topo:].all(0))) if topo < H and not ja[topo:].all(0).all() else 0
+        img = igualar_cor(img, antigo, topo if topo < H else 0, lado1)
+    dif = ((img - antigo) ** 2).sum(2)
     if topo > 0:
         c = costura(dif[:topo].T + 1)                 # transposta: corre da esquerda para a direita
         fica &= np.arange(H)[:, None] > c[None, :]

@@ -12,6 +12,7 @@ repositório; o processo completo está em `docs/processo/COMO_TRABALHAMOS.md`.
 | `gerar_modulo.py` | Gera o módulo `public/art/<nome>.mjs` a partir do JSON do recorte. |
 | `recortar_folha_8dir.py` | Recorta folhas antigas de 8 direções. |
 | `recortar_mochila.py` | Recorta silhueta e ícones da janela da Mochila. |
+| `gerar_chao_terra.py` | Monta o chão texturizado da Terra (planta da cidade do rio) para cortar nos 36 moldes. |
 
 ## Mapas
 | Script | Para quê |
@@ -21,6 +22,8 @@ repositório; o processo completo está em `docs/processo/COMO_TRABALHAMOS.md`.
 | `conferir_abismo.py` | Confere as partes do Vegeta contra os moldes (chão × abismo). |
 | `igualar_mar.py` | Iguala o tom da água entre partes. |
 | `montar_mapa.py` | Monta o mapa final emendando as partes pela linha de menor diferença (costura). |
+| `alinhar_partes.py` | Entorta cada parte HD para os contornos (meio-fio, margens, pisos) caírem onde o molde manda; rodar antes de montar (tira os degraus nas emendas). |
+| `ajustar_campus_terra.py` | Refaz a metade de baixo do círculo da Corporação Cápsula espelhando a de cima (a parte_3_1 sai com outro raio). |
 | `cortar_blocos.py` | Corta o solo em blocos (teste; não usado hoje). |
 
 ## Passagem e cenário

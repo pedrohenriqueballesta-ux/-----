@@ -3,6 +3,7 @@ import { PEGADAS } from '../mundo/pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from '../mundo/decoracao-namek.mjs';
 import { OBJETOS_DECORACAO } from '../mundo/decoracao-objetos.mjs';
 import { CURA } from '../tecnicas/cura.mjs';
+import { TAMANHO_TERRA, PRACA_TERRA, MERCADORES_TERRA } from '../mundo/terra.mjs';
 
 // Modo de teste GOD MODE (nível máximo + HP/Ki infinitos). DESLIGADO por padrão.
 // Liga so no servidor local com a variavel de ambiente DBI_GODMODE=1.
@@ -111,8 +112,9 @@ export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor
 // mantêm o tamanho; só a posição acompanha o mapa.
 export const MERCHANT = { planet: 'namek', area: 'vila', x: naEscala(560), y: naEscala(1290) };
-// Mercadores de todos os planetas (um por Vila). Comprar e vender pede estar no mesmo lugar e perto.
-export const MERCADORES = [MERCHANT, { planet: 'vegeta', area: 'vegeta-cidade', x: 2420 * ESCALA_VEGETA, y: 1220 * ESCALA_VEGETA }];
+// Mercadores de todos os planetas (um por Vila) e os da Cidade do Oeste (porta da Loja e barracas do Mercado, sem o NPC
+// desenhado: `predio`). Comprar e vender pede estar no mesmo lugar e perto.
+export const MERCADORES = [MERCHANT, { planet: 'vegeta', area: 'vegeta-cidade', x: 2420 * ESCALA_VEGETA, y: 1220 * ESCALA_VEGETA }, ...MERCADORES_TERRA];
 export const mercadorPerto = (p, alcance = 180) => MERCADORES.find(m => m.planet === p.planet && m.area === (p.area || null)
   && Math.hypot(m.x - p.x, m.y - p.y) <= alcance) || null;
 // Árvores e pedras do mapa antigo saíram com o solo novo de Namekusei (28/10).
@@ -164,7 +166,7 @@ export function frenteDaCasa(c, x) {
 export function casaBloqueia(planet, x, y) {
   return HOUSES.some(c => { if (c.planet !== planet) return false; const f = frenteDaCasa(c, x); return f !== null && y < f && y > 2 * c.pegada.centro - f; });
 }
-// Planetas (instâncias). 'terra' é o lobby verde pequeno e seguro (tela inicial); os planetas de hunt
+// Planetas (instâncias). 'terra' é a Cidade do Oeste, segura (tela inicial; shared/mundo/terra.mjs); os planetas de hunt
 // (por ora só 'namek') têm as áreas fechadas acima. Só se troca de lugar por portal.
 // Ficha de um planeta de hunt: tamanho em unidades do jogo, escala (unidades por px da imagem do solo),
 // `solo` = chave da imagem do chão em art/assets.mjs, `fundo` = cor sob o solo enquanto ele carrega,
@@ -172,7 +174,7 @@ export function casaBloqueia(planet, x, y) {
 // na ordem de dificuldade. Para um planeta novo: ficha aqui, áreas em ZONES, máscara em passagem.mjs,
 // mobs em enemies.mjs e portais da Vila em PORTAIS.
 export const PLANETS = {
-  terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 }, imagem: '/assets/worlds/terra.webp' },
+  terra: { id: 'terra', name: 'Terra', w: TAMANHO_TERRA.w, h: TAMANHO_TERRA.h, spawn: PRACA_TERRA.chegada, fundo: '#3f7a35', imagem: '/assets/worlds/terra.webp' },
   namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
     soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
     vila: 'vila', hunts: ['inicial', 'media', 'dificil', 'norte'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
@@ -210,7 +212,8 @@ function portaisDoPlaneta(planet, entradas) {
   ];
 }
 export const PORTAIS = [
-  { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
+  // Terra: a nuvem dos Planetas no centro da praça da Cidade do Oeste.
+  { id: 'terra-namek', planet: 'terra', area: null, ...PRACA_TERRA.portal, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
   ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 600, y: 1050 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).

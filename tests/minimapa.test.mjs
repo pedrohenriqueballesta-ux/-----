@@ -79,22 +79,23 @@ test('arrasto desloca só a visão, respeita bordas e mantém o clique alinhado 
 
 test('destino obtido pelo minimapa usa o movimento autoritativo e contorna estrutura sem atravessá-la', () => {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
-  p.x = 100; p.y = 300;
-  const obstaculo = { planet: 'terra', x: 300, y: 300, r: 55 };
+  // Avenida de cima da Cidade do Oeste (Terra): chão livre, y 1100.
+  const Y = 1100; p.x = 700; p.y = Y;
+  const obstaculo = { planet: 'terra', x: 900, y: Y, r: 55 };
   OBSTACLES.push(obstaculo);
   try {
     const vista = vistaMinimapa(PLANETS.terra, null, p, 240, 176);
     const caixa = { left: 20, top: 30, width: 480, height: 352 };
-    const destino = pontoDoMinimapa(20 + 500 / 1100 * 480, 30 + 300 / 760 * 352, caixa, vista);
-    assert.ok(Math.abs(destino.x - 500) < 1e-9 && Math.abs(destino.y - 300) < 1e-9);
+    const destino = pontoDoMinimapa(20 + (1100 - vista.x) / vista.w * 480, 30 + (Y - vista.y) / vista.h * 352, caixa, vista);
+    assert.ok(Math.abs(destino.x - 1100) < 1e-9 && Math.abs(destino.y - Y) < 1e-9);
     assert.equal(g.action(p.id, { type: 'moveTo', ...destino }).ok, true);
     let desvio = 0;
     for (let i = 0; i < 400 && p.moveTo; i++) {
-      g.tick(.05); desvio = Math.max(desvio, Math.abs(p.y - 300));
+      g.tick(.05); desvio = Math.max(desvio, Math.abs(p.y - Y));
       assert.ok(Math.hypot(p.x - obstaculo.x, p.y - obstaculo.y) >= 70 - 1e-9);
     }
     assert.ok(desvio > 55, 'traçou desvio da estrutura');
-    assert.ok(Math.hypot(p.x - 500, p.y - 300) < 20, 'chegou ao destino');
+    assert.ok(Math.hypot(p.x - 1100, p.y - Y) < 20, 'chegou ao destino');
     assert.equal(p.area, null); assert.equal(p.planet, 'terra');
   } finally { OBSTACLES.splice(OBSTACLES.indexOf(obstaculo), 1); }
 });

@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
-import { OBSTACLES } from '../public/shared/nucleo/config.mjs';
+import { OBSTACLES, PLANETS } from '../public/shared/nucleo/config.mjs';
+
+// Lugar vazio, sem mapa de passagem: a Terra virou a Cidade do Oeste (prédios e borda de floresta).
+PLANETS.vazio = { id: 'vazio', w: 1100, h: 760 };
 
 function cena() {
   const game = new Game({ populate: false });
   const mob = (x, y, corpo = 0) => {
     const m = game.addMob('melee', 4000, 2000);
-    Object.assign(m, { planet: 'terra', area: null, x, y, corpo });
+    Object.assign(m, { planet: 'vazio', area: null, x, y, corpo });
     return m;
   };
   return { game, mob };
@@ -21,7 +24,7 @@ test('mobs não atravessam uns aos outros mesmo com deslocamento grande', () => 
 
 test('jogador atravessa um cerco de mobs e gigantes sem ser bloqueado ou empurrado', () => {
   const { game, mob } = cena(), p = game.addPlayer('jogador');
-  Object.assign(p, { planet: 'terra', area: null, x: 300, y: 300 });
+  Object.assign(p, { planet: 'vazio', area: null, x: 300, y: 300 });
   for (let i = 0; i < 8; i++) {
     const a = i * Math.PI / 4;
     mob(300 + Math.cos(a) * 110, 300 + Math.sin(a) * 110, i % 2 ? 34 : 0);
@@ -54,7 +57,7 @@ test('corpos mortos e mobs de outro lugar não bloqueiam movimento', () => {
 
 test('separação respeita estruturas e movimento não atravessa paredes', () => {
   const { game, mob } = cena();
-  const parede = { planet: 'terra', x: 200, y: 200, r: 30 };
+  const parede = { planet: 'vazio', x: 200, y: 200, r: 30 };
   OBSTACLES.push(parede);
   try {
     const a = mob(140, 200), b = mob(140, 200);
