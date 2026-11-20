@@ -10,23 +10,23 @@ import {PADRAO_PREFERENCIAS} from '../shared/sistemas/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/mundo/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/nucleo/config.mjs';
-import { PREDIOS_TERRA, predioNaPorta, interacaoPerto, INTERACOES } from '../shared/mundo/terra.mjs';
-import { carregarTerra, chaoTerra, desenharChaoTerra, desenharPredioTerra, desenharNomePredio, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
+import { desenharGalickComProfundidade, origemVisualGalick } from '../render/vfx/galick-gun.mjs';
 carregarImpactoKame();
 import { KAME, origemKame, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame } from '../shared/tecnicas/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/vfx/raios-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ2 } from '../art/personagens/goku/goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from '../art/personagens/goku/goku-ssj3.mjs';
 import { FOLHAS_GOKU_BASE } from '../art/personagens/goku/goku-base.mjs';
+import { FOLHAS_VEGETA_SSJ1 } from '../art/personagens/vegeta/vegeta-folhas.mjs';
 import { carregarBarreira, desenharBarreira } from '../render/vfx/barreira-ki.mjs';
 import { criarTransicaoTeleport } from '../render/vfx/teleporte.mjs';
 import { carregarCura, desenharCura } from '../render/vfx/cura.mjs';
 import { carregarProjetilMob, desenharProjetilMob } from '../render/vfx/projetil-mob.mjs';
 import { carregarGenki, desenharGenki } from '../render/vfx/genki.mjs';
 import { carregarRyuken, desenharAuraRyuken, desenharLancamentoRyuken, desenharVooRyuken, desenharImpactoRyuken } from '../render/vfx/ryuken.mjs';
-import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
+import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawVegeta, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { instalarStatusPopout } from './stats-popout.mjs';
 import { zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/mapa/minimapa.mjs';
@@ -101,7 +101,7 @@ function conectarMundo(data){
       if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
       carregarBarreira(); carregarRaiosSsj2('frente');
       carregarCura();
-      carregarGenki(); carregarRyuken(); if (snapshot.planet === 'terra') carregarTerra();
+      carregarGenki(); carregarRyuken();
       for (const effect of snapshot.events) {
         if (seenEvents.has(effect.id)) continue;
         seenEvents.add(effect.id);
@@ -155,7 +155,6 @@ document.addEventListener('keydown', e => {
   else if (key === 'shift') action({type:'skill',skill:'dash'});
   else if (key === 't') action({ type: 'transform' });
   else if (key === 'f') action({ type: 'food' });
-  else if (key === 'e') interagir();
   else if (key === 'q') action({ type: 'usarConsumivelHotkey',slot:8 });
   else if (key === 'r') action({ type: 'usarConsumivelHotkey',slot:7 });
 });
@@ -321,17 +320,21 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   // Sem círculo dourado em volta do Super Saiyajin (pedido do Pedro, 11/11/2026), como já foi feito com a Kaioken.
   const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
   const kame = (snapshot.kamehamehas || []).find(k => k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
-  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started };
+  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.galick ? undefined : kame?.started,
+    galickPhase:p.charge?.galick?'charge':kame?.galick&&!kame.impacto?'beam':null };
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
   if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
   // Camada de trás dos raios do Super Saiyajin 2 (passam por trás do corpo).
   // Altura do Goku desenhado na forma (com o cabelo): os raios encaixam no corpo do SSJ2 e do SSJ3.
-  const alturaSsj2 = 70 * (p.forma === 'ssj3' ? FOLHAS_GOKU_SSJ3 : FOLHAS_GOKU_SSJ2).parado[0].referenceHeight / FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+  const moldeRaios = p.vocacao === 'vegeta' ? FOLHAS_VEGETA_SSJ1 : p.forma === 'ssj3' ? FOLHAS_GOKU_SSJ3 : FOLHAS_GOKU_SSJ2;
+  const alturaBase = p.vocacao === 'vegeta' ? FOLHAS_VEGETA_SSJ1.parado[0].referenceHeight : FOLHAS_GOKU_BASE.andar[0].referenceHeight;
+  const alturaSsj2 = 70 * moldeRaios.parado[0].referenceHeight / alturaBase;
   if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
-  if (!drawGoku(ctx, p, pos, time, strikeProgress)) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
+  const desenhouPersonagem = p.vocacao === 'vegeta' ? drawVegeta(ctx, p, pos, time, strikeProgress) : drawGoku(ctx, p, pos, time, strikeProgress);
+  if (!desenhouPersonagem) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
   if (!somenteCorpo && usaCamadasRena && !p.dead) {
     desenharNimbus(ctx,{...p,renaCamadas:true,renaCamada:'front'},origemMontaria,time,opcoesNimbus);
@@ -544,7 +547,7 @@ function drawMinimap(world = PLANETS.namek, area = null) {
   const { x: ox, y: oy, w: vw, h: vh } = vista;
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
   mctx.fillStyle = world.fundo || '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
-  const solo = world.solo ? soloDe(world) : world.id === 'terra' ? chaoTerra() : null;
+  const solo = world.solo && soloDe(world);
   if (solo?.complete && solo.naturalWidth) {
     const kx = solo.naturalWidth / world.w, ky = solo.naturalHeight / world.h;
     mctx.imageSmoothingEnabled = true;
@@ -611,62 +614,6 @@ function verificarPortal(pos) {
   if (o && o.id !== portalEncostado && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) { keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirPortal(o); }
   portalEncostado = o ? o.id : null;
 }
-// Prédios de interação da Terra (sem interior): perto da frente aparece o botão "Falar"; ele (ou a tecla E, ambos
-// PROVISÓRIOS, Pedro 17/11/2026) abre a janela da loja já filtrada para o que aquele NPC vende.
-const TITULO_LOJA = 'Mercado de suprimentos';
-let interacaoAtual = null, botaoInteragir = null;
-function abrirLojaDoNpc(i) {
-  const janela = document.getElementById('shopDialog'); if (!janela) return;
-  janela.dataset.filtro = i.loja;
-  const h2 = janela.querySelector('h2'), selo = janela.querySelector('.eyebrow');
-  if (h2) h2.textContent = i.nome; if (selo) selo.textContent = 'TERRA · CIDADE DO OESTE';
-  if (!janela.open) document.querySelector('[data-menu="loja"]')?.click();
-  janela.querySelector('[data-shop-aba="comprar"]')?.click();
-  janela.addEventListener('close', () => { delete janela.dataset.filtro; if (h2) h2.textContent = TITULO_LOJA; }, { once: true });
-}
-// Prédio com serviços que ainda não existem (Corporação Cápsula: equipamento): janela simples com os serviços "em breve".
-function abrirServicos(i) {
-  let j = document.getElementById('servicosDialog');
-  if (!j) {
-    j = document.createElement('dialog'); j.id = 'servicosDialog'; j.className = 'servicos-dialog';
-    j.innerHTML = '<header><h2></h2><button type="button" class="close-dialog" aria-label="Fechar">×</button></header><p class="servicos-selo">TERRA · CIDADE DO OESTE</p><ul></ul><p class="servicos-nota">O equipamento ainda não existe no jogo: estes serviços abrem quando ele chegar.</p>';
-    j.querySelector('.close-dialog').onclick = () => j.close(); document.body.append(j);
-  }
-  j.querySelector('h2').textContent = i.nome;
-  j.querySelector('ul').replaceChildren(...i.servicos.map(nome => { const li = document.createElement('li'); li.innerHTML = '<strong></strong><span>Em breve</span>'; li.querySelector('strong').textContent = nome; return li; }));
-  if (!j.open) j.showModal();
-}
-function interagir() {
-  if (!interacaoAtual || snapshot?.planet !== 'terra') return;
-  keys.clear(); sendInput();
-  if (interacaoAtual.loja) abrirLojaDoNpc(interacaoAtual); else if (interacaoAtual.servicos) abrirServicos(interacaoAtual);
-}
-function atualizarBotaoInteragir(pos) {
-  interacaoAtual = snapshot.planet === 'terra' && pos ? interacaoPerto(pos.x, pos.y) : null;
-  if (!botaoInteragir) {
-    botaoInteragir = document.createElement('button'); botaoInteragir.type = 'button'; botaoInteragir.id = 'botaoInteragir';
-    botaoInteragir.className = 'botao-interagir'; botaoInteragir.onclick = interagir; document.body.append(botaoInteragir);
-  }
-  botaoInteragir.hidden = !interacaoAtual;
-  if (interacaoAtual) { const t = '<kbd>E</kbd> ' + (interacaoAtual.npc ? 'Falar com ' + interacaoAtual.npc : 'Entrar na ' + interacaoAtual.nome); if (botaoInteragir.innerHTML !== t) botaoInteragir.innerHTML = t; }
-}
-// Cidade do Oeste: encostar na porta de um prédio abre a janela dele, uma vez (como o portal).
-let portaEncostada = null;
-function abrirJanelaDoPredio(menu) {
-  if (menu !== 'mercado') { document.querySelector('[data-menu="' + menu + '"]')?.click(); return; }
-  // Mercado: a Loja já na aba de venda, no Mercado dos jogadores.
-  document.querySelector('[data-menu="loja"]')?.click();
-  document.querySelector('#shopDialog [data-shop-aba="vender"]')?.click();
-  [...document.querySelectorAll('#shopDialog .venda-modos button')].find(b => /Mercado dos jogadores/.test(b.textContent))?.click();
-}
-function verificarPorta(pos) {
-  if (transicaoTeleport.ativa || snapshot.planet !== 'terra') { portaEncostada = null; return; }
-  const p = predioNaPorta(pos.x, pos.y);
-  if (p && p.menu && p.id !== portaEncostada && !snapshot.self?.autoHunt && !document.querySelector('dialog[open]:not(.mochila):not(.auto-hunt-panel):not(.bestiario)')) {
-    keys.clear(); touchVector = { x: 0, y: 0 }; sendInput(); abrirJanelaDoPredio(p.menu);
-  }
-  portaEncostada = p ? p.id : null;
-}
 
 // Ordem de desenho de um personagem: pela posição dos pés, mas quem pisa à frente da curva da base
 // de uma casa (nas laterais a base sobe) vai na frente dela, mesmo acima da linha da base.
@@ -690,8 +637,9 @@ function drawObjetoVegeta(o, escala) {
 }
 // Sempre cobre os inimigos; a direção decide a profundidade em relação ao lançador.
 function desenharKameSobreInimigos(efeito, tempo, lancador, pos) {
-  desenharKameComProfundidade(ctx, efeito, tempo,
-    lancador && pos ? () => drawPlayer(lancador, pos, tempo, true) : null);
+  const recompor = lancador && pos ? () => drawPlayer(lancador, pos, tempo, true) : null;
+  if (efeito.galick) desenharGalickComProfundidade(ctx, efeito, tempo, recompor);
+  else desenharKameComProfundidade(ctx, efeito, tempo, recompor);
 }
 function frame(now) {
   const fps=snapshot?.self?.preferencias?.fps||60;
@@ -704,7 +652,7 @@ function frame(now) {
   const time = snapshot.time + Math.min(0.2, (now - receivedAt) / 1000);
   // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
   const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
-  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(m => aquiNoPlaneta(m) && !m.predio);
+  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
   const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
@@ -715,8 +663,7 @@ function frame(now) {
     } else screenPosition(entity, dt);
   }
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };
-  if (self && !self.dead) { verificarPortal(position); verificarPorta(position); }
-  atualizarBotaoInteragir(self && !self.dead ? position : null);
+  if (self && !self.dead) verificarPortal(position);
   const area = comSolo ? areaPorId(snapshot.area) : null;
   // Câmera presa à área: a tela termina onde a área termina, sem borda nem escurecimento (pedido do Pedro).
   camera = cameraView(position, width, height, zoom, world.w, world.h, area);
@@ -739,10 +686,10 @@ function frame(now) {
     for (const e of floating) if (e.type === 'pancada' && time >= e.at) rachadura(e, time - e.at);
     for (const l of snapshot.loot) { shadow(l.x, l.y, 7); ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'crystal' ? '#83d2d3' : '#d7c8a3'; ctx.fillRect(l.x - 5, l.y - 6 + Math.sin(time * 3) * 2, 10, 9); ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3); }
   } else {
-    // Terra: o chão da Cidade do Oeste (gramado liso enquanto carrega).
-    if (world.id !== 'terra' || !desenharChaoTerra(ctx, world)) { ctx.fillStyle = world.fundo || '#5a8f3c'; ctx.fillRect(0, 0, world.w, world.h); }
-    // Terra: o teleporte é a nave do Goku (desenhada com os prédios), sem a nuvem.
-    if (world.id !== 'terra') for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
+    // Planeta Terra: gramado verde limpo e seguro (tela inicial).
+    ctx.fillStyle = '#5a8f3c'; ctx.fillRect(0, 0, world.w, world.h);
+    ctx.strokeStyle = '#3c6428'; ctx.lineWidth = 12; ctx.strokeRect(0, 0, world.w, world.h);
+    for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
   }
   const drawables = [
     ...(comSolo ? OBSTACLES.filter(aquiNoPlaneta).map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
@@ -753,30 +700,29 @@ function frame(now) {
     ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
-    // Prédios da Cidade do Oeste: entram pela base, como as casas.
-    ...(world.id === 'terra' ? PREDIOS_TERRA.map(p => ({ y: p.y, draw: () => desenharPredioTerra(ctx, p, position) })) : []),
-    ...(world.id === 'terra' ? INTERACOES.filter(i => i.npcPos).map(i => ({ y: i.npcPos.y, draw: () => desenharNpcTerra(ctx, i, time, position) })) : []),
-    // Estáticos no calçadão da entrada: desenhados logo depois do prédio (o calçadão faz parte do desenho dele).
-    ...(world.id === 'terra' ? INTERACOES.flatMap(i => (i.estaticos || []).map(e => ({ y: i.y + .5, draw: () => desenharNpcEstatico(ctx, e) }))) : []),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas, world.escala, vulcoesAqui), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
     ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
-  // Margem de baixo cobre o prédio mais alto (as torres da Terra, ~860 de altura) com a base abaixo da tela.
-  for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 900) d.draw();
-  // Nome só do prédio mais perto (as quatro barracas do Mercado não repetem o nome).
-  const comPorta = world.id === 'terra' ? PREDIOS_TERRA.filter(p => p.porta) : [];
-  if (position && comPorta.length) {
-    const dist = p => Math.hypot(p.porta.x - position.x, p.porta.y - position.y), perto = comPorta.reduce((a, p) => dist(p) < dist(a) ? p : a);
-    desenharNomePredio(ctx, perto, dist(perto) < 170);
-  }
+  for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
   // Sem recorte: para baixo o feixe cobre o lançador; para cima o sprite recompõe a oclusão.
   for (const p of snapshot.players) if (p.charge) {
     const pos = renderPositions.get(p.id) || p;
-    desenharKameSobreInimigos({ ...p.charge, ...origemKame(pos, p.charge.direction, snapshot.mobs.find(m => m.id === p.charge.targetId)) }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
+    const origem = p.charge.galick ? origemVisualGalick(pos,p.charge.direction,true) : origemKame(pos, p.charge.direction, snapshot.mobs.find(m => m.id === p.charge.targetId));
+    desenharKameSobreInimigos({ ...p.charge, ...origem }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
   }
   for (const k of snapshot.kamehamehas || []) {
     const pos = renderPositions.get(k.owner);
-    desenharKameSobreInimigos(pos && !k.impacto ? { ...k, ...origemKame(pos, k.direction, snapshot.mobs.find(m => m.id === k.targetId)) } : k, time, snapshot.players.find(p => p.id === k.owner), pos);
+    const alvo = snapshot.mobs.find(m => m.id === k.targetId);
+    const origem = pos && k.galick ? origemVisualGalick(pos,k.direction) : pos && !k.impacto ? origemKame(pos,k.direction,alvo) : null;
+    const efeito = origem ? { ...k, ...origem } : k;
+    if (k.galick && (alvo || k.impacto)) {
+      const ponto = k.impacto ? {x:k.impacto.contatoX,y:k.impacto.contatoY,corpo:0} : alvo;
+      const dx = ponto.x - efeito.x, dy = ponto.y - efeito.y, distancia = Math.hypot(dx,dy);
+      efeito.alvoDistancia = Math.max(0,distancia-(ponto.corpo||0));
+      efeito.visualDirection = distancia > 0 ? { x:dx/distancia, y:dy/distancia } : k.direction;
+      efeito.alcanceVisualExtra = Math.max(0,(k.x-efeito.x)*k.direction.x+(k.y-efeito.y)*k.direction.y);
+    }
+    desenharKameSobreInimigos(efeito, time, snapshot.players.find(p => p.id === k.owner), pos);
   }
   for (const g of snapshot.genkiCharges || []) {
     const dono = snapshot.players.find(p => p.id === g.owner);

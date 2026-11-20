@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<title>Galick Gun — prévia de integração</title>
+<style>
+  body{margin:0;padding:18px;background:#101827;color:#e9f2ff;font:15px system-ui}
+  main{max-width:1100px;margin:auto}label{display:inline-flex;gap:8px;align-items:center;margin:0 16px 12px 0}
+  select,input{font:inherit}canvas{display:block;width:100%;background:#1b2440;border:1px solid #64728c}
+  pre{white-space:pre-wrap;color:#acd0f4}small{color:#aebdcf}
+</style>
+<main>
+  <h1>Galick Gun — prévia técnica</h1>
+  <p><small>Usa as folhas e o renderer do jogo. Os marcadores aparecem apenas nesta página.</small></p>
+  <label>Estágio <select id="nivel"><option value="40">V1 · 40</option><option value="80">V2 · 80</option><option value="120">V3 · 120</option><option value="160">V4 · 160</option><option value="200">V5 · 200</option></select></label>
+  <label>Direção <select id="direcao"><option>S</option><option>SE</option><option>E</option><option>NE</option><option>N</option><option>NW</option><option>W</option><option>SW</option></select></label>
+  <label>Fase <select id="fase"><option value="charge">Conjuração</option><option value="beam" selected>Feixe</option><option value="impact">Impacto</option></select></label>
+  <label>Distância <input id="distancia" type="range" min="32" max="400" value="180"><output id="valor">180</output></label>
+  <label><input id="claro" type="checkbox"> Fundo claro</label>
+  <label><input id="marcadores" type="checkbox" checked> Marcadores</label>
+  <canvas id="previa" width="1000" height="1000"></canvas>
+  <pre id="dados"></pre>
+</main>
+<script type="module" src="/render/galick-debug.mjs?v=palma-ancora-2"></script>
+</html>

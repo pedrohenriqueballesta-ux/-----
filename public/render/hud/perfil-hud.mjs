@@ -1,9 +1,10 @@
 import {desenharNimbus} from '../vfx/nimbus.mjs';
 
 import {el,botao,numero,barra} from './hud-elementos.mjs';
-import {MAGIAS_PERSONAGEM,barraValida,tecnicaDisponivel} from '../../shared/tecnicas/barra-tecnicas.mjs';
+import {MAGIAS_PERSONAGEM,barraValida,tecnicaDisponivel,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
+import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
-import {FORMAS} from '../../shared/tecnicas/formas.mjs';
+import {FORMAS,iconeDaForma} from '../../shared/tecnicas/formas.mjs';
 export function montarPerfil(container,{acao}={}){
  let montaria=null;
  const montar=botao('Montar montaria',()=>acao?.({type:'montaria',valor:montaria?null:montariaOpcoes[montariaIndice].id}));
@@ -33,7 +34,9 @@ export function montarPerfil(container,{acao}={}){
  const lista=el('div',null,'perfil-tecnicas-lista');painelTecnicas.append(lista);container.append(abas,painelDados,painelTecnicas);mostrar('personagem');
  let ultimo=null;
  const cards=[...MAGIAS_PERSONAGEM].sort((a,b)=>a.nivel-b.nivel).map(t=>{
-  const card=el('article',null,'perfil-tecnica'),img=t.imagem?el('img',null,'perfil-tecnica-icone'):el('span',null,'tecnica-icone '+t.icone);
+  const formaId=t.id.startsWith('form:')?t.id.slice(5):null;
+  const card=el('article',null,'perfil-tecnica'),img=formaId?el('img',null,'perfil-tecnica-icone'):t.imagem?el('img',null,'perfil-tecnica-icone'):el('span',null,'tecnica-icone '+t.icone);
+  if(formaId)img.src=iconeDaForma(formaId,'goku');
   if(t.imagem){img.src=t.imagem;img.alt='';img.draggable=false;}
   const texto=el('div'),titulo=el('strong',t.nome),detalhes=el('small'),estado=el('small'),seletor=el('select');seletor.setAttribute('aria-label','Colocar '+t.nome+' no slot');
   seletor.append(new Option('Colocar no slot…',''));for(let i=1;i<=8;i++)seletor.append(new Option('Tecla '+i,String(i)));
@@ -48,7 +51,10 @@ export function montarPerfil(container,{acao}={}){
  const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimoEstado=s;selfId=s.selfId;atualizarPersonalizacao=desenharPreview;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
  for(const {t,card,detalhes,estado,seletor} of cards){
+  const tecnicaVegeta=['skill:heal','skill:galick'].includes(t.id);card.hidden=s.self.vocacao==='vegeta'&&!tecnicaVegeta;
+  card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
   const d=dadosTecnica(t,s.self),liberada=s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
+  if(formaId)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
   const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
    ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
    : '';
@@ -60,5 +66,5 @@ export function montarPerfil(container,{acao}={}){
  montaria=s.self.montaria;montar.textContent=montaria?'Desmontar '+(montariaOpcoes.find(m=>m.id===montaria)?.nome||'montaria'):'Montar '+(montariaOpcoes[montariaIndice]?.nome||'montaria');nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
  const formaAtual=skinOpcoes.findIndex(o=>o.forma===p.forma);if(formaAtual>=0&&skinIndice===0)skinIndice=formaAtual;atualizarPersonalizacao();
  const valores=[numero(p.hp)+' / '+numero(p.stats.hp),numero(p.ki)+' / '+numero(p.stats.ki),numero(p.ataqueAtual)+' (base '+numero(p.base.attack)+' + bônus '+numero(p.bonusAtaque)+')','Multiplicadores por técnica',numero(p.stats.defense),numero(p.stats.mobility),numero(p.regeneracao)+' HP/s',numero(p.poder),numero(p.stats.capacity)+' kg',numero(p.stats.lootChance*100)+'%',numero(p.kills)+' mobs · '+numero(p.bossKills)+' chefes raros'];linhas.forEach((e,i)=>e.textContent=valores[i]);buffs.textContent=p.buffs.length?p.buffs.join(' '):'Nenhum buff ativo.';
- const c=canvas.getContext('2d');c.clearRect(0,0,240,220);c.save();c.imageSmoothingEnabled=false;const montado=montaria==='nimbus';c.translate(120,montado?170:186);c.scale(montado?1.8:2.2,montado?1.8:2.2);const jogador={...s.players.find(v=>v.id===s.selfId),moving:false,charge:null,facing:{x:0,y:1}},g=desenharNimbus(c,jogador,{x:0,y:0},s.time,{flutuar:!s.self.preferencias.reduzirAnimacoes});drawGoku?.(c,jogador,g?.personagem||{x:0,y:0},s.time);c.restore();};
+ const c=canvas.getContext('2d');c.clearRect(0,0,240,220);c.save();c.imageSmoothingEnabled=false;const montado=montaria==='nimbus';c.translate(120,montado?170:186);c.scale(montado?1.8:2.2,montado?1.8:2.2);const jogador={...s.players.find(v=>v.id===s.selfId),moving:false,charge:null,facing:{x:0,y:1}},g=desenharNimbus(c,jogador,{x:0,y:0},s.time,{flutuar:!s.self.preferencias.reduzirAnimacoes});(s.self.vocacao==='vegeta'?drawVegeta:drawGoku)?.(c,jogador,g?.personagem||{x:0,y:0},s.time);c.restore();};
 }

@@ -1,0 +1,381 @@
+{
+  "skill": "galick_gun",
+  "evolution": "v1",
+  "component": "origin",
+  "status": "asset_candidato_validacao_visual",
+  "frame_count": 16,
+  "sheet_columns": 4,
+  "sheet_rows": 4,
+  "frame_width": 768,
+  "frame_height": 256,
+  "emission_anchor_px": [
+    170,
+    128
+  ],
+  "emission_anchor_normalized": [
+    0.22135416666666666,
+    0.5
+  ],
+  "direction": "right",
+  "frame_duration_ms_suggested": 105,
+  "frames": [
+    {
+      "frame": 0,
+      "phase": "carga",
+      "source_emission_estimate": [
+        170,
+        105
+      ],
+      "translation": [
+        0,
+        23
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        107,
+        50,
+        267,
+        182
+      ]
+    },
+    {
+      "frame": 1,
+      "phase": "carga",
+      "source_emission_estimate": [
+        169,
+        107
+      ],
+      "translation": [
+        1,
+        21
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        99,
+        39,
+        298,
+        193
+      ]
+    },
+    {
+      "frame": 2,
+      "phase": "carga",
+      "source_emission_estimate": [
+        168,
+        109
+      ],
+      "translation": [
+        2,
+        19
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        89,
+        29,
+        338,
+        197
+      ]
+    },
+    {
+      "frame": 3,
+      "phase": "carga",
+      "source_emission_estimate": [
+        166,
+        108
+      ],
+      "translation": [
+        4,
+        20
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        87,
+        25,
+        398,
+        200
+      ]
+    },
+    {
+      "frame": 4,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        132,
+        105
+      ],
+      "translation": [
+        38,
+        23
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        91,
+        41,
+        385,
+        196
+      ]
+    },
+    {
+      "frame": 5,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        108,
+        103
+      ],
+      "translation": [
+        62,
+        25
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        96,
+        41,
+        455,
+        201
+      ]
+    },
+    {
+      "frame": 6,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        96,
+        101
+      ],
+      "translation": [
+        74,
+        27
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        93,
+        42,
+        517,
+        202
+      ]
+    },
+    {
+      "frame": 7,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        84,
+        100
+      ],
+      "translation": [
+        86,
+        28
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        93,
+        41,
+        596,
+        202
+      ]
+    },
+    {
+      "frame": 8,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        94,
+        100
+      ],
+      "translation": [
+        76,
+        28
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        92,
+        38,
+        599,
+        207
+      ]
+    },
+    {
+      "frame": 9,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        90,
+        98
+      ],
+      "translation": [
+        80,
+        30
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        93,
+        41,
+        608,
+        208
+      ]
+    },
+    {
+      "frame": 10,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        85,
+        98
+      ],
+      "translation": [
+        85,
+        30
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        95,
+        41,
+        603,
+        205
+      ]
+    },
+    {
+      "frame": 11,
+      "phase": "disparo",
+      "source_emission_estimate": [
+        85,
+        94
+      ],
+      "translation": [
+        85,
+        34
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        100,
+        49,
+        585,
+        202
+      ]
+    },
+    {
+      "frame": 12,
+      "phase": "dissipacao",
+      "source_emission_estimate": [
+        92,
+        98
+      ],
+      "translation": [
+        78,
+        30
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        106,
+        51,
+        508,
+        196
+      ]
+    },
+    {
+      "frame": 13,
+      "phase": "dissipacao",
+      "source_emission_estimate": [
+        92,
+        97
+      ],
+      "translation": [
+        78,
+        31
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        112,
+        57,
+        451,
+        186
+      ]
+    },
+    {
+      "frame": 14,
+      "phase": "dissipacao",
+      "source_emission_estimate": [
+        92,
+        99
+      ],
+      "translation": [
+        78,
+        29
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        121,
+        69,
+        404,
+        173
+      ]
+    },
+    {
+      "frame": 15,
+      "phase": "dissipacao",
+      "source_emission_estimate": [
+        103,
+        100
+      ],
+      "translation": [
+        67,
+        28
+      ],
+      "emission_anchor_px": [
+        170,
+        128
+      ],
+      "visible_bbox_px": [
+        122,
+        73,
+        339,
+        162
+      ]
+    }
+  ],
+  "notes": [
+    "Ponto de emissao estimado na arte e alinhado entre quadros; a ancora anatomica real depende da pose do Vegeta.",
+    "Nao utilizar esta folha como corpo repetivel ou ponta.",
+    "Frames de carga 0-3, disparo 4-11 e dissipacao 12-15; temporizacao deve ser calibrada no jogo.",
+    "Nao modificar dano, alcance ou cooldown."
+  ]
+}
