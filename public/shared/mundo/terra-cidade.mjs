@@ -147,7 +147,14 @@ export function dentroDoRio(x, y) {
 export const LAGO = Object.freeze({ cx: 7250, cy: 1650, rx: 350, ry: 650 });
 const naCaixa = (c, x, y, f = 0) => x >= c.x0 - f && x <= c.x1 + f && y >= c.y0 - f && y <= c.y1 + f;
 const noLago = (x, y, f = 0) => ((x - LAGO.cx) / (LAGO.rx + f)) ** 2 + ((y - LAGO.cy) / (LAGO.ry + f)) ** 2 < 1;
-export const NAVE_GOKU = objeto('nave_goku', 2150, 2050, { tipo: 'nave', nome: 'Nave do Goku', porta: Object.freeze({ x: 2150, y: 2085 }) });
+// A nave de viagem é um veículo de rua, não um prédio: mantemos sua largura
+// em 72% da arte recortada para que ela fique proporcional ao personagem e à
+// Corporação Cápsula. A largura também alimenta o bloqueio, mantendo colisão e
+// desenho sincronizados.
+export const NAVE_GOKU = objeto('nave_goku', 2150, 2050, {
+  largura: Math.round(largura('nave_goku') * .72), tipo: 'nave', nome: 'Nave do Goku',
+  porta: Object.freeze({ x: 2150, y: 2085 })
+});
 function grama(x, y, f) {
   if (x < 300 + f || x > 8100 - f || y < 300 + f || y > 5300 - f) return false;
   if (RUAS.some(r => naCaixa(r, x, y, f + 30)) || QUARTEIROES.some(q => naCaixa(q, x, y, f + 30))) return false;
