@@ -8,6 +8,7 @@ export const TECNICAS=Object.freeze([
  {id:'skill:heal',nome:'Cura de Vida',nivel:1,icone:'sprite-cura',custo:'Conforme o nível',recarga:'0,7 s'},
  {id:'skill:basic',nome:'Ataque básico',nivel:1,icone:'sprite-kaioken',custo:'0 Ki',recarga:'0,45 s'},
  {id:'skill:ki',nome:'Rajada de Ki',nivel:CONFIG.skills.ki,icone:'sprite-kame',custo:'7 Ki',recarga:'0,7 s'},
+ {id:'skill:galick',nome:'Galick Gun',nivel:CONFIG.skills.galick,icone:'sprite-galick',custo:`${CONFIG.skillCosts.kame} Ki`,recarga:`${CONFIG.skillCooldowns.kame} s`},
  {id:'skill:dash',nome:'Imagem Residual',nivel:CONFIG.skills.dash,icone:'sprite-barrier',custo:'0 Ki',recarga:'4 s'},
  {id:'skill:kame',nome:'Kamehameha',nivel:CONFIG.skills.kame,icone:'sprite-kame',custo:`${CONFIG.skillCosts.kame} Ki`,recarga:`${CONFIG.skillCooldowns.kame} s`},
  {id:'form:auto',nome:'Melhor transformação',nivel:FORMAS[0].nivel,icone:'sprite-kaioken',custo:`${CONFIG.transformacao.drenoKi} Ki/s`,recarga:'Sem recarga'},
@@ -23,7 +24,8 @@ export const TECNICAS=Object.freeze([
 const ids=new Set(TECNICAS.map(t=>t.id));
 // A lista do Profile mostra apenas magias e transformações do personagem.
 // Ataques básicos, movimento e itens continuam utilizáveis por seus outros controles.
-export const MAGIAS_PERSONAGEM=Object.freeze(TECNICAS.filter(t=>['skill:heal','skill:kame','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha'].includes(t.id)||(t.id.startsWith('form:')&&t.id!=='form:auto')));
+export const MAGIAS_PERSONAGEM=Object.freeze(TECNICAS.filter(t=>['skill:heal','skill:ki','skill:galick','skill:kame','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha'].includes(t.id)||(t.id.startsWith('form:')&&t.id!=='form:auto')));
+export const NOMES_TECNICAS_VEGETA=Object.freeze({'skill:heal':'Cura de Vida','skill:ki':'Rajada de Ki','skill:galick':'Galick Gun','skill:kame':'Kamehameha','skill:barrier':'Barreira de Ki','skill:genki':'Final Flash','skill:ryuken':'Golpe do Orgulho','skill:superKamehameha':'Big Bang Attack'});
 export const tecnicaPorId=id=>TECNICAS.find(t=>t.id===id)||null;
 export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
 export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base'){

@@ -99,6 +99,12 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
   const hotkeys=hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected);
   const barraSalva=barraValida(saved?.barraTecnicas,hotkeys,saved?.seedSelected);
+  if(vocacao.id==='vegeta') {
+    const personalizada=saved?.barraPersonalizada===true || Array.isArray(saved?.barraTecnicas);
+    const permitidos=new Set(['skill:heal','skill:ki','skill:galick','item:food','item:ki','item:seed15','item:seed30','item:seed50','item:seed100']);
+    if(!personalizada || (saved?.barraPersonalizada!==true && barraSalva[1]==='skill:galick')) barraSalva.splice(0,8,...['skill:heal','skill:ki',null,null,null,'item:food','item:ki',null]);
+    else for(let i=0;i<barraSalva.length;i++) if(barraSalva[i]&&barraSalva[i].startsWith('skill:')&&!permitidos.has(barraSalva[i])) barraSalva[i]=null;
+  }
   // Saves anteriores não tinham este indicador: só uma barra diferente do padrão antigo revela edição manual.
   const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected)[i]));
   const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
@@ -124,7 +130,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     barrierReady: 0, barrierUntil: 0, genkiReady: 0,
     // Forma transitória única; o alias mantém os consumidores antigos de SSJ compatíveis.
-    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'ssj4', 'gogeta', 'vegito'].includes(this.forma); },
+    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'majin', 'ssj4', 'gogeta', 'vegito'].includes(this.forma); },
     set transformed(ativa) { this.forma = ativa ? 'ssj' : 'base'; },
     respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
     // TODO (dev): jogador NOVO (sem preferências salvas) começa com a música DESLIGADA, só pra facilitar o teste.

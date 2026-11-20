@@ -202,7 +202,7 @@ export class Game {
     }
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};if(data.valor!==null)p.montariaPreferida=data.valor;p.montaria=data.valor;return{ok:true};}
     if(kind==='skin'){
-      const skin=String(data.skin||''),forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin);
+      const skin=String(data.skin||''),forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
       if(skin!=='natalino'&&!forma)return this.reject(p,'Skin inválida.');
       p.skin=skin;return{ok:true};
     }
@@ -401,6 +401,7 @@ export class Game {
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
+    if (p.vocacao === 'vegeta' && !['heal','basic','galick','ki'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
     if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
@@ -420,14 +421,17 @@ export class Game {
       this.emit('dash', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
     }
     if (skill === 'ki') {
-      if (p.level < CONFIG.skills.ki) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + CONFIG.skills.ki + '.');
+      // A Rajada de Ki é o ataque à distância básico de todas as vocações.
+      // Para Vegeta ela já existe desde o início, assim como no fluxo básico do Goku.
+      const nivelRajada = p.vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
+      if (p.level < nivelRajada) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + nivelRajada + '.');
       if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
       p.ki -= 7; p.shotReady = this.time + 0.7;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
         owner: p.id, ownerType: 'player', damage: p.stats.attack * multiplicadorDaForma(p.forma, 'rajada'),
-        ttl: 0.95, kind: 'ki', started: this.time, cor: 213, corHex: '#0072FB', tamanho: 48, fps: 12 });
+        ttl: 0.95, kind: 'ki', started: this.time, cor: 285, corHex: p.vocacao === 'vegeta' ? '#B52CFF' : '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
     // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4, na tecla 8; o Kamehameha continua na 2.
@@ -438,8 +442,9 @@ export class Game {
     }
     // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4, atribuível à barra, mesma mecânica do Kamehameha,
     // vermelho-carmesim e no último nível; recarga e custo próprios.
-    if (skill === 'kame' || skill === 'superKamehameha') {
-      const superKame = skill === 'superKamehameha', nome = superKame ? 'Super Kamehameha' : 'Kamehameha';
+    if (skill === 'galick' || skill === 'kame' || skill === 'superKamehameha') {
+      const galick = skill === 'galick', superKame = skill === 'superKamehameha', nome = galick ? 'Galick Gun' : superKame ? 'Super Kamehameha' : 'Kamehameha';
+      if (galick && p.vocacao !== 'vegeta') return automated ? { ok: false } : this.reject(p, 'Galick Gun é exclusivo do Vegeta.');
       if (p.level < CONFIG.skills[skill]) return automated ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[skill] + '.');
       if (superKame && !usaSuperKame(p)) return automated ? { ok: false } : this.reject(p, 'O Super Kamehameha só sai no Super Saiyajin 4.');
       const custo = superKame ? SUPER_KAME.custo : CONFIG.skillCosts.kame, pronto = superKame ? p.superKameReady || 0 : p.kameReady;
@@ -453,7 +458,7 @@ export class Game {
       p.ki -= custo;
       if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
       else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
-      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
+      p.charge = { targetId: alvoKame.id, automated, galick, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
         ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
     }
@@ -480,8 +485,8 @@ export class Game {
   // Um botão só (decisão do Pedro, 11/11/2026): transformado → volta à base; na base → ativa a forma mais forte
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
   alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
-    const disponivel = formaSolicitada===null?formaDisponivel(p.level):FORMAS.find(f=>f.forma===formaSolicitada);
-    if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível.');
+    const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):FORMAS.find(f=>f.forma===formaSolicitada&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
+    if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível para esta vocação ou nível.');
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
     if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { const formaAnterior=p.forma; p.forma = 'base'; p.formaAte = 0; if (p.skin===formaAnterior) p.skin='base'; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
@@ -903,7 +908,7 @@ export class Game {
     const cargaNoAlcance = p.charge && (!p.charge.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(p.charge.nivel).alcance + KAME.mao);
     if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
       this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
-        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, started: this.time - KAME.primeiroFeixe * KAME.quadro,
+        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, galick: p.charge.galick === true, started: this.time - KAME.primeiroFeixe * KAME.quadro,
         damage: p.stats.attack * (p.charge.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')), automated: p.charge.automated, atingidos: new Set() });
       p.charge = null;
     }
@@ -1135,7 +1140,7 @@ export class Game {
     const here = self || { planet: 'terra', area: null }, aqui = e => this.mesmoLugar(here, e);
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
-        id: p.id, name: p.name, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
+        id: p.id, name: p.name, character: p.character, vocacao: p.vocacao, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
         montaria:p.montaria,montariaPreferida:p.montariaPreferida,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
