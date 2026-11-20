@@ -1,5 +1,5 @@
 ﻿import {ATALHOS,atalhoDeInterface,alvoEditavel,teclasDoAtalho} from '../shared/tecnicas/atalhos.mjs';
-export function instalarAtalhosInterface({ativo,bloqueado,abrirMenu,caca,painelCaca,montaria,soltarTeclas}){
+export function instalarAtalhosInterface({ativo,bloqueado,abrirMenu,caca,painelCaca,montaria,interagir,soltarTeclas}){
  const consumir=e=>{e.preventDefault();e.stopImmediatePropagation();};
  const onKey=e=>{
   if(e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.isComposing||!ativo()||bloqueado())return;
@@ -21,6 +21,7 @@ export function instalarAtalhosInterface({ativo,bloqueado,abrirMenu,caca,painelC
   else if(a.comando==='caca')caca();
   else if(a.comando==='painelCaca'){soltarTeclas();painelCaca();}
   else if(a.comando==='montaria')montaria();
+  else if(a.id==='interagir')interagir?.();
   else if(a.comando==='chat'){soltarTeclas();document.getElementById('chatInput')?.focus();}
  };
  window.addEventListener('keydown',onKey,true);

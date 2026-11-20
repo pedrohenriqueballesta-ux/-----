@@ -33,5 +33,5 @@ export const teclasDoAtalho=a=>a.exibir||a.teclas.map(k=>nomes[k]||k.toUpperCase
 export const alvoEditavel=t=>Boolean(t&&(t.isContentEditable||['INPUT','SELECT','TEXTAREA'].includes(t.tagName)||t.closest?.('[contenteditable="true"],[role="textbox"]')));
 export function atalhoDeInterface(e){
  if(e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.isComposing||e.repeat||alvoEditavel(e.target))return null;
- const key=String(e.key||'').toLowerCase();return ATALHOS.find(a=>(a.menu||a.comando)&&a.teclas.includes(key))||null;
+ const key=String(e.key||'').toLowerCase();return ATALHOS.find(a=>(a.menu||a.comando||a.id==='interagir')&&a.teclas.includes(key))||null;
 }

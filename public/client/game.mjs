@@ -29,7 +29,7 @@ import { carregarProjetilMob, desenharProjetilMob } from '../render/vfx/projetil
 import { carregarGenki, desenharGenki } from '../render/vfx/genki.mjs';
 import { carregarRyuken, desenharAuraRyuken, desenharLancamentoRyuken, desenharVooRyuken, desenharImpactoRyuken } from '../render/vfx/ryuken.mjs';
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawVegeta, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
-import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
+import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, abrirLojaNpc, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { instalarStatusPopout } from './stats-popout.mjs';
 import { zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/mapa/minimapa.mjs';
 import { desenharCabecaMinimapa } from '../render/mapa/minimapa-cabecas.mjs';
@@ -44,6 +44,66 @@ let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = nu
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
 let zoomMini = 1, vistaMini = null, destinoMini = null;
 let centroMini = null, arrastoMini = null, ponteiroMini = null;
+const npcIcones = new Map();
+const NPC_INFO = Object.freeze({
+  'Bulma': { funcao: 'Corporação Cápsula', imagem: '/assets/terra/npc/bulma.png' },
+  'Dr. Brief': { funcao: 'Corporação Cápsula', imagem: '/assets/terra/npc/dr_brief.png' },
+  'Chef Saikan': { funcao: 'Mercado de comida', imagem: '/assets/terra/npc/chef_saikan.png' },
+  'Mestre Karin': { funcao: 'Loja do Mestre Karin', imagem: null }
+});
+function npcPontosTerra() {
+  const pontos = [];
+  for (const predio of PREDIOS_TERRA) {
+    if (!predio.npc) continue;
+    if (predio.estaticos?.length) for (const npc of predio.estaticos) pontos.push({ ...npc, nome: npc.nome, funcao: NPC_INFO[npc.nome]?.funcao || predio.nome });
+    else if (predio.npcPos) pontos.push({ x: predio.npcPos.x, y: predio.npcPos.y, nome: predio.npc, funcao: NPC_INFO[predio.npc]?.funcao || predio.nome });
+    else if (predio.porta) pontos.push({ x: predio.porta.x, y: predio.porta.y, nome: predio.npc, funcao: NPC_INFO[predio.npc]?.funcao || predio.nome });
+  }
+  return pontos;
+}
+function desenharNpcMini(npc, x, y) {
+  const info = NPC_INFO[npc.nome] || {}, r = 8, imgUrl = info.imagem;
+  let img = imgUrl && npcIcones.get(imgUrl);
+  if (imgUrl && !img) { img = new Image(); img.src = imgUrl; npcIcones.set(imgUrl, img); }
+  mctx.save(); mctx.beginPath(); mctx.arc(x, y, r, 0, Math.PI * 2); mctx.fillStyle = '#123456'; mctx.fill(); mctx.strokeStyle = '#ffd45c'; mctx.lineWidth = 2; mctx.stroke();
+  if (img?.complete && img.naturalWidth) { mctx.save(); mctx.beginPath(); mctx.arc(x, y, r - 1, 0, Math.PI * 2); mctx.clip(); mctx.drawImage(img, x - r, y - r, r * 2, r * 2); mctx.restore(); }
+  else { mctx.fillStyle = '#fff'; mctx.font = 'bold 8px system-ui'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.fillText(npc.nome[0], x, y); }
+  mctx.restore();
+}
+function desenharBalaoNpc(ctx, npc, pos) {
+  if (!pos || Math.hypot(pos.x - npc.x, pos.y - npc.y) > 260) return;
+  const texto = npc.funcao || 'Interação disponível';
+  ctx.save(); ctx.font = 'bold 13px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  const largura = Math.min(220, ctx.measureText(texto).width + 22), altura = 24;
+  const x = npc.x, y = npc.y - (npc.altura || 70) - 18;
+  ctx.fillStyle = '#07152de8'; ctx.strokeStyle = '#f2c94c'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x - largura / 2, y - altura, largura, altura, 6); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x, y + 7); ctx.lineTo(x + 6, y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText(texto, x, y - 5); ctx.restore();
+}
+function interagirNpc() {
+  if (!snapshot?.self || snapshot.planet !== 'terra' || snapshot.area != null) return notify('Não há NPC interativo aqui.');
+  const self = renderPositions.get(playerId) || snapshot.self;
+  const pontos = npcPontosTerra().map(npc => ({ npc, distancia: Math.hypot(self.x - npc.x, self.y - npc.y) }))
+    .sort((a, b) => a.distancia - b.distancia);
+  const primeiro = pontos[0];
+  if (!primeiro) return;
+  // Bulma e Dr. Brief ficam próximos: exigimos chegar mais perto para escolher
+  // claramente um deles, em vez de abrir a interação do NPC errado.
+  const limite = pontos[1] && pontos[1].distancia - primeiro.distancia < 120 ? 120 : 260;
+  const direcao = { x: primeiro.npc.x - self.x, y: primeiro.npc.y - self.y };
+  const tamanho = Math.hypot(direcao.x, direcao.y) || 1;
+  const frente = self.facing || { x: 0, y: 1 };
+  const olhando = (frente.x * direcao.x + frente.y * direcao.y) / tamanho;
+  // At very close range the player is already beside/in front of the NPC;
+  // avoid rejecting the interaction because a sprite's facing vector is one
+  // frame behind the movement update. At the outer edge, still require the
+  // player to be looking toward the NPC.
+  if (primeiro.distancia > limite || (primeiro.distancia > 120 && olhando < 0.15)) return notify('Aproxime-se da frente do NPC para interagir.');
+  if (['Mestre Karin', 'Chef Saikan'].includes(primeiro.npc.nome)) return abrirLojaNpc();
+  notify(`${primeiro.npc.nome}: serviços da Corporação Cápsula em breve.`);
+}
 const trilhaSonora=instalarTrilhaSonora({obterEstado:()=>snapshot});
 const statusPopout=instalarStatusPopout({botao:document.getElementById('statsPopoutButton'),windowRef:window,obterSnapshot:()=>snapshot,avisar:notify});
 const transicaoTeleport = criarTransicaoTeleport({
@@ -141,7 +201,7 @@ setInterval(sendInput, 70);
 instalarAtalhosInterface({
  ativo:()=>Boolean(session&&snapshot?.self&&!document.querySelector('#welcomeDialog[open],#tutorialDialog[open]')),
  bloqueado:()=>transicaoTeleport.ativa,abrirMenu:menu=>document.querySelector('[data-menu="'+menu+'"]')?.click(),
- caca:alternarCaca,painelCaca:alternarAutoHunt,montaria:()=>action({type:'montaria',valor:snapshot.self.montaria?null:(snapshot.self.montariaPreferida||'nimbus')}),
+ caca:alternarCaca,painelCaca:alternarAutoHunt,montaria:()=>action({type:'montaria',valor:snapshot.self.montaria?null:(snapshot.self.montariaPreferida||'nimbus')}),interagir:interagirNpc,
  soltarTeclas:()=>{keys.clear();touchVector={x:0,y:0};sendInput();}
 });
 document.addEventListener('keydown', e => {
@@ -228,8 +288,14 @@ function terminarArrastoMini(e) {
   if (mini.hasPointerCapture(e.pointerId)) mini.releasePointerCapture(e.pointerId);
   if (e.type !== 'pointerup' || gesto.moveu || !snapshot || transicaoTeleport.ativa || snapshot.self?.hp <= 0 ||
       gesto.vista.planet !== snapshot.planet || gesto.vista.area !== snapshot.area) return;
+  // Use the exact canvas content box and the view captured at pointerdown.
+  // `vistaMini` can change while the pointer is held (for example when a
+  // server snapshot recenters the map), which previously made a simple click
+  // resolve to a different world coordinate than the one shown under the
+  // cursor.  Keeping the same view for the whole gesture also makes the
+  // mapping independent of CSS borders/retina backing-store dimensions.
   const caixa = caixaConteudoMinimapa(mini.getBoundingClientRect(), mini);
-  const ponto = pontoDoMinimapa(e.clientX, e.clientY, caixa, vistaMini);
+  const ponto = pontoDoMinimapa(e.clientX, e.clientY, caixa, gesto.vista);
   if (!ponto) return;
   e.preventDefault(); keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null;
   canvas.focus({ preventScroll: true }); sendInput();
@@ -567,6 +633,10 @@ function drawMinimap(world = PLANETS.namek, area = null) {
     if (!desenharCabecaMinimapa(mctx, p, x, y, 14, true)) miniMarker(x, y, 2.5, '#5fd8ff');
     hoveraveis.push({ x, y, raio: 7, texto: p.name || 'Jogador' });
   }
+  if (snapshot.planet === 'terra' && snapshot.area == null) for (const npc of npcPontosTerra()) {
+    const x = X(npc.x), y = Y(npc.y); desenharNpcMini(npc, x, y);
+    hoveraveis.push({ x, y, raio: 10, texto: `${npc.nome} · ${npc.funcao}` });
+  }
   mctx.strokeStyle = '#fff0c488'; mctx.lineWidth = 1; mctx.strokeRect(X(camera.x), Y(camera.y), width / camera.scale * sx, height / camera.scale * sy);
   if (self) {
     const x = X(self.x), y = Y(self.y); drawMiniSelf(x, y, self.facing, self);
@@ -708,6 +778,7 @@ function frame(now) {
     ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
+  if (world.id === 'terra') for (const npc of npcPontosTerra()) desenharBalaoNpc(ctx, npc, position);
   // Sem recorte: para baixo o feixe cobre o lançador; para cima o sprite recompõe a oclusão.
   for (const p of snapshot.players) if (p.charge) {
     const pos = renderPositions.get(p.id) || p;

@@ -376,6 +376,9 @@ export function alternarAutoHunt() {
   $('autoHuntButton').setAttribute('aria-expanded', String(painel.open));
   encaixarAutoHunt();
 }
+// Interação contextual acionada pela tecla E; a seleção de NPC é feita no cliente
+// e as compras continuam validadas pelo servidor ao confirmar cada item.
+export function abrirLojaNpc() { lojaHud?.abrir(); }
 
 // Liga os botões e janelas da HUD ao jogo. Chamado uma vez por game.mjs.
 export function ligarHud(contexto) {
