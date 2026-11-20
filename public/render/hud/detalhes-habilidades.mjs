@@ -4,13 +4,14 @@ import { FORMAS, formaDisponivel, nomeDaForma } from '../../shared/tecnicas/form
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 
-const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
+const NOMES = { heal: 'Cura de Vida', ki: 'Rajada de Ki', galick: 'Galick Gun', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
 
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
+  const itemChave=chave?.startsWith('item:');
   if(chave?.startsWith('skill:'))chave=chave.slice(6);
-  if(chave?.startsWith('item:'))chave=chave.slice(5);
+  if(itemChave)chave=chave.slice(5);
   if(chave?.startsWith('form:')&&chave!=='form:auto'){
     const forma=FORMAS.find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
@@ -32,10 +33,10 @@ export function detalhesHabilidade(chave, estado) {
       ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : estado.forma !== SUPER_KAME.forma ? 'Transforme-se em Super Saiyajin 4' : 'Disponível']
     ] };
   }
-  if (NOMES[chave]) {
+  if (NOMES[chave] && !itemChave) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
-      const disponivel = formaDisponivel(estado.level), ativa = estado.forma && estado.forma !== 'base';
+      const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku'), ativa = estado.forma && estado.forma !== 'base';
       const mostrada = ativa ? estado.forma : disponivel?.forma || FORMAS[0].forma, proxima = FORMAS.find(f => estado.level < f.nivel);
       return { nome: nomeDaForma(mostrada), linhas: [
         ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? FORMAS[0].nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
@@ -47,8 +48,8 @@ export function detalhesHabilidade(chave, estado) {
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
     const nivel = chave === 'heal' ? 1 : CONFIG.skills[chave];
-    const custo = chave === 'heal' ? cura.custo : CONFIG.skillCosts[chave];
-    const recarga = chave === 'heal' ? cura.cooldown : CONFIG.skillCooldowns[chave];
+    const custo = chave === 'heal' ? cura.custo : chave === 'ki' ? 7 : chave === 'galick' ? CONFIG.skillCosts.kame : CONFIG.skillCosts[chave];
+    const recarga = chave === 'heal' ? cura.cooldown : chave === 'ki' ? 0.7 : chave === 'galick' ? CONFIG.skillCooldowns.kame : CONFIG.skillCooldowns[chave];
     const restante = chave === 'heal' ? cura.remaining : estado[chave + 'Remaining'];
     return { nome: NOMES[chave], linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],
@@ -86,7 +87,13 @@ export function instalarDetalhesHabilidades() {
   document.body.append(janela);
   let estado = null, alvo = null, dispensado = null, assinatura = '';
   const seletor = '[data-skill], #transformButton, #seedButton, #kiPotionButton, #foodBuff, #foodButton, [data-item]';
-  const chave = el => el.dataset.hotkeyConsumivel ? el.dataset.item || null : el.dataset.skill || el.dataset.item || ({ transformButton: 'transform', seedButton: 'seed' + (estado?.seedSelected || 15), kiPotionButton: 'ki', foodBuff: 'food', foodButton: 'food' })[el.id];
+  const chave = el => {
+    if (el.dataset.hotkeyConsumivel) return 'item:' + (el.dataset.item || '');
+    const id = el.dataset.skill || el.dataset.item;
+    if (id?.startsWith('item:')) return id;
+    if (id?.startsWith('skill:')) return id.slice(6);
+    return id || ({ transformButton: 'transform', seedButton: 'seed' + (estado?.seedSelected || 15), kiPotionButton: 'ki', foodBuff: 'food', foodButton: 'food' })[el.id];
+  };
   const esconder = () => {
     alvo?.removeAttribute('aria-describedby'); alvo = null; assinatura = ''; janela.hidden = true;
   };
