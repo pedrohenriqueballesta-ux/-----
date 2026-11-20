@@ -168,14 +168,14 @@ button{cursor:pointer}
 .tecnica-icone.sprite-ryuken,.tecnica-icone.sprite-super-kame{background-position:center;background-size:112% 112%;background-repeat:no-repeat}
 .tecnica-icone.sprite-ryuken{background-image:url('/assets/skills/ryuken/icone.png')}
 .tecnica-icone.sprite-super-kame{background-image:url('/assets/skills/kamehameha/carmesim/icone.png')}
-.sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}
+.sprite-cura{background-image:url('/assets/skills/cura/icone.png');background-size:125% auto;background-position:center}.tecnica-icone.sprite-galick{background-image:url('/assets/skills/galick-gun/icone.png');background-size:cover;background-position:center}
 .sprite-semente{background-image:url('/assets/items/semente-deuses.png');background-size:cover;background-position:center}
 .sprite-pocao-ki{background-image:url('/assets/items/pocao-ki.png');background-size:cover;background-position:center}
 .item-icone{background-image:none;font-size:calc(38 * var(--u))}
 .tecnica strong{font-size:calc(13 * var(--u));white-space:nowrap}
 /* Nome longo da transformação ("Super Saiyajin 2") cabe no próprio espaço sem invadir o vizinho. */
 .tecnica strong.nome-longo{font-size:calc(11 * var(--u));letter-spacing:-.02em}
-.tecnica small{display:none}
+.tecnica small{display:none}.tecnica.consumivel-slot small{display:block;position:absolute;top:calc(47 * var(--u));right:calc(7 * var(--u));z-index:3;min-width:calc(28 * var(--u));padding:calc(2 * var(--u)) calc(5 * var(--u));border:1px solid #d7e7ff99;border-radius:999px;background:#071426e8;color:#fff;font:800 calc(11 * var(--u))/1.1 system-ui;letter-spacing:-.02em;text-align:center;text-shadow:0 1px 2px #000;pointer-events:none;box-shadow:0 1px 3px #0009}
 .tecnica .estado-transformacao{top:calc(48 * var(--u));font-size:calc(12 * var(--u));color:#fff3ab;background:#18242de8;border-radius:calc(4 * var(--u));margin:0 calc(10 * var(--u))}
 .tecnica .contagem{position:absolute;right:calc(10 * var(--u));top:calc(40 * var(--u));font:900 calc(18 * var(--u)) system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--u)) #000,0 0 calc(3 * var(--u)) #000}
 .recarga-item{position:absolute;top:calc(44 * var(--u));left:0;right:0;font-weight:800;font-size:calc(14 * var(--u));text-shadow:0 0 calc(3 * var(--u)) #000}
@@ -451,6 +451,7 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .consumivel-personalizado{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}.tecnica.consumivel-destino{outline:2px solid #ffda72;box-shadow:0 0 12px #ffda72}.tecnica.consumivel-indisponivel .tecnica-icone{opacity:.5}#mochilaGrade [draggable="true"]{cursor:grab}
 
 .tecnica.consumivel-vazio .tecnica-icone{border:1px dashed #8297ac;background-color:#07192b88}.tecnica[draggable="true"]{cursor:grab}.mochila.consumivel-destino{outline:2px solid #ffd465;box-shadow:0 0 18px #ffd46588}
+.tecnica .tecnica-icone.slot-vazio{background-image:none;background-color:#080d18;border:1px solid #48546a}
 
 /* Store e Battle Pass: animações dos próprios GIFs, sem efeitos adicionais. */
 .hud-menus .hud-premium-icone i{width:calc(var(--tamanho-icone) * 1.12);height:calc(var(--tamanho-icone) * 1.12)}.hud-menus .hud-premium-icone .hud-ico{width:100%;height:100%}.hud-topo{max-width:calc(100% - 16 * var(--u))}
