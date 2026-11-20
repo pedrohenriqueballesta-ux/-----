@@ -172,7 +172,10 @@ export function casaBloqueia(planet, x, y) {
 // na ordem de dificuldade. Para um planeta novo: ficha aqui, áreas em ZONES, máscara em passagem.mjs,
 // mobs em enemies.mjs e portais da Vila em PORTAIS.
 export const PLANETS = {
-  terra: { id: 'terra', name: 'Terra', w: 1100, h: 760, spawn: { x: 550, y: 380 }, imagem: '/assets/worlds/terra.webp' },
+  // Cidade do Oeste: mapa grande integrado ao renderer da Terra. O spawn fica no largo
+  // central e a saída interplanetária é a porta da nave, não mais a nuvem do lobby antigo.
+  terra: { id: 'terra', name: 'Terra', w: 8400, h: 5600, solo: 'terraSolo', spawn: { x: 4400, y: 2300 },
+    soloUrl: '/assets/terra/chao.webp', fundo: '#5a8f3c', imagem: '/assets/worlds/terra.webp' },
   namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
     soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
     vila: 'vila', hunts: ['inicial', 'media', 'dificil', 'norte'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
@@ -210,7 +213,7 @@ function portaisDoPlaneta(planet, entradas) {
   ];
 }
 export const PORTAIS = [
-  { id: 'terra-namek', planet: 'terra', area: null, x: 550, y: 210, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
+  { id: 'terra-nave', planet: 'terra', area: null, x: 2150, y: 2085, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
   ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 600, y: 1050 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).

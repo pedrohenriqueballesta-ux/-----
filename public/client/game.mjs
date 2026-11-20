@@ -13,6 +13,8 @@ import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/nucleo/config.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
 import { desenharGalickComProfundidade, origemVisualGalick } from '../render/vfx/galick-gun.mjs';
+import { PREDIOS_TERRA } from '../shared/mundo/terra.mjs';
+import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
 carregarImpactoKame();
 import { KAME, origemKame, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame } from '../shared/tecnicas/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/vfx/raios-ssj2.mjs';
@@ -652,6 +654,7 @@ function frame(now) {
   const time = snapshot.time + Math.min(0.2, (now - receivedAt) / 1000);
   // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
   const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
+  const prediosTerra = world.id === 'terra' ? PREDIOS_TERRA : [];
   const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
   const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
@@ -700,6 +703,7 @@ function frame(now) {
     ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
+    ...prediosTerra.map(p => ({ y: p.y, draw: () => { desenharPredioTerra(ctx, p, renderPositions.get(self?.id)); for (const e of p.estaticos || []) desenharNpcEstatico(ctx, e); if (p.npcPos) desenharNpcTerra(ctx, p, time, renderPositions.get(self?.id)); } })),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas, world.escala, vulcoesAqui), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
     ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
   ].sort((a, b) => a.y - b.y);
