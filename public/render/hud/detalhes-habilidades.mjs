@@ -1,6 +1,6 @@
 ﻿import { CONFIG } from '../../shared/nucleo/config.mjs';
 import { CURA, curaPorNivel } from '../../shared/tecnicas/cura.mjs';
-import { FORMAS, formaDisponivel, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
+import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
@@ -38,13 +38,14 @@ export function detalhesHabilidade(chave, estado) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
       const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku'), ativa = estado.forma && estado.forma !== 'base';
-      const mostrada = ativa ? estado.forma : disponivel?.forma || FORMAS[0].forma, proxima = FORMAS.find(f => estado.level < f.nivel);
+      const formas = formasDaVocacao(estado.vocacao), primeira = formas[0];
+      const mostrada = ativa ? estado.forma : disponivel?.forma || primeira.forma, proxima = formas.find(f => estado.level < f.nivel);
       return { nome: nomeDaForma(mostrada), linhas: [
-        ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? FORMAS[0].nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
+        ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? primeira.nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
         ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],
         ['Término', mostrada === 'gogeta' ? 'Após ' + segundos(FORMAS.find(f => f.forma === 'gogeta').duracao) + ' ou se o Ki zerar' : 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Um buff por vez; apertar novamente volta à base'],
         ...(proxima ? [['Próxima', proxima.nome + ' no nível ' + proxima.nivel]] : []),
-        ['Estado', !disponivel ? 'Bloqueada · requer nível ' + FORMAS[0].nivel : ativa ? 'ATIVO' : 'Disponível']
+        ['Estado', !disponivel ? 'Bloqueada · requer nível ' + primeira.nivel : ativa ? 'ATIVO' : 'Disponível']
       ] };
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
