@@ -51,7 +51,10 @@ export function atualizarBarraPadrao(p){
  if(!p.barraTecnicas.includes(proxima))p.barraTecnicas[1]=proxima;
 }
 export function nivelDaTecnica(tecnica, vocacao) {
- return tecnica.id==='form:auto' ? formasDaVocacao(vocacao)[0]?.nivel ?? tecnica.nivel : tecnica.nivel;
+ if (!tecnica.id.startsWith('form:')) return tecnica.nivel;
+ const formas = formasDaVocacao(vocacao);
+ const forma = tecnica.id==='form:auto' ? formas[0] : formas.find(f => f.forma === tecnica.id.slice(5));
+ return forma?.nivel ?? tecnica.nivel;
 }
 
 export function tecnicaDisponivel(id,estado){

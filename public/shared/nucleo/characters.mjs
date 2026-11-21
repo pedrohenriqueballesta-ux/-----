@@ -147,7 +147,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     barrierReady: 0, barrierUntil: 0, genkiReady: 0,
     // Forma transitória única; o alias mantém os consumidores antigos de SSJ compatíveis.
-    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'majin', 'ssj4', 'gogeta', 'vegito'].includes(this.forma); },
+    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'majin', 'ssj4', 'ssjGod', 'gogeta', 'vegito'].includes(this.forma); },
     set transformed(ativa) { this.forma = ativa ? 'ssj' : 'base'; },
     respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoSeed: saved?.autoSeed === true,
     // TODO (dev): jogador NOVO (sem preferências salvas) começa com a música DESLIGADA, só pra facilitar o teste.

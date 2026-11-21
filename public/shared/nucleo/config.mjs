@@ -57,7 +57,7 @@ export const CONFIG = Object.freeze({
   // Transformações atuais permanecem inalteradas até a implementação da nova escada.
   // ryuken (SSJ3 e SSJ4) e superKamehameha (SSJ4): técnicas próprias nos oito slots configuráveis (Pedro, 12 e
   // 16/11/2026); o Kamehameha continua em todas as formas (shared/ryuken.mjs, shared/kamehameha.mjs).
-  skills: { ki: 20, dash: 20, kame: 40, galick: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 300, ryuken: 300, ssj4: 500, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
+  skills: { ki: 20, dash: 20, kame: 40, galick: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 200, ryuken: 300, ssj4: 500, ssj4Vegeta: 300, ssjGod: 500, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
   // Marcos planejados para técnicas futuras; não liberam nem ativam habilidades ainda inexistentes.
   plannedSkillUnlocks: Object.freeze({})
 });

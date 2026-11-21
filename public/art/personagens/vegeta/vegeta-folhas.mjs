@@ -25,3 +25,23 @@ export const FOLHAS_VEGETA_SSJ4=Object.freeze({
   finalFlash:folha(ssj4+'06_FINAL_FLASH.png','vegetaSsj4FinalFlash'),
   bigBang:folha(ssj4+'07_BIG_BANG_ATTACK.png','vegetaSsj4BigBang')
 });
+
+
+// Coordenadas do chão medidas nas folhas God após remover o chroma.
+// O x continua no centro de cada célula, na escala das outras formas do Vegeta.
+function folhaGod(arquivo, chave, pes) {
+  const [dados, id] = folha('/assets/vegeta/god/' + arquivo, 'vegetaGod' + chave);
+  dados.frames = dados.frames.map((linha, r) => linha.map(([x, y, w, h, ax], c) =>
+    [x, y, w, h, x + ax, y + pes[r][c] + 1]));
+  return [dados, id];
+}
+
+export const FOLHAS_VEGETA_GOD = Object.freeze({
+  parado: folhaGod('01_PARADO_IDLE.png', 'Parado', [[288,288,288,288],[287,287,287,287],[285,285,285,285],[283,283,283,283],[283,283,283,283]]),
+  andar: folhaGod('02_ANDAR.png', 'Andar', [[289,289,290,289],[286,287,286,288],[282,282,278,282],[282,282,282,281],[282,282,282,280]]),
+  soco: folhaGod('03_SOCO.png', 'Soco', [[288,290,290,288],[286,285,285,287],[284,284,284,284],[280,281,281,281],[283,283,284,283]]),
+  rajada: folhaGod('04_RAJADA_DE_KI.png', 'Rajada', [[294,294,294,294],[292,292,292,292],[286,286,286,286],[284,284,284,284],[286,286,286,286]]),
+  galick: folhaGod('05_GALICK_GUN.png', 'Galick', [[294,294,294,294],[292,292,292,292],[287,287,287,287],[285,285,285,285],[286,286,286,286]]),
+  finalFlash: folhaGod('06_FINAL_FLASH.png', 'FinalFlash', [[294,294,294,294],[292,292,292,292],[287,287,287,288],[285,285,285,285],[286,286,286,286]]),
+  bigBang: folhaGod('07_BIG_BANG_ATTACK.png', 'BigBang', [[293,293,293,293],[291,291,291,291],[287,287,287,287],[284,284,284,284],[287,287,287,287]])
+});

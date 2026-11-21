@@ -1,0 +1,72 @@
+[
+  {
+    "arquivo": "SPRITESHEETS/01_PARADO_IDLE.png",
+    "origem_original": "VEGETA_GOD_01_PARADO_RESPIRACAO_TORAX.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "d8a34f17a939362486191fb413efc7701e1a1a6073eb973f9791487c3fb912d9",
+    "observacao": "Última folha Idle com animação do tórax e cabeça/pés fixos"
+  },
+  {
+    "arquivo": "SPRITESHEETS/02_ANDAR.png",
+    "origem_original": "folha_de_sprites_do_vegeta_em_movimento.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "8a00c5a247ef65b3df26d3e8054cc1fab1793c9ae0e371a1cf1092e122d3b82a",
+    "observacao": "Última caminhada usada na sequência"
+  },
+  {
+    "arquivo": "SPRITESHEETS/03_SOCO.png",
+    "origem_original": "sprite_de_soco_do_vegeta_deus_super_saiyajin.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "8981aa1257696943f712e56ae834cf682ccbe05145f08b29fc63f0c7b5a76e70",
+    "observacao": "Soco recriado do zero após reprovação da adaptação SSJ1"
+  },
+  {
+    "arquivo": "SPRITESHEETS/04_RAJADA_DE_KI.png",
+    "origem_original": "a_clean_sprite_sheet_on_a_bright_magenta_magenta_p.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "d23315bf48d9c4d0a72c00ccdb14ad925d7752a716a17f84288dd6c58c5a28c4",
+    "observacao": "Rajada de Ki com palma aberta e retorno no último frame"
+  },
+  {
+    "arquivo": "SPRITESHEETS/05_GALICK_GUN.png",
+    "origem_original": "a_clean_sprite_sheet_on_a_bright_magenta_pink_tran.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "c5b92534a86e9741c9aea863969ef56936b0c66f873d924e69ce8a8e37ac6eb2",
+    "observacao": "Gestos do Galick Gun sem efeitos"
+  },
+  {
+    "arquivo": "SPRITESHEETS/06_FINAL_FLASH.png",
+    "origem_original": "VEGETA_GOD_06_FINAL_FLASH_CORRIGIDA.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "c8a5221a2d997f1d273ced0923741cb4143f108638fc0a61102946c90aaf4381",
+    "observacao": "Folha corrigida do Final Flash"
+  },
+  {
+    "arquivo": "SPRITESHEETS/07_BIG_BANG_ATTACK.png",
+    "origem_original": "spritesheet_vegeta_ataque_de_palma.png",
+    "resolucao": [
+      1024,
+      1536
+    ],
+    "sha256": "3467435301171133a1fd35799d4f7653fda9b1e8943850e53571119d8472b28e",
+    "observacao": "Última correção: mão mantida no terceiro quadro da terceira linha"
+  }
+]
