@@ -1,0 +1,78 @@
+{
+  "skillId": "galickGun",
+  "visualVersion": "v5",
+  "status": "arte aprovada; chroma convertido; validação in-game pendente",
+  "originalDimensions": [
+    1672,
+    941
+  ],
+  "sheetDimensions": [
+    1672,
+    940
+  ],
+  "grid": {
+    "columns": 4,
+    "rows": 4,
+    "frames": 16,
+    "frameWidth": 418,
+    "frameHeight": 235
+  },
+  "frameOrder": "left-to-right then top-to-bottom",
+  "spriteSheet": "galick_gun_v5_sheet_rgba.png",
+  "original": "arte_original_chroma_verde.png",
+  "frames": [
+    "frames/galick_gun_v5_frame_01.png",
+    "frames/galick_gun_v5_frame_02.png",
+    "frames/galick_gun_v5_frame_03.png",
+    "frames/galick_gun_v5_frame_04.png",
+    "frames/galick_gun_v5_frame_05.png",
+    "frames/galick_gun_v5_frame_06.png",
+    "frames/galick_gun_v5_frame_07.png",
+    "frames/galick_gun_v5_frame_08.png",
+    "frames/galick_gun_v5_frame_09.png",
+    "frames/galick_gun_v5_frame_10.png",
+    "frames/galick_gun_v5_frame_11.png",
+    "frames/galick_gun_v5_frame_12.png",
+    "frames/galick_gun_v5_frame_13.png",
+    "frames/galick_gun_v5_frame_14.png",
+    "frames/galick_gun_v5_frame_15.png",
+    "frames/galick_gun_v5_frame_16.png"
+  ],
+  "suggestedPhases": {
+    "charging": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "firing": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "sustain": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "dissipate": [
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "impact": {
+    "useExistingApprovedV1": true,
+    "includeDuplicatedAssets": false
+  },
+  "notes": [
+    "Original was generated directly on green chroma (not composited afterwards).",
+    "One bottom row dropped to form uniform 4x4 frames.",
+    "Visual phase assignment and anchors require in-game review.",
+    "Animation V5 is an evolution of the same skill, not a new skill ID.",
+    "Check halos near green spill and protruding beam tips at cell bounds."
+  ]
+}

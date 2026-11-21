@@ -50,14 +50,14 @@ export const CONFIG = Object.freeze({
   prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),
-  skillCosts: { kame: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
-  skillCooldowns: { kame: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
+  skillCosts: { kame: 25, galick: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
+  skillCooldowns: { kame: 5, galick: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
   // Marcos atuais das formas de Goku; parâmetros e comportamento compartilhados em shared/formas.mjs.
   // Habilidades implementadas progridem até a Genki Dama, alinhada ao marco do SSJ2.
   // Transformações atuais permanecem inalteradas até a implementação da nova escada.
   // ryuken (SSJ3 e SSJ4) e superKamehameha (SSJ4): técnicas próprias nos oito slots configuráveis (Pedro, 12 e
   // 16/11/2026); o Kamehameha continua em todas as formas (shared/ryuken.mjs, shared/kamehameha.mjs).
-  skills: { ki: 20, galick: 20, dash: 20, kame: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 300, ryuken: 300, ssj4: 500, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
+  skills: { ki: 20, dash: 20, kame: 40, galick: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 300, ryuken: 300, ssj4: 500, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
   // Marcos planejados para técnicas futuras; não liberam nem ativam habilidades ainda inexistentes.
   plannedSkillUnlocks: Object.freeze({})
 });

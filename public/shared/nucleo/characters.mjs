@@ -102,11 +102,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   if(vocacao.id==='vegeta') {
     const personalizada=saved?.barraPersonalizada===true || Array.isArray(saved?.barraTecnicas);
     const permitidos=new Set(['skill:heal','skill:ki','skill:galick','item:food','item:ki','item:seed15','item:seed30','item:seed50','item:seed100']);
-    if(!personalizada || (saved?.barraPersonalizada!==true && barraSalva[1]==='skill:galick')) barraSalva.splice(0,8,...['skill:heal','skill:ki',null,null,null,'item:food','item:ki',null]);
+    if(!personalizada) barraSalva.splice(0,8,...['skill:heal','skill:galick',null,null,null,'item:food','item:ki',null]);
     else for(let i=0;i<barraSalva.length;i++) if(barraSalva[i]&&barraSalva[i].startsWith('skill:')&&!permitidos.has(barraSalva[i])) barraSalva[i]=null;
   }
   // Saves anteriores não tinham este indicador: só uma barra diferente do padrão antigo revela edição manual.
-  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected)[i]));
+  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected,1,'base',vocacao)[i]));
   const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
   const p = { montaria:montariaValida(saved?.montaria), montariaPreferida:montariaValida(saved?.montariaPreferida)||montariaValida(saved?.montaria)||'nimbus', battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
@@ -122,7 +122,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
-    basicReady: 0, shotReady: 0, kameReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
     healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
     autoHeal: saved?.autoHeal !== false,
     healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,

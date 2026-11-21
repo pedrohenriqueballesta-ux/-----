@@ -1,0 +1,217 @@
+{
+  "name": "Galick Gun V1",
+  "status": "visual_approved_technical_preview",
+  "source_resolution": [
+    1672,
+    941
+  ],
+  "sheet_resolution": [
+    1672,
+    944
+  ],
+  "grid": {
+    "columns": 4,
+    "rows": 4
+  },
+  "frame_size": [
+    418,
+    236
+  ],
+  "frame_order": "row-major",
+  "fps_recommendation": 12,
+  "direction": "left_to_right",
+  "phases": {
+    "charge": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "launch": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "sustain": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "fade": [
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "notes": [
+    "Uses natural row boundaries because original height is 941px",
+    "No character included",
+    "For beams with variable range, stretch or repeat only middle beam segment in game; do not scale the complete burst and tip",
+    "Visual approval does not imply final runtime acceptance"
+  ],
+  "edge_report": [
+    {
+      "frame": 1,
+      "x": 0,
+      "y": 0,
+      "visible_pixels": 4825,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 2,
+      "x": 1,
+      "y": 0,
+      "visible_pixels": 10213,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 3,
+      "x": 2,
+      "y": 0,
+      "visible_pixels": 19053,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 4,
+      "x": 3,
+      "y": 0,
+      "visible_pixels": 30336,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 5,
+      "x": 0,
+      "y": 1,
+      "visible_pixels": 27507,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 6,
+      "x": 1,
+      "y": 1,
+      "visible_pixels": 28543,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 7,
+      "x": 2,
+      "y": 1,
+      "visible_pixels": 30391,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 8,
+      "x": 3,
+      "y": 1,
+      "visible_pixels": 34886,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 9,
+      "x": 0,
+      "y": 2,
+      "visible_pixels": 38319,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 10,
+      "x": 1,
+      "y": 2,
+      "visible_pixels": 39012,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 11,
+      "x": 2,
+      "y": 2,
+      "visible_pixels": 38338,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 12,
+      "x": 3,
+      "y": 2,
+      "visible_pixels": 37418,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 13,
+      "x": 0,
+      "y": 3,
+      "visible_pixels": 36713,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 14,
+      "x": 1,
+      "y": 3,
+      "visible_pixels": 28312,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 15,
+      "x": 2,
+      "y": 3,
+      "visible_pixels": 20375,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    },
+    {
+      "frame": 16,
+      "x": 3,
+      "y": 3,
+      "visible_pixels": 13528,
+      "touch_right": 0,
+      "touch_left": 0,
+      "touch_top": 0,
+      "touch_bottom": 0
+    }
+  ]
+}
