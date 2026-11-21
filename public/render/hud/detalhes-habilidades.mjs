@@ -3,8 +3,9 @@ import { CURA, curaPorNivel } from '../../shared/tecnicas/cura.mjs';
 import { FORMAS, formaDisponivel, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
+import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
 
-const NOMES = { heal: 'Cura de Vida', ki: 'Rajada de Ki', galick: 'Galick Gun', kame: 'Kamehameha', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
+const NOMES = { heal: 'Cura de Vida', ki: 'Rajada de Ki', kame: 'Kamehameha', galick: 'Galick Gun', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
 
 export function detalhesHabilidade(chave, estado) {
@@ -48,14 +49,16 @@ export function detalhesHabilidade(chave, estado) {
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
     const nivel = chave === 'heal' ? 1 : CONFIG.skills[chave];
-    const custo = chave === 'heal' ? cura.custo : chave === 'ki' ? 7 : chave === 'galick' ? CONFIG.skillCosts.kame : CONFIG.skillCosts[chave];
-    const recarga = chave === 'heal' ? cura.cooldown : chave === 'ki' ? 0.7 : chave === 'galick' ? CONFIG.skillCooldowns.kame : CONFIG.skillCooldowns[chave];
+    const custo = chave === 'heal' ? cura.custo : chave === 'ki' ? 7 : CONFIG.skillCosts[chave];
+    const recarga = chave === 'heal' ? cura.cooldown : chave === 'ki' ? 0.7 : CONFIG.skillCooldowns[chave];
     const restante = chave === 'heal' ? cura.remaining : estado[chave + 'Remaining'];
-    return { nome: NOMES[chave], linhas: [
+    const galick = chave === 'galick';
+    return { nome: galick && estado.galickVersao ? 'Galick Gun V' + estado.galickVersao : NOMES[chave], linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],
       ...(chave === 'heal' ? [['Cura', Number((cura.percentual * 100).toFixed(1)).toLocaleString('pt-BR') + '% do HP máximo']] : []),
       ...(chave === 'kame' ? [['Alvo', 'Mob selecionado'], ['Impacto', 'Dano completo no alvo; dano adicional dividido entre os demais mobs na área da sprite']] : []),
-      ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : 'Desbloqueada']
+      ...(galick ? [['Alvo', 'Mob selecionado'], ['Alcance', (estagioGalick(estado.level) ?? ESTAGIOS_GALICK[0]).alcance + ' unidades'], ['Origem', 'Mãos do Vegeta']] : []),
+      ['Estado', galick && estado.vocacao !== 'vegeta' ? 'Exclusiva do Vegeta' : estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : galick && estado.ki < custo ? 'Ki insuficiente' : 'Desbloqueada']
     ] };
   }
   const semente = /^seed(15|30|50|100)$/.exec(chave);

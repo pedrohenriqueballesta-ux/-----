@@ -12,7 +12,8 @@ import { deslocar } from '../shared/mundo/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/nucleo/config.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
-import { desenharGalickComProfundidade, origemVisualGalick } from '../render/vfx/galick-gun.mjs';
+import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } from '../render/vfx/galick-gun.mjs';
+import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
 import { PREDIOS_TERRA } from '../shared/mundo/terra.mjs';
 import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
 carregarImpactoKame();
@@ -159,6 +160,7 @@ function conectarMundo(data){
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
+      carregarGalick(snapshot.self?.galickVersao);
       // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
       if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
       carregarBarreira(); carregarRaiosSsj2('frente');
@@ -387,9 +389,9 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
   // Sem círculo dourado em volta do Super Saiyajin (pedido do Pedro, 11/11/2026), como já foi feito com a Kaioken.
   const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
-  const kame = (snapshot.kamehamehas || []).find(k => k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
-  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.galick ? undefined : kame?.started,
-    galickPhase:p.charge?.galick?'charge':kame?.galick&&!kame.impacto?'beam':null };
+  const kame = (snapshot.kamehamehas || []).find(k => !k.galick && k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
+  const galick = p.charge?.galick ? p.charge : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.galick);
+  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick };
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -710,8 +712,7 @@ function drawObjetoVegeta(o, escala) {
 // Sempre cobre os inimigos; a direção decide a profundidade em relação ao lançador.
 function desenharKameSobreInimigos(efeito, tempo, lancador, pos) {
   const recompor = lancador && pos ? () => drawPlayer(lancador, pos, tempo, true) : null;
-  if (efeito.galick) desenharGalickComProfundidade(ctx, efeito, tempo, recompor);
-  else desenharKameComProfundidade(ctx, efeito, tempo, recompor);
+  desenharKameComProfundidade(ctx, efeito, tempo, recompor);
 }
 function frame(now) {
   const fps=snapshot?.self?.preferencias?.fps||60;
@@ -764,6 +765,83 @@ function frame(now) {
     ctx.strokeStyle = '#3c6428'; ctx.lineWidth = 12; ctx.strokeRect(0, 0, world.w, world.h);
     for (const o of portaisAqui()) drawPortal(ctx, o, time, corDoPortal(o), textoDoPortal(o), RAIO_PORTAL);
   }
+  // Efeitos entram na mesma ordem de profundidade dos personagens e das casas.
+  // Uma habilidade presa ao jogador usa os pés dele; projéteis e impactos usam
+  // a própria posição. Assim, uma casa à frente também oculta a animação.
+  const efeitosHabilidades = [];
+  const adicionarEfeito = (pos, draw, camada = .02) => {
+    if (pos) efeitosHabilidades.push({ y: profundidade(pos, casas, world.escala, vulcoesAqui) + camada, draw });
+  };
+  const posicaoMaoGalick = (p, pos, direcao, ateContato, instante = time) => {
+    const montado = p?.montaria && !p.dead && nimbusCarregada()
+      ? geometriaNimbus({ ...p, facing: direcao }, pos, instante, { flutuar: !snapshot.self?.preferencias?.reduzirAnimacoes }) : null;
+    return origemGalick(montado?.personagem || pos, direcao, ateContato);
+  };
+  const camadaGalick = direcao => direcao.y > .0001 ? .02 : -.02;
+  for (const p of snapshot.players) if (p.charge) {
+    const pos = renderPositions.get(p.id) || p;
+    adicionarEfeito(pos, () => {
+      const alvo = snapshot.mobs.find(m => m.id === p.charge.targetId);
+      if (p.charge.galick) {
+        const origem = posicaoMaoGalick(p, pos, p.charge.direction);
+        desenharGalick(ctx, { ...p.charge, ...origem, carga: true }, time);
+      } else {
+        const origem = origemKame(pos, p.charge.direction, alvo);
+        desenharKameSobreInimigos({ ...p.charge, ...origem }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
+      }
+    }, p.charge.galick ? camadaGalick(p.charge.direction) : .02);
+  }
+  for (const k of snapshot.kamehamehas || []) {
+    const dono = snapshot.players.find(p => p.id === k.owner);
+    const pos = renderPositions.get(k.owner);
+    if (k.galick) {
+      const mao = k.impacto ? posicaoMaoGalick(dono, k, k.direction, 0, k.impacto.started)
+        : pos && dono ? posicaoMaoGalick(dono, pos, k.direction, Math.hypot(k.x - dono.x, k.y - dono.y)) : k;
+      adicionarEfeito(pos || k, () => desenharGalick(ctx, k, time, mao), camadaGalick(k.direction));
+      if (k.impacto) {
+        const impacto = { ...k.impacto, ...linhaGalick(k, time, mao).ponta };
+        // Desenha no ponto do acerto, mas usa a profundidade do alvo para cobrir o corpo.
+        const posAlvo = renderPositions.get(k.targetId) || k.impacto;
+        adicionarEfeito(posAlvo, () => desenharImpactoGalick(ctx, impacto, time, k.versao));
+      }
+      continue;
+    }
+    adicionarEfeito(pos || k, () => {
+      const alvo = snapshot.mobs.find(m => m.id === k.targetId);
+      const origem = pos && !k.impacto ? origemKame(pos, k.direction, alvo) : null;
+      desenharKameSobreInimigos(origem ? { ...k, ...origem } : k, time, dono, pos);
+    });
+  }
+  for (const g of snapshot.genkiCharges || []) {
+    const dono = snapshot.players.find(p => p.id === g.owner);
+    const referencia = renderPositions.get(g.owner) || g;
+    adicionarEfeito(referencia, () => {
+      let pos = referencia;
+      if (dono?.montaria === 'nimbus' && !dono.dead && nimbusCarregada())
+        pos = geometriaNimbus({ ...dono, facing: g.direction }, pos, time, { flutuar: !snapshot.self?.preferencias?.reduzirAnimacoes }).personagem;
+      desenharGenki(ctx, 'carga', g, time, { ...pos, alturaCanalizacao: dono && !dono.transformed ? POSE_GENKI.alturaCanalizacao : 62 });
+    });
+  }
+  for (const j of snapshot.players) if (j.ryuken) {
+    const pos = renderPositions.get(j.id) || j;
+    adicionarEfeito(pos, () => { desenharAuraRyuken(ctx, j, pos, time); desenharLancamentoRyuken(ctx, j, pos, time); });
+  }
+  for (const s of snapshot.projectiles) {
+    const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
+    const alvo = s.kind === 'mobKiTarget' ? renderPositions.get(s.alvoId) : null;
+    const distancia = alvo ? Math.hypot(alvo.x - s.x, alvo.y - s.y) : Infinity;
+    const avanco = Math.min(s.speed * Math.min(.07, (now - receivedAt) / 1000), distancia);
+    const pos = s.kind === 'mobKiTarget' ? { x: s.x + s.dx * avanco, y: s.y + s.dy * avanco } : { x: px, y: py };
+    adicionarEfeito(pos, () => {
+      if ((s.kind === 'ki' || s.kind === 'mobKiTarget') && desenharProjetilMob(ctx, s, pos, time, camera.scale)) return;
+      if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); return; }
+      if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, pos);
+      else if (s.kind === 'ryuken') desenharVooRyuken(ctx, s, time, pos);
+      else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
+    });
+  }
+  for (const g of snapshot.genkiExplosions || []) adicionarEfeito(g, () => desenharGenki(ctx, 'explosao', g, time));
+  for (const e of snapshot.ryukenExplosoes || []) adicionarEfeito(e, () => desenharImpactoRyuken(ctx, e, time));
   const drawables = [
     ...(comSolo ? OBSTACLES.filter(aquiNoPlaneta).map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
     ...mercadores.map(m => ({ y: m.y, draw: () => drawVendor(ctx, m) })),
@@ -775,55 +853,11 @@ function frame(now) {
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
     ...prediosTerra.map(p => ({ y: p.y, draw: () => { desenharPredioTerra(ctx, p, renderPositions.get(self?.id)); for (const e of p.estaticos || []) desenharNpcEstatico(ctx, e); if (p.npcPos) desenharNpcTerra(ctx, p, time, renderPositions.get(self?.id)); } })),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas, world.escala, vulcoesAqui), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
-    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) }))
+    ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) })),
+    ...efeitosHabilidades
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();
   if (world.id === 'terra') for (const npc of npcPontosTerra()) desenharBalaoNpc(ctx, npc, position);
-  // Sem recorte: para baixo o feixe cobre o lançador; para cima o sprite recompõe a oclusão.
-  for (const p of snapshot.players) if (p.charge) {
-    const pos = renderPositions.get(p.id) || p;
-    const origem = p.charge.galick ? origemVisualGalick(pos,p.charge.direction,true) : origemKame(pos, p.charge.direction, snapshot.mobs.find(m => m.id === p.charge.targetId));
-    desenharKameSobreInimigos({ ...p.charge, ...origem }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
-  }
-  for (const k of snapshot.kamehamehas || []) {
-    const pos = renderPositions.get(k.owner);
-    const alvo = snapshot.mobs.find(m => m.id === k.targetId);
-    const origem = pos && k.galick ? origemVisualGalick(pos,k.direction) : pos && !k.impacto ? origemKame(pos,k.direction,alvo) : null;
-    const efeito = origem ? { ...k, ...origem } : k;
-    if (k.galick && (alvo || k.impacto)) {
-      const ponto = k.impacto ? {x:k.impacto.contatoX,y:k.impacto.contatoY,corpo:0} : alvo;
-      const dx = ponto.x - efeito.x, dy = ponto.y - efeito.y, distancia = Math.hypot(dx,dy);
-      efeito.alvoDistancia = Math.max(0,distancia-(ponto.corpo||0));
-      efeito.visualDirection = distancia > 0 ? { x:dx/distancia, y:dy/distancia } : k.direction;
-      efeito.alcanceVisualExtra = Math.max(0,(k.x-efeito.x)*k.direction.x+(k.y-efeito.y)*k.direction.y);
-    }
-    desenharKameSobreInimigos(efeito, time, snapshot.players.find(p => p.id === k.owner), pos);
-  }
-  for (const g of snapshot.genkiCharges || []) {
-    const dono = snapshot.players.find(p => p.id === g.owner);
-    let pos = renderPositions.get(g.owner) || g;
-    if (dono?.montaria === 'nimbus' && !dono.dead && nimbusCarregada())
-      pos = geometriaNimbus({...dono,facing:g.direction},pos,time,{flutuar:!snapshot.self?.preferencias?.reduzirAnimacoes}).personagem;
-    desenharGenki(ctx,'carga',g,time,{...pos,alturaCanalizacao:dono && !dono.transformed ? POSE_GENKI.alturaCanalizacao : 62});
-  }
-  // Ryuken: energia saindo do punho durante o lançamento (por cima do corpo).
-  for (const j of snapshot.players) if (j.ryuken) { const pj = renderPositions.get(j.id) || j; desenharAuraRyuken(ctx, j, pj, time); desenharLancamentoRyuken(ctx, j, pj, time); }
-  for (const s of snapshot.projectiles) {
-    const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
-    if (s.kind === 'ki' && desenharProjetilMob(ctx, s, { x: px, y: py }, time, camera.scale)) continue;
-    if (s.kind === 'mobKiTarget') {
-      const alvo=renderPositions.get(s.alvoId),distancia=alvo?Math.hypot(alvo.x-s.x,alvo.y-s.y):Infinity;
-      const avanco=Math.min(s.speed*Math.min(.07,(now-receivedAt)/1000),distancia);
-      const pos={x:s.x+s.dx*avanco,y:s.y+s.dy*avanco};
-      if(desenharProjetilMob(ctx,s,pos,time,camera.scale))continue;
-    }
-    if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); continue; }
-    if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, { x: px, y: py });
-    else if (s.kind === 'ryuken') desenharVooRyuken(ctx, s, time, { x: px, y: py });
-    else { ctx.strokeStyle = s.ownerType === 'player' ? '#b7edff' : '#f3ba8d'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - s.dx * 12, py - s.dy * 12); ctx.lineTo(px, py); ctx.stroke(); ctx.lineCap = 'butt'; }
-  }
-  for (const g of snapshot.genkiExplosions || []) desenharGenki(ctx, 'explosao', g, time);
-  for (const e of snapshot.ryukenExplosoes || []) desenharImpactoRyuken(ctx, e, time);
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'supernova') bolaSupernova(m, m.telegraph, time);
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra') bolaNegra(m, m.telegraph, time);
   effects(time);

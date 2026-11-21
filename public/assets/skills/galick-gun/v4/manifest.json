@@ -1,0 +1,65 @@
+{
+  "skillId": "galickGun",
+  "visualVersion": "v4",
+  "status": "arte aprovada; transparencia convertida; teste in-game pendente",
+  "rows": 4,
+  "columns": 4,
+  "frameCount": 16,
+  "frameWidth": 417,
+  "frameHeight": 235,
+  "sheetWidth": 1668,
+  "sheetHeight": 940,
+  "sourceFile": "arte_original_chroma_verde.png",
+  "sheetFile": "galick_gun_v4_sheet_rgba.png",
+  "frameFiles": [
+    "frames/galick_gun_v4_frame_01.png",
+    "frames/galick_gun_v4_frame_02.png",
+    "frames/galick_gun_v4_frame_03.png",
+    "frames/galick_gun_v4_frame_04.png",
+    "frames/galick_gun_v4_frame_05.png",
+    "frames/galick_gun_v4_frame_06.png",
+    "frames/galick_gun_v4_frame_07.png",
+    "frames/galick_gun_v4_frame_08.png",
+    "frames/galick_gun_v4_frame_09.png",
+    "frames/galick_gun_v4_frame_10.png",
+    "frames/galick_gun_v4_frame_11.png",
+    "frames/galick_gun_v4_frame_12.png",
+    "frames/galick_gun_v4_frame_13.png",
+    "frames/galick_gun_v4_frame_14.png",
+    "frames/galick_gun_v4_frame_15.png",
+    "frames/galick_gun_v4_frame_16.png"
+  ],
+  "frameOrder": "esquerda para direita, cima para baixo",
+  "suggestedPhases": {
+    "conjuracao": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "disparo": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "sustentacao": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "dissipacao": [
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "impact": {
+    "reuseExisting": true,
+    "source": "galick gun V1 explosao aprovada",
+    "generateNew": false
+  },
+  "keyingNote": "Chroma verde removido da arte originalmente gerada sobre fundo verde. Verificar halos in-game."
+}

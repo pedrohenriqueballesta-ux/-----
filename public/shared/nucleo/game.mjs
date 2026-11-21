@@ -17,6 +17,7 @@ import {barraValida,atualizarBarraPadrao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
+import { GALICK, estagioGalick, origemGalick } from '../tecnicas/galick-gun.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from '../mundo/projetil-mob.mjs';
 import { Mercado } from '../sistemas/mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from '../sistemas/itens-negociaveis.mjs';
@@ -197,6 +198,7 @@ export class Game {
       if(!Array.isArray(data.slots)||data.slots.length!==8||data.slots.some(v=>v!==null&&typeof v!=='string'))return {ok:false,reason:'Barra inválida.'};
       const validada=barraValida(data.slots);
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
+      if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
@@ -401,10 +403,10 @@ export class Game {
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
-    if (p.vocacao === 'vegeta' && !['heal','basic','galick','ki'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
+    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -442,9 +444,25 @@ export class Game {
     }
     // Super Kamehameha (Pedro, 16/11/2026): técnica própria do SSJ4, atribuível à barra, mesma mecânica do Kamehameha,
     // vermelho-carmesim e no último nível; recarga e custo próprios.
-    if (skill === 'galick' || skill === 'kame' || skill === 'superKamehameha') {
-      const galick = skill === 'galick', superKame = skill === 'superKamehameha', nome = galick ? 'Galick Gun' : superKame ? 'Super Kamehameha' : 'Kamehameha';
-      if (galick && p.vocacao !== 'vegeta') return automated ? { ok: false } : this.reject(p, 'Galick Gun é exclusivo do Vegeta.');
+    if (skill === 'galick') {
+      if (p.vocacao !== 'vegeta') return automated ? { ok:false } : this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
+      const estagio = estagioGalick(p.level);
+      if (!estagio) return automated ? { ok: false } : this.reject(p, 'Galick Gun libera no nível ' + CONFIG.skills.galick + '.');
+      if (p.charge || this.time < p.galickReady || p.ki < GALICK.custo)
+        return automated ? { ok: false } : this.reject(p, 'Galick Gun em recarga ou Ki insuficiente.');
+      const alvo = this.mobs.get(p.targetId);
+      const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * GALICK.carga : 0;
+      if (!this.alvoValidoGalick(p, alvo) || this.distanciaAoCorpo(p, alvo) > estagio.alcance + GALICK.mao + antecipacao)
+        return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Galick Gun.');
+      p.facing = norm(alvo.x - p.x, alvo.y - p.y);
+      p.ki -= GALICK.custo;
+      p.galickReady = this.time + (p.godmode ? 1 : GALICK.recarga);
+      p.charge = { targetId: alvo.id, automated, until: this.time + GALICK.carga, started: this.time,
+        direction: p.facing, galick: true, versao: estagio.versao, alcance: estagio.alcance };
+      return { ok: true };
+    }
+    if (skill === 'kame' || skill === 'superKamehameha') {
+      const superKame = skill === 'superKamehameha', nome = superKame ? 'Super Kamehameha' : 'Kamehameha';
       if (p.level < CONFIG.skills[skill]) return automated ? { ok: false } : this.reject(p, nome + ' libera no nível ' + CONFIG.skills[skill] + '.');
       if (superKame && !usaSuperKame(p)) return automated ? { ok: false } : this.reject(p, 'O Super Kamehameha só sai no Super Saiyajin 4.');
       const custo = superKame ? SUPER_KAME.custo : CONFIG.skillCosts.kame, pronto = superKame ? p.superKameReady || 0 : p.kameReady;
@@ -458,7 +476,7 @@ export class Game {
       p.ki -= custo;
       if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
       else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
-      p.charge = { targetId: alvoKame.id, automated, galick, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
+      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
         ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
     }
@@ -825,12 +843,15 @@ export class Game {
       p.saidaSegura = null;
       // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
       // quando outro se aproxima durante a perseguição atual.
-      const raioCaca = p.autoSkills && p.level >= CONFIG.skills.kame
-        ? Math.max(CONFIG.autoHuntRaio, estagioKame(p.level).alcance + KAME.mao + p.stats.mobility * KAME.carga) : CONFIG.autoHuntRaio;
+      const alcanceKame = p.vocacao !== 'vegeta' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
+      const raioCaca = p.autoSkills && alcanceKame
+        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + p.stats.mobility * KAME.carga) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
       if (target) {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
         p.targetId = target.id;
+        // A distância da técnica determina quando disparar, não onde a caça para.
+        // Continua a aproximação para poder finalizar com ataque básico mesmo em recarga/sem Ki.
         if (distance(p, target) > 49) {
           const alcancavel = this.steer(p, target, dt, p.stats.mobility, 40);
           const d = distance(p, target);
@@ -878,7 +899,7 @@ export class Game {
       target = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
       p.targetId = target?.id || null;
     }
-    if (p.autoHunt && p.autoSkills && target) {
+    if (p.autoHunt && p.autoSkills && target && !p.charge && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
       const attackFactor = multiplicadorDaForma(p.forma, 'soco');
       const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
       const danoKi = Math.max(1, Math.round(p.stats.attack * multiplicadorDaForma(p.forma, 'rajada') * 100 / (100 + (target.defesa ?? 1) * 3)));
@@ -886,15 +907,21 @@ export class Game {
       const pertoParaBasico = this.distanciaAoCorpo(p, target) <= 70;
       const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
-      const noAlcanceKame = this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
-      if (!morreriaNoBasico && !prefereBasico && p.level >= 3 && p.ki > p.stats.ki * 0.35 && noAlcanceKame && target.hp > danoKi) {
+      const vegeta = p.vocacao === 'vegeta';
+      const podeKame = !vegeta && p.level >= 3
+        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
+      const podeRajada = !morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico;
+      if (vegeta) {
+        if (!this.cast(p, 'galick', true).ok && podeRajada) this.cast(p, 'ki', true);
+      } else if (!morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
         // Auto Hunt: no SSJ4 tenta o Super Kamehameha, no SSJ3/SSJ4 o Ryuken, e por fim o Kamehameha (o que estiver pronto).
         const tentou = skill => this.cast(p, skill, true).ok;
         if (!(usaSuperKame(p) && tentou('superKamehameha')) && !(usaRyuken(p) && tentou('ryuken'))) this.cast(p, 'kame', true);
       }
-      else if (!morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico) this.cast(p, 'ki', true);
+      else if (podeRajada) this.cast(p, 'ki', true);
     }
-    if (p.charge) {
+    if (p.charge?.galick) this.atualizarCargaGalick(p);
+    if (p.charge && !p.charge.galick) {
       let alvo = this.mobs.get(p.charge.targetId);
       if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
         alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
@@ -904,12 +931,15 @@ export class Game {
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const alvoCarga = p.charge && this.mobs.get(p.charge.targetId);
-    const cargaNoAlcance = p.charge && (!p.charge.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(p.charge.nivel).alcance + KAME.mao);
-    if (p.charge && this.time >= p.charge.until && cargaNoAlcance) {
-      this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, p.charge.direction),
-        targetId: p.charge.targetId, direction: p.charge.direction, nivel: p.charge.nivel, cor: p.charge.cor, galick: p.charge.galick === true, started: this.time - KAME.primeiroFeixe * KAME.quadro,
-        damage: p.stats.attack * (p.charge.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')), automated: p.charge.automated, atingidos: new Set() });
+    const cargaKame = p.charge && !p.charge.galick ? p.charge : null;
+    const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
+    const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
+    if (cargaNoAlcance && this.time >= cargaKame.until) {
+      this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, cargaKame.direction),
+        targetId: cargaKame.targetId, direction: cargaKame.direction, nivel: cargaKame.nivel, cor: cargaKame.cor,
+        started: this.time - KAME.primeiroFeixe * KAME.quadro, galick: false, distancia: null,
+        damage: p.stats.attack * (cargaKame.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')),
+        automated: cargaKame.automated, atingidos: new Set() });
       p.charge = null;
     }
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
@@ -917,9 +947,49 @@ export class Game {
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
+  alvoValidoGalick(p, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo);
+  }
+  atualizarCargaGalick(p) {
+    const carga = p.charge, alvo = this.mobs.get(carga.targetId);
+    if (!this.alvoValidoGalick(p, alvo)) { p.charge = null; return; }
+    const foraDoAlcance = this.distanciaAoCorpo(p, alvo) > carga.alcance + GALICK.mao;
+    if (foraDoAlcance && (!carga.automated || p.targetId !== alvo.id || this.time >= carga.until + GALICK.carga)) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = norm(alvo.x - p.x, alvo.y - p.y);
+    if (this.time < carga.until || foraDoAlcance) return;
+    this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area,
+      galick: true, versao: carga.versao, alcance: carga.alcance, targetId: alvo.id, castStarted: carga.started, started: this.time,
+      direction: carga.direction, distancia: 0, damage: p.stats.attack * GALICK.dano });
+    p.charge = null;
+  }
+  atualizarGalick(k, p) {
+    if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k)) return false;
+    if (k.impacto) return this.time - k.impacto.started < GALICK.impactoQuadros * GALICK.impactoQuadro;
+    if (naZonaSegura(p) || this.time - k.started >= GALICK.duracao) return false;
+    const alvo = this.mobs.get(k.targetId);
+    if (!this.alvoValidoGalick(p, alvo)) return false;
+    const contato = this.distanciaAoCorpo(p, alvo);
+    if (contato > k.alcance + GALICK.mao) return false;
+    k.direction = p.facing = norm(alvo.x - p.x, alvo.y - p.y);
+    Object.assign(k, origemGalick(p, k.direction, contato));
+    const distancia = Math.max(0, contato - GALICK.mao);
+    k.distanciaContato = distancia;
+    k.tempoVoo = Math.max(GALICK.vooMinimo, distancia / GALICK.velocidade);
+    const progresso = Math.min(1, (this.time - k.started) / k.tempoVoo);
+    k.distancia = distancia * progresso;
+    if (progresso < 1) return true;
+    if (!this.hit(p, alvo, k.damage)) return false;
+    k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, started: this.time };
+    return true;
+  }
   atualizarKamehamehas() {
     this.kamehamehas = this.kamehamehas.filter(k => {
-      const p = this.players.get(k.owner), g = geometriaKame(k.nivel, this.time - k.started);
+      const p = this.players.get(k.owner);
+      if (k.galick) return this.atualizarGalick(k, p);
+      const g = geometriaKame(k.nivel, this.time - k.started);
       if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k) || naZonaSegura(p)) return false;
       if (k.impacto) return this.time - k.impacto.started < IMPACTO_KAME.quadros * IMPACTO_KAME.quadro;
       if (!g) return false;
@@ -1163,7 +1233,7 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,

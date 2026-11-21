@@ -3,9 +3,42 @@ import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
 import { CURA } from '../public/shared/tecnicas/cura.mjs';
+import { GALICK, estagioGalick } from '../public/shared/tecnicas/galick-gun.mjs';
 
-function cena() {
-  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
+test('Vegeta continua avançando durante a carga e depois do Galick Gun', () => {
+  const { g, p } = cena({ level: CONFIG.skills.galick, vocacao: 'vegeta' }); p.autoAttack = true; p.autoSkills = true;
+  p.autoHeal = false; p.autoKi = false; p.autoSeed = false;
+  const alvo = g.addMob('saibaman', p.x + estagioGalick(p.level).alcance - 20, p.y, p.area);
+  alvo.hp = alvo.maxHp = 10000;
+  const inicio = p.x;
+  g.tick(.1);
+  assert.ok(p.charge?.galick, 'inicia a carga ainda em movimento');
+  g.tick(.1);
+  assert.ok(p.x > inicio, 'aproxima-se durante a carga');
+  const duranteCarga = p.x;
+  for (let i = 0; i < 6; i++) g.tick(.1);
+  assert.ok(g.kamehamehas.some(k => k.galick), 'dispara o Galick Gun');
+  g.tick(.1);
+  assert.ok(p.x > duranteCarga, 'continua avançando com o feixe ativo');
+});
+
+test('Galick Gun completa a canalização e preserva o instante inicial da pose', () => {
+  const { g, p } = cena({ level: CONFIG.skills.galick, vocacao: 'vegeta' }); p.autoHunt = false;
+  const alvo = g.addMob('saibaman', p.x + 140, p.y, p.area);
+  p.targetId = alvo.id;
+  assert.ok(g.cast(p, 'galick').ok);
+  const inicio = p.charge.started;
+  while (g.time + .02 < inicio + GALICK.carga) g.tick(.02);
+  assert.equal(g.kamehamehas.filter(k => k.galick).length, 0);
+  g.tick(.021);
+  const disparo = g.kamehamehas.find(k => k.galick);
+  assert.ok(disparo);
+  assert.equal(disparo.castStarted, inicio);
+  assert.ok(disparo.started - inicio >= GALICK.carga);
+});
+
+function cena(save) {
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Guerreiro', save);
   g.levar(p, lugar('inicial')); p.x += 180; p.seguroAte = 0;
   p.autoFood = false; p.autoHeal = false; p.autoHunt = true;
   return { g, p };

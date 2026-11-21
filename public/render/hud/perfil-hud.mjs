@@ -42,7 +42,7 @@ export function montarPerfil(container,{acao}={}){
   seletor.append(new Option('Colocar no slot…',''));for(let i=1;i<=8;i++)seletor.append(new Option('Tecla '+i,String(i)));
   card.addEventListener('dragstart',e=>{if(!card.draggable){e.preventDefault();return;}e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('application/x-dbi-tecnica',t.id);});
   seletor.onchange=()=>{const slot=Number(seletor.value)-1;seletor.value='';if(!ultimo||slot<0)return;const novos=barraValida(ultimo.barraTecnicas,ultimo.hotkeysConsumiveis,ultimo.seedSelected),anterior=novos.indexOf(t.id);if(anterior>=0)novos[anterior]=novos[slot];novos[slot]=t.id;acao?.({type:'configurarBarra',slots:novos});};
-  texto.append(titulo,detalhes,estado);card.append(img,texto,seletor);lista.append(card);return {t,card,detalhes,estado,seletor};
+  texto.append(titulo,detalhes,estado);card.append(img,texto,seletor);lista.append(card);return {t,card,detalhes,estado,seletor,formaId,img};
  });
  let ultimoEstado=null,selfId=null;
  try{const salvo=JSON.parse(localStorage.getItem('dbi-personalizacao')||'null');const i=skinOpcoes.findIndex(o=>o.forma===salvo?.skin),j=montariaOpcoes.findIndex(o=>o.id===salvo?.montaria);if(i>=0)skinIndice=i;if(j>=0)montariaIndice=j;}catch{}
@@ -50,8 +50,8 @@ export function montarPerfil(container,{acao}={}){
  let atualizarPersonalizacao=desenharPreview;
  const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimoEstado=s;selfId=s.selfId;atualizarPersonalizacao=desenharPreview;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
- for(const {t,card,detalhes,estado,seletor} of cards){
-  const tecnicaVegeta=['skill:heal','skill:galick'].includes(t.id);card.hidden=s.self.vocacao==='vegeta'&&!tecnicaVegeta;
+ for(const {t,card,detalhes,estado,seletor,formaId,img} of cards){
+  const tecnicaVegeta=['skill:heal','skill:galick'].includes(t.id);card.hidden=s.self.vocacao==='vegeta'?!tecnicaVegeta:t.id==='skill:galick';
   card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
   const d=dadosTecnica(t,s.self),liberada=s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
   if(formaId)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
