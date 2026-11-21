@@ -12,8 +12,8 @@ import {Guildas} from '../sistemas/guildas.mjs';
 import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
-import { FORMAS, formaDisponivel, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import {barraValida,atualizarBarraPadrao} from '../tecnicas/barra-tecnicas.mjs';
+import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
+import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
@@ -199,12 +199,15 @@ export class Game {
       const validada=barraValida(data.slots);
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
       if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
+      if (validada.some(id => id?.startsWith('form:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Transformação indisponível para esta vocação.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};if(data.valor!==null)p.montariaPreferida=data.valor;p.montaria=data.valor;return{ok:true};}
     if(kind==='skin'){
-      const skin=String(data.skin||''),forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
+      const skin=String(data.skin||'');
+      if (p.vocacao === 'vegeta' && skin !== 'base') return this.reject(p, 'Skin indisponível para o Vegeta.');
+      const forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
       if(skin!=='natalino'&&!forma)return this.reject(p,'Skin inválida.');
       p.skin=skin;return{ok:true};
     }
@@ -503,12 +506,12 @@ export class Game {
   // Um botão só (decisão do Pedro, 11/11/2026): transformado → volta à base; na base → ativa a forma mais forte
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
   alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
-    const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):FORMAS.find(f=>f.forma===formaSolicitada&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
+    const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):formasDaVocacao(p.vocacao).find(f=>f.forma===formaSolicitada);
     if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível para esta vocação ou nível.');
     // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
     if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
     if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { const formaAnterior=p.forma; p.forma = 'base'; p.formaAte = 0; if (p.skin===formaAnterior) p.skin='base'; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
-    if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + FORMAS[0].nivel + '.');
+    if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + formasDaVocacao(p.vocacao)[0].nivel + '.');
     p.forma = disponivel.forma;
     atualizarBarraPadrao(p);
     p.formaAte = disponivel.duracao ? this.time + disponivel.duracao : 0;
@@ -711,7 +714,7 @@ export class Game {
         ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
         ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken'], ['superKamehameha', 'Super Kamehameha']
       ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
-      const formsUnlock = FORMAS.filter(forma => forma.nivel === p.level).map(forma => forma.nome);
+      const formsUnlock = formasDaVocacao(p.vocacao).filter(forma => forma.nivel === p.level).map(forma => forma.nome);
       const desbloqueios = [...skillsUnlock, ...formsUnlock];
       const unlock = desbloqueios.length ? ' Desbloqueado: ' + desbloqueios.join(' e ') + '!' : '';
       this.notify(p, 'Nível ' + p.level + '! Todos os atributos aumentaram.' + unlock);

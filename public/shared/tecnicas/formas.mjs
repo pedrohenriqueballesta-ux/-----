@@ -4,7 +4,7 @@
 import { CONFIG } from '../nucleo/config.mjs';
 
 export const FORMAS = Object.freeze([
-  { forma: 'kaioken', nome: 'Kaioken', nivel: CONFIG.skills.kaioken, vocacoes: ['goku', 'vegeta'] },
+  { forma: 'kaioken', nome: 'Kaioken', nivel: CONFIG.skills.kaioken, vocacoes: ['goku'] },
   { forma: 'ssj', nome: 'Super Saiyajin', nivel: CONFIG.skills.transform, vocacoes: ['goku', 'vegeta'], icone: '/assets/skills/transformacoes/ssj1.png', icones: { vegeta: '/assets/skills/transformacoes/vegeta/ssj1.png' } },
   { forma: 'ssj2', nome: 'Super Saiyajin 2', nivel: CONFIG.skills.ssj2, vocacoes: ['goku', 'vegeta'], icone: '/assets/skills/transformacoes/ssj2.png', icones: { vegeta: '/assets/skills/transformacoes/vegeta/ssj2.png' } },
   { forma: 'ssj3', nome: 'Super Saiyajin 3', nivel: CONFIG.skills.ssj3, vocacoes: ['goku'], icone: '/assets/skills/transformacoes/ssj3.png' },
@@ -13,8 +13,10 @@ export const FORMAS = Object.freeze([
   { forma: 'gogeta', nome: 'Gogeta', nivel: CONFIG.skills.gogeta, vocacoes: ['goku'], duracao: CONFIG.transformacao.gogetaDuracao, icone: '/assets/skills/transformacoes/gogeta.png' },
   { forma: 'vegito', nome: 'Vegetto', nivel: CONFIG.skills.vegito, vocacoes: ['goku'], icone: '/assets/skills/transformacoes/vegeto.png' }
 ]);
+export const formasDaVocacao = (vocacao = 'goku') => FORMAS.filter(f => !f.vocacoes || f.vocacoes.includes(vocacao));
+
 // A forma que o botão de transformação ativa neste nível (null antes da primeira).
-export const formaDisponivel = (level, vocacao = 'goku') => FORMAS.filter(f => level >= f.nivel && (!f.vocacoes || f.vocacoes.includes(vocacao))).at(-1) || null;
+export const formaDisponivel = (level, vocacao = 'goku') => formasDaVocacao(vocacao).findLast(f => level >= f.nivel) || null;
 export const nomeDaForma = forma => FORMAS.find(f => f.forma === forma)?.nome || 'Forma base';
 export const iconeDaForma = (forma, vocacao = 'goku') => { const f = FORMAS.find(item => item.forma === forma); return f?.icones?.[vocacao] || f?.icone || null; };
 

@@ -1,7 +1,7 @@
 import {montariaValida} from '../sistemas/montarias.mjs';
 import {restaurarBattlePass} from '../sistemas/battle-pass.mjs';
 import {hotkeysConsumiveisValidas} from '../tecnicas/consumiveis-hotkeys.mjs';
-import {barraPadrao,barraValida,atualizarBarraPadrao} from '../tecnicas/barra-tecnicas.mjs';
+import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import {vocacaoDoPersonagem} from '../sistemas/vocacoes.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {restaurarMissoes} from '../sistemas/missoes.mjs';
@@ -100,13 +100,30 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const hotkeys=hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected);
   const barraSalva=barraValida(saved?.barraTecnicas,hotkeys,saved?.seedSelected);
   if(vocacao.id==='vegeta') {
-    const personalizada=saved?.barraPersonalizada===true || Array.isArray(saved?.barraTecnicas);
-    const permitidos=new Set(['skill:heal','skill:ki','skill:galick','item:food','item:ki','item:seed15','item:seed30','item:seed50','item:seed100']);
-    if(!personalizada) barraSalva.splice(0,8,...['skill:heal','skill:galick',null,null,null,'item:food','item:ki',null]);
-    else for(let i=0;i<barraSalva.length;i++) if(barraSalva[i]&&barraSalva[i].startsWith('skill:')&&!permitidos.has(barraSalva[i])) barraSalva[i]=null;
+    const padrao = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id);
+    const padraoAntigo = barraSalva.every((id, i) => i === 2
+      ? id === null || id === 'form:ssj'
+      : id === padrao[i]);
+    const possuiBarra = Array.isArray(saved?.barraTecnicas) && saved.barraTecnicas.length === 8;
+    if (!possuiBarra || (padraoAntigo && saved?.barraPersonalizada !== true)) {
+      barraSalva.splice(0, 8, ...padrao);
+    } else {
+      const permitidas = new Set(['skill:heal', 'skill:ki', 'skill:galick']);
+      for (let i = 0; i < barraSalva.length; i++) {
+        const id = barraSalva[i];
+        if (id?.startsWith('skill:') && !permitidas.has(id)) barraSalva[i] = null;
+      }
+    }
+  }
+  for (let i = 0; i < barraSalva.length; i++) {
+    const id = barraSalva[i];
+    if (id?.startsWith('form:') && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
+  }
+  if (vocacao.id === 'vegeta' && barraSalva[2] === null && !barraSalva.some(id => id?.startsWith('form:'))) {
+    barraSalva[2] = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id)[2];
   }
   // Saves anteriores não tinham este indicador: só uma barra diferente do padrão antigo revela edição manual.
-  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected,1,'base',vocacao)[i]));
+  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected,1,'base',vocacao.id)[i]));
   const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
   const p = { montaria:montariaValida(saved?.montaria), montariaPreferida:montariaValida(saved?.montariaPreferida)||montariaValida(saved?.montaria)||'nimbus', battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
@@ -138,7 +155,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     correioResgatadas:(Array.isArray(saved?.correioResgatadas)?saved.correioResgatadas:[]).filter(id=>typeof id==='string'&&id.length<=120),preferencias:preferenciasValidas(saved?.preferencias??{musicaAtiva:false}),missoes:restaurarMissoes(saved?.missoes),
     novidades: restaurarNovidades(saved?.novidades),
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
-  p.skin = ['base','natalino'].includes(saved?.skin) ? saved.skin : 'base';
+  p.skin = vocacao.id !== 'vegeta' && saved?.skin === 'natalino' ? 'natalino' : 'base';
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
   atualizarBarraPadrao(p);
   return p;

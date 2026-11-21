@@ -1,15 +1,18 @@
 import { GALICK } from '../../shared/tecnicas/galick-gun.mjs';
-import {TECNICAS,tecnicaPorId,barraValida,acaoDaTecnica,tecnicaDisponivel,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
-import {FORMAS,formaDisponivel,iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+import {TECNICAS,tecnicaPorId,barraValida,acaoDaTecnica,tecnicaDisponivel,tecnicaDaVocacao,nivelDaTecnica,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
+import {formasDaVocacao,formaDisponivel,iconeDaForma} from '../../shared/tecnicas/formas.mjs';
 import {curaPorNivel} from '../../shared/tecnicas/cura.mjs';
 import {RYUKEN} from '../../shared/tecnicas/ryuken.mjs';
 import {SUPER_KAME} from '../../shared/tecnicas/kamehameha.mjs';
 
 let slots=[],acao=null,estado=null,instalado=false;
 const trilho=()=>document.querySelector('.hud-tecnicas-trilho');
+const formaMostrada = s => formasDaVocacao(s?.vocacao).find(f => f.forma === s?.forma)
+  || formaDisponivel(s?.level || 1, s?.vocacao) || formasDaVocacao(s?.vocacao)[0];
 const icone=(t,s)=>{
- const f=t.id==='form:auto'?(FORMAS.find(f=>f.forma===s?.forma)||formaDisponivel(s?.level||1,s?.vocacao||'goku')):null;
- const imagem=f?iconeDaForma(f.forma,s?.vocacao||'goku'):t.imagem;
+ const f=t.id==='form:auto'?formaMostrada(s):null;
+ const forma = f?.forma || (t.id.startsWith('form:') ? t.id.slice(5) : null);
+ const imagem=forma?iconeDaForma(forma,s?.vocacao||'goku'):t.imagem;
  const span=document.createElement('span');span.className='tecnica-icone '+(imagem?'consumivel-personalizado':t.icone||'sprite-kame');span.setAttribute('aria-hidden','true');
  if(imagem)span.style.backgroundImage=`url("${imagem}")`;
  return span;
@@ -22,10 +25,16 @@ function desenhar(){
  const root=trilho();if(!root)return;
  for(let i=0;i<8;i++){
   let b=root.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='tecnica';b.dataset.barraSlot=String(i);root.append(b);}
-  const id=slots[i],t=tecnicaPorId(id),f=t?.id==='form:auto'?(FORMAS.find(f=>f.forma===estado?.forma)||formaDisponivel(estado?.level||1,estado?.vocacao||'goku')):null;
-  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=t?.nivel||1,galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||galick&&estado?.vocacao!=='vegeta')), semKi=galick&&estado?.ki<GALICK.custo;
+  const id=slots[i],t=tecnicaPorId(id),f=t?.id==='form:auto'?formaMostrada(estado):null;
+  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=f?.nivel??(t?nivelDaTecnica(t,estado?.vocacao):1),galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||!tecnicaDaVocacao(id,estado?.vocacao))), semKi=galick&&estado?.ki<GALICK.custo;
   if(b.dataset.tecnica!==(id||'')){b.dataset.tecnica=id||'';delete b.dataset.formIcon;if(id)b.dataset.skill=id;else b.removeAttribute('data-skill');b.replaceChildren();const k=document.createElement('kbd');k.textContent=String(i+1);b.append(k);if(t)b.append(icone(t,estado));else{const vazio=document.createElement('span');vazio.className='tecnica-icone slot-vazio';b.append(vazio);}const strong=document.createElement('strong');strong.textContent=nome;b.append(strong);const small=document.createElement('small');b.append(small);}
-  if(f){b.querySelector('strong').textContent=nome;if(b.dataset.formIcon!==f.forma){b.querySelector('.tecnica-icone').replaceWith(icone(t,estado));b.dataset.formIcon=f.forma;}}
+  if (id?.startsWith('form:')) {
+   const chaveIcone = (estado?.vocacao || 'goku') + ':' + (f?.forma || id);
+   if (b.dataset.formIcon !== chaveIcone) {
+    b.querySelector('.tecnica-icone').replaceWith(icone(t,estado));
+    b.dataset.formIcon = chaveIcone;
+   }
+  }
   b.querySelector('strong').textContent=nome;
   const item=id?.startsWith('item:')?id.slice(5):null;
   const quantidade=item?estado?.inventory?.[item]||0:null;
@@ -50,7 +59,7 @@ export function instalarBarraTecnicas(enviarAcao){
   const b=e.target.closest('[data-barra-slot]');if(!b)return;e.preventDefault();e.stopPropagation();const destino=Number(b.dataset.barraSlot),novos=[...slots],origem=e.dataTransfer.getData('application/x-dbi-barra');
   if(origem!==''){const i=Number(origem);[novos[i],novos[destino]]=[novos[destino],novos[i]];enviar(novos);return;}
   const item=e.dataTransfer.getData('application/x-dbi-consumivel');const id=e.dataTransfer.getData('application/x-dbi-tecnica')||(item?'item:'+item:null),t=tecnicaPorId(id);
-  if(!t||estado?.level<t.nivel||(id==='skill:galick'&&estado?.vocacao!=='vegeta'))return;
+  if(!t||estado?.level<nivelDaTecnica(t,estado?.vocacao)||!tecnicaDaVocacao(id,estado?.vocacao))return;
   const anterior=novos.indexOf(id);if(anterior>=0)novos[anterior]=novos[destino];novos[destino]=id;enviar(novos);
  });
 }

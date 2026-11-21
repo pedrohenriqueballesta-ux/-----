@@ -1,19 +1,41 @@
 import {desenharNimbus} from '../vfx/nimbus.mjs';
 
 import {el,botao,numero,barra} from './hud-elementos.mjs';
-import {MAGIAS_PERSONAGEM,barraValida,tecnicaDisponivel,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
+import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
 import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
-import {FORMAS,iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+import {iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+const skinsGoku = [
+ { forma: 'base', nome: 'Goku · Base', icone: '/assets/goku-portrait.png' },
+ { forma: 'natalino', nome: 'Goku · Natalino', icone: '/assets/goku-portrait.png' }
+];
+const skinsVegeta = [{ forma: 'base', nome: 'Vegeta · Base' }];
+
 export function montarPerfil(container,{acao}={}){
  let montaria=null;
  const montar=botao('Montar montaria',()=>acao?.({type:'montaria',valor:montaria?null:montariaOpcoes[montariaIndice].id}));
- const skinOpcoes=[{forma:'base',nome:'Goku · Base',nivel:1,icone:'/assets/goku-portrait.png'},{forma:'natalino',nome:'Goku · Natalino',nivel:1,icone:'/assets/goku-portrait.png'}];
+ let skinOpcoes = skinsGoku, vocacaoArmario = null, skinPreferida = 'base';
  const montariaOpcoes=[{id:'nimbus',nome:'Nimbus'}];
  let skinIndice=0,montariaIndice=0;
+ const salvarPersonalizacao = (skin, montariaEscolhida) => {
+  if (vocacaoArmario !== 'vegeta') skinPreferida = skin;
+  try { localStorage.setItem('dbi-personalizacao', JSON.stringify({ skin: skinPreferida, montaria: montariaEscolhida })); } catch {}
+ };
  const skinCanvas=el('canvas',null,'perfil-personalizacao-canvas');skinCanvas.width=200;skinCanvas.height=180;skinCanvas.setAttribute('aria-label','Preview da skin selecionada');skinCanvas.setAttribute('role','img');
  const montariaCanvas=el('canvas',null,'perfil-personalizacao-canvas perfil-montaria-canvas');montariaCanvas.width=200;montariaCanvas.height=130;montariaCanvas.setAttribute('aria-label','Preview da montaria selecionada');montariaCanvas.setAttribute('role','img');
- const skinNome=el('strong','perfil-personalizacao-nome'),montariaNome=el('strong','perfil-personalizacao-nome'),aplicar=botao('Aplicar',()=>{const montariaEscolhida=montariaOpcoes[montariaIndice].id;try{localStorage.setItem('dbi-personalizacao',JSON.stringify({skin:skinOpcoes[skinIndice].forma,montaria:montariaEscolhida}));}catch{};acao?.({type:'skin',skin:skinOpcoes[skinIndice].forma});acao?.({type:'montaria',valor:montariaEscolhida});}),resetar=botao('Resetar skin',()=>{skinIndice=0;try{localStorage.setItem('dbi-personalizacao',JSON.stringify({skin:'base',montaria:montariaOpcoes[montariaIndice].id}));}catch{};atualizarPersonalizacao();acao?.({type:'skin',skin:'base'});});
+ const skinNome=el('strong','perfil-personalizacao-nome'),montariaNome=el('strong','perfil-personalizacao-nome');
+ const aplicar=botao('Aplicar',()=>{
+  const skin = skinOpcoes[skinIndice].forma, montariaEscolhida = montariaOpcoes[montariaIndice].id;
+  salvarPersonalizacao(skin, montariaEscolhida);
+  acao?.({type:'skin',skin});
+  acao?.({type:'montaria',valor:montariaEscolhida});
+ });
+ const resetar=botao('Resetar skin',()=>{
+  skinIndice = 0;
+  salvarPersonalizacao('base', montariaOpcoes[montariaIndice].id);
+  atualizarPersonalizacao();
+  acao?.({type:'skin',skin:'base'});
+ });
  resetar.classList.add('perfil-resetar-skin');
  const skinAnterior=botao('‹',()=>{skinIndice=(skinIndice+skinOpcoes.length-1)%skinOpcoes.length;atualizarPersonalizacao();}),skinProxima=botao('›',()=>{skinIndice=(skinIndice+1)%skinOpcoes.length;atualizarPersonalizacao();});
  const montariaAnterior=botao('‹',()=>{montariaIndice=(montariaIndice+montariaOpcoes.length-1)%montariaOpcoes.length;atualizarPersonalizacao();}),montariaProxima=botao('›',()=>{montariaIndice=(montariaIndice+1)%montariaOpcoes.length;atualizarPersonalizacao();});
@@ -21,7 +43,9 @@ export function montarPerfil(container,{acao}={}){
  const seletorSkin=el('div',null,'perfil-personalizacao-seletor'),seletorMontaria=el('div',null,'perfil-personalizacao-seletor');
  seletorSkin.append(skinAnterior,skinNome,skinProxima);seletorMontaria.append(montariaAnterior,montariaNome,montariaProxima);
  const montarias=el('section',null,'perfil-montaria');montarias.append(el('h3','Montaria'),silhuetaMontariaEsq,montariaCanvas,silhuetaMontariaDir,seletorMontaria,el('p','Montarias cosméticas. A Rena Natalina é a recompensa gratuita do Battle Pass.'),montar);
- const personalizacao=el('section',null,'perfil-skin');personalizacao.append(el('h3','Skin do personagem'),silhuetaSkinEsq,skinCanvas,silhuetaSkinDir,seletorSkin,el('p','Use as setas para visualizar as transformações disponíveis. Novas skins serão adicionadas aqui.','hud-nota'),montarias);
+ const notaSkin=el('p','Use as setas para visualizar as skins disponíveis.','hud-nota');
+ const personalizacao=el('section',null,'perfil-skin');
+ personalizacao.append(el('h3','Skin do personagem'),silhuetaSkinEsq,skinCanvas,silhuetaSkinDir,seletorSkin,notaSkin,montarias);
  let drawGoku=null;import('../../art/personagens/goku/goku.mjs').then(m=>{drawGoku=m.drawGoku;atualizarPersonalizacao();});
  const coluna=el('div',null,'perfil-visual'),canvas=el('canvas');canvas.width=240;canvas.height=220;canvas.setAttribute('aria-label','Sprite atual do personagem');canvas.setAttribute('role','img');
  const nome=el('h3'),forma=el('p'),xp=barra(0,1),xpTexto=el('p'),attrs=el('dl',null,'perfil-atributos'),buffs=el('p'),nota=el('p','Atributos crescem automaticamente com o nível. Equipamentos ainda não estão implementados.','hud-nota');
@@ -35,8 +59,7 @@ export function montarPerfil(container,{acao}={}){
  let ultimo=null;
  const cards=[...MAGIAS_PERSONAGEM].sort((a,b)=>a.nivel-b.nivel).map(t=>{
   const formaId=t.id.startsWith('form:')?t.id.slice(5):null;
-  const card=el('article',null,'perfil-tecnica'),img=formaId?el('img',null,'perfil-tecnica-icone'):t.imagem?el('img',null,'perfil-tecnica-icone'):el('span',null,'tecnica-icone '+t.icone);
-  if(formaId)img.src=iconeDaForma(formaId,'goku');
+  const card=el('article',null,'perfil-tecnica'),img=t.imagem?el('img',null,'perfil-tecnica-icone'):el('span',null,'tecnica-icone '+t.icone);
   if(t.imagem){img.src=t.imagem;img.alt='';img.draggable=false;}
   const texto=el('div'),titulo=el('strong',t.nome),detalhes=el('small'),estado=el('small'),seletor=el('select');seletor.setAttribute('aria-label','Colocar '+t.nome+' no slot');
   seletor.append(new Option('Colocar no slot…',''));for(let i=1;i<=8;i++)seletor.append(new Option('Tecla '+i,String(i)));
@@ -45,16 +68,47 @@ export function montarPerfil(container,{acao}={}){
   texto.append(titulo,detalhes,estado);card.append(img,texto,seletor);lista.append(card);return {t,card,detalhes,estado,seletor,formaId,img};
  });
  let ultimoEstado=null,selfId=null;
- try{const salvo=JSON.parse(localStorage.getItem('dbi-personalizacao')||'null');const i=skinOpcoes.findIndex(o=>o.forma===salvo?.skin),j=montariaOpcoes.findIndex(o=>o.id===salvo?.montaria);if(i>=0)skinIndice=i;if(j>=0)montariaIndice=j;}catch{}
- const desenharPreview=()=>{if(!ultimoEstado||!drawGoku)return;const opcao=skinOpcoes[skinIndice],jogador={...ultimoEstado.players.find(v=>v.id===selfId),moving:false,charge:null,facing:{x:0,y:1},forma:opcao.forma,skin:opcao.forma,montaria:null};const c=skinCanvas.getContext('2d');c.clearRect(0,0,200,180);c.save();c.imageSmoothingEnabled=false;c.translate(100,150);c.scale(1.8,1.8);drawGoku(c,jogador,{x:0,y:0},ultimoEstado.time);c.restore();const m=montariaOpcoes[montariaIndice];montariaNome.textContent=m.nome;const cm=montariaCanvas.getContext('2d');cm.clearRect(0,0,200,130);cm.save();cm.imageSmoothingEnabled=false;cm.translate(100,100);cm.scale(1.25,1.25);desenharNimbus(cm,{...jogador,montaria:m.id},{x:0,y:0},ultimoEstado.time,{flutuar:false});cm.restore();skinNome.textContent=opcao.nome;const anterior=skinOpcoes[(skinIndice+skinOpcoes.length-1)%skinOpcoes.length],proxima=skinOpcoes[(skinIndice+1)%skinOpcoes.length];silhuetaSkinEsq.src=anterior.icone;silhuetaSkinDir.src=proxima.icone;silhuetaMontariaEsq.src='/assets/montarias/nimbus/sprites/nimbus_s_01.png';silhuetaMontariaDir.src='/assets/montarias/nimbus/sprites/nimbus_s_01.png';};
+ try {
+  const salvo = JSON.parse(localStorage.getItem('dbi-personalizacao') || 'null');
+  if (skinsGoku.some(o => o.forma === salvo?.skin)) skinPreferida = salvo.skin;
+  const indice = montariaOpcoes.findIndex(o => o.id === salvo?.montaria);
+  if (indice >= 0) montariaIndice = indice;
+ } catch {}
+ const desenharPreview=()=>{
+  if (!ultimoEstado) return;
+  const desenhar = vocacaoArmario === 'vegeta' ? drawVegeta : drawGoku;
+  if (!desenhar) return;
+  const opcao = skinOpcoes[skinIndice], variadas = skinOpcoes.length > 1;
+  const jogador = { ...ultimoEstado.players.find(v => v.id === selfId), moving: false, dead: false, charge: null,
+    facing: { x: 0, y: 1 }, forma: opcao.forma, skin: opcao.forma, transformed: false, montaria: null };
+  const c = skinCanvas.getContext('2d');
+  c.clearRect(0, 0, 200, 180);
+  c.save(); c.imageSmoothingEnabled = false; c.translate(100, 150); c.scale(1.8, 1.8);
+  desenhar(c, jogador, { x: 0, y: 0 }, ultimoEstado.time);
+  c.restore();
+  const m = montariaOpcoes[montariaIndice], cm = montariaCanvas.getContext('2d');
+  cm.clearRect(0, 0, 200, 130);
+  cm.save(); cm.imageSmoothingEnabled = false; cm.translate(100, 100); cm.scale(1.25, 1.25);
+  desenharNimbus(cm, { ...jogador, montaria: m.id }, { x: 0, y: 0 }, ultimoEstado.time, { flutuar: false });
+  cm.restore();
+  skinNome.textContent = opcao.nome;
+  montariaNome.textContent = m.nome;
+  for (const controle of [skinAnterior, skinProxima, silhuetaSkinEsq, silhuetaSkinDir, notaSkin, resetar]) controle.hidden = !variadas;
+  if (variadas) {
+   silhuetaSkinEsq.src = skinOpcoes[(skinIndice + skinOpcoes.length - 1) % skinOpcoes.length].icone;
+   silhuetaSkinDir.src = skinOpcoes[(skinIndice + 1) % skinOpcoes.length].icone;
+  }
+  silhuetaMontariaEsq.src = silhuetaMontariaDir.src = '/assets/montarias/nimbus/sprites/nimbus_s_01.png';
+ };
  let atualizarPersonalizacao=desenharPreview;
  const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimoEstado=s;selfId=s.selfId;atualizarPersonalizacao=desenharPreview;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
+ const tecnicas = new Set(tecnicasDoPerfil(s.self.vocacao));
  for(const {t,card,detalhes,estado,seletor,formaId,img} of cards){
-  const tecnicaVegeta=['skill:heal','skill:galick'].includes(t.id);card.hidden=s.self.vocacao==='vegeta'?!tecnicaVegeta:t.id==='skill:galick';
+  card.hidden = !tecnicas.has(t);
   card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
-  const d=dadosTecnica(t,s.self),liberada=s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
-  if(formaId)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
+  const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
+  if(formaId&&t.imagem)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
   const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
    ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
    : '';
@@ -64,7 +118,13 @@ export function montarPerfil(container,{acao}={}){
   seletor.disabled=!liberada;
  }
  montaria=s.self.montaria;montar.textContent=montaria?'Desmontar '+(montariaOpcoes.find(m=>m.id===montaria)?.nome||'montaria'):'Montar '+(montariaOpcoes[montariaIndice]?.nome||'montaria');nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
- const formaAtual=skinOpcoes.findIndex(o=>o.forma===p.forma);if(formaAtual>=0&&skinIndice===0)skinIndice=formaAtual;atualizarPersonalizacao();
+ const vocacao = s.self.vocacao || 'goku';
+ if (vocacao !== vocacaoArmario) {
+  vocacaoArmario = vocacao;
+  skinOpcoes = vocacao === 'vegeta' ? skinsVegeta : skinsGoku;
+  skinIndice = Math.max(0, skinOpcoes.findIndex(o => o.forma === skinPreferida));
+ }
+ atualizarPersonalizacao();
  const valores=[numero(p.hp)+' / '+numero(p.stats.hp),numero(p.ki)+' / '+numero(p.stats.ki),numero(p.ataqueAtual)+' (base '+numero(p.base.attack)+' + bônus '+numero(p.bonusAtaque)+')','Multiplicadores por técnica',numero(p.stats.defense),numero(p.stats.mobility),numero(p.regeneracao)+' HP/s',numero(p.poder),numero(p.stats.capacity)+' kg',numero(p.stats.lootChance*100)+'%',numero(p.kills)+' mobs · '+numero(p.bossKills)+' chefes raros'];linhas.forEach((e,i)=>e.textContent=valores[i]);buffs.textContent=p.buffs.length?p.buffs.join(' '):'Nenhum buff ativo.';
  const c=canvas.getContext('2d');c.clearRect(0,0,240,220);c.save();c.imageSmoothingEnabled=false;const montado=montaria==='nimbus';c.translate(120,montado?170:186);c.scale(montado?1.8:2.2,montado?1.8:2.2);const jogador={...s.players.find(v=>v.id===s.selfId),moving:false,charge:null,facing:{x:0,y:1}},g=desenharNimbus(c,jogador,{x:0,y:0},s.time,{flutuar:!s.self.preferencias.reduzirAnimacoes});(s.self.vocacao==='vegeta'?drawVegeta:drawGoku)?.(c,jogador,g?.personagem||{x:0,y:0},s.time);c.restore();};
 }
