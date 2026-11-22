@@ -4,22 +4,39 @@ import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../sha
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
-import { nivelRajadaKi } from '../../shared/tecnicas/barra-tecnicas.mjs';
+import { FINAL_FLASH, formaFinalFlash } from '../../shared/tecnicas/final-flash.mjs';
 
-const NOMES = { heal: 'Cura de Vida', ki: 'Rajada de Ki', kame: 'Kamehameha', galick: 'Galick Gun', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
+const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', galick: 'Galick Gun', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
 
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
   const itemChave=chave?.startsWith('item:');
   const skillChave=chave?.startsWith('skill:');
-  if(skillChave)chave=chave.slice(6);
+  if (skillChave) {
+    chave = chave.slice(6);
+    if (chave === 'ki') return null;
+  }
   if(itemChave)chave=chave.slice(5);
   if(chave?.startsWith('form:')&&chave!=='form:auto'){
     const forma=formasDaVocacao(estado.vocacao).find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
   }
   if(chave==='form:auto')chave='transform';
+  if (chave === 'finalFlash') {
+    const { nivel, custo, recarga, alcance, carga, dano } = FINAL_FLASH;
+    const restante = estado.finalFlashRemaining || 0;
+    const situacao = estado.vocacao !== 'vegeta' ? 'Exclusiva do Vegeta'
+      : estado.level < nivel ? 'Bloqueada · requer nível ' + nivel
+      : !formaFinalFlash(estado.forma) ? 'Transforme-se em SSJ1 ou superior'
+      : restante > 0 ? 'Em recarga · ' + segundos(restante)
+      : estado.ki < custo ? 'Ki insuficiente' : 'Disponível';
+    return { nome: 'Final Flash', linhas: [
+      ['Desbloqueia', 'Nível ' + nivel], ['Forma', 'SSJ1 ou superior'], ['Custo', custo + ' Ki'],
+      ['Cooldown', segundos(recarga)], ['Conjuração', segundos(carga)], ['Alcance', alcance + ' unidades'],
+      ['Dano', '×' + dano + ' do ataque base'], ['Alvo', 'Mob marcado ao iniciar a conjuração'], ['Estado', situacao]
+    ] };
+  }
   if (chave === 'ryuken') {
     const restante = estado.ryukenRemaining || 0, nivel = CONFIG.skills.ryuken;
     return { nome: 'Ryuken (Punho do Dragão)', linhas: [
@@ -36,7 +53,7 @@ export function detalhesHabilidade(chave, estado) {
       ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : estado.forma !== SUPER_KAME.forma ? 'Transforme-se em Super Saiyajin 4' : 'Disponível']
     ] };
   }
-  if (NOMES[chave] && !itemChave && (chave !== 'ki' || skillChave)) {
+  if (NOMES[chave] && !itemChave) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
       const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku'), ativa = estado.forma && estado.forma !== 'base';
@@ -51,10 +68,10 @@ export function detalhesHabilidade(chave, estado) {
       ] };
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
-    const nivel = chave === 'heal' ? 1 : chave === 'ki' ? nivelRajadaKi(estado.vocacao) : CONFIG.skills[chave];
+    const nivel = chave === 'heal' ? 1 : CONFIG.skills[chave];
     const custo = chave === 'heal' ? cura.custo : CONFIG.skillCosts[chave];
     const recarga = chave === 'heal' ? cura.cooldown : CONFIG.skillCooldowns[chave];
-    const restante = chave === 'heal' ? cura.remaining : chave === 'ki' ? estado.shotRemaining : estado[chave + 'Remaining'];
+    const restante = chave === 'heal' ? cura.remaining : estado[chave + 'Remaining'];
     const galick = chave === 'galick';
     return { nome: galick && estado.galickVersao ? 'Galick Gun V' + estado.galickVersao : NOMES[chave], linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],

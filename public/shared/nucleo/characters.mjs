@@ -103,12 +103,12 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     const padrao = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id);
     const padraoAntigo = barraSalva.every((id, i) => id === padrao[i]
       || (i === 2 && (id === null || id === 'form:ssj'))
-      || (i === 3 && id === null));
+      || (i === 4 && id === null));
     const possuiBarra = Array.isArray(saved?.barraTecnicas) && saved.barraTecnicas.length === 8;
     if (!possuiBarra || (padraoAntigo && saved?.barraPersonalizada !== true)) {
       barraSalva.splice(0, 8, ...padrao);
     } else {
-      const permitidas = new Set(['skill:heal', 'skill:ki', 'skill:galick']);
+      const permitidas = new Set(['skill:heal', 'skill:galick', 'skill:finalFlash']);
       for (let i = 0; i < barraSalva.length; i++) {
         const id = barraSalva[i];
         if (id?.startsWith('skill:') && !permitidas.has(id)) barraSalva[i] = null;
@@ -117,7 +117,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   }
   for (let i = 0; i < barraSalva.length; i++) {
     const id = barraSalva[i];
-    if (id?.startsWith('form:') && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
+    if ((id?.startsWith('form:') || id === 'skill:finalFlash') && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
   }
   if (vocacao.id === 'vegeta' && barraSalva[2] === null && !barraSalva.some(id => id?.startsWith('form:'))) {
     barraSalva[2] = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id)[2];
@@ -139,7 +139,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
-    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, finalFlashReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
     healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
     autoHeal: saved?.autoHeal !== false,
     healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,

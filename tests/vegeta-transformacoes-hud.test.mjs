@@ -48,26 +48,41 @@ test('Vegeta recebe a transformação automática na tecla 3 em barras novas e p
   }
 });
 
-test('Rajada de Ki entra no slot 4 das barras padrão antigas e fica disponível em Técnicas no nível 1', () => {
+test('Rajada de Ki sai do catálogo e da barra, preservando os demais slots salvos', () => {
   const game = new Game({ populate: false });
   const padrao = barraPadrao({}, 15, 1, 'base', 'vegeta');
-  const antiga = padrao.map((id, i) => i === 3 ? null : id);
-  for (const [i, save] of [
-    {}, { barraTecnicas: antiga }, { barraTecnicas: antiga, barraPersonalizada: false },
-    { barraTecnicas: antiga, barraPersonalizada: true }
-  ].entries()) {
-    const vegeta = game.addPlayer('rajada-barra-' + i, 'Vegeta', { ...save, vocacao: 'vegeta' });
-    assert.deepEqual(vegeta.barraTecnicas, save.barraPersonalizada ? antiga : padrao);
+  const antiga = padrao.map((id, i) => i === 3 ? 'skill:ki' : i === 4 ? null : id);
+  const veterano = game.addPlayer('veterano', 'Vegeta', { vocacao: 'vegeta', barraTecnicas: antiga });
+  assert.deepEqual(veterano.barraTecnicas, padrao);
+  for (const vocacao of ['vegeta', 'goku']) {
+    const slots = ['skill:heal', null, 'form:auto', 'skill:ki', null, 'item:ki', null, null];
+    const p = game.addPlayer(vocacao, vocacao, { vocacao, barraTecnicas: slots, barraPersonalizada: true });
+    assert.deepEqual(p.barraTecnicas, slots.map(id => id === 'skill:ki' ? null : id));
+    assert.ok(!tecnicasDoPerfil(vocacao).some(t => t.id === 'skill:ki'));
+    assert.equal(game.action(p.id, { type: 'configurarBarra', slots }).ok, false);
   }
-  const rajada = tecnicasDoPerfil('vegeta').find(t => t.id === 'skill:ki');
-  assert.equal(padrao[3], rajada.id);
-  assert.equal(nivelDaTecnica(rajada, 'goku'), CONFIG.skills.ki);
-  assert.ok(tecnicaDisponivel(rajada.id, { vocacao: 'vegeta', level: 1 }));
-  const detalhe = detalhesHabilidade(rajada.id, { vocacao: 'vegeta', level: 1, shotRemaining: .4 });
-  assert.equal(Object.fromEntries(detalhe.linhas).Estado, 'Em recarga · 0,4 s');
+  assert.equal(padrao[3], null);
+  assert.equal(padrao[4], 'skill:finalFlash');
+  assert.equal(tecnicaDisponivel('skill:ki', { vocacao: 'vegeta', level: 1000 }), false);
+  assert.equal(detalhesHabilidade('skill:ki', { vocacao: 'vegeta', level: 1 }), null);
 });
 
-test('Rajada de Ki pelo slot 4 acerta o alvo na base e nas seis formas do Vegeta', () => {
+test('Auto Hunt usa Rajada de Ki sob Ataque automático, independentemente de Técnicas automáticas', () => {
+  for (const autoAttack of [true, false]) {
+    const game = new Game({ populate: false });
+    const p = game.addPlayer('lutador', 'Vegeta', { vocacao: 'vegeta', level: 1 });
+    game.levar(p, lugar('inicial'));
+    p.x += 180;
+    const alvo = game.addMob('saibaman', p.x + 180, p.y, p.area);
+    game.alvoMaisProximo = () => alvo;
+    game.steer = () => true;
+    Object.assign(p, { autoHunt: true, autoAttack, autoSkills: !autoAttack });
+    game.updatePlayer(p, .01);
+    assert.equal(game.projectiles.some(projetil => projetil.owner === p.id && projetil.kind === 'ki'), autoAttack);
+  }
+});
+
+test('Rajada de Ki acerta o alvo na base e nas seis formas do Vegeta', () => {
   for (const [level, forma] of [
     [1, 'base'], [100, 'ssj'], [200, 'majin'], [300, 'ssj4'],
     [500, 'ssjGod'], [700, 'ssjBlue'], [900, 'ultraEgo']
@@ -75,7 +90,7 @@ test('Rajada de Ki pelo slot 4 acerta o alvo na base e nas seis formas do Vegeta
     const game = new Game({ populate: false });
     const p = game.addPlayer('lutador', 'Vegeta', { vocacao: 'vegeta', level });
     game.levar(p, lugar('inicial'));
-    const rajada = acaoDaTecnica(p.barraTecnicas[3]);
+    const rajada = { type: 'skill', skill: 'ki' };
     if (forma !== 'base') assert.ok(game.action(p.id, { type: 'transform', forma }).ok);
     assert.equal(game.action(p.id, rajada).ok, false, 'Zona segura');
     p.x += 180;

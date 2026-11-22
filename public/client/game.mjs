@@ -14,6 +14,8 @@ import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
 import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } from '../render/vfx/galick-gun.mjs';
 import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
+import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
+import { carregarFinalFlash, desenharFinalFlash, desenharImpactoFinalFlash, maoVisualFinalFlash } from '../render/vfx/final-flash.mjs';
 import { PREDIOS_TERRA } from '../shared/mundo/terra.mjs';
 import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
 carregarImpactoKame();
@@ -166,6 +168,7 @@ function conectarMundo(data){
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
       carregarGalick(snapshot.self?.galickVersao);
+      if (snapshot.players.some(p => p.vocacao === 'vegeta')) carregarFinalFlash();
       // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
       if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
       carregarBarreira(); carregarRaiosSsj2('frente');
@@ -394,9 +397,11 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
   // Sem círculo dourado em volta do Super Saiyajin (pedido do Pedro, 11/11/2026), como já foi feito com a Kaioken.
   const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
-  const kame = (snapshot.kamehamehas || []).find(k => !k.galick && k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
+  const kame = (snapshot.kamehamehas || []).find(k => !k.galick && !k.finalFlash && k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
   const galick = p.charge?.galick ? p.charge : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.galick);
-  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick };
+  const finalFlash = p.charge?.finalFlash ? { ...p.charge, carga: true }
+    : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.finalFlash && (!k.impacto || time - k.impacto.started < FINAL_FLASH.sustentacao));
+  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick, finalFlash };
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -781,28 +786,45 @@ function frame(now) {
   const adicionarEfeito = (pos, draw, camada = .02) => {
     if (pos) efeitosHabilidades.push({ y: profundidade(pos, casas, world.escala, vulcoesAqui) + camada, draw });
   };
-  const posicaoMaoGalick = (p, pos, direcao, ateContato, instante = time) => {
+  const posicaoComMontaria = (p, pos, direcao, instante = time) => {
     const montado = p?.montaria && !p.dead && nimbusCarregada()
       ? geometriaNimbus({ ...p, facing: direcao }, pos, instante, { flutuar: !snapshot.self?.preferencias?.reduzirAnimacoes }) : null;
-    return origemGalick(montado?.personagem || pos, direcao, ateContato);
+    return montado?.personagem || pos;
   };
+  const posicaoMaoGalick = (p, pos, direcao, ateContato, instante) =>
+    origemGalick(posicaoComMontaria(p, pos, direcao, instante), direcao, ateContato);
   const camadaGalick = direcao => direcao.y > .0001 ? .02 : -.02;
   for (const p of snapshot.players) if (p.charge) {
     const pos = renderPositions.get(p.id) || p;
     adicionarEfeito(pos, () => {
       const alvo = snapshot.mobs.find(m => m.id === p.charge.targetId);
-      if (p.charge.galick) {
+      if (p.charge.finalFlash) {
+        const origem = posicaoComMontaria(p, pos, p.charge.direction);
+        const mao = maoVisualFinalFlash(origem, p.charge.direction, true);
+        desenharFinalFlash(ctx, { ...p.charge, carga: true }, time, mao);
+      } else if (p.charge.galick) {
         const origem = posicaoMaoGalick(p, pos, p.charge.direction);
         desenharGalick(ctx, { ...p.charge, ...origem, carga: true }, time);
       } else {
         const origem = origemKame(pos, p.charge.direction, alvo);
         desenharKameSobreInimigos({ ...p.charge, ...origem }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
       }
-    }, p.charge.galick ? camadaGalick(p.charge.direction) : .02);
+    }, p.charge.galick || p.charge.finalFlash ? camadaGalick(p.charge.direction) : .02);
   }
   for (const k of snapshot.kamehamehas || []) {
     const dono = snapshot.players.find(p => p.id === k.owner);
     const pos = renderPositions.get(k.owner);
+    if (k.finalFlash) {
+      const origem = posicaoComMontaria(dono, k.emissor, k.direction, k.started);
+      const mao = maoVisualFinalFlash(origem, k.direction);
+      // A ponta e a explosão usam a mesma âncora interpolada e são desenhadas sobre o alvo.
+      const pesAlvo = renderPositions.get(k.targetId) || k.impacto?.pesAlvo || k.pesAlvoPrevisto;
+      adicionarEfeito(pesAlvo || pos || k, () => desenharFinalFlash(ctx, k, time, mao, pesAlvo));
+      if (k.impacto) {
+        adicionarEfeito(pesAlvo, () => desenharImpactoFinalFlash(ctx, k.impacto, time, pesAlvo), .03);
+      }
+      continue;
+    }
     if (k.galick) {
       const mao = k.impacto ? posicaoMaoGalick(dono, k, k.direction, 0, k.impacto.started)
         : pos && dono ? posicaoMaoGalick(dono, pos, k.direction, Math.hypot(k.x - dono.x, k.y - dono.y)) : k;
