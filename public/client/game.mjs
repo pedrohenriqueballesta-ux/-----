@@ -9,7 +9,7 @@ import {instalarTrilhaSonora} from './audio.mjs';
 import {PADRAO_PREFERENCIAS} from '../shared/sistemas/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/mundo/passagem.mjs';
-import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/nucleo/config.mjs';
+import { frenteDaCasa, zonaSeguraDaHunt, MULT_NIMBUS_DEV } from '../shared/nucleo/config.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
 import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } from '../render/vfx/galick-gun.mjs';
@@ -732,7 +732,7 @@ function frame(now) {
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
       const iv = inputVector(); let px = entity.x, py = entity.y;
-      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * el, 15, snapshot.self?.area); }
+      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * (entity.montaria ? MULT_NIMBUS_DEV : 1) * el, 15, snapshot.self?.area); }
       screenPosition({ ...entity, x: px, y: py }, dt);
     } else screenPosition(entity, dt);
   }

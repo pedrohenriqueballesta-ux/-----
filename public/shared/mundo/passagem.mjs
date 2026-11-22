@@ -33,6 +33,10 @@ const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala,
   areas: m.areas ? decodificarAreas(m) : null });
 // Terra: sem imagem de máscara; a grade só dá tamanho às células da busca de caminho (onde se anda vem de terra.mjs).
 const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM), terra: { ...GRADE_TERRA, grade: null, areas: null } };
+
+// A colisão das bordas de rocha e dos objetos (pedras/árvores/cristais/vulcões) vem da própria máscara:
+// ela foi pintada à mão por cima da arte (ferramentas/assar_pintura_mapa.mjs) e já marca como bloqueio tudo que
+// não é chão andável. Não há erosão/aproximação em código: o que a máscara diz é o que vale.
 // Planeta com máscara tem água/penhasco: quem persegue precisa de caminho por terra.
 export const temMascara = planet => Boolean(MASCARAS[planet]);
 

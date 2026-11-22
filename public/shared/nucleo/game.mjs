@@ -9,7 +9,7 @@ import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
 // Regras autoritativas do jogo: combate, movimento, inventário e mundo.
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
-import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
+import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
@@ -836,7 +836,7 @@ export class Game {
     this.verificarKiDaForma(p);
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
-    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1));
+    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1) * (p.montaria ? MULT_NIMBUS_DEV : 1));
     else if (p.autoHunt && naZonaSegura(p)) {
       p.targetId = null; p.charge = null;
       p.saidaSegura ||= this.saidaDaZonaSegura(p);
