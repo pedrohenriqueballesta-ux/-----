@@ -13,11 +13,12 @@ import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, area
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao,nivelRajadaKi} from '../tecnicas/barra-tecnicas.mjs';
+import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
 import { GALICK, estagioGalick, origemGalick } from '../tecnicas/galick-gun.mjs';
+import { FINAL_FLASH, formaFinalFlash, origemFinalFlash, contatoFinalFlash } from '../tecnicas/final-flash.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from '../mundo/projetil-mob.mjs';
 import { Mercado } from '../sistemas/mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from '../sistemas/itens-negociaveis.mjs';
@@ -90,7 +91,7 @@ export class Game {
   levar(p, destino, {preservarForma = false} = {}) {
     if (!preservarForma) { p.forma = 'base'; p.formaAte = 0; }
     atualizarBarraPadrao(p);
-    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
+    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null; p.finalFlashAtivo = null;
     this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
@@ -199,6 +200,7 @@ export class Game {
       const validada=barraValida(data.slots);
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
       if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
+      if (p.vocacao !== 'vegeta' && validada.includes('skill:finalFlash')) return this.reject(p, 'O Final Flash é exclusivo do Vegeta.');
       if (validada.some(id => id?.startsWith('form:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Transformação indisponível para esta vocação.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
@@ -402,14 +404,17 @@ export class Game {
   cast(p,skill,automated=false,formaSolicitada=null){
     const r=this.executarTecnica(p,skill,automated,formaSolicitada);
     this.verificarKiDaForma(p);
-    if(r.ok&&skill!=='basic'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
+    if(r.ok&&skill!=='basic'&&skill!=='ki'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
-    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
+    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick','finalFlash'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick', 'finalFlash'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (skill === 'finalFlash') return this.iniciarFinalFlash(p, automated);
+    if ((p.finalFlashAtivo && ['basic', 'ki', 'galick'].includes(skill)) || (p.charge?.finalFlash && skill === 'basic'))
+      return { ok: false };
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -427,8 +432,7 @@ export class Game {
     }
     if (skill === 'ki') {
       // A Rajada de Ki é o ataque à distância básico de todas as vocações.
-      // Para Vegeta ela já existe desde o início, assim como no fluxo básico do Goku.
-      const nivelRajada = nivelRajadaKi(p.vocacao);
+      const nivelRajada = p.vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
       if (p.level < nivelRajada) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + nivelRajada + '.');
       if (this.time < p.shotReady || p.ki < CONFIG.skillCosts.ki || p.charge) return { ok: false };
       p.ki -= CONFIG.skillCosts.ki; p.shotReady = this.time + CONFIG.skillCooldowns.ki;
@@ -834,6 +838,14 @@ export class Game {
     if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
     if (p.forma !== 'base' && !p.godmode) p.ki = Math.max(0, p.ki - dt * CONFIG.transformacao.drenoKi);
     this.verificarKiDaForma(p);
+    if (p.charge?.finalFlash) {
+      this.atualizarCargaFinalFlash(p);
+      if (p.charge?.finalFlash) return;
+    }
+    if (p.finalFlashAtivo) {
+      p.facing = p.finalFlashAtivo.direction;
+      return;
+    }
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1) * (p.montaria ? MULT_NIMBUS_DEV : 1));
@@ -902,7 +914,7 @@ export class Game {
       target = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
       p.targetId = target?.id || null;
     }
-    if (p.autoHunt && p.autoSkills && target && !p.charge && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
+    if (p.autoHunt && (p.autoSkills || p.autoAttack) && target && !p.charge && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
       const attackFactor = multiplicadorDaForma(p.forma, 'soco');
       const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
       const danoKi = Math.max(1, Math.round(p.stats.attack * multiplicadorDaForma(p.forma, 'rajada') * 100 / (100 + (target.defesa ?? 1) * 3)));
@@ -913,18 +925,19 @@ export class Game {
       const vegeta = p.vocacao === 'vegeta';
       const podeKame = !vegeta && p.level >= 3
         && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
-      const podeRajada = !morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico;
-      if (vegeta) {
-        if (!this.cast(p, 'galick', true).ok && podeRajada) this.cast(p, 'ki', true);
-      } else if (!morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
-        // Auto Hunt: no SSJ4 tenta o Super Kamehameha, no SSJ3/SSJ4 o Ryuken, e por fim o Kamehameha (o que estiver pronto).
-        const tentou = skill => this.cast(p, skill, true).ok;
-        if (!(usaSuperKame(p) && tentou('superKamehameha')) && !(usaRyuken(p) && tentou('ryuken'))) this.cast(p, 'kame', true);
+      const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
+      const tentar = skill => this.cast(p, skill, true).ok;
+      let usouTecnica = false;
+      if (p.autoSkills && vegeta) {
+        usouTecnica = (!morreriaNoBasico && !prefereBasico && tentar('finalFlash')) || tentar('galick');
+      } else if (p.autoSkills && !morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
+        usouTecnica = (usaSuperKame(p) && tentar('superKamehameha'))
+          || (usaRyuken(p) && tentar('ryuken')) || tentar('kame');
       }
-      else if (podeRajada) this.cast(p, 'ki', true);
+      if (!usouTecnica && podeRajada) tentar('ki');
     }
     if (p.charge?.galick) this.atualizarCargaGalick(p);
-    if (p.charge && !p.charge.galick) {
+    if (p.charge && !p.charge.galick && !p.charge.finalFlash) {
       let alvo = this.mobs.get(p.charge.targetId);
       if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
         alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
@@ -934,7 +947,7 @@ export class Game {
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const cargaKame = p.charge && !p.charge.galick ? p.charge : null;
+    const cargaKame = p.charge && !p.charge.galick && !p.charge.finalFlash ? p.charge : null;
     const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
     const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
     if (cargaNoAlcance && this.time >= cargaKame.until) {
@@ -988,10 +1001,79 @@ export class Game {
     k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, started: this.time };
     return true;
   }
+  alvoValidoFinalFlash(p, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo)
+      && distance(p, alvo) - this.raioMob(alvo) <= FINAL_FLASH.alcance + FINAL_FLASH.mao;
+  }
+  iniciarFinalFlash(p, automated) {
+    const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
+    if (p.vocacao !== 'vegeta') return falha('O Final Flash é exclusivo do Vegeta.');
+    if (p.level < FINAL_FLASH.nivel) return falha('Final Flash libera no nível ' + FINAL_FLASH.nivel + '.');
+    if (!formaFinalFlash(p.forma)) return falha('Final Flash requer Super Saiyajin ou superior.');
+    if (p.charge || p.finalFlashAtivo || this.time < p.finalFlashReady || p.ki < FINAL_FLASH.custo)
+      return falha('Final Flash em recarga, outra conjuração ativa ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    if (!this.alvoValidoFinalFlash(p, alvo)) return falha('Selecione um mob vivo dentro do alcance do Final Flash.');
+    p.facing = this.direcaoFinalFlash(p, alvo);
+    p.moving = false;
+    p.ki -= FINAL_FLASH.custo;
+    p.finalFlashReady = this.time + (p.godmode ? 1 : FINAL_FLASH.recarga);
+    p.charge = { finalFlash: true, targetId: alvo.id, direction: p.facing,
+      started: this.time, until: this.time + FINAL_FLASH.carga, automated };
+    return { ok: true };
+  }
+  direcaoFinalFlash(p, alvo) {
+    return p.x === alvo.x && p.y === alvo.y ? p.facing : norm(alvo.x - p.x, alvo.y - p.y);
+  }
+  atualizarCargaFinalFlash(p) {
+    const carga = p.charge, alvo = this.mobs.get(carga.targetId);
+    if (naZonaSegura(p) || !formaFinalFlash(p.forma) || !this.alvoValidoFinalFlash(p, alvo)) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = this.direcaoFinalFlash(p, alvo);
+    if (this.time < carga.until) return;
+    const ateContato = Math.max(0, distance(p, alvo) - this.raioMob(alvo));
+    const origem = origemFinalFlash(p, carga.direction, ateContato);
+    const efeito = { id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origem,
+      finalFlash: true, targetId: alvo.id, direction: carga.direction, started: this.time,
+      emissor: { x: p.x, y: p.y },
+      distanciaPrevista: FINAL_FLASH.alcance, damage: p.stats.attack * FINAL_FLASH.dano };
+    this.kamehamehas.push(efeito);
+    p.finalFlashAtivo = efeito;
+    p.charge = null;
+  }
+  atualizarFinalFlash(efeito, p) {
+    if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, efeito) || naZonaSegura(p)) return false;
+    if (efeito.impacto) return this.time - efeito.impacto.started < FINAL_FLASH.impactoQuadros * FINAL_FLASH.impactoQuadro;
+    const alvo = this.mobs.get(efeito.targetId);
+    if (!formaFinalFlash(p.forma) || !this.alvoValidoFinalFlash(p, alvo)) return false;
+    const raio = this.raioMob(alvo);
+    const ateContato = Math.max(0, distance(efeito.emissor, alvo) - raio);
+    efeito.direction = p.facing = this.direcaoFinalFlash(p, alvo);
+    Object.assign(efeito, origemFinalFlash(efeito.emissor, efeito.direction, ateContato));
+    const distancia = contatoFinalFlash(efeito, efeito.direction, alvo, raio);
+    const alcanceAtual = Math.max(0, this.time - efeito.started) * FINAL_FLASH.velocidade;
+    efeito.distanciaPrevista = distancia;
+    efeito.pesAlvoPrevisto = { x: alvo.x, y: alvo.y };
+    if (alcanceAtual < distancia) return true;
+    if (!this.hit(p, alvo, efeito.damage)) return false;
+    efeito.impacto = {
+      x: efeito.x + efeito.direction.x * distancia, y: efeito.y + efeito.direction.y * distancia,
+      pesAlvo: efeito.pesAlvoPrevisto, distancia, started: this.time
+    };
+    return true;
+  }
   atualizarKamehamehas() {
     this.kamehamehas = this.kamehamehas.filter(k => {
       const p = this.players.get(k.owner);
       if (k.galick) return this.atualizarGalick(k, p);
+      if (k.finalFlash) {
+        const manter = this.atualizarFinalFlash(k, p);
+        if (p?.finalFlashAtivo === k && (!manter || k.impacto && this.time - k.impacto.started >= FINAL_FLASH.sustentacao))
+          p.finalFlashAtivo = null;
+        return manter;
+      }
       const g = geometriaKame(k.nivel, this.time - k.started);
       if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k) || naZonaSegura(p)) return false;
       if (k.impacto) return this.time - k.impacto.started < IMPACTO_KAME.quadros * IMPACTO_KAME.quadro;
@@ -1236,7 +1318,7 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,

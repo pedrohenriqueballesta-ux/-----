@@ -5,6 +5,7 @@ import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,nivelDa
 import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
 import {iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+import {formaFinalFlash} from '../../shared/tecnicas/final-flash.mjs';
 const skinsGoku = [
  { forma: 'base', nome: 'Goku · Base', icone: '/assets/goku-portrait.png' },
  { forma: 'natalino', nome: 'Goku · Natalino', icone: '/assets/goku-portrait.png' }
@@ -103,16 +104,17 @@ export function montarPerfil(container,{acao}={}){
  let atualizarPersonalizacao=desenharPreview;
  const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimoEstado=s;selfId=s.selfId;atualizarPersonalizacao=desenharPreview;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
- const tecnicas = new Set(tecnicasDoPerfil(s.self.vocacao));
+ const tecnicas = new Set(tecnicasDoPerfil(s.self.vocacao).map(t=>t.id));
  for(const {t,card,detalhes,estado,seletor,formaId,img} of cards){
-  card.hidden = !tecnicas.has(t);
+  card.hidden = !tecnicas.has(t.id);
   card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
   const nivel = nivelDaTecnica(t, s.self.vocacao);
   const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=nivel,slot=equipadas.indexOf(t.id);
   if(formaId&&t.imagem)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
-  const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
-   ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
-   : '';
+  const requerForma = !liberada ? ''
+    : t.id==='skill:finalFlash' && !formaFinalFlash(s.self.forma) ? ' · requer SSJ1 ou superior'
+    : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:superKamehameha' ? ' · requer SSJ4'
+    : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:ryuken' ? ' · requer SSJ3 ou SSJ4' : '';
   card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);
   detalhes.textContent=`Nv. ${nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;
   estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+nivel)+requerForma;

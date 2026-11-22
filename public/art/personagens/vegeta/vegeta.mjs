@@ -1,4 +1,5 @@
 import { colunaPoseGalick } from '../../../shared/tecnicas/galick-gun.mjs';
+import { colunaPoseFinalFlash } from '../../../shared/tecnicas/final-flash.mjs';
 import {art,loaded} from '../../assets.mjs';
 import {drawSheet,SHEET_VIEWS} from '../../atlas.mjs';
 import {spriteFacing,walkStep,strikeColumn} from '../../../render/mapa/camera.mjs';
@@ -22,7 +23,11 @@ export function drawVegeta(ctx,player,pos,time,strikeProgress=null){
     acao = 'galick';
     coluna = poseGalick;
   }
-  if(player.finalFlash)acao='finalFlash',coluna=Math.min(3,Math.floor((time-player.finalFlash.started)*8));
+  const poseFinalFlash = colunaPoseFinalFlash(player.finalFlash, time);
+  if (poseFinalFlash !== null) {
+    acao = 'finalFlash';
+    coluna = poseFinalFlash;
+  }
   if(player.bigBang)acao='bigBang',coluna=Math.min(3,Math.floor((time-player.bigBang.started)*8));
   if(acao==='parado')coluna=Math.floor(time*5)%4;
   // Uma folha de ataque pode ainda não existir em alguma forma; nunca deixe o personagem invisível.

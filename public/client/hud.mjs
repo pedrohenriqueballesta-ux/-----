@@ -1,4 +1,5 @@
-import { FORMAS, nomeDaForma } from '../shared/tecnicas/formas.mjs';
+import { nomeDaForma } from '../shared/tecnicas/formas.mjs';
+import { nivelDaTecnica, tecnicasDoPerfil } from '../shared/tecnicas/barra-tecnicas.mjs';
 import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
 import {instalarStore} from '../render/hud/store.mjs';
 import {instalarBattlePass} from '../render/hud/battle-pass-hud.mjs';
@@ -139,14 +140,12 @@ export function atualizarHud(snapshot, playerId) {
   $('xpBar').style.width = xpPct + '%';
   $('hudXpBar').style.width = xpPct + '%'; $('hudXpText').textContent = 'EXP ' + Math.round(xpPct) + '%';
   $('formLabel').textContent = !s.forma || s.forma === 'base' ? 'FORMA BASE' : nomeDaForma(s.forma).toUpperCase();
-  const proximosDesbloqueios = [
-    ['Rajada de Ki', CONFIG.skills.ki], ['Imagem Residual', CONFIG.skills.dash],
-    ['Kamehameha', CONFIG.skills.kame], ['Barreira de Ki', CONFIG.skills.barrier],
-    ['Genki Dama', CONFIG.skills.genki], ['Ryuken', CONFIG.skills.ryuken],
-    ['Super Kamehameha', CONFIG.skills.superKamehameha], ...FORMAS.map(forma => [forma.nome, forma.nivel])
-  ].filter(([, nivel]) => nivel > s.level).sort((a, b) => a[1] - b[1]);
-  const primeiroDesbloqueio = proximosDesbloqueios[0], desbloqueiosNoNivel = primeiroDesbloqueio
-    ? proximosDesbloqueios.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];
+  const proximosDesbloqueios = tecnicasDoPerfil(s.vocacao)
+    .map(tecnica => [tecnica.nome, nivelDaTecnica(tecnica, s.vocacao)]);
+  if (s.vocacao === 'goku') proximosDesbloqueios.push(['Imagem Residual', CONFIG.skills.dash]);
+  const pendentes = proximosDesbloqueios.filter(([, nivel]) => nivel > s.level).sort((a, b) => a[1] - b[1]);
+  const primeiroDesbloqueio = pendentes[0], desbloqueiosNoNivel = primeiroDesbloqueio
+    ? pendentes.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];
   $('nextUnlock').textContent = s.level >= CONFIG.progression.nivelMaximo ? 'Nível máximo alcançado.' : primeiroDesbloqueio
     ? `Próximo desbloqueio: ${desbloqueiosNoNivel.join(' e ')} · NV. ${primeiroDesbloqueio[1]}` : 'Todas as habilidades principais desbloqueadas.';
   const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
