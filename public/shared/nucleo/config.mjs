@@ -223,7 +223,7 @@ export const PORTAIS = [
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } })
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2675, y: 1480 }, 'vegeta-cratera': { x: 2275, y: 1600 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
