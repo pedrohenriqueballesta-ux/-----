@@ -735,7 +735,7 @@ function frame(now) {
   // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
   const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
   const prediosTerra = world.id === 'terra' ? PREDIOS_TERRA : [];
-  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
+  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(m => aquiNoPlaneta(m) && !m.predio);
   const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {

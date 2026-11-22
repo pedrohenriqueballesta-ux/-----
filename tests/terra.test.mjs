@@ -8,7 +8,7 @@ import { PRACA_TERRA, TAMANHO_TERRA, naAguaDaTerra } from '../public/shared/mund
 // Terra = Cidade do Oeste, cidade do rio (planta D2, Pedro 16/11/2026); por enquanto só o chão.
 test('a Terra tem o tamanho da planta (6×6 telas); chegada no largo e o teleporte na porta da nave, em chão livre', () => {
   assert.deepEqual({ w: PLANETS.terra.w, h: PLANETS.terra.h }, TAMANHO_TERRA);
-  const portal = PORTAIS.find(o => o.id === 'terra-namek');
+  const portal = PORTAIS.find(o => o.id === 'terra-nave');
   assert.deepEqual({ x: portal.x, y: portal.y }, PRACA_TERRA.portal);
   assert.deepEqual(PLANETS.terra.spawn, PRACA_TERRA.chegada);
   for (const p of [PRACA_TERRA.chegada, PRACA_TERRA.portal]) assert.ok(pesLivres('terra', p.x, p.y, 15));
@@ -70,7 +70,7 @@ test('decoração solta só na grama: nunca na água, na rua, em quarteirão nem
   }
 });
 test('a nave do Goku é o teleporte da Terra: da chegada, o jogador anda até a porta e o portal abre ali', () => {
-  const portal = PORTAIS.find(o => o.id === 'terra-namek');
+  const portal = PORTAIS.find(o => o.id === 'terra-nave');
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
   assert.equal(g.action(p.id, { type: 'moveTo', x: portal.x, y: portal.y }).ok, true);
   for (let i = 0; i < 3000 && p.moveTo; i++) g.tick(.05);
