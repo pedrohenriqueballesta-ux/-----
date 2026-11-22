@@ -19,7 +19,7 @@ import { SSJ_GOLPE } from './ssj-golpe.mjs';
 import { SAIBAMAN_PASSO } from './personagens/saibaman/saibaman-passo.mjs';
 import { SAIBAMAN_GOLPE } from './personagens/saibaman/saibaman-golpe.mjs';
 import { SENTINELA_PASSO } from './personagens/sentinela/sentinela-passo.mjs';
-import { FOLHAS_VEGETA_BASE, FOLHAS_VEGETA_SSJ1, FOLHAS_VEGETA_MAJIN, FOLHAS_VEGETA_SSJ4, FOLHAS_VEGETA_GOD } from './personagens/vegeta/vegeta-folhas.mjs';
+import { FOLHAS_VEGETA_BASE, FOLHAS_VEGETA_SSJ1, FOLHAS_VEGETA_MAJIN, FOLHAS_VEGETA_SSJ4, FOLHAS_VEGETA_GOD, FOLHAS_VEGETA_BLUE, FOLHAS_VEGETA_ULTRA_EGO } from './personagens/vegeta/vegeta-folhas.mjs';
 
 const imageCache = new Map();
 const loadImage = url => {
@@ -31,7 +31,9 @@ export const art = {
   ...Object.fromEntries([...Object.values(FOLHAS_GOKU_BASE), ...Object.values(FOLHAS_GOKU_NATALINO), ...Object.values(FOLHAS_GOKU_KAIOKEN), ...Object.values(FOLHAS_GOKU_SSJ), ...Object.values(FOLHAS_GOKU_SSJ2), ...Object.values(FOLHAS_GOKU_SSJ3), ...Object.values(FOLHAS_GOKU_SSJ4)].map(([folha,chave])=>[chave,loadImage(folha.file)])),
   gokuSsj3Ryuken: loadImage(GOKU_SSJ3_RYUKEN.file),
   ...Object.fromEntries(Object.values(PARADO).map(([folha,chave])=>[chave,loadImage(folha.file)])),
-  ...Object.fromEntries([...Object.values(FOLHAS_VEGETA_BASE), ...Object.values(FOLHAS_VEGETA_SSJ1), ...Object.values(FOLHAS_VEGETA_MAJIN), ...Object.values(FOLHAS_VEGETA_SSJ4), ...Object.values(FOLHAS_VEGETA_GOD)].flatMap(([folha,key])=>[[key,loadImage(folha.file)]])),
+  ...Object.fromEntries([FOLHAS_VEGETA_BASE, FOLHAS_VEGETA_SSJ1, FOLHAS_VEGETA_MAJIN, FOLHAS_VEGETA_SSJ4,
+    FOLHAS_VEGETA_GOD, FOLHAS_VEGETA_BLUE, FOLHAS_VEGETA_ULTRA_EGO]
+    .flatMap(folhas => Object.values(folhas).map(([folha, chave]) => [chave, loadImage(folha.file)]))),
   nuvemTeleport: loadImage('/assets/teleports/nuvem.png'),
   goku: loadImage('/assets/goku-sheet.png'),
   tree: loadImage('/assets/tree.png'),

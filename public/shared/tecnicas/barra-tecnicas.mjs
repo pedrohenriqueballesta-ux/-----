@@ -8,7 +8,7 @@ import {GALICK} from './galick-gun.mjs';
 export const TECNICAS=Object.freeze([
  {id:'skill:heal',nome:'Cura de Vida',nivel:1,icone:'sprite-cura',custo:'Conforme o nível',recarga:'0,7 s'},
  {id:'skill:basic',nome:'Ataque básico',nivel:1,icone:'sprite-kaioken',custo:'0 Ki',recarga:'0,45 s'},
- {id:'skill:ki',nome:'Rajada de Ki',nivel:CONFIG.skills.ki,icone:'sprite-kame',custo:'7 Ki',recarga:'0,7 s'},
+ {id:'skill:ki',nome:'Rajada de Ki',nivel:CONFIG.skills.ki,icone:'sprite-kame',custo:`${CONFIG.skillCosts.ki} Ki`,recarga:`${CONFIG.skillCooldowns.ki.toLocaleString('pt-BR')} s`},
  {id:'skill:dash',nome:'Imagem Residual',nivel:CONFIG.skills.dash,icone:'sprite-barrier',custo:'0 Ki',recarga:'4 s'},
  {id:'skill:kame',nome:'Kamehameha',nivel:CONFIG.skills.kame,icone:'sprite-kame',custo:`${CONFIG.skillCosts.kame} Ki`,recarga:`${CONFIG.skillCooldowns.kame} s`},
  {id:'skill:galick',nome:'Galick Gun',nivel:CONFIG.skills.galick,icone:'sprite-galick',custo:`${GALICK.custo} Ki`,recarga:`${GALICK.recarga} s`},
@@ -36,12 +36,12 @@ export function tecnicaDaVocacao(id, vocacao = 'goku') {
 
 export function tecnicasDoPerfil(vocacao) {
  return MAGIAS_PERSONAGEM.filter(({id})=>tecnicaDaVocacao(id,vocacao)
-  &&(vocacao!=='vegeta'||id.startsWith('form:')||id==='skill:heal'||id==='skill:galick'));
+  &&(vocacao!=='vegeta'||id.startsWith('form:')||id==='skill:heal'||id==='skill:galick'||id==='skill:ki'));
 }
 
 export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
 export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base',vocacao='goku'){
- if(vocacao==='vegeta')return ['skill:heal','skill:galick','form:auto',null,null,'item:food','item:ki',null];
+ if(vocacao==='vegeta')return ['skill:heal','skill:galick','form:auto','skill:ki',null,'item:food','item:ki',null];
  const item=n=>consumivelValido(hotkeys[n])?'item:'+hotkeys[n]:hotkeys[n]===null?null:n===7?'item:seed'+(CONFIG.seedPotencies.includes(semente)?semente:15):'item:ki';
  return ['skill:heal',nivel>=CONFIG.skills.superKamehameha&&forma==='ssj4'?'skill:superKamehameha':'skill:kame','form:auto','skill:barrier','skill:genki',item(7),item(8),'skill:ryuken'];
 }
@@ -50,7 +50,9 @@ export function atualizarBarraPadrao(p){
  const proxima=barraPadrao(p.hotkeysConsumiveis,p.seedSelected,p.level,p.forma)[1];
  if(!p.barraTecnicas.includes(proxima))p.barraTecnicas[1]=proxima;
 }
+export const nivelRajadaKi = vocacao => vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
 export function nivelDaTecnica(tecnica, vocacao) {
+ if (tecnica.id === 'skill:ki') return nivelRajadaKi(vocacao);
  if (!tecnica.id.startsWith('form:')) return tecnica.nivel;
  const formas = formasDaVocacao(vocacao);
  const forma = tecnica.id==='form:auto' ? formas[0] : formas.find(f => f.forma === tecnica.id.slice(5));

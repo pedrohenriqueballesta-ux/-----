@@ -92,8 +92,11 @@ test('reutiliza a textura e aplica o reforço de cada paleta em uma passada', t 
   assert.equal(imagens.length, 1);
   assert.equal(desenhos.length, 5);
   assert.deepEqual(texturas[1].pixels.filter((_, i) => i % 4 === 3), [0, 224, 255]);
-  assert.deepEqual(texturas[2].pixels.filter((_, i) => i % 4 === 3), [0, 64, 255]);
+  assert.deepEqual(texturas[2].pixels.filter((_, i) => i % 4 === 3), [0, 224, 255]);
+  assert.deepEqual(texturas[3].pixels.filter((_, i) => i % 4 === 3), [0, 224, 255]);
   assert.ok(desenhos[2].alpha >= .5 * .92 && desenhos[2].alpha <= .5);
+  assert.ok(desenhos[3].alpha >= .5 * .92 && desenhos[3].alpha <= .5);
+  assert.ok(desenhos[4].alpha >= .5 * .92 && desenhos[4].alpha <= .5);
   assert.equal(ctx.globalAlpha, .5);
 
   const god = RAIOS_POR_FORMA.vegeta.ssjGod;

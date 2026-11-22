@@ -8,14 +8,14 @@ import { DIRECTIONS } from '../public/render/mapa/camera.mjs';
 test('as sete folhas God mantêm a grade 5×4, alfa e originais verificados pelo manifesto', async () => {
   const pasta = new URL('../public/assets/vegeta/god/', import.meta.url);
   const fontes = new URL('fontes/', pasta);
-  const manifesto = JSON.parse(await readFile(new URL('MANIFESTO.json', fontes), 'utf8'));
+  const { sprites: manifesto } = JSON.parse(await readFile(new URL('MANIFESTO.json', fontes), 'utf8'));
   const folhas = Object.values(FOLHAS_VEGETA_GOD);
   assert.equal(folhas.length, 7);
   for (const [folha] of folhas) {
     const nome = folha.file.split('/').at(-1);
     const png = await readFile(new URL(nome, pasta));
     const fonte = await readFile(new URL(nome, fontes));
-    assert.equal(createHash('sha256').update(fonte).digest('hex'), manifesto.find(f => f.arquivo.endsWith('/' + nome)).sha256);
+    assert.equal(createHash('sha256').update(fonte).digest('hex'), manifesto.find(f => f.arquivo === nome).sha256);
     assert.equal(png.readUInt32BE(16), 1024);
     assert.equal(png.readUInt32BE(20), 1536);
     assert.equal(png[25], 6);
@@ -26,7 +26,9 @@ test('as sete folhas God mantêm a grade 5×4, alfa e originais verificados pelo
         assert.equal(x, c * 256);
         assert.equal(y, Math.round(r * 1536 / 5));
         assert.equal(ax, x + 128);
-        assert.ok(x + w <= 1024 && y + h <= 1536 && ay > y && ay < y + h);
+        assert.ok(x + w <= 1024 && y + h <= 1536);
+        assert.equal(ay, linha[0][5]);
+        assert.ok(Math.abs(ay - (y + h)) <= 8);
       }
     }
   }

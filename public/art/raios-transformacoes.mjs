@@ -1,5 +1,5 @@
 // Paletas amostradas no cabelo e na energia das artes do Vegeta.
-// Blue e Ultra Ego usam os ícones como referência até ganharem folhas próprias.
+// As paletas de Blue e Ultra Ego foram escolhidas a partir dos ícones.
 export const RAIOS_POR_FORMA = {
   vegeta: {
     ssj: {
@@ -14,11 +14,13 @@ export const RAIOS_POR_FORMA = {
     },
     ssjBlue: {
       cor: [79, 229, 254], brilho: [2, 253, 254], intensidade: .96,
-      opacidade: .89, escala: 1.17, ancoraY: .88, intervaloMs: [81, 131], pausa: .11
+      opacidade: 1, variacaoOpacidade: .08, ganhoAlpha: 3.5,
+      escala: 1.17, ancoraY: .88, intervaloMs: [81, 131], pausa: .11
     },
     ultraEgo: {
       cor: [193, 132, 231], brilho: [139, 104, 164], intensidade: 1,
-      opacidade: .96, escala: 1.17, ancoraY: .88, intervaloMs: [70, 128], pausa: .08
+      opacidade: 1, variacaoOpacidade: .08, ganhoAlpha: 3.5,
+      escala: 1.17, ancoraY: .88, intervaloMs: [70, 128], pausa: .08
     }
   }
 };

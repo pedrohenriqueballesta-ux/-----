@@ -1,72 +1,81 @@
-[
-  {
-    "arquivo": "SPRITESHEETS/01_PARADO_IDLE.png",
-    "origem_original": "VEGETA_GOD_01_PARADO_RESPIRACAO_TORAX.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "d8a34f17a939362486191fb413efc7701e1a1a6073eb973f9791487c3fb912d9",
-    "observacao": "Última folha Idle com animação do tórax e cabeça/pés fixos"
+{
+  "transformacao": "Vegeta Super Saiyajin God",
+  "paleta_cabelo": {
+    "sombra": "#660008",
+    "principal": "#A20115",
+    "reflexo": "#E81233"
   },
-  {
-    "arquivo": "SPRITESHEETS/02_ANDAR.png",
-    "origem_original": "folha_de_sprites_do_vegeta_em_movimento.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "8a00c5a247ef65b3df26d3e8054cc1fab1793c9ae0e371a1cf1092e122d3b82a",
-    "observacao": "Última caminhada usada na sequência"
-  },
-  {
-    "arquivo": "SPRITESHEETS/03_SOCO.png",
-    "origem_original": "sprite_de_soco_do_vegeta_deus_super_saiyajin.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "8981aa1257696943f712e56ae834cf682ccbe05145f08b29fc63f0c7b5a76e70",
-    "observacao": "Soco recriado do zero após reprovação da adaptação SSJ1"
-  },
-  {
-    "arquivo": "SPRITESHEETS/04_RAJADA_DE_KI.png",
-    "origem_original": "a_clean_sprite_sheet_on_a_bright_magenta_magenta_p.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "d23315bf48d9c4d0a72c00ccdb14ad925d7752a716a17f84288dd6c58c5a28c4",
-    "observacao": "Rajada de Ki com palma aberta e retorno no último frame"
-  },
-  {
-    "arquivo": "SPRITESHEETS/05_GALICK_GUN.png",
-    "origem_original": "a_clean_sprite_sheet_on_a_bright_magenta_pink_tran.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "c5b92534a86e9741c9aea863969ef56936b0c66f873d924e69ce8a8e37ac6eb2",
-    "observacao": "Gestos do Galick Gun sem efeitos"
-  },
-  {
-    "arquivo": "SPRITESHEETS/06_FINAL_FLASH.png",
-    "origem_original": "VEGETA_GOD_06_FINAL_FLASH_CORRIGIDA.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "c8a5221a2d997f1d273ced0923741cb4143f108638fc0a61102946c90aaf4381",
-    "observacao": "Folha corrigida do Final Flash"
-  },
-  {
-    "arquivo": "SPRITESHEETS/07_BIG_BANG_ATTACK.png",
-    "origem_original": "spritesheet_vegeta_ataque_de_palma.png",
-    "resolucao": [
-      1024,
-      1536
-    ],
-    "sha256": "3467435301171133a1fd35799d4f7653fda9b1e8943850e53571119d8472b28e",
-    "observacao": "Última correção: mão mantida no terceiro quadro da terceira linha"
-  }
-]
+  "observacao": "Selecionadas as ultimas geracoes de cada folha, antes da solicitacao da proxima folha. Sao PNGs RGB de fundo verde; conversao para RGBA deve ser validada na implementacao.",
+  "sprites": [
+    {
+      "arquivo": "01_PARADO.png",
+      "origem_geracao": "a_detailed_pixel_art_spritesheet_on_a_bright_chrom.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "b74357eccf5dd4c237d7dda6071acaab0d89d2f775a0ad73eaa1071ac5b3fe5a"
+    },
+    {
+      "arquivo": "02_ANDAR.png",
+      "origem_geracao": "a_detailed_sprite_sheet_image_a_4_columns_5_row.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "ac69d1b79145256e762b079fce6c0d39a28111c62e0718f4d9ed91a8d8753c94"
+    },
+    {
+      "arquivo": "03_SOCO.png",
+      "origem_geracao": "a_spritesheet_style_image_identical_to_the_given_r.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "00181b06b412ab1060d16a520dd25a1ba159e151823dea574309ba98566eb19a"
+    },
+    {
+      "arquivo": "04_RAJADA_KI.png",
+      "origem_geracao": "a_spritesheet_in_the_exact_same_layout_and_poses_a.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "8c3adc189b9f2e858813f31e74cb6f5c57a3f43e152d0ae6d904492f1b516f98"
+    },
+    {
+      "arquivo": "05_GALICK_GUN.png",
+      "origem_geracao": "sprite_de_vegeta_super_saiyajin_deus.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "3f13a5c569754d7ec034d4a3890ffea21190ad1771f3481c457503fe89c9b9af"
+    },
+    {
+      "arquivo": "06_FINAL_FLASH.png",
+      "origem_geracao": "spritesheet_do_vegeta_deus_super_saiyajin.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "e6d2e8cb95d56b6c6e00f40255033ca6dce99424854b143c048288e97f695ef2"
+    },
+    {
+      "arquivo": "07_BIG_BANG_ATTACK.png",
+      "origem_geracao": "a_clean_sprite_sheet_on_a_bright_green_chroma_key.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "56883013a7dd458e25236bd80e6a78845a4427ebb8ec3dbf53e78dc2482ea385"
+    }
+  ]
+}

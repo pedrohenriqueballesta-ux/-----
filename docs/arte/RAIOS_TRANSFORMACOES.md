@@ -7,12 +7,10 @@ O cliente lê a vocação e a forma ativa do snapshot e consulta `RAIOS_POR_FORM
 | Forma | Cor principal | Brilho | Referência | Intensidade | Opacidade máxima | Escala | Intervalo | Ciclos de pausa |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | SSJ1 | `#F1A211` | `#D27E02` | Dourados do cabelo em `vegeta/ssj1/01_PARADO.png` | 0,64 | 0,96 | 1,17 | 110–160 ms | 24% |
-| God | `#FC3279` | `#F2184D` | Vermelhos do cabelo em `vegeta/god/01_PARADO_IDLE.png` | 0,74 | 1,00 | 1,14 | 101–155 ms | 19% |
-| Blue | `#4FE5FE` | `#02FDFE` | Azul e ciano da energia no ícone `vegeta_ssj_blue.png` | 0,96 | 0,89 | 1,17 | 81–131 ms | 11% |
-| Ultra Ego | `#C184E7` | `#8B68A4` | Violeta e realces de energia no ícone `vegeta_ultra_ego.png` | 1,00 | 0,96 | 1,17 | 70–128 ms | 8% |
+| God | `#FC3279` | `#F2184D` | Paleta de raios definida com a folha anterior do God | 0,74 | 1,00 | 1,14 | 101–155 ms | 19% |
+| Blue | `#4FE5FE` | `#02FDFE` | Azul e ciano da energia no ícone `vegeta_ssj_blue.png` | 0,96 | 1,00 | 1,17 | 81–131 ms | 11% |
+| Ultra Ego | `#C184E7` | `#8B68A4` | Violeta e realces de energia no ícone `vegeta_ultra_ego.png` | 1,00 | 1,00 | 1,17 | 70–128 ms | 8% |
 
-Nas texturas de SSJ1 e God, o alfa dos traços é multiplicado por 3 e 3,5, respectivamente, até o limite de 255. Cada descarga visível usa entre 82% e 96% de opacidade no SSJ1 e entre 92% e 100% no God.
+O alfa dos traços é multiplicado por 3 no SSJ1 e por 3,5 no God, no Blue e no Ultra Ego, até o limite de 255. Cada descarga visível usa entre 82% e 96% de opacidade no SSJ1 e entre 92% e 100% nas demais formas desta configuração.
 
-Em jogo, as formas disponíveis para testar são SSJ1 no nível 100 e God no 500. Selecione cada forma na aba Técnicas e repita a seleção para voltar à base. Majin e SSJ4 ficam fora da configuração. O efeito legado do SSJ2 continua no renderer próprio.
-
-Blue e Ultra Ego têm paletas configuradas para o efeito e só podem ser avaliados na comparação visual desta etapa. O jogo ainda precisa das folhas e dos desbloqueios dessas formas. Na comparação temporária, as duas usam o corpo de SSJ1 como referência de encaixe. A integração visual das folhas definitivas e a expansão para outras vocações dependem de nova avaliação.
+Em jogo, as formas com os raios são SSJ1 no nível 100, God no 500, Blue no 700 e Ultra Ego no 900. Selecione cada forma na aba Técnicas e repita a seleção para voltar à base. Majin e SSJ4 ficam fora da configuração. O efeito legado do SSJ2 continua no renderer próprio.

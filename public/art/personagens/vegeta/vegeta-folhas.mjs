@@ -3,6 +3,9 @@ const folha=(file,key)=>[{file,width:1024,height:1536,rows:5,columns:4,reference
 const base='/assets/vegeta/base/',ssj='/assets/vegeta/ssj1/';
 const majin='/assets/vegeta/majin/';
 const ssj4='/assets/vegeta/ssj4/';
+const god='/assets/vegeta/god/';
+const blue='/assets/vegeta/blue/';
+const ultraEgo='/assets/vegeta/ultra-ego/';
 const criar=(dir,prefix,galickProprio=false)=>Object.freeze({
  parado:folha(dir+'01_PARADO.png',prefix+'Parado'),andar:folha(dir+'02_ANDAR.png',prefix+'Andar'),soco:folha(dir+'03_SOCO.png',prefix+'Soco'),rajada:folha(dir+'04_RAJADA_KI.png',prefix+'Rajada'),
  // A forma base tem folha própria; SSJ1 ainda usa a pose de disparo disponível na folha 04.
@@ -33,6 +36,28 @@ export const FOLHAS_VEGETA_MAJIN = alinharPes(majinFolhas, {
   finalFlash: [289, 288, 285, 268, 264],
   bigBang: [290, 288, 284, 269, 265]
 }, true);
+const blueFolhas = { ...criar(blue, 'vegetaBlue', true), bigBang: folha(blue + '07_BIG_BANG_ATTACK.png', 'vegetaBlueBigBang') };
+// Os PNGs já têm alfa. A âncora absoluta em X é a convenção de drawSheet.
+export const FOLHAS_VEGETA_BLUE = alinharPes(blueFolhas, {
+  parado: [289, 286, 284, 268, 266],
+  andar: [293, 292, 277, 267, 269],
+  soco: [290, 289, 287, 268, 265],
+  rajada: [292, 290, 284, 271, 267],
+  galick: [291, 291, 287, 269, 266],
+  finalFlash: [291, 289, 288, 269, 266],
+  bigBang: [290, 287, 285, 268, 266]
+}, true);
+const ultraEgoFolhas = { ...criar(ultraEgo, 'vegetaUltraEgo', true),
+  bigBang: folha(ultraEgo + '07_BIG_BANG_ATTACK.png', 'vegetaUltraEgoBigBang') };
+export const FOLHAS_VEGETA_ULTRA_EGO = alinharPes(ultraEgoFolhas, {
+  parado: [288, 285, 283, 266, 265],
+  andar: [293, 292, 277, 267, 269],
+  soco: [289, 288, 287, 267, 265],
+  rajada: [292, 290, 283, 271, 266],
+  galick: [291, 291, 287, 269, 266],
+  finalFlash: [290, 291, 289, 269, 265],
+  bigBang: [290, 290, 288, 268, 266]
+}, true);
 // SSJ4 usa as sete folhas próprias do pacote aprovado, mantendo a mesma grade,
 // âncoras e escala das demais formas do Vegeta.
 export const FOLHAS_VEGETA_SSJ4=Object.freeze({
@@ -44,23 +69,14 @@ export const FOLHAS_VEGETA_SSJ4=Object.freeze({
   finalFlash:folha(ssj4+'06_FINAL_FLASH.png','vegetaSsj4FinalFlash'),
   bigBang:folha(ssj4+'07_BIG_BANG_ATTACK.png','vegetaSsj4BigBang')
 });
-
-
-// Coordenadas do chão medidas nas folhas God após remover o chroma.
-// O x continua no centro de cada célula, na escala das outras formas do Vegeta.
-function folhaGod(arquivo, chave, pes) {
-  const [dados, id] = folha('/assets/vegeta/god/' + arquivo, 'vegetaGod' + chave);
-  dados.frames = dados.frames.map((linha, r) => linha.map(([x, y, w, h, ax], c) =>
-    [x, y, w, h, x + ax, y + pes[r][c] + 1]));
-  return [dados, id];
-}
-
-export const FOLHAS_VEGETA_GOD = Object.freeze({
-  parado: folhaGod('01_PARADO_IDLE.png', 'Parado', [[288,288,288,288],[287,287,287,287],[285,285,285,285],[283,283,283,283],[283,283,283,283]]),
-  andar: folhaGod('02_ANDAR.png', 'Andar', [[289,289,290,289],[286,287,286,288],[282,282,278,282],[282,282,282,281],[282,282,282,280]]),
-  soco: folhaGod('03_SOCO.png', 'Soco', [[288,290,290,288],[286,285,285,287],[284,284,284,284],[280,281,281,281],[283,283,284,283]]),
-  rajada: folhaGod('04_RAJADA_DE_KI.png', 'Rajada', [[294,294,294,294],[292,292,292,292],[286,286,286,286],[284,284,284,284],[286,286,286,286]]),
-  galick: folhaGod('05_GALICK_GUN.png', 'Galick', [[294,294,294,294],[292,292,292,292],[287,287,287,287],[285,285,285,285],[286,286,286,286]]),
-  finalFlash: folhaGod('06_FINAL_FLASH.png', 'FinalFlash', [[294,294,294,294],[292,292,292,292],[287,287,287,288],[285,285,285,285],[286,286,286,286]]),
-  bigBang: folhaGod('07_BIG_BANG_ATTACK.png', 'BigBang', [[293,293,293,293],[291,291,291,291],[287,287,287,287],[284,284,284,284],[287,287,287,287]])
-});
+const godFolhas = { ...criar(god, 'vegetaGod', true),
+  bigBang: folha(god + '07_BIG_BANG_ATTACK.png', 'vegetaGodBigBang') };
+export const FOLHAS_VEGETA_GOD = alinharPes(godFolhas, {
+  parado: [288, 285, 283, 266, 264],
+  andar: [294, 291, 277, 266, 268],
+  soco: [289, 287, 287, 267, 265],
+  rajada: [291, 290, 284, 270, 266],
+  galick: [291, 291, 287, 269, 266],
+  finalFlash: [290, 290, 289, 269, 265],
+  bigBang: [291, 289, 284, 271, 266]
+}, true);

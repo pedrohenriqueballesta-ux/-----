@@ -13,7 +13,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
+import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao,nivelRajadaKi} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
@@ -428,10 +428,10 @@ export class Game {
     if (skill === 'ki') {
       // A Rajada de Ki é o ataque à distância básico de todas as vocações.
       // Para Vegeta ela já existe desde o início, assim como no fluxo básico do Goku.
-      const nivelRajada = p.vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
+      const nivelRajada = nivelRajadaKi(p.vocacao);
       if (p.level < nivelRajada) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + nivelRajada + '.');
-      if (this.time < p.shotReady || p.ki < 7 || p.charge) return { ok: false };
-      p.ki -= 7; p.shotReady = this.time + 0.7;
+      if (this.time < p.shotReady || p.ki < CONFIG.skillCosts.ki || p.charge) return { ok: false };
+      p.ki -= CONFIG.skillCosts.ki; p.shotReady = this.time + CONFIG.skillCooldowns.ki;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
       this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
@@ -1235,7 +1235,7 @@ export class Game {
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
-        kiRemaining: Math.max(0, self.kiReady - this.time), seedSelected: self.seedSelected,
+        kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), seedSelected: self.seedSelected,
         kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
