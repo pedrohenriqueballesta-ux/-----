@@ -1,0 +1,81 @@
+{
+  "transformacao": "Vegeta Super Saiyajin God",
+  "paleta_cabelo": {
+    "sombra": "#660008",
+    "principal": "#A20115",
+    "reflexo": "#E81233"
+  },
+  "observacao": "Selecionadas as ultimas geracoes de cada folha, antes da solicitacao da proxima folha. Sao PNGs RGB de fundo verde; conversao para RGBA deve ser validada na implementacao.",
+  "sprites": [
+    {
+      "arquivo": "01_PARADO.png",
+      "origem_geracao": "a_detailed_pixel_art_spritesheet_on_a_bright_chrom.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "b74357eccf5dd4c237d7dda6071acaab0d89d2f775a0ad73eaa1071ac5b3fe5a"
+    },
+    {
+      "arquivo": "02_ANDAR.png",
+      "origem_geracao": "a_detailed_sprite_sheet_image_a_4_columns_5_row.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "ac69d1b79145256e762b079fce6c0d39a28111c62e0718f4d9ed91a8d8753c94"
+    },
+    {
+      "arquivo": "03_SOCO.png",
+      "origem_geracao": "a_spritesheet_style_image_identical_to_the_given_r.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "00181b06b412ab1060d16a520dd25a1ba159e151823dea574309ba98566eb19a"
+    },
+    {
+      "arquivo": "04_RAJADA_KI.png",
+      "origem_geracao": "a_spritesheet_in_the_exact_same_layout_and_poses_a.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "8c3adc189b9f2e858813f31e74cb6f5c57a3f43e152d0ae6d904492f1b516f98"
+    },
+    {
+      "arquivo": "05_GALICK_GUN.png",
+      "origem_geracao": "sprite_de_vegeta_super_saiyajin_deus.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "3f13a5c569754d7ec034d4a3890ffea21190ad1771f3481c457503fe89c9b9af"
+    },
+    {
+      "arquivo": "06_FINAL_FLASH.png",
+      "origem_geracao": "spritesheet_do_vegeta_deus_super_saiyajin.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "e6d2e8cb95d56b6c6e00f40255033ca6dce99424854b143c048288e97f695ef2"
+    },
+    {
+      "arquivo": "07_BIG_BANG_ATTACK.png",
+      "origem_geracao": "a_clean_sprite_sheet_on_a_bright_green_chroma_key.png",
+      "tamanho": [
+        1024,
+        1536
+      ],
+      "modo": "RGB",
+      "sha256": "56883013a7dd458e25236bd80e6a78845a4427ebb8ec3dbf53e78dc2482ea385"
+    }
+  ]
+}

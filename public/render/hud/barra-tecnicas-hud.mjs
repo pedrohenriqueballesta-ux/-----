@@ -38,7 +38,7 @@ function desenhar(){
   b.querySelector('strong').textContent=nome;
   const item=id?.startsWith('item:')?id.slice(5):null;
   const quantidade=item?estado?.inventory?.[item]||0:null;
-  const restante=item==='ki'?estado?.kiRemaining:item==='food'?Math.max(0,(estado?.foodRemaining||0)-1):item?.startsWith('seed')?estado?.seedRemaining:galick?estado?.galickRemaining:id==='skill:kame'?estado?.kameRemaining:id==='skill:barrier'?estado?.barrierRemaining:id==='skill:genki'?estado?.genkiRemaining:id==='skill:ryuken'?estado?.ryukenRemaining:id==='skill:superKamehameha'?estado?.superKameRemaining:0;
+  const restante=item==='ki'?estado?.kiRemaining:item==='food'?Math.max(0,(estado?.foodRemaining||0)-1):item?.startsWith('seed')?estado?.seedRemaining:id==='skill:ki'?estado?.shotRemaining:galick?estado?.galickRemaining:id==='skill:kame'?estado?.kameRemaining:id==='skill:barrier'?estado?.barrierRemaining:id==='skill:genki'?estado?.genkiRemaining:id==='skill:ryuken'?estado?.ryukenRemaining:id==='skill:superKamehameha'?estado?.superKameRemaining:0;
   const formaIncorreta=id==='skill:ryuken'&&!RYUKEN.formas.includes(estado?.forma)||id==='skill:superKamehameha'&&estado?.forma!==SUPER_KAME.forma;
   b.classList.toggle('locked',bloqueada||semKi);b.classList.toggle('cooling',Boolean(restante>0));b.classList.toggle('consumivel-vazio',!id);b.classList.toggle('consumivel-indisponivel',Boolean(item&&(!quantidade||restante>0)));
   b.classList.toggle('consumivel-slot',Boolean(item));

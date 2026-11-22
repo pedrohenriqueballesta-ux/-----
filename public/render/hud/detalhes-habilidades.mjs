@@ -4,6 +4,7 @@ import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../sha
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
+import { nivelRajadaKi } from '../../shared/tecnicas/barra-tecnicas.mjs';
 
 const NOMES = { heal: 'Cura de Vida', ki: 'Rajada de Ki', kame: 'Kamehameha', galick: 'Galick Gun', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
 const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' s';
@@ -11,10 +12,11 @@ const segundos = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDi
 export function detalhesHabilidade(chave, estado) {
   if (!estado) return null;
   const itemChave=chave?.startsWith('item:');
-  if(chave?.startsWith('skill:'))chave=chave.slice(6);
+  const skillChave=chave?.startsWith('skill:');
+  if(skillChave)chave=chave.slice(6);
   if(itemChave)chave=chave.slice(5);
   if(chave?.startsWith('form:')&&chave!=='form:auto'){
-    const forma=FORMAS.find(f=>f.forma===chave.slice(5));if(!forma)return null;
+    const forma=formasDaVocacao(estado.vocacao).find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
   }
   if(chave==='form:auto')chave='transform';
@@ -34,14 +36,14 @@ export function detalhesHabilidade(chave, estado) {
       ['Estado', estado.level < nivel ? 'Bloqueada · requer nível ' + nivel : restante > 0 ? 'Em recarga · ' + segundos(restante) : estado.forma !== SUPER_KAME.forma ? 'Transforme-se em Super Saiyajin 4' : 'Disponível']
     ] };
   }
-  if (NOMES[chave] && !itemChave) {
+  if (NOMES[chave] && !itemChave && (chave !== 'ki' || skillChave)) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
       const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku'), ativa = estado.forma && estado.forma !== 'base';
       const formas = formasDaVocacao(estado.vocacao), primeira = formas[0];
       const mostrada = ativa ? estado.forma : disponivel?.forma || primeira.forma, proxima = formas.find(f => estado.level < f.nivel);
       return { nome: nomeDaForma(mostrada), linhas: [
-        ['Desbloqueia', 'Nível ' + (FORMAS.find(f => f.forma === mostrada)?.nivel ?? primeira.nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
+        ['Desbloqueia', 'Nível ' + (formas.find(f => f.forma === mostrada)?.nivel ?? primeira.nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
         ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],
         ['Término', mostrada === 'gogeta' ? 'Após ' + segundos(FORMAS.find(f => f.forma === 'gogeta').duracao) + ' ou se o Ki zerar' : 'Volta à forma base quando o Ki zerar'], ['Alternar', 'Um buff por vez; apertar novamente volta à base'],
         ...(proxima ? [['Próxima', proxima.nome + ' no nível ' + proxima.nivel]] : []),
@@ -49,10 +51,10 @@ export function detalhesHabilidade(chave, estado) {
       ] };
     }
     const cura = estado.cura || { ...curaPorNivel(estado.level), cooldown: CURA.cooldown };
-    const nivel = chave === 'heal' ? 1 : CONFIG.skills[chave];
-    const custo = chave === 'heal' ? cura.custo : chave === 'ki' ? 7 : CONFIG.skillCosts[chave];
-    const recarga = chave === 'heal' ? cura.cooldown : chave === 'ki' ? 0.7 : CONFIG.skillCooldowns[chave];
-    const restante = chave === 'heal' ? cura.remaining : estado[chave + 'Remaining'];
+    const nivel = chave === 'heal' ? 1 : chave === 'ki' ? nivelRajadaKi(estado.vocacao) : CONFIG.skills[chave];
+    const custo = chave === 'heal' ? cura.custo : CONFIG.skillCosts[chave];
+    const recarga = chave === 'heal' ? cura.cooldown : CONFIG.skillCooldowns[chave];
+    const restante = chave === 'heal' ? cura.remaining : chave === 'ki' ? estado.shotRemaining : estado[chave + 'Remaining'];
     const galick = chave === 'galick';
     return { nome: galick && estado.galickVersao ? 'Galick Gun V' + estado.galickVersao : NOMES[chave], linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Custo', custo + ' Ki'], ['Cooldown', segundos(recarga)],
@@ -95,7 +97,6 @@ export function instalarDetalhesHabilidades() {
     if (el.dataset.hotkeyConsumivel) return 'item:' + (el.dataset.item || '');
     const id = el.dataset.skill || el.dataset.item;
     if (id?.startsWith('item:')) return id;
-    if (id?.startsWith('skill:')) return id.slice(6);
     return id || ({ transformButton: 'transform', seedButton: 'seed' + (estado?.seedSelected || 15), kiPotionButton: 'ki', foodBuff: 'food', foodButton: 'food' })[el.id];
   };
   const esconder = () => {

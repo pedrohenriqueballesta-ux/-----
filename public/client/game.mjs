@@ -19,6 +19,8 @@ import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../r
 carregarImpactoKame();
 import { KAME, origemKame, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame } from '../shared/tecnicas/kamehameha.mjs';
 import { carregarRaiosSsj2, desenharRaiosSsj2 } from '../render/vfx/raios-ssj2.mjs';
+import { desenharRaiosTransformacao } from '../render/vfx/raios-transformacao.mjs';
+import { RAIOS_POR_FORMA } from '../art/raios-transformacoes.mjs';
 import { FOLHAS_GOKU_SSJ2 } from '../art/personagens/goku/goku-ssj2.mjs';
 import { FOLHAS_GOKU_SSJ3 } from '../art/personagens/goku/goku-ssj3.mjs';
 import { FOLHAS_GOKU_BASE } from '../art/personagens/goku/goku-base.mjs';
@@ -405,6 +407,8 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const alturaBase = p.vocacao === 'vegeta' ? FOLHAS_VEGETA_SSJ1.parado[0].referenceHeight : FOLHAS_GOKU_BASE.andar[0].referenceHeight;
   const alturaSsj2 = 70 * moldeRaios.parado[0].referenceHeight / alturaBase;
   if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
+  // Atrás da silhueta para manter o rosto legível em qualquer pose.
+  if (!somenteCorpo) desenharRaiosTransformacao(ctx, p, pos, time, 70, RAIOS_POR_FORMA);
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
   const desenhouPersonagem = p.vocacao === 'vegeta' ? drawVegeta(ctx, p, pos, time, strikeProgress) : drawGoku(ctx, p, pos, time, strikeProgress);
   if (!desenhouPersonagem) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);

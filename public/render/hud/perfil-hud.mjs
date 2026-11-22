@@ -1,7 +1,7 @@
 import {desenharNimbus} from '../vfx/nimbus.mjs';
 
 import {el,botao,numero,barra} from './hud-elementos.mjs';
-import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
+import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,nivelDaTecnica,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
 import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
 import {iconeDaForma} from '../../shared/tecnicas/formas.mjs';
@@ -107,14 +107,15 @@ export function montarPerfil(container,{acao}={}){
  for(const {t,card,detalhes,estado,seletor,formaId,img} of cards){
   card.hidden = !tecnicas.has(t);
   card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
-  const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=t.nivel,slot=equipadas.indexOf(t.id);
+  const nivel = nivelDaTecnica(t, s.self.vocacao);
+  const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=nivel,slot=equipadas.indexOf(t.id);
   if(formaId&&t.imagem)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
   const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
    ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
    : '';
   card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);
-  detalhes.textContent=`Nv. ${t.nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;
-  estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+t.nivel)+requerForma;
+  detalhes.textContent=`Nv. ${nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;
+  estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+nivel)+requerForma;
   seletor.disabled=!liberada;
  }
  montaria=s.self.montaria;montar.textContent=montaria?'Desmontar '+(montariaOpcoes.find(m=>m.id===montaria)?.nome||'montaria'):'Montar '+(montariaOpcoes[montariaIndice]?.nome||'montaria');nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
