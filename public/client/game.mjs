@@ -39,6 +39,9 @@ import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advance
 // O mapa e o minimapa são do jogo, não da HUD: o mapa é obrigatório; o minimapa, se existir.
 const canvas = document.getElementById('world'), ctx = canvas.getContext('2d'), mini = document.getElementById('minimap'), mctx = mini?.getContext('2d');
 const keys = new Set(), renderPositions = new Map(), seenEvents = new Set(), montariaTransicoes = new Map();
+// Oclusão: objeto do Vegeta (árvore/cristal/vulcão) fica translúcido quando o jogador passa ATRÁS dele.
+// Guarda a opacidade atual por objeto para o fade ser suave (sem piscar). id -> alpha.
+const fadeObjetos = new Map();
 let entrada=null,tutorial=null;
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
@@ -704,10 +707,12 @@ function profundidade(pos, casas, escala = 1, vulcoes = []) {
   return y;
 }
 // Recorte do solo do Vegeta desenhado de novo no mesmo lugar (px do solo de 8192 → mundo).
-function drawObjetoVegeta(o, escala) {
+function drawObjetoVegeta(o, escala, alpha = 1) {
   const img = objetoVegeta(o.id); if (!img.complete || !img.naturalWidth) return;
   const k = escala / VEGETA_OBJETOS_ESCALA, [x, y, w, h] = o.img;
+  if (alpha < 1) ctx.globalAlpha = alpha;
   ctx.drawImage(img, x * k, y * k, w * k, h * k);
+  if (alpha < 1) ctx.globalAlpha = 1;
 }
 // Sempre cobre os inimigos; a direção decide a profundidade em relação ao lançador.
 function desenharKameSobreInimigos(efeito, tempo, lancador, pos) {
@@ -842,13 +847,29 @@ function frame(now) {
   }
   for (const g of snapshot.genkiExplosions || []) adicionarEfeito(g, () => desenharGenki(ctx, 'explosao', g, time));
   for (const e of snapshot.ryukenExplosoes || []) adicionarEfeito(e, () => desenharImpactoRyuken(ctx, e, time));
+  // Oclusão dos objetos do Vegeta: o jogador está ATRÁS do objeto quando o objeto desenha por cima dele
+  // (base do objeto mais pra baixo que a profundidade do jogador) E os pés do jogador caem dentro da
+  // silhueta do recorte. Nesse caso o objeto fica translúcido (fade suave) para o personagem aparecer.
+  const spSelf = self && !self.dead ? renderPositions.get(self.id) : null;
+  const pDepthSelf = spSelf ? profundidade(spSelf, casas, world.escala, vulcoesAqui) : -Infinity;
+  const kObjVegeta = world.escala / VEGETA_OBJETOS_ESCALA;
+  const objOcluindoJogador = o => {
+    if (!spSelf || o.y * world.escala <= pDepthSelf) return false;
+    const [ix, iy, iw, ih] = o.img, l = ix * kObjVegeta, t = iy * kObjVegeta;
+    return spSelf.x >= l && spSelf.x <= l + iw * kObjVegeta && spSelf.y >= t && spSelf.y <= t + ih * kObjVegeta;
+  };
+  const alphaObjetoVegeta = o => {
+    const alvo = objOcluindoJogador(o) ? 0.4 : 1, atual = fadeObjetos.get(o.id) ?? 1;
+    const a = atual + (alvo - atual) * Math.min(1, dt * 12); // ~0,1s para transicionar
+    fadeObjetos.set(o.id, a); return a;
+  };
   const drawables = [
     ...(comSolo ? OBSTACLES.filter(aquiNoPlaneta).map(o => ({ y: o.y, draw: () => { if (o.type === 'tree') { shadow(o.x, o.y, o.r); if (!drawTree(ctx, o)) ctx.drawImage(sprites.tree, o.x - 61, o.y - 116, 122, 130); } else if (!drawRock(ctx, o)) { shadow(o.x, o.y, o.r); ctx.drawImage(sprites.rock, o.x - o.r, o.y - o.r * 1.15, o.r * 2, o.r * 1.7); } } })) : []),
     ...mercadores.map(m => ({ y: m.y, draw: () => drawVendor(ctx, m) })),
     // Árvores, arbustos e pedras: só os que estão perto da tela entram na ordem de profundidade.
     ...(comSolo ? decoVisivel.map(d => ({ y: d.y, draw: () => drawDecoracao(ctx, d, DECORACAO_ESCALA) })) : []),
     // Árvores e cristais do Vegeta (recortados do solo): entram pela base, como as casas.
-    ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala) })) : []),
+    ...(world.id === 'vegeta' ? VEGETA_OBJETOS.map(o => ({ y: o.y * world.escala, draw: () => drawObjetoVegeta(o, world.escala, alphaObjetoVegeta(o)) })) : []),
     // Casas entram na ordem de profundidade pela base: quem está acima da base passa por trás.
     ...casas.map(c => ({ y: c.y, draw: () => drawHouse(ctx, c) })),
     ...prediosTerra.map(p => ({ y: p.y, draw: () => { desenharPredioTerra(ctx, p, renderPositions.get(self?.id)); for (const e of p.estaticos || []) desenharNpcEstatico(ctx, e); if (p.npcPos) desenharNpcTerra(ctx, p, time, renderPositions.get(self?.id)); } })),
