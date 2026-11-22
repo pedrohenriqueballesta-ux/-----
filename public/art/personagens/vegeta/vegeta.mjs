@@ -25,9 +25,9 @@ export function drawVegeta(ctx,player,pos,time,strikeProgress=null){
   if(acao==='parado')coluna=Math.floor(time*5)%4;
   // Uma folha de ataque pode ainda não existir em alguma forma; nunca deixe o personagem invisível.
   const folhaAcao = folhas[acao] || folhas.parado;
-  if (folhas === FOLHAS_VEGETA_GOD) {
+  if (folhas === FOLHAS_VEGETA_MAJIN || folhas === FOLHAS_VEGETA_GOD) {
     const [dados, chave] = folhaAcao;
-    // As folhas God já têm alfa. A remoção em tempo real usada nas outras formas atingiria o cabelo vermelho.
+    // Estas folhas já têm alfa. Pular o chroma em tempo real preserva os contornos coloridos.
     return drawSheet(ctx, dados, art[chave], pos, 70, player.facing, coluna)
       || draw(ctx, FOLHAS_VEGETA_BASE[acao] || FOLHAS_VEGETA_BASE.parado, pos, 70, player.facing, coluna);
   }

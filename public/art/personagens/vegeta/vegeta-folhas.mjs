@@ -13,7 +13,26 @@ export const FOLHAS_VEGETA_SSJ1=Object.freeze({...criar(ssj,'vegetaSsj1'),bigBan
 // SSJ2 reutiliza exatamente as referências do SSJ1; a diferença é apenas o
 // overlay elétrico compartilhado com o Goku SSJ2.
 export const VEGETA_SSJ2=FOLHAS_VEGETA_SSJ1;
-export const FOLHAS_VEGETA_MAJIN=Object.freeze({...criar(majin,'vegetaMajin',true),bigBang:folha(majin+'07_BIG_BANG_ATTACK.png','vegetaMajinBigBang')});
+// A sola de referência é a do Vegeta Base parado na mesma direção.
+// O ajuste é fixo por linha e ação para preservar a passada e as poses da folha.
+const pesBaseParado = [288, 284, 282, 265, 265];
+function alinharPes(folhas, pes, ancoraNoAtlas = false) {
+  return Object.freeze(Object.fromEntries(Object.entries(folhas).map(([acao, [dados, chave]]) => {
+    const frames = dados.frames.map((linha, r) => linha.map(([x, y, w, h, ax, ay]) =>
+      [x, y, w, h, ancoraNoAtlas ? x + ax : ax, ay + pes[acao][r] - pesBaseParado[r]]));
+    return [acao, [{ ...dados, frames }, chave]];
+  })));
+}
+const majinFolhas = { ...criar(majin, 'vegetaMajin', true), bigBang: folha(majin + '07_BIG_BANG_ATTACK.png', 'vegetaMajinBigBang') };
+export const FOLHAS_VEGETA_MAJIN = alinharPes(majinFolhas, {
+  parado: [288, 285, 283, 266, 265],
+  andar: [292, 291, 276, 267, 268],
+  soco: [288, 287, 286, 267, 264],
+  rajada: [291, 288, 286, 269, 265],
+  galick: [289, 289, 284, 267, 264],
+  finalFlash: [289, 288, 285, 268, 264],
+  bigBang: [290, 288, 284, 269, 265]
+}, true);
 // SSJ4 usa as sete folhas próprias do pacote aprovado, mantendo a mesma grade,
 // âncoras e escala das demais formas do Vegeta.
 export const FOLHAS_VEGETA_SSJ4=Object.freeze({
