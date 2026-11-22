@@ -9,6 +9,11 @@ import { CURA } from '../tecnicas/cura.mjs';
 // Seguro no navegador: process nao existe la, entao fica false (nao afeta o jogo real nem os testes).
 export const GODMODE = typeof process !== 'undefined' && !!process.env && process.env.DBI_GODMODE === '1';
 
+// DEV/provisório (pedido do Pedro): enquanto o mapa está grande, a Nimbus montada anda bem mais rápido para
+// facilitar a locomoção durante o desenvolvimento. Serve o servidor (Game.move) e a predição do cliente para
+// não tremer. AJUSTAR para a velocidade final de jogo quando o mapa/balanceamento estiver pronto (1 = sem bônus).
+export const MULT_NIMBUS_DEV = 3;
+
 // Escala do mundo de Namekusei: quantas unidades do jogo vale 1 px da imagem do solo
 // (as posições são medidas no solo de 4608x3072; o assets/namek/solo.webp hoje tem 8192x5461, o mapa de
 // 36 partes, e é esticado para o mesmo mundo). Ela amplia o terreno e tudo que está posto nele:
