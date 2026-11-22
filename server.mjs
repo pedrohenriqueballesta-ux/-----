@@ -20,8 +20,12 @@ const types = { '.gif':'image/gif', '.mp3':'audio/mpeg', '.html': 'text/html; ch
 
 export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDir = resolve(root, 'data'), ambiente=process.env.NODE_ENV||'production',noticiasMain=new NovidadesMain({cacheFile:dataDir?resolve(dataDir,'novidades-main-cache.json'):null}) } = {}) {
   // Só para teste: DBI_CHEFE_JA=1 faz o chefe raro nascer 10 s depois de o servidor ligar (e a cada 60 s).
-  // Só para teste: DBI_SKIP_LOGIN=1 habilita GET /api/auth/dev (login/criação pulados). REMOVER ao desligar o atalho.
-  const pularLogin = process.env.DBI_SKIP_LOGIN === '1';
+  // ⚠️ TEMPORÁRIO (pedido do Pedro, durante o desenvolvimento): o atalho de pular login fica LIGADO por padrão,
+  // então aparece também no `npm start` (e no deploy do Render, se esta mudança for pra main). Para desligar só
+  // defina DBI_SKIP_LOGIN=0. QUANDO O JOGO FICAR PRONTO, REVERTER esta linha para a versão de produção:
+  //     const pularLogin = process.env.DBI_SKIP_LOGIN === '1';
+  // (aí o atalho volta a aparecer só com `npm run dev`, nunca em produção.)
+  const pularLogin = process.env.DBI_SKIP_LOGIN !== '0';
   const economiaPremium=new EconomiaPremium({ambiente});
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random });
   const sessions = new Map(), streams = new Map(), rates = new Map();
