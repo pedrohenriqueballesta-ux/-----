@@ -257,6 +257,31 @@ button{cursor:pointer}
 .mochila-grade .slot:disabled:hover{border-color:var(--borda-azul);box-shadow:none}
 .slot em{position:absolute;right:calc(3 * var(--um));bottom:calc(1 * var(--um));font:800 calc(12 * var(--um))/1 system-ui;font-style:normal;text-shadow:0 0 calc(3 * var(--um)) #000,0 0 calc(3 * var(--um)) #000}
 .slot small{position:absolute;left:calc(3 * var(--um));top:calc(2 * var(--um));margin:0;font:800 calc(10 * var(--um))/1 system-ui;color:#9fe08a;text-shadow:0 0 calc(3 * var(--um)) #000}
+/* Espaços da mochila por slot: vazio recebe arrasto (moldura tracejada discreta), oculto = item de outra aba
+   (inerte e apagado), destino = realce ao arrastar por cima. */
+.mochila-grade .slot-vazio{border-style:dashed;border-color:#3a4a66;background:rgba(5,10,28,.35);cursor:default}
+.mochila-grade .slot-vazio:hover{border-color:#3a4a66;box-shadow:none}
+.mochila-grade .slot-oculto{border-color:#223049;background:rgba(5,10,28,.25);opacity:.45;cursor:default}
+.mochila-grade .slot-oculto:hover{border-color:#223049;box-shadow:none}
+.mochila-grade .slot-destino{border-color:var(--ouro);box-shadow:0 0 calc(8 * var(--um)) #ff9d2a99;background:rgba(40,64,120,.6)}
+/* Menu de botão direito num item (Dividir/Excluir). */
+.mochila-menu{position:absolute;z-index:8;display:grid;gap:calc(4 * var(--um));min-width:calc(120 * var(--um));padding:calc(6 * var(--um));border:calc(1.5 * var(--um)) solid var(--ouro);border-radius:calc(9 * var(--um));background:linear-gradient(180deg,#132245,#0a142c);box-shadow:0 calc(6 * var(--um)) calc(16 * var(--um)) #000a}
+.mochila-menu strong{padding:calc(2 * var(--um)) calc(4 * var(--um)) calc(5 * var(--um));font-size:calc(12 * var(--um));color:var(--ouro-claro);border-bottom:calc(1 * var(--um)) solid #ffffff22}
+.mochila-menu button{padding:calc(7 * var(--um)) calc(10 * var(--um));border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(7 * var(--um));background:rgba(10,20,48,.6);font-size:calc(13 * var(--um));font-weight:700;text-align:left}
+.mochila-menu button:hover{border-color:#6d93dd;background:rgba(40,64,120,.6)}
+.mochila-menu button.perigo:hover{border-color:#ff6a5a;background:#5a1712aa}
+/* Diálogo local (dividir/excluir): cobre só a janela da mochila, não o jogo. */
+.mochila-dialogo-fundo{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:#02060faa;border-radius:calc(14 * var(--um))}
+.mochila-dialogo{display:grid;gap:calc(10 * var(--um));width:calc(260 * var(--um));padding:calc(14 * var(--um));border:calc(2 * var(--um)) solid var(--ouro);border-radius:calc(12 * var(--um));background:linear-gradient(180deg,#152748,#0a142c);box-shadow:0 calc(8 * var(--um)) calc(20 * var(--um)) #000c}
+.mochila-dialogo strong{font-size:calc(15 * var(--um));color:#fff}
+.mochila-dialogo small{font-size:calc(11.5 * var(--um));color:#b9c6df;line-height:1.35}
+.mochila-dialogo-qtd{display:flex;align-items:center;gap:calc(10 * var(--um))}
+.mochila-dialogo-qtd input[type=range]{flex:1;accent-color:var(--ouro)}
+.mochila-dialogo-qtd input[type=number]{width:calc(56 * var(--um));padding:calc(5 * var(--um));border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(6 * var(--um));background:rgba(5,10,28,.7);color:#fff;font-weight:800;text-align:center}
+.mochila-dialogo-botoes{display:grid;grid-template-columns:1fr 1fr;gap:calc(8 * var(--um));margin-top:calc(2 * var(--um))}
+.mochila-dialogo-botoes button{padding:calc(8 * var(--um)) 0;border:calc(1.5 * var(--um)) solid var(--borda-azul);border-radius:calc(8 * var(--um));background:rgba(10,20,48,.6);font-size:calc(13 * var(--um));font-weight:800}
+.mochila-dialogo-botoes button.primario{border-color:var(--ouro);background:linear-gradient(#24418a,#13265a)}
+.mochila-dialogo-botoes button.perigo{border-color:#ff6a5a;background:linear-gradient(#7a241c,#4a0f0a)}
 
 /* Faixas de largura */
 @media (max-width:1400px){

@@ -11,7 +11,7 @@ import {Guildas} from '../sistemas/guildas.mjs';
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
 import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
@@ -225,6 +225,12 @@ export class Game {
       if(![7,8].includes(data.slot))return {ok:false};
       const uso=acaoConsumivel(p.hotkeysConsumiveis[data.slot]);return uso?this.action(id,uso):{ok:false};
     }
+    // Reorganizar/dividir/descartar pilhas na mochila: o cliente manda só a OPERAÇÃO (por índice de espaço) e o
+    // servidor aplica sobre os slots atuais dele. Operação (não layout inteiro) evita corrida com loot/uso que
+    // mudam os totais enquanto se arrasta. Mover/dividir não mexem nos totais; descartar reduz o total da pilha.
+    if(kind==='moverSlot') return moverSlotMochila(p,Math.floor(Number(data.de)),Math.floor(Number(data.para)))?{ok:true}:{ok:false};
+    if(kind==='dividirSlot') return dividirSlotMochila(p,Math.floor(Number(data.de)),data.quantidade)?{ok:true}:{ok:false};
+    if(kind==='descartarSlot') return descartarSlotMochila(p,Math.floor(Number(data.de)))?{ok:true}:{ok:false};
     if(kind === 'huntAnalyzerReset'){p.huntAnalyzer=novaSessao();return {ok:true};}
     if (kind === 'target') {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
@@ -1291,6 +1297,8 @@ export class Game {
   }
   snapshot(id) {
     const self = this.players.get(id);
+    // Mantém o layout dos espaços da mochila coerente com os totais (loot/uso/compra mudam o estoque por fora).
+    if (self) reconciliarSlots(self);
     // Cada jogador só recebe o lugar onde está (planeta + área): os outros lugares não existem para ele.
     const here = self || { planet: 'terra', area: null }, aqui = e => this.mesmoLugar(here, e);
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
@@ -1310,7 +1318,7 @@ export class Game {
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
-        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, slots: self.slots, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
         kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,

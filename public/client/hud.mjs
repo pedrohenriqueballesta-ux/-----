@@ -285,7 +285,9 @@ const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
 const SLOTS_EQUIP = [['mochila', 'Mochila', 212, 189, 306, 276], ['cabeca', 'Cabeça', 377, 152, 476, 231], ['colar', 'Colar', 547, 189, 641, 276],
   ['anel', 'Anel', 212, 301, 306, 387], ['peito', 'Roupa', 379, 305, 475, 387], ['braco', 'Munhequeira', 547, 301, 641, 387],
   ['arma', 'Arma', 212, 411, 306, 497], ['calca', 'Calça', 379, 407, 475, 489], ['cinto', 'Faixa', 547, 411, 641, 497], ['botas', 'Botas', 379, 499, 475, 573]];
-let abaMochila = 'tudo', mochilaDesenhada = '', arrastandoConsumivel=false, evitarCliqueConsumivel=0;
+let abaMochila = 'tudo', mochilaDesenhada = '', arrastandoConsumivel=false, evitarCliqueConsumivel=0, arrastandoSlot=false;
+// Item da mochila por chave (para desenhar cada espaço a partir do layout de slots s.slots).
+const META_ITEM = Object.fromEntries(ITENS_MOCHILA.map(i => [i.key, i]));
 const naArea = (el, x0, y0, x1, y1) => {
   const [ax, ay, al, aa] = AREA_EQUIP;
   Object.assign(el.style, { left: (x0 - ax) / al * 100 + '%', top: (y0 - ay) / aa * 100 + '%', width: (x1 - x0) / al * 100 + '%', height: (y1 - y0) / aa * 100 + '%' });
@@ -304,35 +306,121 @@ function montarMochila() {
   };
 }
 function atualizarMochila(s) {
-  if (!s || !$('mochilaDialog').open || arrastandoConsumivel) return;
+  if (!s || !$('mochilaDialog').open || arrastandoConsumivel || arrastandoSlot) return;
   const pesoCheio = s.weight >= s.stats.capacity - 0.01;
   $('mochilaPeso').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('mochilaPesoBarra').style.width = Math.min(100, 100 * s.weight / Math.max(1, s.stats.capacity)) + '%';
   $('mochilaPesoBarra').parentElement?.classList.toggle('cheia', pesoCheio);
   $('mochilaZeni').textContent = integer(s.zeni);
-  const itens = ITENS_MOCHILA.filter(i => s.inventory[i.key] > 0 && (abaMochila === 'tudo' || abaMochila === i.tipo));
-  const assinatura = abaMochila + itens.map(i => i.key + ':' + s.inventory[i.key]).join();
+  // A grade desenha os ESPAÇOS por índice (s.slots): cada item fica onde o jogador o deixou. A aba só mostra
+  // os espaços do tipo filtrado; os demais ocupados ficam ocultos (não recebem arrasto, para não esconder item).
+  const slots = Array.isArray(s.slots) ? s.slots : [];
+  const visivel = d => d && (abaMochila === 'tudo' || abaMochila === META_ITEM[d.item]?.tipo);
+  const assinatura = abaMochila + '|' + Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
+    const d = slots[n]; return d ? d.item + ':' + d.qty : '';
+  }).join(',');
   if (assinatura === mochilaDesenhada) return;
   mochilaDesenhada = assinatura;
   $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
-    const slot = document.createElement('button'), item = itens[n]; slot.type = 'button'; slot.className = 'slot';
-    if (!item) { slot.disabled = true; return slot; }
-    if (item.usar) {
-      slot.dataset.item = item.key;slot.draggable=true;
-      slot.addEventListener('dragstart',e=>{arrastandoConsumivel=true;evitarCliqueConsumivel=performance.now()+300;e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('application/x-dbi-consumivel',item.key);e.dataTransfer.setData('text/plain',item.key);});
-      slot.addEventListener('dragend',()=>{arrastandoConsumivel=false;evitarCliqueConsumivel=performance.now()+300;mochilaDesenhada='';atualizarMochila(ctx?.snapshot()?.self);});
-    }
-    const qtd = s.inventory[item.key];
+    const dado = slots[n] || null, item = dado && META_ITEM[dado.item], mostra = visivel(dado) && item;
+    const slot = document.createElement('button'); slot.type = 'button'; slot.className = 'slot'; slot.dataset.slot = n;
+    // Espaço vazio: alvo de arrasto (receber um item), sem clique. Espaço ocupado por item de outra aba: inerte.
+    if (!mostra) { if (dado) slot.classList.add('slot-oculto'); else { slot.classList.add('slot-vazio'); ligarDropSlot(slot, n); } return slot; }
+    const qtd = dado.qty;
+    slot.dataset.item = item.key; slot.draggable = true;
+    slot.addEventListener('dragstart', e => {
+      arrastandoSlot = true; evitarCliqueConsumivel = performance.now() + 300;
+      e.dataTransfer.effectAllowed = item.usar ? 'copyMove' : 'move';
+      e.dataTransfer.setData('application/x-dbi-slot', String(n));
+      if (item.usar) { e.dataTransfer.setData('application/x-dbi-consumivel', item.key); e.dataTransfer.setData('text/plain', item.key); }
+      if (item.usar) arrastandoConsumivel = true;   // habilita soltar na hotkey 7/8
+    });
+    slot.addEventListener('dragend', () => { arrastandoSlot = false; arrastandoConsumivel = false; evitarCliqueConsumivel = performance.now() + 300; mochilaDesenhada = ''; atualizarMochila(ctx?.snapshot()?.self); });
+    ligarDropSlot(slot, n);
     const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
     imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
-    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar ou arraste para a hotkey 7/8' : '');
+    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar · arraste para mover ou para a hotkey 7/8 · botão direito para dividir/excluir' : ' — arraste para mover · botão direito para dividir/excluir');
     slot.setAttribute('aria-label', slot.title);
     if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
     const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
-    slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && performance.now()>evitarCliqueConsumivel) action(item.usar); };
+    slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && !arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar); };
+    slot.addEventListener('contextmenu', e => { e.preventDefault(); abrirMenuItem(e, n, item, qtd); });
     return slot;
   }));
 }
+// Faz um espaço aceitar outro item arrastado da grade (reorganizar/juntar/trocar). Mandamos só a operação
+// (de qual índice para qual) e o servidor aplica sobre os slots atuais dele.
+function ligarDropSlot(slot, n) {
+  slot.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('application/x-dbi-slot')) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('slot-destino');
+  });
+  slot.addEventListener('dragleave', () => slot.classList.remove('slot-destino'));
+  slot.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('application/x-dbi-slot')) return;
+    e.preventDefault(); e.stopPropagation(); slot.classList.remove('slot-destino');
+    const de = Math.floor(Number(e.dataTransfer.getData('application/x-dbi-slot')));
+    if (Number.isInteger(de) && de !== n) { action({ type: 'moverSlot', de, para: n }); mochilaDesenhada = ''; }
+  });
+}
+// Menu de botão direito num item: Dividir (abre o seletor de quantidade) e Excluir (descarta a pilha do espaço).
+let menuItemEl = null;
+function fecharMenuItem() { menuItemEl?.remove(); menuItemEl = null; }
+function abrirMenuItem(e, n, item, qtd) {
+  fecharMenuItem();
+  const menu = document.createElement('div'); menu.className = 'mochila-menu'; menuItemEl = menu;
+  const titulo = document.createElement('strong'); titulo.textContent = item.nome + ' × ' + qtd; menu.append(titulo);
+  if (qtd >= 2) {
+    const dividir = document.createElement('button'); dividir.type = 'button'; dividir.textContent = 'Dividir';
+    dividir.onclick = () => { fecharMenuItem(); abrirDividir(n, item, qtd); };
+    menu.append(dividir);
+  }
+  const excluir = document.createElement('button'); excluir.type = 'button'; excluir.className = 'perigo'; excluir.textContent = 'Excluir';
+  excluir.onclick = () => { fecharMenuItem(); confirmarExcluir(n, item, qtd); };
+  menu.append(excluir);
+  $('mochilaDialog').append(menu);
+  // Posiciona junto ao cursor, mantendo o menu dentro da janela.
+  const r = $('mochilaDialog').getBoundingClientRect(), m = menu.getBoundingClientRect();
+  const x = Math.min(e.clientX - r.left, r.width - m.width - 6), y = Math.min(e.clientY - r.top, r.height - m.height - 6);
+  menu.style.left = Math.max(6, x) + 'px'; menu.style.top = Math.max(6, y) + 'px';
+}
+// Seletor de quantidade da divisão: 1 a qtd-1 (precisa sobrar ao menos 1 no espaço original).
+function abrirDividir(n, item, qtd) {
+  fecharMenuItem();
+  const fundo = document.createElement('div'); fundo.className = 'mochila-dialogo-fundo';
+  const cx = document.createElement('div'); cx.className = 'mochila-dialogo';
+  const h = document.createElement('strong'); h.textContent = 'Dividir ' + item.nome; cx.append(h);
+  const linha = document.createElement('div'); linha.className = 'mochila-dialogo-qtd';
+  const faixa = document.createElement('input'); faixa.type = 'range'; faixa.min = '1'; faixa.max = String(qtd - 1); faixa.value = String(Math.floor(qtd / 2) || 1);
+  const num = document.createElement('input'); num.type = 'number'; num.min = '1'; num.max = String(qtd - 1); num.value = faixa.value;
+  const sync = v => { const x = Math.max(1, Math.min(qtd - 1, Math.floor(Number(v)) || 1)); faixa.value = String(x); num.value = String(x); };
+  faixa.oninput = () => sync(faixa.value); num.oninput = () => sync(num.value);
+  linha.append(faixa, num); cx.append(linha);
+  const nota = document.createElement('small'); nota.textContent = 'Fica uma pilha nova em outro espaço. Precisa de um espaço livre.'; cx.append(nota);
+  const botoes = document.createElement('div'); botoes.className = 'mochila-dialogo-botoes';
+  const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar'; cancelar.onclick = () => fundo.remove();
+  const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'primario'; ok.textContent = 'Dividir';
+  ok.onclick = () => { action({ type: 'dividirSlot', de: n, quantidade: Math.floor(Number(num.value)) }); mochilaDesenhada = ''; fundo.remove(); };
+  botoes.append(cancelar, ok); cx.append(botoes);
+  fundo.append(cx); fundo.onclick = ev => { if (ev.target === fundo) fundo.remove(); };
+  $('mochilaDialog').append(fundo); num.focus();
+}
+function confirmarExcluir(n, item, qtd) {
+  const fundo = document.createElement('div'); fundo.className = 'mochila-dialogo-fundo';
+  const cx = document.createElement('div'); cx.className = 'mochila-dialogo';
+  const h = document.createElement('strong'); h.textContent = 'Excluir ' + item.nome; cx.append(h);
+  const p = document.createElement('small'); p.textContent = 'Descartar ' + qtd + ' ' + item.nome + '? Não dá para desfazer.'; cx.append(p);
+  const botoes = document.createElement('div'); botoes.className = 'mochila-dialogo-botoes';
+  const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar'; cancelar.onclick = () => fundo.remove();
+  const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'primario perigo'; ok.textContent = 'Excluir';
+  ok.onclick = () => { action({ type: 'descartarSlot', de: n }); mochilaDesenhada = ''; fundo.remove(); };
+  botoes.append(cancelar, ok); cx.append(botoes);
+  fundo.append(cx); fundo.onclick = ev => { if (ev.target === fundo) fundo.remove(); };
+  $('mochilaDialog').append(fundo);
+}
+// Fecha o menu de item ao clicar fora, rolar ou apertar Esc.
+addEventListener('pointerdown', e => { if (menuItemEl && !menuItemEl.contains(e.target)) fecharMenuItem(); }, true);
+addEventListener('keydown', e => { if (e.key === 'Escape') fecharMenuItem(); });
 // Encaixa a Mochila no vão entre o cartão do jogador e as pílulas (comida/conexão): começa logo abaixo do
 // cartão e, se não couber inteira, encolhe tudo por igual (--m) até terminar acima das pílulas.
 function encaixarMochila() {
