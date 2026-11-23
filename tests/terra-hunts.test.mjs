@@ -11,8 +11,8 @@ test('Terra Selvagem: chegadas e portais em chão livre; a nave da Cidade do Oes
   assert.ok(PORTAIS.find(o => o.id === 'terra-nave').destinos.includes('terra-hub'));
 });
 test('Descampado: estradinhas que saem da hunt são só visuais (não se anda nelas)', () => {
-  // Estrada do norte e trilha do sul, em px do mapa da hunt (1536×1024) → atlas (x0 2923, ×2) → mundo (×1.8).
-  for (const [x, y] of [[915, 60], [930, 900]]) assert.equal(podeAndar('terra-hunts', (2923 + x * 2) * 1.8, y * 2 * 1.8, 'terra-descampado'), false);
+  // Estrada do norte e trilha do sul, em px do mapa da hunt (1536×1024) → atlas (x0 2923, ×4, 16 partes) → mundo (×1).
+  for (const [x, y] of [[915, 60], [930, 900]]) assert.equal(podeAndar('terra-hunts', 2923 + x * 4, y * 4, 'terra-descampado'), false);
 });
 test('Descampado: andar por clique pela grama e pela terra não trava nem treme (vaivém perto de árvore/pedra)', () => {
   const z = areaPorId('terra-descampado'); let s = 11; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;

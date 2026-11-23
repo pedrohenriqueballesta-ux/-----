@@ -32,8 +32,10 @@ export const SOLO_NAMEK = Object.freeze({ w: 4608, h: 3072 });
 // em px da imagem de 4608×3072 (o solo.webp tem 8192×5461, o mapa de 36 partes), mesma escala do mundo.
 export const SOLO_VEGETA = Object.freeze({ w: 4608, h: 3072 });
 export const ESCALA_VEGETA = ESCALA_MUNDO;
-// Solo da Terra das hunts (atlas hub + hunts, px), mesma escala de Namek e Vegeta.
-export const SOLO_TERRA_HUNTS = Object.freeze({ w: 5995, h: 2048 });
+// Solo da Terra das hunts (atlas hub + hunts, px). Escala 1 un/px: a mesma densidade de arte de Namek e Vegeta
+// (8192 px para ~8.300 un). Com 1,8 a arte aparecia esticada (Pedro, 23/11/2026: "qualidade inferior").
+export const SOLO_TERRA_HUNTS = Object.freeze({ w: 9067, h: 4096 });
+export const ESCALA_TERRA_HUNTS = 1;
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
@@ -105,9 +107,9 @@ export const ZONES = [
   // o próprio mapa (tamanhos variados) e o solo é um atlas com o hub e as hunts lado a lado (só se troca por portal).
   // Por enquanto só o hub (clareira do centro) e a hunt 1 (descampado do oeste, nível 1). Nomes e níveis PROVISÓRIOS.
   // Caixas = contorno do chão na máscara (terra-hunts-passagem.mjs); chegadas em chão livre, longe da borda.
-  ...zonasEmPx('terra-hunts', ESCALA_MUNDO, [
+  ...zonasEmPx('terra-hunts', ESCALA_TERRA_HUNTS, [
     { id: 'terra-hub', name: 'Clareira do Centro', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
-    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3030, y: 474, w: 2484, h: 1170, chegada: { x: 4952, y: 998 } }
+    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3096, y: 942, w: 5028, h: 2340, chegada: { x: 6981, y: 1996 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -199,7 +201,7 @@ export const PLANETS = {
   vegeta: { id: 'vegeta', name: 'Planeta Vegeta', w: SOLO_VEGETA.w * ESCALA_VEGETA, h: SOLO_VEGETA.h * ESCALA_VEGETA, escala: ESCALA_VEGETA,
     solo: 'vegetaSolo', soloUrl: '/assets/vegeta/solo.webp', fundo: '#0b0308', imagem: '/assets/worlds/vegeta.webp', vila: 'vegeta-cidade',
     hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada },
-  'terra-hunts': { id: 'terra-hunts', name: 'Terra Selvagem', w: SOLO_TERRA_HUNTS.w * ESCALA_MUNDO, h: SOLO_TERRA_HUNTS.h * ESCALA_MUNDO, escala: ESCALA_MUNDO,
+  'terra-hunts': { id: 'terra-hunts', name: 'Terra Selvagem', w: SOLO_TERRA_HUNTS.w * ESCALA_TERRA_HUNTS, h: SOLO_TERRA_HUNTS.h * ESCALA_TERRA_HUNTS, escala: ESCALA_TERRA_HUNTS,
     solo: 'terraHuntsSolo', soloUrl: '/assets/terra-hunts/solo.webp', fundo: '#0c2846', imagem: '/assets/worlds/terra.webp',
     vila: 'terra-hub', hunts: ['terra-descampado'], spawn: areaPorId('terra-hub').chegada }
 };
