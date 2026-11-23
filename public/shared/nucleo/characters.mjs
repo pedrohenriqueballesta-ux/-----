@@ -177,21 +177,26 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
   const hotkeys=hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected);
-  const barraSalva=barraValida(saved?.barraTecnicas,hotkeys,saved?.seedSelected);
-  if(vocacao.id==='vegeta') {
-    const padrao = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id);
-    const padraoAntigo = barraSalva.every((id, i) => id === padrao[i]
-      || (i === 2 && (id === null || id === 'form:ssj'))
-      || (i === 4 && id === null));
-    const possuiBarra = Array.isArray(saved?.barraTecnicas) && saved.barraTecnicas.length === 8;
-    if (!possuiBarra || (padraoAntigo && saved?.barraPersonalizada !== true)) {
-      barraSalva.splice(0, 8, ...padrao);
-    } else {
-      const permitidas = new Set(['skill:heal', 'skill:galick', 'skill:finalFlash']);
-      for (let i = 0; i < barraSalva.length; i++) {
-        const id = barraSalva[i];
-        if (id?.startsWith('skill:') && !permitidas.has(id)) barraSalva[i] = null;
-      }
+  const padrao = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id);
+  const possuiBarra = Array.isArray(saved?.barraTecnicas) && saved.barraTecnicas.length === 8;
+  const barraSalva = possuiBarra ? barraValida(saved.barraTecnicas) : [...padrao];
+  if (possuiBarra && saved.barraPersonalizada !== true) {
+    // Migra a ordem anterior apenas quando ela corresponde à barra padrão da vocação.
+    const vegeta = vocacao.id === 'vegeta';
+    const anterior = vegeta
+      ? ['skill:heal', 'skill:galick', 'form:auto', null, 'skill:finalFlash', 'item:food', 'item:ki', null]
+      : ['skill:heal', 'skill:kame', 'form:auto', 'skill:barrier', 'skill:genki', padrao[6], padrao[7], 'skill:ryuken'];
+    const eraPadrao = barraSalva.every((id, i) => id === anterior[i]
+      || (vegeta && i === 2 && (id === null || id === 'form:ssj'))
+      || (vegeta && i === 4 && id === null)
+      || (!vegeta && i === 1 && id === 'skill:superKamehameha'));
+    if (eraPadrao && (vegeta || saved.barraKameManual !== true)) barraSalva.splice(0, 8, ...padrao);
+  }
+  if (vocacao.id === 'vegeta') {
+    const permitidas = new Set(['skill:heal', 'skill:galick', 'skill:finalFlash']);
+    for (let i = 0; i < barraSalva.length; i++) {
+      const id = barraSalva[i];
+      if (id?.startsWith('skill:') && !permitidas.has(id)) barraSalva[i] = null;
     }
   }
   for (let i = 0; i < barraSalva.length; i++) {
@@ -199,10 +204,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     if ((id?.startsWith('form:') || id === 'skill:finalFlash') && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
   }
   if (vocacao.id === 'vegeta' && barraSalva[2] === null && !barraSalva.some(id => id?.startsWith('form:'))) {
-    barraSalva[2] = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id)[2];
+    // Barras antigas personalizadas usavam a tecla 3 como atalho de transformação.
+    barraSalva[2] = 'form:auto';
   }
   // Saves anteriores não tinham este indicador: só uma barra diferente do padrão antigo revela edição manual.
-  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==barraPadrao(hotkeys,saved?.seedSelected,1,'base',vocacao.id)[i]));
+  const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==padrao[i]));
   const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
   const p = { montaria:montariaValida(saved?.montaria), montariaPreferida:montariaValida(saved?.montariaPreferida)||montariaValida(saved?.montaria)||'nimbus', battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
     levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,

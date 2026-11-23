@@ -13,7 +13,7 @@ import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, area
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
+import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
@@ -195,6 +195,12 @@ export class Game {
   action(id, data) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if (kind === 'restaurarBarraPadrao') {
+      p.barraTecnicas = barraPadrao({}, p.seedSelected, p.level, p.forma, p.vocacao);
+      p.barraPersonalizada = false;
+      p.barraKameManual = false;
+      return { ok: true };
+    }
     if(kind==='configurarBarra'){
       if(!Array.isArray(data.slots)||data.slots.length!==8||data.slots.some(v=>v!==null&&typeof v!=='string'))return {ok:false,reason:'Barra inválida.'};
       const validada=barraValida(data.slots);
@@ -449,7 +455,7 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 285, corHex: p.vocacao === 'vegeta' ? '#B52CFF' : '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
-    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4, na tecla 8; o Kamehameha continua na 2.
+    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4; o Kamehameha continua disponível.
     if (skill === 'ryuken') {
       if (p.level < CONFIG.skills.ryuken) return automated ? { ok: false } : this.reject(p, 'Ryuken libera no nível ' + CONFIG.skills.ryuken + '.');
       if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3 ou 4.');

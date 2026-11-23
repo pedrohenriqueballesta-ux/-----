@@ -168,23 +168,23 @@ test('Auto Hunt prioriza Final Flash em alcance e volta a agir depois da sustent
   assert.ok(player.charge?.galick);
 });
 
-test('slot 5 aceita Final Flash, mantém barras personalizadas e usa o ícone anexado', async () => {
+test('slot 6 aceita Final Flash, mantém barras personalizadas e usa o ícone anexado', async () => {
   const { game, player } = combate();
   const estado = game.snapshot(player.id).self;
-  assert.equal(estado.barraTecnicas[4], 'skill:finalFlash');
-  assert.deepEqual(acaoDaTecnica(estado.barraTecnicas[4]), soltar);
-  assert.ok(tecnicaDisponivel(estado.barraTecnicas[4], estado));
-  assert.ok(!tecnicaDisponivel(estado.barraTecnicas[4], { ...estado, finalFlashRemaining: 1 }));
-  assert.ok(!tecnicaDisponivel(estado.barraTecnicas[4], { ...estado, forma: 'base' }));
+  assert.equal(estado.barraTecnicas[5], 'skill:finalFlash');
+  assert.deepEqual(acaoDaTecnica(estado.barraTecnicas[5]), soltar);
+  assert.ok(tecnicaDisponivel(estado.barraTecnicas[5], estado));
+  assert.ok(!tecnicaDisponivel(estado.barraTecnicas[5], { ...estado, finalFlashRemaining: 1 }));
+  assert.ok(!tecnicaDisponivel(estado.barraTecnicas[5], { ...estado, forma: 'base' }));
   assert.ok(tecnicasDoPerfil('vegeta').some(t => t.id === 'skill:finalFlash' && t.imagem === FINAL_FLASH.icone));
   assert.ok(!tecnicasDoPerfil('goku').some(t => t.id === 'skill:finalFlash'));
   assert.equal(Object.fromEntries(detalhesHabilidade('skill:finalFlash', estado).linhas).Estado, 'Disponível');
-  const antiga = [...estado.barraTecnicas];
-  antiga[4] = null;
-  assert.equal(combate({ barraTecnicas: antiga }).player.barraTecnicas[4], 'skill:finalFlash');
+  const antiga = ['skill:heal', 'skill:galick', 'form:auto', null, null, 'item:food', 'item:ki', null];
+  assert.equal(combate({ barraTecnicas: antiga }).player.barraTecnicas[5], 'skill:finalFlash');
   const personalizada = combate({ barraTecnicas: antiga, barraPersonalizada: true });
-  assert.equal(personalizada.player.barraTecnicas[4], null);
-  const slots = [...antiga];
+  assert.deepEqual(personalizada.player.barraTecnicas, antiga);
+  const slots = [...estado.barraTecnicas];
+  slots[5] = null;
   slots[7] = 'skill:finalFlash';
   assert.equal(combate({ barraTecnicas: slots }).player.barraTecnicas[7], 'skill:finalFlash');
   const goku = combate({ vocacao: 'goku' });

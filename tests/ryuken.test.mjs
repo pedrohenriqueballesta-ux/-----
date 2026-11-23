@@ -68,13 +68,13 @@ test('tooltip: o botão 2 segue Kamehameha no SSJ3 e o botão 8 mostra o Ryuken'
   assert.match(Object.fromEntries(detalhesHabilidade('ryuken',{level:CONFIG.skills.ryuken,forma:'ssj2'}).linhas).Estado,/Super Saiyajin 3/);
   assert.equal(detalhesHabilidade('kame',{level:CONFIG.skills.ryuken,forma:'ssj3'}).nome,'Kamehameha');
 });
-test('Ryuken começa no slot 8, que pode receber outras técnicas',async()=>{
+test('Ryuken começa no slot 3, que pode receber outras técnicas',async()=>{
   const {ATALHOS}=await import('../public/shared/tecnicas/atalhos.mjs');
   const {barraPadrao,barraValida}=await import('../public/shared/tecnicas/barra-tecnicas.mjs');
   assert.deepEqual(ATALHOS.filter(a=>a.teclas.includes('8')).map(a=>a.id),['barraTecnicas']);
   assert.equal(ATALHOS.some(a=>a.teclas.includes('9')),false);
-  assert.equal(barraPadrao()[7],'skill:ryuken');
-  const nova=[...barraPadrao()];nova[7]='skill:superKamehameha';
+  assert.equal(barraPadrao()[2],'skill:ryuken');
+  const nova=[...barraPadrao()];nova[2]='skill:superKamehameha';
   assert.deepEqual(barraValida(nova),nova);
 });
 
