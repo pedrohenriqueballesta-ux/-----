@@ -880,12 +880,21 @@ export class Game {
       if (distance(p, destino) < (destino.pontos ? 2 : 16)) { p.moveTo = null; p.rota = null; }
       else {
         if (destino.pontos) {
-          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 1) destino.pontos.shift();
+          // Ponto intermediário vale como alcançado a 6 unidades: colado em árvore/pedra o corpo não encosta no ponto
+          // exato e ficava escorregando de um lado para o outro (tremor ao andar na grama, relato do Pedro, 23/11/2026).
+          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 6) destino.pontos.shift();
           const alvo = destino.pontos[0], d = distance(p, alvo), dir = norm(alvo.x - p.x, alvo.y - p.y);
           this.move(p, dir.x, dir.y, Math.min(dt, d / p.stats.mobility), p.stats.mobility); p.facing = dir;
         } else this.steer(p, destino, dt, p.stats.mobility);
-        if (!destino.progresso || distance(p, destino.progresso) > 4) destino.progresso = { x: p.x, y: p.y, em: this.time };
-        else if (this.time - destino.progresso.em > 1) { p.moveTo = null; p.rota = null; p.moving = false; }
+        // Progresso medido em janelas de 1 s: quanto o corpo saiu do lugar desde o começo da janela. Antes a janela
+        // recomeçava sempre que o corpo se afastava 4 unidades do ponto guardado, e o vaivém de ~7 unidades perto de
+        // árvore/pedra contava como progresso: o tremor não acabava nunca (relato do Pedro, 23/11/2026). Um desvio de
+        // verdade anda mais de 100 unidades por segundo (até no nível 1); o vaivém, menos de 30.
+        if (!destino.progresso) destino.progresso = { x: p.x, y: p.y, em: this.time };
+        else if (this.time - destino.progresso.em >= 1) {
+          if (distance(p, destino.progresso) < 30) { p.moveTo = null; p.rota = null; p.moving = false; }
+          else destino.progresso = { x: p.x, y: p.y, em: this.time };
+        }
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
