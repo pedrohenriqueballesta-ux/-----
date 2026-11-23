@@ -5,7 +5,7 @@ import { Game } from '../public/shared/nucleo/game.mjs';
 import { lugar } from '../public/shared/nucleo/config.mjs';
 import { BIG_BANG_ATTACK, maoBigBang } from '../public/shared/tecnicas/big-bang-attack.mjs';
 import { barraPadrao, tecnicaDisponivel, tecnicasDoPerfil } from '../public/shared/tecnicas/barra-tecnicas.mjs';
-import { posicaoBigBang } from '../public/render/vfx/big-bang-attack.mjs';
+import { avancoOrbeBigBang, posicaoBigBang } from '../public/render/vfx/big-bang-attack.mjs';
 import { DIRECTIONS } from '../public/render/mapa/camera.mjs';
 
 const soltar = { type: 'skill', skill: 'bigBangAttack' };
@@ -62,7 +62,9 @@ test('a esfera nasce na palma, segue o alvo marcado e só explode uma vez na bor
     const s = game.projectiles[0];
     assert.equal(s.kind, 'bigBangAttack');
     assert.deepEqual({ x: s.x, y: s.y, altura: s.altura }, mao);
-    assert.deepEqual(posicaoBigBang(s, 0), { x: mao.x, y: mao.y - mao.altura });
+    const folga = avancoOrbeBigBang(s.direcaoLancamento);
+    assert.ok(folga.x * x + folga.y * y > 0);
+    assert.deepEqual(posicaoBigBang(s, 0), { x: mao.x + folga.x, y: mao.y - mao.altura + folga.y });
     assert.ok(game.action(p.id, { type: 'target', id: outro.id }).ok);
     const hpOutro = outro.hp;
     alvo.x += 16;
@@ -88,7 +90,7 @@ test('o último ponto visual do projétil coincide com a explosão aos pés', ()
   const pesAlvo = { x: 350, y: 150 };
   const efeito = {
     x: 288, y: 150, dx: 1, dy: 0, speed: 850, altura: 30, restante: BIG_BANG_ATTACK.alcance - 120,
-    avancoVisual: 40, distanciaAteContato: 40, pesAlvo
+    avancoVisual: 40, distanciaAteContato: 40, pesAlvo, direcaoLancamento: { x: 1, y: 0 }
   };
   assert.ok(posicaoBigBang(efeito, 0).y < pesAlvo.y);
   assert.deepEqual(posicaoBigBang(efeito, .07), pesAlvo);

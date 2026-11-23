@@ -27,6 +27,14 @@ function desenharQuadro(ctx, nome, quadro, pos, escala, angulo = 0, ancora = [18
   ctx.restore();
 }
 
+export function avancoOrbeBigBang(direcao, coluna = 3) {
+  const distancia = [9, 14, 20][coluna - 1];
+  // De frente e de costas a palma fica de lado. A folga lateral mantém o
+  // núcleo à vista enquanto a esfera cresce.
+  const lateral = Math.max(0, 1 - Math.abs(direcao.x) * 2.6) * (direcao.y > 0 ? -8 : 8);
+  return { x: direcao.x * distancia + lateral, y: direcao.y * distancia };
+}
+
 export function desenharCargaBigBang(ctx, carga, tempo, pos) {
   const t = Math.max(0, tempo - carga.started);
   const quadro = Math.min(quadros - 1, Math.floor(t * quadros / BIG_BANG_ATTACK.carga));
@@ -42,12 +50,13 @@ export function posicaoBigBang(efeito, segundosAposSnapshot) {
   const progresso = Math.min(1, (percorrido + avanco) / (percorrido + contato || 1));
   const contatoX = efeito.x + efeito.dx * contato;
   const contatoY = efeito.y + efeito.dy * contato;
+  const saida = avancoOrbeBigBang(efeito.direcaoLancamento);
 
   // A simulação para na borda do corpo. A projeção visual vai da palma aos pés
   // para que o último ponto do voo coincida com a âncora da explosão.
   return {
-    x: efeito.x + efeito.dx * avanco + (efeito.pesAlvo.x - contatoX) * progresso,
-    y: efeito.y + efeito.dy * avanco + (efeito.pesAlvo.y - contatoY) * progresso - efeito.altura * (1 - progresso)
+    x: efeito.x + efeito.dx * avanco + (efeito.pesAlvo.x - contatoX) * progresso + saida.x * (1 - progresso),
+    y: efeito.y + efeito.dy * avanco + (efeito.pesAlvo.y - contatoY) * progresso + (saida.y - efeito.altura) * (1 - progresso)
   };
 }
 

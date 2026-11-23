@@ -1065,7 +1065,7 @@ export class Game {
     if (this.time + 1e-9 < carga.until) return;
     p.bigBangLancado = { started: this.time, direction };
     this.projectiles.push({ id: this.uid('s'), kind: 'bigBangAttack', ownerType: 'player', owner: p.id,
-      planet: p.planet, area: p.area, targetId: alvo.id, ...origem, dx: direction.x, dy: direction.y,
+      planet: p.planet, area: p.area, targetId: alvo.id, ...origem, dx: direction.x, dy: direction.y, direcaoLancamento: direction,
       started: this.time, speed: BIG_BANG_ATTACK.velocidade, restante: BIG_BANG_ATTACK.alcance,
       damage: p.stats.attack * BIG_BANG_ATTACK.dano, ttl: 1 });
     p.charge = null;

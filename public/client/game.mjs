@@ -16,7 +16,7 @@ import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } fr
 import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
 import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
 import { colunaCargaBigBang, maoBigBang } from '../shared/tecnicas/big-bang-attack.mjs';
-import { carregarBigBangAttack, desenharCargaBigBang, desenharBigBang, posicaoBigBang } from '../render/vfx/big-bang-attack.mjs';
+import { avancoOrbeBigBang, carregarBigBangAttack, desenharCargaBigBang, desenharBigBang, posicaoBigBang } from '../render/vfx/big-bang-attack.mjs';
 import { carregarFinalFlash, desenharFinalFlash, desenharImpactoFinalFlash, maoVisualFinalFlash } from '../render/vfx/final-flash.mjs';
 import { PREDIOS_TERRA } from '../shared/mundo/terra.mjs';
 import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
@@ -807,8 +807,10 @@ function frame(now) {
       const alvo = snapshot.mobs.find(m => m.id === p.charge.targetId);
       if (p.charge.bigBangAttack) {
         const direcao = p.charge.direction;
-        const mao = maoBigBang(posicaoComMontaria(p, pos, direcao), direcao, colunaCargaBigBang(time, p.charge));
-        desenharCargaBigBang(ctx, p.charge, time, { x: mao.x, y: mao.y - mao.altura });
+        const coluna = colunaCargaBigBang(time, p.charge);
+        const mao = maoBigBang(posicaoComMontaria(p, pos, direcao), direcao, coluna);
+        const folga = avancoOrbeBigBang(direcao, coluna);
+        desenharCargaBigBang(ctx, p.charge, time, { x: mao.x + folga.x, y: mao.y - mao.altura + folga.y });
       } else if (p.charge.finalFlash) {
         const origem = posicaoComMontaria(p, pos, p.charge.direction);
         const mao = maoVisualFinalFlash(origem, p.charge.direction, true);
