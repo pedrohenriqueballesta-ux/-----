@@ -28,22 +28,21 @@ test('Perfil lista as seis formas do Vegeta com seus níveis e separa as formas 
   assert.equal(Object.fromEntries(detalhes.linhas).Próxima, 'Majin Vegeta no nível 200');
 });
 
-test('Vegeta recebe a transformação automática na tecla 3 em barras novas e padrões antigos', () => {
+test('Vegeta recebe a transformação automática na tecla 5 em barras novas e padrões antigos', () => {
   const game = new Game({ populate: false });
   const padrao = barraPadrao({}, 15, 300, 'base', 'vegeta');
-  assert.equal(padrao[2], 'form:auto');
-  const antiga = [...padrao];
-  antiga[2] = null;
+  assert.equal(padrao[4], 'form:auto');
+  const antiga = ['skill:heal', 'skill:galick', null, null, 'skill:finalFlash', 'item:food', 'item:ki', null];
   for (const [i, save] of [
-    {}, { barraTecnicas: antiga }, { barraTecnicas: antiga, barraPersonalizada: false },
+    {}, { barraTecnicas: antiga }, { barraTecnicas: antiga, barraPersonalizada: false, barraKameManual: true },
     { barraTecnicas: antiga.map((id, i) => i === 2 ? 'form:ssj' : id), barraPersonalizada: false }
   ].entries()) {
     const vegeta = game.addPlayer('vegeta-' + i, 'Vegeta', { ...save, vocacao: 'vegeta', level: 200 });
     const estado = game.snapshot(vegeta.id).self;
     assert.deepEqual(estado.barraTecnicas, padrao);
-    assert.equal(tecnicaDisponivel(estado.barraTecnicas[2], { ...estado, level: 99 }), false);
-    assert.ok(tecnicaDisponivel(estado.barraTecnicas[2], { ...estado, level: 100 }));
-    assert.ok(game.action(vegeta.id, acaoDaTecnica(estado.barraTecnicas[2])).ok);
+    assert.equal(tecnicaDisponivel(estado.barraTecnicas[4], { ...estado, level: 99 }), false);
+    assert.ok(tecnicaDisponivel(estado.barraTecnicas[4], { ...estado, level: 100 }));
+    assert.ok(game.action(vegeta.id, acaoDaTecnica(estado.barraTecnicas[4])).ok);
     assert.equal(vegeta.forma, 'majin');
   }
 });
@@ -51,7 +50,7 @@ test('Vegeta recebe a transformação automática na tecla 3 em barras novas e p
 test('Rajada de Ki sai do catálogo e da barra, preservando os demais slots salvos', () => {
   const game = new Game({ populate: false });
   const padrao = barraPadrao({}, 15, 1, 'base', 'vegeta');
-  const antiga = padrao.map((id, i) => i === 3 ? 'skill:ki' : i === 4 ? null : id);
+  const antiga = ['skill:heal', 'skill:galick', 'form:auto', 'skill:ki', null, 'item:food', 'item:ki', null];
   const veterano = game.addPlayer('veterano', 'Vegeta', { vocacao: 'vegeta', barraTecnicas: antiga });
   assert.deepEqual(veterano.barraTecnicas, padrao);
   for (const vocacao of ['vegeta', 'goku']) {
@@ -62,7 +61,7 @@ test('Rajada de Ki sai do catálogo e da barra, preservando os demais slots salv
     assert.equal(game.action(p.id, { type: 'configurarBarra', slots }).ok, false);
   }
   assert.equal(padrao[3], null);
-  assert.equal(padrao[4], 'skill:finalFlash');
+  assert.equal(padrao[5], 'skill:finalFlash');
   assert.equal(tecnicaDisponivel('skill:ki', { vocacao: 'vegeta', level: 1000 }), false);
   assert.equal(detalhesHabilidade('skill:ki', { vocacao: 'vegeta', level: 1 }), null);
 });
@@ -148,7 +147,7 @@ test('um save do Vegeta com consumíveis rearranjados recebe SSJ1 no terceiro sl
   assert.equal(tecnicaDisponivel(vegeta.barraTecnicas[2], game.snapshot(vegeta.id).self), false);
 });
 
-test('a tecla 3 acompanha os desbloqueios do Vegeta até Ultra Ego', () => {
+test('a tecla 5 acompanha os desbloqueios do Vegeta até Ultra Ego', () => {
   const game = new Game({ populate: false });
   for (const [level, forma, nome] of [
     [100, 'ssj', 'Super Saiyajin'],
@@ -162,8 +161,8 @@ test('a tecla 3 acompanha os desbloqueios do Vegeta até Ultra Ego', () => {
   ]) {
     const vegeta = game.addPlayer('vegeta-' + level, 'Vegeta', { vocacao: 'vegeta', level });
     const estado = game.snapshot(vegeta.id).self;
-    assert.equal(detalhesHabilidade(estado.barraTecnicas[2], estado).nome, nome);
-    assert.ok(game.action(vegeta.id, acaoDaTecnica(estado.barraTecnicas[2])).ok);
+    assert.equal(detalhesHabilidade(estado.barraTecnicas[4], estado).nome, nome);
+    assert.ok(game.action(vegeta.id, acaoDaTecnica(estado.barraTecnicas[4])).ok);
     assert.equal(vegeta.forma, forma);
   }
 });

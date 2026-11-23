@@ -7,6 +7,7 @@ import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/hud/barra-
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hud/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/hud/janelas-hud.mjs';
 import {instalarAbasHud} from '../render/hud/abas-hud.mjs';
+import {atualizarRetratoVocacao} from '../render/hud/vocacao-retrato.mjs';
 // HUD: tudo o que o jogo mostra e liga na página (barras, botões, painéis, notificações, loja,
 // janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
@@ -130,6 +131,8 @@ ajustarEscala(); addEventListener('resize', ajustarEscala);
 export function atualizarHud(snapshot, playerId) {
   const s = snapshot?.self, p = snapshot?.players.find(v => v.id === playerId); if (!s || !p) return;
   atualizarHuntAnalyzer(s.huntAnalyzer,playerId);
+  const retrato = document.getElementById('playerPortrait');
+  if (retrato) atualizarRetratoVocacao(retrato, s.vocacao);
   $('playerName').textContent = p.name; $('levelBadge').textContent = 'Nv. ' + s.level;
   $('hpBar').style.width = Math.max(0, 100 * s.hp / s.stats.hp) + '%';
   $('kiBar').style.width = Math.max(0, 100 * s.ki / s.stats.ki) + '%';

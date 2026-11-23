@@ -42,9 +42,9 @@ export function tecnicasDoPerfil(vocacao) {
 
 export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
 export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base',vocacao='goku'){
- if(vocacao==='vegeta')return ['skill:heal','skill:galick','form:auto',null,'skill:finalFlash','item:food','item:ki',null];
+ if(vocacao==='vegeta')return ['skill:heal','skill:galick',null,null,'form:auto','skill:finalFlash','item:food','item:ki'];
  const item=n=>consumivelValido(hotkeys[n])?'item:'+hotkeys[n]:hotkeys[n]===null?null:n===7?'item:seed'+(CONFIG.seedPotencies.includes(semente)?semente:15):'item:ki';
- return ['skill:heal',nivel>=CONFIG.skills.superKamehameha&&forma==='ssj4'?'skill:superKamehameha':'skill:kame','form:auto','skill:barrier','skill:genki',item(7),item(8),'skill:ryuken'];
+ return ['skill:heal',nivel>=CONFIG.skills.superKamehameha&&forma==='ssj4'?'skill:superKamehameha':'skill:kame','skill:ryuken','skill:barrier','form:auto','skill:genki',item(7),item(8)];
 }
 export function atualizarBarraPadrao(p){
  if(p.barraKameManual||!['skill:kame','skill:superKamehameha'].includes(p.barraTecnicas?.[1]))return;

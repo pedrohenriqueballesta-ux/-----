@@ -213,12 +213,10 @@
 }
 .hud-jogador > :not(.arrasto-alca):not(.hud-redimensionar) { position: relative; z-index: 1; }
 .hud-jogador .hud-retrato {
-  flex: 0 0 calc(78 * var(--u));
-  width: calc(78 * var(--u));
-  height: calc(78 * var(--u));
-  border: calc(3 * var(--u)) solid #ffca30;
-  background: radial-gradient(circle, #1175be, #041b41);
-  box-shadow: 0 0 0 calc(2 * var(--u)) #0d77c3, 0 0 calc(9 * var(--u)) #ffbf49a8;
+  --tamanho-retrato-hud: calc(104 * var(--u));
+  flex: 0 0 var(--tamanho-retrato-hud);
+  width: var(--tamanho-retrato-hud);
+  height: var(--tamanho-retrato-hud);
 }
 .hud-jogador .hud-status { width: calc(185 * var(--u)); gap: calc(4 * var(--u)); }
 .hud-jogador .hud-nome { margin-bottom: calc(2 * var(--u)); }
@@ -260,6 +258,7 @@
   .hud-tecnicas-trilho { max-width: calc(100vw - 58px); }
   .hud-mapa::before, .hud-mapa::after { width: calc(34 * var(--u)); height: calc(34 * var(--u)); }
   .hud-jogador { gap: calc(5 * var(--u)); padding: calc(6 * var(--u)); }
+  .hud-jogador .hud-retrato { --tamanho-retrato-hud: calc(92 * var(--u)); }
   .hud-jogador .hud-status { width: calc(150 * var(--u)); }
   .hud-jogador .hud-recursos { padding-left: calc(5 * var(--u)); }
   .hud-jogador .hud-recursos > * { padding: calc(2 * var(--u)); }

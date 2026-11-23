@@ -7,8 +7,8 @@ import {xpForLevel,statsFor,aplicarGodmode} from '../public/shared/nucleo/charac
 
 test('barra antiga migra para oito teclas e preserva consumíveis configurados',()=>{
  const b=barraValida(null,{7:'seed30',8:'food'},15);
- assert.equal(b.length,8);assert.deepEqual(b.slice(0,3),['skill:heal','skill:kame','form:auto']);
- assert.deepEqual(b.slice(5),['item:seed30','item:food','skill:ryuken']);
+ assert.equal(b.length,8);assert.deepEqual(b.slice(0,6),['skill:heal','skill:kame','skill:ryuken','skill:barrier','form:auto','skill:genki']);
+ assert.deepEqual(b.slice(6),['item:seed30','item:food']);
  assert.equal(acaoDaTecnica('form:kaioken').forma,'kaioken');
  assert.deepEqual(acaoDaTecnica('item:seed30'),{type:'seed',potency:30});
 });
@@ -103,4 +103,38 @@ test('nível 100 pode selecionar Kaioken; nível baixo não pode ativar Super Sa
  assert.equal(g.action(p.id,{type:'transform',forma:'kaioken'}).ok,true);assert.equal(p.forma,'kaioken');
  assert.equal(g.action(p.id,{type:'transform',forma:'kaioken'}).ok,true);assert.equal(p.forma,'base');
  p.level=50;assert.equal(g.action(p.id,{type:'transform',forma:'ssj'}).ok,false);assert.equal(p.forma,'base');
+});
+
+test('restaurar a barra monta o padrão da vocação, persiste e reativa a troca automática do Kamehameha', () => {
+ const game = new Game({ populate: false });
+ const goku = game.addPlayer('goku-reset', 'Goku', { level: 500, seedSelected: 30, hotkeysConsumiveis: { 7: 'food' } });
+ const vegeta = game.addPlayer('vegeta-reset', 'Vegeta', { vocacao: 'vegeta', level: 500 });
+ const casos = [
+  [goku, ['skill:heal','skill:superKamehameha','skill:ryuken','skill:barrier','form:auto','skill:genki','item:seed30','item:ki']],
+  [vegeta, ['skill:heal','skill:galick',null,null,'form:auto','skill:finalFlash','item:food','item:ki']]
+ ];
+ assert.ok(game.action(goku.id, { type: 'transform', forma: 'ssj4' }).ok);
+ for (const [player, esperado] of casos) {
+  assert.ok(game.action(player.id, { type: 'configurarBarra', slots: ['skill:heal','item:food',null,null,null,null,null,null] }).ok);
+  assert.equal(player.barraPersonalizada, true);
+  assert.ok(game.action(player.id, { type: 'restaurarBarraPadrao' }).ok);
+  assert.deepEqual(game.snapshot(player.id).self.barraTecnicas, esperado);
+  const salvo = game.exportPlayer(player);
+  assert.equal(salvo.barraPersonalizada, false);
+  assert.equal(salvo.barraKameManual, false);
+  const reconectado = game.addPlayer(player.id + '-reconectado', player.name, salvo);
+  assert.deepEqual(reconectado.barraTecnicas, esperado.map(id => id === 'skill:superKamehameha' ? 'skill:kame' : id));
+ }
+ assert.equal(goku.hotkeysConsumiveis[7], 'food');
+ assert.ok(game.action(goku.id, { type: 'transform', forma: 'ssj4' }).ok);
+ assert.equal(goku.barraTecnicas[1], 'skill:kame');
+});
+
+test('restauração de save migra a ordem antiga padrão de Goku e preserva a antiga personalizada', () => {
+ const game = new Game({ populate: false });
+ const anterior = ['skill:heal','skill:kame','form:auto','skill:barrier','skill:genki','item:seed15','item:ki','skill:ryuken'];
+ const padrao = game.addPlayer('antigo-goku', 'Goku', { barraTecnicas: anterior });
+ const personalizado = game.addPlayer('goku-personalizado', 'Goku', { barraTecnicas: anterior, barraPersonalizada: true });
+ assert.deepEqual(padrao.barraTecnicas, barraPadrao());
+ assert.deepEqual(personalizado.barraTecnicas, anterior);
 });

@@ -55,7 +55,12 @@ export function montarPerfil(container,{acao}={}){
  abas.setAttribute('aria-label','Abas do personagem');abas.append(abaDados,abaTecnicas);
  const acoesPersonalizacao=el('div',null,'perfil-personalizacao-acoes');acoesPersonalizacao.append(aplicar,resetar);personalizacao.append(acoesPersonalizacao);const painelDados=el('div',null,'perfil-painel'),painelTecnicas=el('div',null,'perfil-painel perfil-tecnicas');painelDados.append(grid,personalizacao);
  const mostrar=qual=>{const tecnicas=qual==='tecnicas';painelDados.hidden=tecnicas;painelTecnicas.hidden=!tecnicas;abaDados.setAttribute('aria-pressed',String(!tecnicas));abaTecnicas.setAttribute('aria-pressed',String(tecnicas));};
- const aviso=el('p','Arraste uma magia ou transformação para qualquer slot de 1 a 8. Consumíveis podem ser colocados na barra pela mochila. Técnicas bloqueadas ficam visíveis.','hud-nota');painelTecnicas.append(aviso);
+ const acoesTecnicas = el('div', null, 'perfil-tecnicas-acoes');
+ const aviso = el('p', 'Arraste técnicas para a barra. Para equipar consumíveis, use a mochila.', 'hud-nota');
+ const restaurarBarra = botao('Voltar ao padrão', () => acao?.({ type: 'restaurarBarraPadrao' }));
+ restaurarBarra.title = 'Restaurar os oito slots da barra de habilidades';
+ acoesTecnicas.append(aviso, restaurarBarra);
+ painelTecnicas.append(acoesTecnicas);
  const lista=el('div',null,'perfil-tecnicas-lista');painelTecnicas.append(lista);container.append(abas,painelDados,painelTecnicas);mostrar('personagem');
  let ultimo=null;
  const cards=[...MAGIAS_PERSONAGEM].sort((a,b)=>a.nivel-b.nivel).map(t=>{
