@@ -5,6 +5,7 @@ import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,nivelDa
 import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
 import {iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+import {formaBigBangAttack} from '../../shared/tecnicas/big-bang-attack.mjs';
 import {formaFinalFlash} from '../../shared/tecnicas/final-flash.mjs';
 const skinsGoku = [
  { forma: 'base', nome: 'Goku · Base', icone: '/assets/goku-portrait.png' },
@@ -117,7 +118,7 @@ export function montarPerfil(container,{acao}={}){
   const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=nivel,slot=equipadas.indexOf(t.id);
   if(formaId&&t.imagem)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
   const requerForma = !liberada ? ''
-    : t.id==='skill:finalFlash' && !formaFinalFlash(s.self.forma) ? ' · requer SSJ1 ou superior'
+    : (t.id==='skill:finalFlash' && !formaFinalFlash(s.self.forma)) || (t.id==='skill:bigBangAttack' && !formaBigBangAttack(s.self.forma)) ? ' · requer SSJ1 ou superior'
     : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:superKamehameha' ? ' · requer SSJ4'
     : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:ryuken' ? ' · requer SSJ3 ou SSJ4' : '';
   card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);

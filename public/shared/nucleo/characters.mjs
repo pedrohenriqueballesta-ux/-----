@@ -190,10 +190,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
       || (vegeta && i === 2 && (id === null || id === 'form:ssj'))
       || (vegeta && i === 4 && id === null)
       || (!vegeta && i === 1 && id === 'skill:superKamehameha'));
-    if (eraPadrao && (vegeta || saved.barraKameManual !== true)) barraSalva.splice(0, 8, ...padrao);
+    const eraPadraoSemBigBang = vegeta && barraSalva.every((id, i) => id === (i === 2 ? null : padrao[i]));
+    if (eraPadraoSemBigBang || (eraPadrao && (vegeta || saved.barraKameManual !== true))) barraSalva.splice(0, 8, ...padrao);
   }
   if (vocacao.id === 'vegeta') {
-    const permitidas = new Set(['skill:heal', 'skill:galick', 'skill:finalFlash']);
+    const permitidas = new Set(['skill:heal', 'skill:galick', 'skill:finalFlash', 'skill:bigBangAttack']);
     for (let i = 0; i < barraSalva.length; i++) {
       const id = barraSalva[i];
       if (id?.startsWith('skill:') && !permitidas.has(id)) barraSalva[i] = null;
@@ -201,7 +202,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   }
   for (let i = 0; i < barraSalva.length; i++) {
     const id = barraSalva[i];
-    if ((id?.startsWith('form:') || id === 'skill:finalFlash') && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
+    if ((id?.startsWith('form:') || ['skill:finalFlash', 'skill:bigBangAttack'].includes(id)) && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
   }
   if (vocacao.id === 'vegeta' && barraSalva[2] === null && !barraSalva.some(id => id?.startsWith('form:'))) {
     // Barras antigas personalizadas usavam a tecla 3 como atalho de transformação.
@@ -224,7 +225,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
-    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, finalFlashReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, finalFlashReady: 0, bigBangAttackReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
     healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
     autoHeal: saved?.autoHeal !== false,
     healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,

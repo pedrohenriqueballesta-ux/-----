@@ -15,6 +15,8 @@ import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '
 import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } from '../render/vfx/galick-gun.mjs';
 import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
 import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
+import { colunaCargaBigBang, maoBigBang } from '../shared/tecnicas/big-bang-attack.mjs';
+import { avancoOrbeBigBang, carregarBigBangAttack, desenharCargaBigBang, desenharBigBang, posicaoBigBang } from '../render/vfx/big-bang-attack.mjs';
 import { carregarFinalFlash, desenharFinalFlash, desenharImpactoFinalFlash, maoVisualFinalFlash } from '../render/vfx/final-flash.mjs';
 import { PREDIOS_TERRA } from '../shared/mundo/terra.mjs';
 import { desenharPredioTerra, desenharNpcTerra, desenharNpcEstatico } from '../render/mapa/terra.mjs';
@@ -168,7 +170,10 @@ function conectarMundo(data){
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
       carregarGalick(snapshot.self?.galickVersao);
-      if (snapshot.players.some(p => p.vocacao === 'vegeta')) carregarFinalFlash();
+      if (snapshot.players.some(p => p.vocacao === 'vegeta')) {
+        carregarFinalFlash();
+        carregarBigBangAttack();
+      }
       // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
       if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
       carregarBarreira(); carregarRaiosSsj2('frente');
@@ -401,7 +406,9 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const galick = p.charge?.galick ? p.charge : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.galick);
   const finalFlash = p.charge?.finalFlash ? { ...p.charge, carga: true }
     : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.finalFlash && (!k.impacto || time - k.impacto.started < FINAL_FLASH.sustentacao));
-  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick, finalFlash };
+  const bigBang = p.charge?.bigBangAttack ? p.charge : p.bigBangLancado;
+  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick, finalFlash, bigBang };
+  if (bigBang) p.facing = bigBang.direction;
   const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
   const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
@@ -798,7 +805,13 @@ function frame(now) {
     const pos = renderPositions.get(p.id) || p;
     adicionarEfeito(pos, () => {
       const alvo = snapshot.mobs.find(m => m.id === p.charge.targetId);
-      if (p.charge.finalFlash) {
+      if (p.charge.bigBangAttack) {
+        const direcao = p.charge.direction;
+        const coluna = colunaCargaBigBang(time, p.charge);
+        const mao = maoBigBang(posicaoComMontaria(p, pos, direcao), direcao, coluna);
+        const folga = avancoOrbeBigBang(direcao, coluna);
+        desenharCargaBigBang(ctx, p.charge, time, { x: mao.x + folga.x, y: mao.y - mao.altura + folga.y });
+      } else if (p.charge.finalFlash) {
         const origem = posicaoComMontaria(p, pos, p.charge.direction);
         const mao = maoVisualFinalFlash(origem, p.charge.direction, true);
         desenharFinalFlash(ctx, { ...p.charge, carga: true }, time, mao);
@@ -809,7 +822,7 @@ function frame(now) {
         const origem = origemKame(pos, p.charge.direction, alvo);
         desenharKameSobreInimigos({ ...p.charge, ...origem }, Math.min(Math.max(time, p.charge.started), p.charge.started + KAME.primeiroFeixe * KAME.quadro - .001), p, pos);
       }
-    }, p.charge.galick || p.charge.finalFlash ? camadaGalick(p.charge.direction) : .02);
+    }, p.charge.galick || p.charge.finalFlash || p.charge.bigBangAttack ? camadaGalick(p.charge.direction) : .02);
   }
   for (const k of snapshot.kamehamehas || []) {
     const dono = snapshot.players.find(p => p.id === k.owner);
@@ -858,6 +871,12 @@ function frame(now) {
     adicionarEfeito(pos, () => { desenharAuraRyuken(ctx, j, pos, time); desenharLancamentoRyuken(ctx, j, pos, time); });
   }
   for (const s of snapshot.projectiles) {
+    if (s.kind === 'bigBangAttack') {
+      const pos = posicaoBigBang(s, (now - receivedAt) / 1000);
+      const profundidade = s.impactoEm === undefined ? s : s.pesAlvo;
+      adicionarEfeito(profundidade, () => desenharBigBang(ctx, s, time, pos), .03);
+      continue;
+    }
     const px = s.x + s.dx * s.speed * Math.min(0.07, (now - receivedAt) / 1000), py = s.y + s.dy * s.speed * Math.min(0.07, (now - receivedAt) / 1000);
     const alvo = s.kind === 'mobKiTarget' ? renderPositions.get(s.alvoId) : null;
     const distancia = alvo ? Math.hypot(alvo.x - s.x, alvo.y - s.y) : Infinity;

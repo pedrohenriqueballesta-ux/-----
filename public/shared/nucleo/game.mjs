@@ -19,6 +19,7 @@ import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
 import { GALICK, estagioGalick, origemGalick } from '../tecnicas/galick-gun.mjs';
 import { FINAL_FLASH, formaFinalFlash, origemFinalFlash, contatoFinalFlash } from '../tecnicas/final-flash.mjs';
+import { BIG_BANG_ATTACK, formaBigBangAttack, maoBigBang } from '../tecnicas/big-bang-attack.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from '../mundo/projetil-mob.mjs';
 import { Mercado } from '../sistemas/mercado.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from '../sistemas/itens-negociaveis.mjs';
@@ -91,8 +92,8 @@ export class Game {
   levar(p, destino, {preservarForma = false} = {}) {
     if (!preservarForma) { p.forma = 'base'; p.formaAte = 0; }
     atualizarBarraPadrao(p);
-    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null; p.finalFlashAtivo = null;
-    this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
+    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null; p.finalFlashAtivo = null; p.bigBangLancado = null;
+    this.projectiles = this.projectiles.filter(s => !['ryuken', 'bigBangAttack'].includes(s.kind) || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
@@ -207,6 +208,7 @@ export class Game {
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
       if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
       if (p.vocacao !== 'vegeta' && validada.includes('skill:finalFlash')) return this.reject(p, 'O Final Flash é exclusivo do Vegeta.');
+      if (p.vocacao !== 'vegeta' && validada.includes('skill:bigBangAttack')) return this.reject(p, 'O Big Bang Attack é exclusivo do Vegeta.');
       if (validada.some(id => id?.startsWith('form:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Transformação indisponível para esta vocação.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
@@ -420,12 +422,15 @@ export class Game {
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
-    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick','finalFlash'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
+    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick','finalFlash','bigBangAttack'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick', 'finalFlash'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick', 'finalFlash', 'bigBangAttack'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo &&
+      ['basic', 'ki', 'galick', 'finalFlash', 'bigBangAttack'].includes(skill)) return { ok: false };
     if (skill === 'finalFlash') return this.iniciarFinalFlash(p, automated);
-    if ((p.finalFlashAtivo && ['basic', 'ki', 'galick'].includes(skill)) || (p.charge?.finalFlash && skill === 'basic'))
+    if (skill === 'bigBangAttack') return this.iniciarBigBangAttack(p, automated);
+    if ((p.finalFlashAtivo && ['basic', 'ki', 'galick'].includes(skill)) || ((p.charge?.finalFlash || p.charge?.bigBangAttack) && skill === 'basic'))
       return { ok: false };
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
@@ -827,12 +832,13 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) { p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
+    if (!p.connected) { if (p.charge?.bigBangAttack) p.charge = null; p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
     if (p.godmode) {
       if (p.godmodeOptions?.hpInfinite !== false) p.hp = p.stats.hp;
       if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
     }
     if (p.hp <= 0) {
+      if (p.charge?.bigBangAttack) p.charge = null;
       p.forma = 'base'; p.formaAte = 0;
       atualizarBarraPadrao(p);
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
@@ -850,6 +856,10 @@ export class Game {
     if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
     if (p.forma !== 'base' && !p.godmode) p.ki = Math.max(0, p.ki - dt * CONFIG.transformacao.drenoKi);
     this.verificarKiDaForma(p);
+    if (p.charge?.bigBangAttack) {
+      this.atualizarCargaBigBangAttack(p);
+      if (p.charge?.bigBangAttack) return;
+    }
     if (p.charge?.finalFlash) {
       this.atualizarCargaFinalFlash(p);
       if (p.charge?.finalFlash) return;
@@ -941,7 +951,7 @@ export class Game {
       const tentar = skill => this.cast(p, skill, true).ok;
       let usouTecnica = false;
       if (p.autoSkills && vegeta) {
-        usouTecnica = (!morreriaNoBasico && !prefereBasico && tentar('finalFlash')) || tentar('galick');
+        usouTecnica = (!morreriaNoBasico && !prefereBasico && (tentar('finalFlash') || tentar('bigBangAttack'))) || tentar('galick');
       } else if (p.autoSkills && !morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
         usouTecnica = (usaSuperKame(p) && tentar('superKamehameha'))
           || (usaRyuken(p) && tentar('ryuken')) || tentar('kame');
@@ -949,7 +959,7 @@ export class Game {
       if (!usouTecnica && podeRajada) tentar('ki');
     }
     if (p.charge?.galick) this.atualizarCargaGalick(p);
-    if (p.charge && !p.charge.galick && !p.charge.finalFlash) {
+    if (p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
       let alvo = this.mobs.get(p.charge.targetId);
       if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
         alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
@@ -959,7 +969,7 @@ export class Game {
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const cargaKame = p.charge && !p.charge.galick && !p.charge.finalFlash ? p.charge : null;
+    const cargaKame = p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack ? p.charge : null;
     const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
     const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
     if (cargaNoAlcance && this.time >= cargaKame.until) {
@@ -1012,6 +1022,84 @@ export class Game {
     if (!this.hit(p, alvo, k.damage)) return false;
     k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, started: this.time };
     return true;
+  }
+  alvoValidoBigBangAttack(ref, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(ref, alvo) && !naZonaSegura(alvo);
+  }
+  origemBigBangAttack(p, alvo) {
+    const direcao = norm(alvo.x - p.x, alvo.y - p.y);
+    const direction = direcao.x || direcao.y ? direcao : p.facing;
+    return { direction, ...maoBigBang(p, direction) };
+  }
+  iniciarBigBangAttack(p, automated) {
+    const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
+    if (p.vocacao !== 'vegeta') return falha('O Big Bang Attack é exclusivo do Vegeta.');
+    if (p.level < BIG_BANG_ATTACK.nivel) return falha('Big Bang Attack libera no nível ' + BIG_BANG_ATTACK.nivel + '.');
+    if (!formaBigBangAttack(p.forma)) return falha('Big Bang Attack requer Super Saiyajin ou superior.');
+    if (p.charge || p.finalFlashAtivo || this.time < p.bigBangAttackReady || p.ki < BIG_BANG_ATTACK.custo)
+      return falha('Big Bang Attack em recarga, outra conjuração ativa ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    if (!this.alvoValidoBigBangAttack(p, alvo)) return falha('Selecione um mob vivo para o Big Bang Attack.');
+    const origem = this.origemBigBangAttack(p, alvo);
+    if (distance(origem, alvo) - this.raioMob(alvo) > BIG_BANG_ATTACK.alcance)
+      return falha('Alvo fora do alcance do Big Bang Attack.');
+    p.facing = origem.direction;
+    p.ki -= BIG_BANG_ATTACK.custo;
+    p.bigBangAttackReady = this.time + (p.godmode ? 1 : BIG_BANG_ATTACK.recarga);
+    p.charge = { bigBangAttack: true, targetId: alvo.id, direction: p.facing, started: this.time,
+      until: this.time + BIG_BANG_ATTACK.carga, automated };
+    return { ok: true };
+  }
+  atualizarCargaBigBangAttack(p) {
+    const carga = p.charge, alvo = this.mobs.get(carga.targetId);
+    if (!formaBigBangAttack(p.forma) || naZonaSegura(p) || !this.alvoValidoBigBangAttack(p, alvo)) {
+      p.charge = null;
+      return;
+    }
+    const { direction, ...origem } = this.origemBigBangAttack(p, alvo);
+    if (distance(origem, alvo) - this.raioMob(alvo) > BIG_BANG_ATTACK.alcance) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = direction;
+    if (this.time + 1e-9 < carga.until) return;
+    p.bigBangLancado = { started: this.time, direction };
+    this.projectiles.push({ id: this.uid('s'), kind: 'bigBangAttack', ownerType: 'player', owner: p.id,
+      planet: p.planet, area: p.area, targetId: alvo.id, ...origem, dx: direction.x, dy: direction.y, direcaoLancamento: direction,
+      started: this.time, speed: BIG_BANG_ATTACK.velocidade, restante: BIG_BANG_ATTACK.alcance,
+      damage: p.stats.attack * BIG_BANG_ATTACK.dano, ttl: 1 });
+    p.charge = null;
+  }
+  atualizarBigBangAttack(s, dt) {
+    const p = this.players.get(s.owner);
+    if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, s) || naZonaSegura(p)) {
+      s.ttl = 0;
+      return;
+    }
+    if (s.impactoEm !== undefined) {
+      if (this.time - s.impactoEm >= BIG_BANG_ATTACK.impacto) s.ttl = 0;
+      return;
+    }
+    const alvo = this.mobs.get(s.targetId);
+    if (!formaBigBangAttack(p.forma) || !this.alvoValidoBigBangAttack(s, alvo)) {
+      s.ttl = 0;
+      return;
+    }
+    const direcao = norm(alvo.x - s.x, alvo.y - s.y);
+    s.dx = direcao.x; s.dy = direcao.y;
+    const contato = contatoFinalFlash(s, direcao, alvo, this.raioMob(alvo));
+    s.pesAlvo = { x: alvo.x, y: alvo.y };
+    const passo = Math.min(contato, s.restante, s.started === this.time ? 0 : s.speed * dt);
+    s.x += s.dx * passo; s.y += s.dy * passo;
+    s.restante -= passo;
+    if (contato <= passo) {
+      if (this.hit(p, alvo, s.damage)) {
+        s.impactoEm = this.time;
+      } else s.ttl = 0;
+    } else if (s.restante <= 1e-9) s.ttl = 0;
+    // Limite da previsão visual entre snapshots. O cliente só renderiza esse percurso.
+    s.distanciaAteContato = Math.max(0, contato - passo);
+    s.avancoVisual = Math.min(s.restante, s.distanciaAteContato);
   }
   alvoValidoFinalFlash(p, alvo) {
     return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo)
@@ -1274,6 +1362,7 @@ export class Game {
     this.atualizarRyukens(dt);
     for (const s of this.projectiles) {
       if (s.kind === 'genki' || s.kind === 'ryuken') continue;
+      if (s.kind === 'bigBangAttack') { this.atualizarBigBangAttack(s, dt); continue; }
       if (s.kind === 'mobKiTarget') {
         const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
         if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
@@ -1319,6 +1408,7 @@ export class Game {
         // Enquanto o dragão voa, o Goku segura o soco (a pose não volta antes do impacto).
         ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
+        bigBangLancado: p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
@@ -1332,7 +1422,7 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), bigBangAttackRemaining: Math.max(0, self.bigBangAttackReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,

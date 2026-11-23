@@ -4,6 +4,7 @@ import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../sha
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
 import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
+import { BIG_BANG_ATTACK, formaBigBangAttack } from '../../shared/tecnicas/big-bang-attack.mjs';
 import { FINAL_FLASH, formaFinalFlash } from '../../shared/tecnicas/final-flash.mjs';
 
 const NOMES = { heal: 'Cura de Vida', kame: 'Kamehameha', galick: 'Galick Gun', kaioken: 'Kaioken', barrier: 'Barreira de Ki', transform: 'Super Saiyajin', genki: 'Genki Dama' };
@@ -23,15 +24,17 @@ export function detalhesHabilidade(chave, estado) {
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
   }
   if(chave==='form:auto')chave='transform';
-  if (chave === 'finalFlash') {
-    const { nivel, custo, recarga, alcance, carga, dano } = FINAL_FLASH;
-    const restante = estado.finalFlashRemaining || 0;
+  if (chave === 'finalFlash' || chave === 'bigBangAttack') {
+    const bigBang = chave === 'bigBangAttack';
+    const { nivel, custo, recarga, alcance, carga, dano } = bigBang ? BIG_BANG_ATTACK : FINAL_FLASH;
+    const formaValida = bigBang ? formaBigBangAttack : formaFinalFlash;
+    const restante = estado[chave + 'Remaining'] || 0;
     const situacao = estado.vocacao !== 'vegeta' ? 'Exclusiva do Vegeta'
       : estado.level < nivel ? 'Bloqueada · requer nível ' + nivel
-      : !formaFinalFlash(estado.forma) ? 'Transforme-se em SSJ1 ou superior'
+      : !formaValida(estado.forma) ? 'Transforme-se em SSJ1 ou superior'
       : restante > 0 ? 'Em recarga · ' + segundos(restante)
       : estado.ki < custo ? 'Ki insuficiente' : 'Disponível';
-    return { nome: 'Final Flash', linhas: [
+    return { nome: bigBang ? 'Big Bang Attack' : 'Final Flash', linhas: [
       ['Desbloqueia', 'Nível ' + nivel], ['Forma', 'SSJ1 ou superior'], ['Custo', custo + ' Ki'],
       ['Cooldown', segundos(recarga)], ['Conjuração', segundos(carga)], ['Alcance', alcance + ' unidades'],
       ['Dano', '×' + dano + ' do ataque base'], ['Alvo', 'Mob marcado ao iniciar a conjuração'], ['Estado', situacao]

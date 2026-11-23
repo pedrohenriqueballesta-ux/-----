@@ -147,7 +147,7 @@ test('Final Flash cancela carga, voo e efeitos quando seu estado deixa de ser v�
   }
 });
 
-test('Auto Hunt prioriza Final Flash em alcance e volta a agir depois da sustentação', () => {
+test('Auto Hunt prioriza Final Flash em alcance e usa Big Bang Attack depois da sustentação', () => {
   const { game, player, alvo } = combate();
   player.autoHunt = true;
   player.autoSkills = true;
@@ -165,7 +165,7 @@ test('Auto Hunt prioriza Final Flash em alcance e volta a agir depois da sustent
   game.time += FINAL_FLASH.sustentacao + .01;
   game.atualizarKamehamehas();
   game.updatePlayer(player, .01);
-  assert.ok(player.charge?.galick);
+  assert.ok(player.charge?.bigBangAttack);
 });
 
 test('slot 6 aceita Final Flash, mantém barras personalizadas e usa o ícone anexado', async () => {
