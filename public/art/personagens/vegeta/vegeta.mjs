@@ -1,5 +1,6 @@
 import { colunaPoseGalick } from '../../../shared/tecnicas/galick-gun.mjs';
 import { colunaPoseFinalFlash } from '../../../shared/tecnicas/final-flash.mjs';
+import { colunaCargaBigBang } from '../../../shared/tecnicas/big-bang-attack.mjs';
 import {art,loaded} from '../../assets.mjs';
 import {drawSheet,SHEET_VIEWS} from '../../atlas.mjs';
 import {spriteFacing,walkStep,strikeColumn} from '../../../render/mapa/camera.mjs';
@@ -28,7 +29,10 @@ export function drawVegeta(ctx,player,pos,time,strikeProgress=null){
     acao = 'finalFlash';
     coluna = poseFinalFlash;
   }
-  if(player.bigBang)acao='bigBang',coluna=Math.min(3,Math.floor((time-player.bigBang.started)*8));
+  if (player.bigBang && folhas.bigBang) {
+    acao = 'bigBang';
+    coluna = player.bigBang.bigBangAttack ? colunaCargaBigBang(time, player.bigBang) : 3;
+  }
   if(acao==='parado')coluna=Math.floor(time*5)%4;
   // Uma folha de ataque pode ainda não existir em alguma forma; nunca deixe o personagem invisível.
   const folhaAcao = folhas[acao] || folhas.parado;

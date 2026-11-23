@@ -1,4 +1,5 @@
 import { GALICK } from '../../shared/tecnicas/galick-gun.mjs';
+import { BIG_BANG_ATTACK, formaBigBangAttack } from '../../shared/tecnicas/big-bang-attack.mjs';
 import { FINAL_FLASH, formaFinalFlash } from '../../shared/tecnicas/final-flash.mjs';
 import {TECNICAS,tecnicaPorId,barraValida,acaoDaTecnica,tecnicaDisponivel,tecnicaDaVocacao,nivelDaTecnica,NOMES_TECNICAS_VEGETA} from '../../shared/tecnicas/barra-tecnicas.mjs';
 import {formasDaVocacao,formaDisponivel,iconeDaForma} from '../../shared/tecnicas/formas.mjs';
@@ -27,7 +28,7 @@ function desenhar(){
  for(let i=0;i<8;i++){
   let b=root.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='tecnica';b.dataset.barraSlot=String(i);root.append(b);}
   const id=slots[i],t=tecnicaPorId(id),f=t?.id==='form:auto'?formaMostrada(estado):null;
-  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=f?.nivel??(t?nivelDaTecnica(t,estado?.vocacao):1),galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||!tecnicaDaVocacao(id,estado?.vocacao))), finalFlash=id==='skill:finalFlash', semKi=(galick&&estado?.ki<GALICK.custo)||(finalFlash&&estado?.ki<FINAL_FLASH.custo);
+  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=f?.nivel??(t?nivelDaTecnica(t,estado?.vocacao):1),galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||!tecnicaDaVocacao(id,estado?.vocacao))), finalFlash=id==='skill:finalFlash', bigBang=id==='skill:bigBangAttack', semKi=(galick&&estado?.ki<GALICK.custo)||(finalFlash&&estado?.ki<FINAL_FLASH.custo)||(bigBang&&estado?.ki<BIG_BANG_ATTACK.custo);
   if(b.dataset.tecnica!==(id||'')){b.dataset.tecnica=id||'';delete b.dataset.formIcon;if(id)b.dataset.skill=id;else b.removeAttribute('data-skill');b.replaceChildren();const k=document.createElement('kbd');k.textContent=String(i+1);b.append(k);if(t)b.append(icone(t,estado));else{const vazio=document.createElement('span');vazio.className='tecnica-icone slot-vazio';b.append(vazio);}const strong=document.createElement('strong');strong.textContent=nome;b.append(strong);const small=document.createElement('small');b.append(small);}
   if (id?.startsWith('form:')) {
    const chaveIcone = (estado?.vocacao || 'goku') + ':' + (f?.forma || id);
@@ -39,8 +40,8 @@ function desenhar(){
   b.querySelector('strong').textContent=nome;
   const item=id?.startsWith('item:')?id.slice(5):null;
   const quantidade=item?estado?.inventory?.[item]||0:null;
-  const restante=item==='ki'?estado?.kiRemaining:item==='food'?Math.max(0,(estado?.foodRemaining||0)-1):item?.startsWith('seed')?estado?.seedRemaining:galick?estado?.galickRemaining:finalFlash?estado?.finalFlashRemaining:id==='skill:kame'?estado?.kameRemaining:id==='skill:barrier'?estado?.barrierRemaining:id==='skill:genki'?estado?.genkiRemaining:id==='skill:ryuken'?estado?.ryukenRemaining:id==='skill:superKamehameha'?estado?.superKameRemaining:0;
-  const formaRequerida = finalFlash && !formaFinalFlash(estado?.forma) ? 'SSJ1 ou superior'
+  const restante=item==='ki'?estado?.kiRemaining:item==='food'?Math.max(0,(estado?.foodRemaining||0)-1):item?.startsWith('seed')?estado?.seedRemaining:galick?estado?.galickRemaining:finalFlash?estado?.finalFlashRemaining:bigBang?estado?.bigBangAttackRemaining:id==='skill:kame'?estado?.kameRemaining:id==='skill:barrier'?estado?.barrierRemaining:id==='skill:genki'?estado?.genkiRemaining:id==='skill:ryuken'?estado?.ryukenRemaining:id==='skill:superKamehameha'?estado?.superKameRemaining:0;
+  const formaRequerida = (finalFlash && !formaFinalFlash(estado?.forma)) || (bigBang && !formaBigBangAttack(estado?.forma)) ? 'SSJ1 ou superior'
     : id==='skill:ryuken' && !RYUKEN.formas.includes(estado?.forma) ? 'SSJ3 ou SSJ4'
     : id==='skill:superKamehameha' && estado?.forma!==SUPER_KAME.forma ? 'SSJ4' : null;
   const formaIncorreta = Boolean(formaRequerida);
@@ -49,7 +50,7 @@ function desenhar(){
   b.classList.toggle('fora-da-forma',Boolean(formaIncorreta));
   b.classList.toggle('active',Boolean(id?.startsWith('form:')&&estado?.forma!=='base'&&(id==='form:auto'||id==='form:'+estado?.forma)));
   b.draggable=Boolean(id);b.disabled=false;
-  b.querySelector('small').textContent=t?bloqueada?((galick||finalFlash)&&estado?.vocacao!=='vegeta'?'Vegeta':'NV. '+nivel):item?`${quantidade}${restante>0?' · '+Math.ceil(restante)+'s':''}`:restante>0?Math.ceil(restante)+'s':semKi?'Ki insuficiente':t.custo:'';
+  b.querySelector('small').textContent=t?bloqueada?((galick||finalFlash||bigBang)&&estado?.vocacao!=='vegeta'?'Vegeta':'NV. '+nivel):item?`${quantidade}${restante>0?' · '+Math.ceil(restante)+'s':''}`:restante>0?Math.ceil(restante)+'s':semKi?'Ki insuficiente':t.custo:'';
   b.title=t?`${nome} · Nv. ${nivel} · ${t.custo} · recarga ${t.recarga}${formaIncorreta?' · requer '+formaRequerida:''}`:'Slot vazio · arraste uma técnica';
   b.setAttribute('aria-label',`Tecla ${i+1}: ${nome}${bloqueada?' · bloqueada até o nível '+nivel:formaIncorreta?' · requer transformação':''}`);
  }

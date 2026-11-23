@@ -5,6 +5,7 @@ import {RYUKEN} from './ryuken.mjs';
 import {SUPER_KAME} from './kamehameha.mjs';
 import {GALICK} from './galick-gun.mjs';
 import {FINAL_FLASH,formaFinalFlash} from './final-flash.mjs';
+import {BIG_BANG_ATTACK,formaBigBangAttack} from './big-bang-attack.mjs';
 
 export const TECNICAS=Object.freeze([
  {id:'skill:heal',nome:'Cura de Vida',nivel:1,icone:'sprite-cura',custo:'Conforme o nível',recarga:'0,7 s'},
@@ -12,6 +13,7 @@ export const TECNICAS=Object.freeze([
  {id:'skill:dash',nome:'Imagem Residual',nivel:CONFIG.skills.dash,icone:'sprite-barrier',custo:'0 Ki',recarga:'4 s'},
  {id:'skill:kame',nome:'Kamehameha',nivel:CONFIG.skills.kame,icone:'sprite-kame',custo:`${CONFIG.skillCosts.kame} Ki`,recarga:`${CONFIG.skillCooldowns.kame} s`},
  {id:'skill:galick',nome:'Galick Gun',nivel:CONFIG.skills.galick,icone:'sprite-galick',custo:`${GALICK.custo} Ki`,recarga:`${GALICK.recarga} s`},
+ {id:'skill:bigBangAttack',nome:'Big Bang Attack',nivel:BIG_BANG_ATTACK.nivel,imagem:BIG_BANG_ATTACK.icone,custo:`${BIG_BANG_ATTACK.custo} Ki`,recarga:`${BIG_BANG_ATTACK.recarga} s`},
  {id:'skill:finalFlash',nome:'Final Flash',nivel:FINAL_FLASH.nivel,imagem:FINAL_FLASH.icone,custo:`${FINAL_FLASH.custo} Ki`,recarga:`${FINAL_FLASH.recarga} s`},
  {id:'form:auto',nome:'Melhor transformação',nivel:FORMAS[0].nivel,icone:'sprite-kaioken',custo:`${CONFIG.transformacao.drenoKi} Ki/s`,recarga:'Sem recarga'},
  ...FORMAS.map(f=>({id:'form:'+f.forma,nome:f.nome,nivel:f.nivel,imagem:f.icone||null,icone:'sprite-kaioken',custo:`${CONFIG.transformacao.drenoKi} Ki/s`,recarga:'Sem recarga',duracao:f.duracao})),
@@ -26,23 +28,23 @@ export const TECNICAS=Object.freeze([
 const ids=new Set(TECNICAS.map(t=>t.id));
 // A lista do Profile mostra apenas magias e transformações do personagem.
 // Ataques básicos, movimento e itens continuam utilizáveis por seus outros controles.
-export const MAGIAS_PERSONAGEM=Object.freeze(TECNICAS.filter(t=>['skill:heal','skill:kame','skill:galick','skill:finalFlash','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha'].includes(t.id)||(t.id.startsWith('form:')&&t.id!=='form:auto')));
-export const NOMES_TECNICAS_VEGETA=Object.freeze({'skill:heal':'Cura de Vida','skill:kame':'Kamehameha','skill:barrier':'Barreira de Ki','skill:ryuken':'Golpe do Orgulho','skill:superKamehameha':'Big Bang Attack'});
+export const MAGIAS_PERSONAGEM=Object.freeze(TECNICAS.filter(t=>['skill:heal','skill:kame','skill:galick','skill:bigBangAttack','skill:finalFlash','skill:barrier','skill:genki','skill:ryuken','skill:superKamehameha'].includes(t.id)||(t.id.startsWith('form:')&&t.id!=='form:auto')));
+export const NOMES_TECNICAS_VEGETA=Object.freeze({'skill:heal':'Cura de Vida','skill:kame':'Kamehameha','skill:barrier':'Barreira de Ki','skill:ryuken':'Golpe do Orgulho'});
 export const tecnicaPorId=id=>TECNICAS.find(t=>t.id===id)||null;
 export function tecnicaDaVocacao(id, vocacao = 'goku') {
- if(id==='skill:galick'||id==='skill:finalFlash')return vocacao==='vegeta';
+ if(id==='skill:galick'||id==='skill:finalFlash'||id==='skill:bigBangAttack')return vocacao==='vegeta';
  if(!id?.startsWith('form:')||id==='form:auto')return true;
  return formasDaVocacao(vocacao).some(f=>f.forma===id.slice(5));
 }
 
 export function tecnicasDoPerfil(vocacao) {
  return MAGIAS_PERSONAGEM.filter(({id})=>tecnicaDaVocacao(id,vocacao)
-  &&(vocacao!=='vegeta'||id.startsWith('form:')||id==='skill:heal'||id==='skill:galick'||id==='skill:finalFlash'));
+  &&(vocacao!=='vegeta'||id.startsWith('form:')||id==='skill:heal'||id==='skill:galick'||id==='skill:finalFlash'||id==='skill:bigBangAttack'));
 }
 
 export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
 export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base',vocacao='goku'){
- if(vocacao==='vegeta')return ['skill:heal','skill:galick',null,null,'form:auto','skill:finalFlash','item:food','item:ki'];
+ if(vocacao==='vegeta')return ['skill:heal','skill:galick','skill:bigBangAttack',null,'form:auto','skill:finalFlash','item:food','item:ki'];
  const item=n=>consumivelValido(hotkeys[n])?'item:'+hotkeys[n]:hotkeys[n]===null?null:n===7?'item:seed'+(CONFIG.seedPotencies.includes(semente)?semente:15):'item:ki';
  return ['skill:heal',nivel>=CONFIG.skills.superKamehameha&&forma==='ssj4'?'skill:superKamehameha':'skill:kame','skill:ryuken','skill:barrier','form:auto','skill:genki',item(7),item(8)];
 }
@@ -63,6 +65,7 @@ export function tecnicaDisponivel(id,estado){
  return Boolean(tecnica&&estado&&estado.level>=nivelDaTecnica(tecnica,estado.vocacao)&&tecnicaDaVocacao(id,estado.vocacao)&&
    (id!=='skill:galick'||(estado.ki>=GALICK.custo&&!(estado.galickRemaining>0)))&&
    (id!=='skill:finalFlash'||(formaFinalFlash(estado.forma)&&estado.ki>=FINAL_FLASH.custo&&!(estado.finalFlashRemaining>0)))&&
+   (id!=='skill:bigBangAttack'||(formaBigBangAttack(estado.forma)&&estado.ki>=BIG_BANG_ATTACK.custo&&!(estado.bigBangAttackRemaining>0)))&&
    (id!=='skill:ryuken'||RYUKEN.formas.includes(estado.forma))&&
    (id!=='skill:superKamehameha'||estado.forma===SUPER_KAME.forma));
 }

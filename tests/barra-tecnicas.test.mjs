@@ -111,7 +111,7 @@ test('restaurar a barra monta o padrão da vocação, persiste e reativa a troca
  const vegeta = game.addPlayer('vegeta-reset', 'Vegeta', { vocacao: 'vegeta', level: 500 });
  const casos = [
   [goku, ['skill:heal','skill:superKamehameha','skill:ryuken','skill:barrier','form:auto','skill:genki','item:seed30','item:ki']],
-  [vegeta, ['skill:heal','skill:galick',null,null,'form:auto','skill:finalFlash','item:food','item:ki']]
+  [vegeta, ['skill:heal','skill:galick','skill:bigBangAttack',null,'form:auto','skill:finalFlash','item:food','item:ki']]
  ];
  assert.ok(game.action(goku.id, { type: 'transform', forma: 'ssj4' }).ok);
  for (const [player, esperado] of casos) {
