@@ -32,6 +32,8 @@ export const SOLO_NAMEK = Object.freeze({ w: 4608, h: 3072 });
 // em px da imagem de 4608×3072 (o solo.webp tem 8192×5461, o mapa de 36 partes), mesma escala do mundo.
 export const SOLO_VEGETA = Object.freeze({ w: 4608, h: 3072 });
 export const ESCALA_VEGETA = ESCALA_MUNDO;
+// Solo da Terra das hunts (atlas hub + hunts, px), mesma escala de Namek e Vegeta.
+export const SOLO_TERRA_HUNTS = Object.freeze({ w: 5995, h: 2048 });
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
@@ -98,6 +100,14 @@ export const ZONES = [
     { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [72, 106], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
     { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [106, 128], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
     { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [128, 150], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
+  ]),
+  // Terra das hunts (Pedro, 22/11/2026): planeta à parte da Cidade do Oeste, feito do mapa-múndi da Terra. Cada hunt tem
+  // o próprio mapa (tamanhos variados) e o solo é um atlas com o hub e as hunts lado a lado (só se troca por portal).
+  // Por enquanto só o hub (clareira do centro) e a hunt 1 (descampado do oeste, nível 1). Nomes e níveis PROVISÓRIOS.
+  // Caixas = contorno do chão na máscara (terra-hunts-passagem.mjs); chegadas em chão livre, longe da borda.
+  ...zonasEmPx('terra-hunts', ESCALA_MUNDO, [
+    { id: 'terra-hub', name: 'Terra Selvagem', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
+    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3498, y: 6, w: 2490, h: 1632, chegada: { x: 4952, y: 998 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -188,7 +198,10 @@ export const PLANETS = {
     vila: 'vila', hunts: ['inicial', 'media', 'dificil', 'norte'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
   vegeta: { id: 'vegeta', name: 'Planeta Vegeta', w: SOLO_VEGETA.w * ESCALA_VEGETA, h: SOLO_VEGETA.h * ESCALA_VEGETA, escala: ESCALA_VEGETA,
     solo: 'vegetaSolo', soloUrl: '/assets/vegeta/solo.webp', fundo: '#0b0308', imagem: '/assets/worlds/vegeta.webp', vila: 'vegeta-cidade',
-    hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada }
+    hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada },
+  'terra-hunts': { id: 'terra-hunts', name: 'Terra Selvagem', w: SOLO_TERRA_HUNTS.w * ESCALA_MUNDO, h: SOLO_TERRA_HUNTS.h * ESCALA_MUNDO, escala: ESCALA_MUNDO,
+    solo: 'terraHuntsSolo', soloUrl: '/assets/terra-hunts/solo.webp', fundo: '#0c2846', imagem: '/assets/worlds/terra.webp',
+    vila: 'terra-hub', hunts: ['terra-descampado'], spawn: areaPorId('terra-hub').chegada }
 };
 export const PLANETAS_DE_HUNT = Object.values(PLANETS).filter(p => p.hunts);
 // Lugar de destino de um portal: a Terra ou uma das áreas de um planeta de hunt.
@@ -225,7 +238,9 @@ export const PORTAIS = [
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } })
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
+  // Terra das hunts: no hub, o portal de cada hunt na beira da clareira, do lado onde a hunt fica no mapa-múndi.
+  ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por

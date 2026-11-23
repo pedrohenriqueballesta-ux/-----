@@ -2,6 +2,7 @@
 // (namek-passagem.mjs para Namekusei); a Terra (Cidade do Oeste) usa a planta de shared/mundo/terra.mjs.
 import { NAMEK_PASSAGEM } from './namek-passagem.mjs';
 import { VEGETA_PASSAGEM } from './vegeta-passagem.mjs';
+import { TERRA_HUNTS_PASSAGEM } from './terra-hunts-passagem.mjs';
 import { OBSTACLES, PLANETS, areaPorId, casaBloqueia, decoracaoBloqueia, pontoNaZonaSegura } from '../nucleo/config.mjs';
 import { andavelNaTerra, dentroDaCidade, GRADE_TERRA } from './terra.mjs';
 
@@ -32,7 +33,7 @@ function decodificarAreas({ cols, rows, ids, areas }) {
 const mascara = (planet, m) => ({ ...m, cellW: m.cellW * PLANETS[planet].escala, cellH: m.cellH * PLANETS[planet].escala, grade: decodificar(m),
   areas: m.areas ? decodificarAreas(m) : null });
 // Terra: sem imagem de máscara; a grade só dá tamanho às células da busca de caminho (onde se anda vem de terra.mjs).
-const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM), terra: { ...GRADE_TERRA, grade: null, areas: null } };
+const MASCARAS = { namek: mascara('namek', NAMEK_PASSAGEM), vegeta: mascara('vegeta', VEGETA_PASSAGEM), 'terra-hunts': mascara('terra-hunts', TERRA_HUNTS_PASSAGEM), terra: { ...GRADE_TERRA, grade: null, areas: null } };
 
 // A colisão das bordas de rocha e dos objetos (pedras/árvores/cristais/vulcões) vem da própria máscara:
 // ela foi pintada à mão por cima da arte (ferramentas/assar_pintura_mapa.mjs) e já marca como bloqueio tudo que
