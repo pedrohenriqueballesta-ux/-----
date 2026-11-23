@@ -87,6 +87,85 @@ export function bagWeight(inv) {
   return Object.entries(CONFIG.itemWeights).reduce((sum, pair) => sum + (inv[pair[0]] || 0) * pair[1], 0);
 }
 
+// Layout dos espaços da mochila. O inventário por TIPO (p.inventory) continua a fonte de verdade de tudo
+// (peso, loja, loot, venda, missões...); os slots só distribuem esses totais pelos espaços visíveis, para
+// permitir reorganizar, dividir e descartar pilhas. Cada slot é null ou { item, qty }. Invariante: a soma de
+// qty de cada tipo nos slots é igual ao total do inventário daquele tipo.
+export function slotsPadrao(inventory, n = CONFIG.mochilaSlots) {
+  const slots = Array.from({ length: n }, () => null);
+  let i = 0;
+  for (const item of Object.keys(CONFIG.itemWeights)) {
+    const qtd = Math.floor(inventory[item] || 0);
+    if (qtd > 0 && i < n) slots[i++] = { item, qty: qtd };
+  }
+  return slots;
+}
+// Mantém os slots coerentes com os totais quando o estoque muda (loot, uso, compra, venda, descarte...).
+// Preserva ao máximo o arranjo do jogador: só acrescenta o que faltou (no primeiro slot do tipo, senão num
+// vazio) e tira o que sobrou (dos últimos para os primeiros). Entradas inválidas viram vazio.
+export function reconciliarSlots(p, n = CONFIG.mochilaSlots) {
+  let slots = (Array.isArray(p.slots) ? p.slots : []).slice(0, n)
+    .map(s => s && Object.hasOwn(CONFIG.itemWeights, s.item) && Math.floor(s.qty) > 0 ? { item: s.item, qty: Math.floor(s.qty) } : null);
+  while (slots.length < n) slots.push(null);
+  for (const item of Object.keys(CONFIG.itemWeights)) {
+    const total = Math.floor(p.inventory[item] || 0);
+    const soma = slots.reduce((t, s) => t + (s && s.item === item ? s.qty : 0), 0);
+    if (soma === total) continue;
+    if (total <= 0) { for (let i = 0; i < n; i++) if (slots[i]?.item === item) slots[i] = null; continue; }
+    if (soma < total) {
+      let i = slots.findIndex(s => s?.item === item);
+      if (i < 0) i = slots.findIndex(s => !s);
+      if (i < 0) continue;
+      slots[i] = { item, qty: (slots[i]?.qty || 0) + (total - soma) };
+    } else {
+      let excesso = soma - total;
+      for (let i = n - 1; i >= 0 && excesso > 0; i--) {
+        if (slots[i]?.item !== item) continue;
+        const tira = Math.min(excesso, slots[i].qty); slots[i].qty -= tira; excesso -= tira;
+        if (slots[i].qty <= 0) slots[i] = null;
+      }
+    }
+  }
+  p.slots = slots;
+  return slots;
+}
+// Move/junta/troca pilhas entre dois espaços (arrastar). É aplicado sobre os slots ATUAIS do servidor (depois
+// de reconciliar), então não sofre corrida com loot/uso que mudam os totais enquanto o jogador arrasta. Não
+// altera os totais do inventário, só a distribuição: vazio recebe, mesmo item empilha, item diferente troca.
+export function moverSlotMochila(p, de, para, n = CONFIG.mochilaSlots) {
+  if (!Number.isInteger(de) || !Number.isInteger(para) || de < 0 || para < 0 || de >= n || para >= n || de === para) return false;
+  reconciliarSlots(p);
+  const slots = p.slots, o = slots[de]; if (!o) return false;
+  const alvo = slots[para];
+  if (!alvo) { slots[para] = o; slots[de] = null; }
+  else if (alvo.item === o.item) { alvo.qty += o.qty; slots[de] = null; }
+  else { slots[de] = alvo; slots[para] = o; }
+  return true;
+}
+// Divide uma pilha: tira `qtd` do slot `de` e põe num espaço vazio (pilha nova do mesmo item). Só layout,
+// os totais não mudam. Falha se qtd for inválida (precisa sobrar pelo menos 1 no original) ou não houver vazio.
+export function dividirSlotMochila(p, de, qtd, n = CONFIG.mochilaSlots) {
+  if (!Number.isInteger(de) || de < 0 || de >= n) return false;
+  reconciliarSlots(p);
+  const slots = p.slots, o = slots[de]; if (!o) return false;
+  const mover = Math.floor(Number(qtd));
+  if (!Number.isFinite(mover) || mover < 1 || mover >= o.qty) return false;
+  const vazio = slots.findIndex(s => !s); if (vazio < 0) return false;
+  slots[vazio] = { item: o.item, qty: mover }; o.qty -= mover;
+  return true;
+}
+// Descarta a pilha de UM espaço específico: reduz o total do inventário pela qty daquele slot e esvazia o
+// espaço. Mira o slot (não o tipo), então divide/descarta funcionam com o mesmo item em dois quadrados.
+export function descartarSlotMochila(p, de, n = CONFIG.mochilaSlots) {
+  if (!Number.isInteger(de) || de < 0 || de >= n) return false;
+  reconciliarSlots(p);
+  const slots = p.slots, o = slots[de]; if (!o) return false;
+  p.inventory[o.item] = Math.max(0, Math.floor(p.inventory[o.item] || 0) - o.qty);
+  slots[de] = null;
+  reconciliarSlots(p);
+  return true;
+}
+
 // Inventário inicial que o personagem recebe ao entrar.
 const STARTING_INVENTORY = { food: 5, ki: 4, seed15: 2, seed30: 1, seed50: 1, seed100: 1, scrap: 0, crystal: 0 };
 
@@ -155,6 +234,9 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     correioResgatadas:(Array.isArray(saved?.correioResgatadas)?saved.correioResgatadas:[]).filter(id=>typeof id==='string'&&id.length<=120),preferencias:preferenciasValidas(saved?.preferencias??{musicaAtiva:false}),missoes:restaurarMissoes(saved?.missoes),
     novidades: restaurarNovidades(saved?.novidades),
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
+  // Layout dos espaços da mochila: restaura o do save (sanitizado em reconciliarSlots) ou gera o padrão.
+  p.slots = Array.isArray(saved?.slots) ? saved.slots : slotsPadrao(inventory);
+  reconciliarSlots(p);
   p.skin = vocacao.id !== 'vegeta' && saved?.skin === 'natalino' ? 'natalino' : 'base';
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
   atualizarBarraPadrao(p);
@@ -168,7 +250,7 @@ export function exportPlayer(p) {
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
     novidades: restaurarNovidades(p.novidades),
-    hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),barraPersonalizada:!!p.barraPersonalizada,barraKameManual:!!p.barraKameManual,barraTecnicas:barraValida(p.barraTecnicas),inventory: p.inventory, kills: p.kills, bossKills: p.bossKills,
+    hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),barraPersonalizada:!!p.barraPersonalizada,barraKameManual:!!p.barraKameManual,barraTecnicas:barraValida(p.barraTecnicas),inventory: p.inventory, slots: p.slots, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
     kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,
