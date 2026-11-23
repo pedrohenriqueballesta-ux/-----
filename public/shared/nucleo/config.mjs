@@ -106,7 +106,7 @@ export const ZONES = [
   // Por enquanto só o hub (clareira do centro) e a hunt 1 (descampado do oeste, nível 1). Nomes e níveis PROVISÓRIOS.
   // Caixas = contorno do chão na máscara (terra-hunts-passagem.mjs); chegadas em chão livre, longe da borda.
   ...zonasEmPx('terra-hunts', ESCALA_MUNDO, [
-    { id: 'terra-hub', name: 'Terra Selvagem', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
+    { id: 'terra-hub', name: 'Clareira do Centro', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
     { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3498, y: 6, w: 2490, h: 1632, chegada: { x: 4952, y: 998 } }
   ])
 ];
