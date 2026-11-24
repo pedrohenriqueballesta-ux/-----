@@ -126,7 +126,17 @@ export const objetoVegeta = id => loadImage('/assets/vegeta/objetos/' + id + '.w
 
 // Chão de um planeta (ficha em PLANETS): o de Namekusei carrega com o jogo; o dos outros planetas só quando
 // alguém precisa dele (ao chegar lá, ou no menu Mapa), para não baixar ~16 MB a mais na entrada.
-export const soloDe = mundo => art[mundo.solo] || loadImage(mundo.soloUrl);
+export const soloDe = (mundo, area = null) => {
+  // Planeta com um chão por área (Terra Selvagem, Pedro 23/11/2026): só a imagem da área onde se está fica em memória.
+  // Juntas num atlas, hub + Descampado + Deserto ocupariam ~290 MB decodificadas; separadas, no máximo ~180 MB (o Deserto).
+  const s = area && mundo.soloPorArea?.[area];
+  if (!s) return art[mundo.solo] || loadImage(mundo.soloUrl);
+  const anterior = soloDaArea.get(mundo.id);
+  if (anterior && anterior !== s.url) { const img = imageCache.get(anterior); if (img) img.src = ''; imageCache.delete(anterior); }
+  soloDaArea.set(mundo.id, s.url);
+  const img = loadImage(s.url); img.rect = s; return img;
+};
+const soloDaArea = new Map();
 
 // Verdadeiro quando a imagem já carregou e pode ser desenhada.
 // Alguns mobs só têm as folhas novas: enquanto carregam, o atlas de reserva pode não existir.

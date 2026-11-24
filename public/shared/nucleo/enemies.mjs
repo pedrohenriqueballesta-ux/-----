@@ -240,6 +240,8 @@ export function spawnPoints(random) {
     { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true },
     // Terra das hunts, Descampado do Oeste (nível 1): Pássaros e Insetos de Namek PROVISÓRIOS (Pedro, 22/11/2026), com os
     // atributos da hunt inicial de Namek, até chegarem as sprites dos mobs da Terra.
-    ...espalhar(random, 'terra-descampado', 20, i => i % 2 ? 'inseto' : 'passaro')
+    ...espalhar(random, 'terra-descampado', 20, i => i % 2 ? 'inseto' : 'passaro'),
+    // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
+    ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length])
   ];
 }

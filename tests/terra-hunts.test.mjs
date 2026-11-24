@@ -6,7 +6,7 @@ import { pesLivres, podeAndar } from '../public/shared/mundo/passagem.mjs';
 
 // Terra Selvagem (Pedro, 22–23/11/2026): hub na clareira e hunt 1, o Descampado do Oeste.
 test('Terra Selvagem: chegadas e portais em chão livre; a nave da Cidade do Oeste leva ao hub', () => {
-  for (const id of ['terra-hub', 'terra-descampado']) { const z = areaPorId(id); assert.ok(pesLivres('terra-hunts', z.chegada.x, z.chegada.y, 15, id), id); }
+  for (const id of ['terra-hub', 'terra-descampado', 'terra-deserto']) { const z = areaPorId(id); assert.ok(pesLivres('terra-hunts', z.chegada.x, z.chegada.y, 15, id), id); }
   for (const o of PORTAIS.filter(o => o.planet === 'terra-hunts')) assert.ok(pesLivres('terra-hunts', o.x, o.y, 15, o.area), o.id);
   assert.ok(PORTAIS.find(o => o.id === 'terra-nave').destinos.includes('terra-hub'));
 });
@@ -34,4 +34,24 @@ test('Descampado: andar por clique pela grama e pela terra não trava nem treme 
   assert.ok(chegou >= 38, 'chegaram ' + chegou + ' de 40');
   // Antes da correção: ~3.200 viradas bruscas nestas 40 caminhadas (vaivém sem fim); depois, ~100.
   assert.ok(viradas < 200, 'viradas bruscas: ' + viradas);
+});
+
+test('Deserto das Mesas: a trilha do meio é andável; mesas e o mar bloqueiam', () => {
+  // px do mapa da hunt (1536×1024) → mundo: x0 9131, ×(8192/1536).
+  const k = 8192 / 1536, M = (x, y) => [9131 + x * k, y * k];
+  for (const [x, y] of [[870, 470], [880, 600], [760, 200]]) assert.ok(podeAndar('terra-hunts', ...M(x, y), 'terra-deserto'), 'trilha ' + x + ',' + y);
+  for (const [x, y] of [[180, 260], [660, 320], [1040, 400], [100, 700]]) assert.equal(podeAndar('terra-hunts', ...M(x, y), 'terra-deserto'), false, 'bloqueia ' + x + ',' + y);
+});
+test('Deserto das Mesas: andar por clique chega ao destino sem tremer', () => {
+  const z = areaPorId('terra-deserto'); let s = 5; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
+  g.levar(p, { planet: 'terra-hunts', area: 'terra-deserto', chegada: z.chegada });
+  let chegou = 0;
+  for (let k = 0; k < 20; k++) {
+    let alvo; do alvo = { x: z.x + rnd() * z.w, y: z.y + rnd() * z.h }; while (!pesLivres('terra-hunts', alvo.x, alvo.y, 15, 'terra-deserto'));
+    g.action(p.id, { type: 'moveTo', x: alvo.x, y: alvo.y });
+    for (let i = 0; i < 2400 && p.moveTo; i++) g.tick(.05);
+    if (Math.hypot(p.x - alvo.x, p.y - alvo.y) < 40) chegou++;
+  }
+  assert.ok(chegou >= 18, 'chegaram ' + chegou + ' de 20');
 });
