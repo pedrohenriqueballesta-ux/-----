@@ -103,7 +103,9 @@ export function instalarComboAutoHunt(painel, enviar) {
     try {
       const r = await enviar({ type: 'configurarComboAutoHunt', combo });
       if (personagem.id !== id) return;
-      estado.textContent = r?.ok ? 'Configuração salva.' : r?.reason || 'Não foi possível salvar o combo.';
+      estado.textContent = r?.ok
+        ? (r.buffAplicado ? 'Configuração salva. Buff aplicado.' : 'Configuração salva.')
+        : r?.reason || 'Não foi possível salvar o combo.';
     } catch (erro) {
       if (personagem.id === id) estado.textContent = erro.message;
     } finally {

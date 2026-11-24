@@ -61,9 +61,8 @@ test('mínimo individual e reserva depois do custo escolhem uma técnica mais ba
 
 test('buff selecionado reativa com Ki durante a caça e respeita nível, safe zone e pausa', () => {
   const { game, p, entrada, configurar } = luta();
-  assert.ok(configurar([], 25, 'majin').ok);
+  assert.equal(configurar([], 25, 'majin').buffAplicado, true);
   p.autoSkills = false;
-  game.updatePlayer(p, 0);
   assert.equal(p.forma, 'majin');
   game.updatePlayer(p, 0);
   assert.equal(p.forma, 'majin');
@@ -105,8 +104,26 @@ test('buff de nível mais alto troca de forma ao desbloquear um degrau e guarda 
   assert.equal(reconectado.comboAutoHunt.buffMaisAlto, true);
   assert.equal(reconectado.comboAutoHunt.buff, 'ssj');
   assert.equal(configurar([], 20, 'ssj', 'true').ok, false);
-  assert.ok(configurar([], 20, 'ssj', false).ok);
-  game.updatePlayer(p, 0);
+  assert.equal(configurar([], 20, 'ssj', false).buffAplicado, true);
+  assert.equal(p.forma, 'ssj');
+});
+
+test('salvar aplica o buff sem seleção manual e sem ligar a caça, respeitando Ki e conjuração', () => {
+  const { game, p, configurar } = luta();
+  p.autoHunt = false;
+  p.forma = 'base';
+  p.ki = 1;
+  assert.equal(configurar([], 20, null, true).buffAplicado, false);
+  assert.equal(p.forma, 'base');
+  p.ki = p.stats.ki;
+  p.charge = { until: game.time + 1 };
+  assert.equal(configurar([], 20, null, true).buffAplicado, false);
+  assert.equal(p.forma, 'base');
+  p.charge = null;
+  assert.equal(configurar([], 20, null, true).buffAplicado, true);
+  assert.equal(p.forma, 'ssjGod');
+  assert.equal(p.autoHunt, false);
+  assert.equal(configurar([], 20, 'ssj').buffAplicado, true);
   assert.equal(p.forma, 'ssj');
 });
 

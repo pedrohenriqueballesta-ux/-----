@@ -269,7 +269,8 @@ export class Game {
       const combo = validarCombo(data.combo, p.vocacao);
       if (!combo) return this.reject(p, 'Configuração de combo inválida.');
       p.comboAutoHunt = combo;
-      return { ok: true, combo };
+      const buffAplicado = this.aplicarBuffDoCombo(p);
+      return { ok: true, combo, buffAplicado };
     }
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
@@ -548,6 +549,14 @@ export class Game {
     if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
     this.notify(p, disponivel.nome + ' ativado!' + (disponivel.duracao ? ' Duração: ' + Math.round(disponivel.duracao / 60) + ' min.' : ''));
     return { ok: true };
+  }
+  aplicarBuffDoCombo(p) {
+    const combo = p.comboAutoHunt;
+    if (!combo) return false;
+    const buff = combo.buffMaisAlto ? formaDisponivel(p.level, p.vocacao)?.forma : combo.buff;
+    if (!buff || p.forma === buff || p.charge || p.finalFlashAtivo || p.ryuken ||
+      this.genkiCharges.some(g => g.owner === p.id) || !kiPermiteCombo(p, 'transform')) return false;
+    return this.cast(p, 'transform', true, buff).ok;
   }
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
@@ -937,10 +946,7 @@ export class Game {
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const combo = p.comboAutoHunt;
     const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
-    if (p.autoHunt && combo && !p.charge && !conjurandoCombo) {
-      const buff = combo.buffMaisAlto ? formaDisponivel(p.level, p.vocacao)?.forma : combo.buff;
-      if (buff && p.forma !== buff && kiPermiteCombo(p, 'transform')) this.cast(p, 'transform', true, buff);
-    }
+    if (p.autoHunt && !conjurandoCombo) this.aplicarBuffDoCombo(p);
     let target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
