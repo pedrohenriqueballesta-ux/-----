@@ -1,3 +1,6 @@
+import { aplicarRaridadeItem } from '../render/hud/hud-elementos.mjs';
+import { acaoConsumivel } from '../shared/tecnicas/consumiveis-hotkeys.mjs';
+import { NOVOS_ITENS } from '../shared/sistemas/catalogo-itens.mjs';
 import { nomeDaForma } from '../shared/tecnicas/formas.mjs';
 import { nivelDaTecnica, tecnicasDoPerfil } from '../shared/tecnicas/barra-tecnicas.mjs';
 import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
@@ -154,12 +157,12 @@ export function atualizarHud(snapshot, playerId) {
     ? pendentes.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];
   $('nextUnlock').textContent = s.level >= CONFIG.progression.nivelMaximo ? 'Nível máximo alcançado.' : primeiroDesbloqueio
     ? `Próximo desbloqueio: ${desbloqueiosNoNivel.join(' e ')} · NV. ${primeiroDesbloqueio[1]}` : 'Todas as habilidades principais desbloqueadas.';
-  const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
+  const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Ki do equipamento', (s.stats.kiEquipamento ?? 0).toLocaleString('pt-BR', {maximumFractionDigits:2}) + ' / s'], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
-  for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
+  for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoEnergyPotion', 'autoSeed']) $(key).checked = s[key];
   $('autoHeal').checked = s.autoHeal;
   atualizarComboAutoHunt?.(s, snapshot.selfId);
-  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
+  for (const key of ['healThreshold', 'kiThreshold', 'energyPotionThreshold', 'seedThreshold']) {
     if (document.activeElement !== $(key)) $(key).value = s[key];
   }
   $('autoHuntSummary').textContent = s.autoHunt ? 'ON' : 'OFF';
@@ -169,11 +172,13 @@ export function atualizarHud(snapshot, playerId) {
   $('quickHunt').disabled = !s.autoHunt && (!hunt || hunt.segura);
   $('autoHuntLocation').textContent = !hunt || hunt.segura ? 'Entre em uma hunt para iniciar.' : (s.autoHunt ? 'Caçando em ' : 'Local: ') + hunt.name;
   $('autoKiInfo').textContent = `${s.inventory.ki} poções · ${!s.inventory.ki ? 'sem estoque' : s.kiRemaining > 0 ? 'recarga ' + s.kiRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
+  const estoqueEnergia = s.inventory['pocao-energia'] ?? 0;
+  $('autoEnergyPotionInfo').textContent = `Estoque: ${estoqueEnergia} · ${!estoqueEnergia ? 'sem estoque' : s.kiRemaining > 0 ? 'recarga ' + s.kiRemaining.toFixed(1) + 's' : 'pronta para usar'}`;
   $('autoSeedInfo').textContent = `${s.inventory['seed' + s.seedSelected]} sementes de ${s.seedSelected}% · ${!s.inventory['seed' + s.seedSelected] ? 'sem estoque' : s.seedRemaining > 0 ? 'recarga ' + s.seedRemaining.toFixed(1) + 's' : 'pronto para usar'}`;
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food;
-  $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + s.inventory.crystal + ' cristais';
+  $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + (s.inventory['cristal-azul'] ?? 0) + ' cristais azuis';
   $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);abasHud?.atualizar(snapshot);
@@ -186,7 +191,16 @@ export function atualizarHud(snapshot, playerId) {
   // Buff da comida acima da barra de skills: aparece ao comer e conta o tempo restante.
   const comidaAtiva = s.foodRemaining > 0;
   $('buffComida').classList.toggle('hidden', !comidaAtiva);
-  if (comidaAtiva) $('buffComidaTempo').textContent = clock(s.foodRemaining);
+  if (comidaAtiva) {
+    const buff = $('buffComida'), id = s.foodId ?? 'food';
+    if (buff.dataset.item !== id) {
+      const alimento = NOVOS_ITENS[id];
+      buff.dataset.item = id;
+      buff.querySelector('img').src = alimento?.icone ?? '/assets/hud/comida/presunto.png';
+      buff.querySelector('span').textContent = alimento?.nome ?? 'Presunto';
+    }
+    $('buffComidaTempo').textContent = clock(s.foodRemaining);
+  }
   $('huntStatus').textContent = s.autoHunt ? 'CAÇA AUTOMÁTICA ATIVA' : 'Exploração manual';
   for (const [botao, ligado] of [[$('quickHunt'), s.autoHunt], ...[...document.querySelectorAll('[data-toggle]')].map(b => [b, s[b.dataset.toggle]])]) {
     botao.classList.toggle('ligado', Boolean(ligado)); const estado = botao.querySelector('b'); if (estado) estado.textContent = ligado ? 'ON' : 'OFF';
@@ -203,7 +217,7 @@ export function atualizarHud(snapshot, playerId) {
   $('onlineText').textContent = snapshot.players.length + (snapshot.players.length === 1 ? ' jogador conectado' : ' jogadores conectados');
   $('coordsText').textContent = 'X: ' + Math.round(p.x) + '   Y: ' + Math.round(p.y);
   $('missionKills').textContent = Math.min(10, s.kills || 0);
-  $('missionMaterials').textContent = (s.inventory.scrap || 0) + (s.inventory.crystal || 0);
+  $('missionMaterials').textContent = (s.inventory.scrap || 0) + (s.inventory['cristal-azul'] || 0);
   $('missionLevel').textContent = s.level;
   const target = snapshot.mobs.find(m => m.id === s.targetId) || snapshot.players.find(v => v.id === s.targetId);
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
@@ -277,19 +291,17 @@ function abrirMapa() {
   solo.onload = desenhar; solo.src = mundo.soloUrl; desenhar();
 }
 
-// Mochila: janela não modal (o jogo segue por trás). Cada tipo de item ocupa um espaço, com a quantidade;
-// clicar num consumível usa. Equipamento ainda não existe no jogo: os espaços em volta da silhueta ficam
-// vazios, com o ícone fantasma do tipo. Itens usam as imagens do pacote de inventário fornecido.
+// Mochila: consumíveis usam no clique e equipamentos ocupam o espaço correspondente à peça.
 const ITENS_MOCHILA = [
   { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
   { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
   ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '/assets/inventario/semente_dos_deuses.png', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
   { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
-  { key: 'crystal', nome: 'Cristal', icone: '/assets/inventario/cristal.png', tipo: 'material' }
+  ...Object.values(NOVOS_ITENS).map(item => ({ ...item, key: item.id, usar: acaoConsumivel(item.id) }))
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).
 const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
-const SLOTS_EQUIP = [['mochila', 'Mochila', 212, 189, 306, 276], ['cabeca', 'Cabeça', 377, 152, 476, 231], ['colar', 'Colar', 547, 189, 641, 276],
+const SLOTS_EQUIP = [['mochila', 'Mochila', 212, 189, 306, 276], ['cabeca', 'Capacete / bandana', 377, 152, 476, 231], ['colar', 'Colar / brincos', 547, 189, 641, 276],
   ['anel', 'Anel', 212, 301, 306, 387], ['peito', 'Roupa', 379, 305, 475, 387], ['braco', 'Munhequeira', 547, 301, 641, 387],
   ['arma', 'Arma', 212, 411, 306, 497], ['calca', 'Calça', 379, 407, 475, 489], ['cinto', 'Faixa', 547, 411, 641, 497], ['botas', 'Botas', 379, 499, 475, 573]];
 let abaMochila = 'tudo', mochilaDesenhada = '', arrastandoConsumivel=false, evitarCliqueConsumivel=0, arrastandoSlot=false;
@@ -304,8 +316,34 @@ function montarMochila() {
   for (const [id, nome, ...caixa] of SLOTS_EQUIP) {
     const slot = document.createElement('button'); slot.type = 'button'; slot.className = 'slot slot-equip'; slot.title = nome + ' (vazio)';
     const img = document.createElement('img'); img.src = '/assets/hud/mochila/' + id + '.png'; img.alt = '';
+    slot.dataset.equipSlot = id;
+    slot.dataset.equipNome = nome;
+    img.draggable = false;
+    slot.ondragstart = e => {
+      if (!slot.dataset.equipItem) { e.preventDefault(); return; }
+      arrastandoSlot = true;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('application/x-dbi-vestido', id);
+      e.dataTransfer.setData('application/x-dbi-item', slot.dataset.equipItem);
+      e.dataTransfer.setData('application/x-dbi-peca-' + slot.dataset.equipItem, '1');
+    };
+    slot.ondragend = finalizarArrastoMochila;
+    const tipo = 'application/x-dbi-equip-' + id;
+    slot.ondragover = e => {
+      if (!e.dataTransfer.types.includes(tipo)) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('slot-destino');
+    };
+    slot.ondragleave = () => slot.classList.remove('slot-destino');
+    slot.ondrop = e => {
+      const item = e.dataTransfer.getData(tipo);
+      if (!item) return;
+      e.preventDefault();
+      action({ type: 'equiparItem', item, slot: id, de: Number(e.dataTransfer.getData('application/x-dbi-slot')) });
+      finalizarArrastoMochila();
+    };
     slot.append(img); naArea(slot, ...caixa); equip.append(slot);
   }
+  $('mochilaDialog').addEventListener('close', fecharMenuItem);
   for (const aba of document.querySelectorAll('[data-aba]')) aba.onclick = () => {
     abaMochila = aba.dataset.aba; mochilaDesenhada = '';
     for (const a of document.querySelectorAll('[data-aba]')) a.classList.toggle('ativa', a === aba);
@@ -319,6 +357,18 @@ function atualizarMochila(s) {
   $('mochilaPesoBarra').style.width = Math.min(100, 100 * s.weight / Math.max(1, s.stats.capacity)) + '%';
   $('mochilaPesoBarra').parentElement?.classList.toggle('cheia', pesoCheio);
   $('mochilaZeni').textContent = integer(s.zeni);
+  for (const slot of $('mochilaEquip').querySelectorAll('[data-equip-slot]')) {
+    const id = slot.dataset.equipSlot, item = NOVOS_ITENS[s.equipamentos?.[id]];
+    const chave = item?.id ?? '';
+    if (slot.dataset.equipItem === chave) continue;
+    slot.dataset.equipItem = chave;
+    aplicarRaridadeItem(slot, chave);
+    slot.querySelector('img').src = item?.icone ?? '/assets/hud/mochila/' + id + '.png';
+    slot.draggable = Boolean(item);
+    if (item) slot.removeAttribute('title');
+    else slot.title = slot.dataset.equipNome + ' (vazio)';
+    slot.setAttribute('aria-label', item ? item.nome + ' · arraste para a mochila' : slot.title);
+  }
   // A grade desenha os ESPAÇOS por índice (s.slots): cada item fica onde o jogador o deixou. A aba só mostra
   // os espaços do tipo filtrado; os demais ocupados ficam ocultos (não recebem arrasto, para não esconder item).
   const slots = Array.isArray(s.slots) ? s.slots : [];
@@ -334,23 +384,26 @@ function atualizarMochila(s) {
       // Espaço vazio: alvo de arrasto (receber um item), sem clique. Espaço ocupado por item de outra aba: inerte.
       if (!mostra) { if (dado) slot.classList.add('slot-oculto'); else { slot.classList.add('slot-vazio'); ligarDropSlot(slot, n); } return slot; }
       const qtd = dado.qty;
-      slot.dataset.item = item.key; slot.draggable = true;
+      slot.dataset.item = item.key; slot.draggable = true; aplicarRaridadeItem(slot, item.key);
       slot.addEventListener('dragstart', e => {
         arrastandoSlot = true; evitarCliqueConsumivel = performance.now() + 300;
         e.dataTransfer.effectAllowed = item.usar ? 'copyMove' : 'move';
         e.dataTransfer.setData('application/x-dbi-slot', String(n));
         if (item.usar) { e.dataTransfer.setData('application/x-dbi-consumivel', item.key); e.dataTransfer.setData('text/plain', item.key); }
+        if (item.slot) e.dataTransfer.setData('application/x-dbi-equip-' + item.slot, item.id);
         if (item.usar) arrastandoConsumivel = true;   // habilita soltar na hotkey 7/8
       });
-      slot.addEventListener('dragend', () => { arrastandoSlot = false; arrastandoConsumivel = false; evitarCliqueConsumivel = performance.now() + 300; mochilaDesenhada = ''; atualizarMochila(ctx?.snapshot()?.self); });
-      ligarDropSlot(slot, n);
+      slot.addEventListener('dragend', finalizarArrastoMochila);
+      ligarDropSlot(slot, n, dado.item);
       const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
       imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
-      slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar · arraste para mover ou para a hotkey 7/8 · botão direito para dividir/excluir' : ' — arraste para mover · botão direito para dividir/excluir');
-      slot.setAttribute('aria-label', slot.title);
+      slot.setAttribute('aria-label', item.nome + ' × ' + qtd + (item.slot ? ' · arraste para equipar' : ''));
       if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
       const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
-      slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && !arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar); };
+      if (item.usar) slot.onclick = () => {
+        slot.blur();
+        if (!arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar);
+      };
       slot.addEventListener('contextmenu', e => { e.preventDefault(); abrirMenuItem(e, n, item, qtd); });
       return slot;
     }));
@@ -363,19 +416,35 @@ function atualizarMochila(s) {
 }
 // Faz um espaço aceitar outro item arrastado da grade (reorganizar/juntar/trocar). Mandamos só a operação
 // (de qual índice para qual) e o servidor aplica sobre os slots atuais dele.
-function ligarDropSlot(slot, n) {
+function finalizarArrastoMochila() {
+  arrastandoSlot = false; arrastandoConsumivel = false; evitarCliqueConsumivel = performance.now() + 300;
+  for (const slot of $('mochilaDialog').querySelectorAll('.slot-destino')) slot.classList.remove('slot-destino');
+  atualizarMochila(ctx?.snapshot()?.self);
+}
+function ligarDropSlot(slot, n, item) {
   slot.addEventListener('dragover', e => {
-    if (!e.dataTransfer.types.includes('application/x-dbi-slot')) return;
+    const tipos = e.dataTransfer.types;
+    const aceitaVestido = tipos.includes('application/x-dbi-vestido') && (!item || tipos.includes('application/x-dbi-peca-' + item));
+    if (!tipos.includes('application/x-dbi-slot') && !aceitaVestido) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('slot-destino');
   });
   slot.addEventListener('dragleave', () => slot.classList.remove('slot-destino'));
   slot.addEventListener('drop', e => {
-    if (!e.dataTransfer.types.includes('application/x-dbi-slot')) return;
-    e.preventDefault(); e.stopPropagation(); slot.classList.remove('slot-destino');
-    const de = Math.floor(Number(e.dataTransfer.getData('application/x-dbi-slot')));
-    if (Number.isInteger(de) && de !== n) { action({ type: 'moverSlot', de, para: n }); mochilaDesenhada = ''; }
+    const vestido = e.dataTransfer.getData('application/x-dbi-vestido');
+    if (vestido) {
+      if (item && item !== e.dataTransfer.getData('application/x-dbi-item')) return;
+      e.preventDefault(); e.stopPropagation();
+      action({ type: 'desequiparItem', slot: vestido, item: e.dataTransfer.getData('application/x-dbi-item'), para: n });
+    } else {
+      if (!e.dataTransfer.types.includes('application/x-dbi-slot')) return;
+      e.preventDefault(); e.stopPropagation();
+      const de = Number(e.dataTransfer.getData('application/x-dbi-slot'));
+      if (Number.isInteger(de) && de !== n) action({ type: 'moverSlot', de, para: n });
+    }
+    finalizarArrastoMochila();
   });
 }
+
 // Menu de botão direito num item: Dividir (abre o seletor de quantidade) e Excluir (descarta a pilha do espaço).
 let menuItemEl = null;
 function fecharMenuItem() { menuItemEl?.remove(); menuItemEl = null; }
@@ -525,9 +594,9 @@ export function ligarHud(contexto) {
   $('chatInput').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') $('chatInput').blur(); });
   // Ataque e técnicas automáticos (a caça automática é o botão quickHunt).
   for (const btn of document.querySelectorAll('[data-toggle]')) btn.onclick = () => action({ type: 'toggle', key: btn.dataset.toggle, value: !ctx.snapshot()?.self?.[btn.dataset.toggle] });
-  for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
+  for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoEnergyPotion', 'autoSeed']) $(key).addEventListener('change', () => action({ type: 'toggle', key, value: $(key).checked }));
   $('autoHeal').onchange = () => action({ type: 'toggle', key: 'autoHeal', value: $('autoHeal').checked });
-  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) $(key).onchange = () => {
+  for (const key of ['healThreshold', 'kiThreshold', 'energyPotionThreshold', 'seedThreshold']) $(key).onchange = () => {
     const input = $(key), value = Number(input.value);
     if (!input.checkValidity() || !Number.isInteger(value)) { input.reportValidity(); return; }
     action({ type: 'automationThreshold', key, value });
@@ -569,5 +638,4 @@ export function ligarHud(contexto) {
   $('shopButton').onclick = () => lojaHud.abrir();
   for (const btn of document.querySelectorAll('[data-close]')) btn.onclick = () => $(btn.dataset.close).close();
   $('saveButton').onclick = async () => { try { await ctx.api('save'); notify('Progresso salvo no servidor.'); } catch (e) { notify(e.message); } };
-  $('sellButton').onclick = () => action({ type: 'sell' });
 }

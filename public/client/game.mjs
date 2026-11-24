@@ -1,3 +1,4 @@
+import { NOVOS_ITENS } from '../shared/sistemas/catalogo-itens.mjs';
 import {apresentarGenkiJogador,POSE_GENKI} from '../render/vfx/genki-personagem.mjs';
 import {acaoDaTecnica,barraValida,tecnicaDisponivel} from '../shared/tecnicas/barra-tecnicas.mjs';
 import {instalarAtalhosInterface} from './atalhos.mjs';
@@ -54,6 +55,7 @@ let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = nu
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
 let zoomMini = 1, vistaMini = null, destinoMini = null;
 let centroMini = null, arrastoMini = null, ponteiroMini = null;
+const lootIcones = new Map();
 const npcIcones = new Map();
 const NPC_INFO = Object.freeze({
   'Bulma': { funcao: 'Corporação Cápsula', imagem: '/assets/terra/npc/bulma.png' },
@@ -779,7 +781,22 @@ function frame(now) {
     for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra') cargaLaser(m, m.telegraph, time);
     // Rachadura da pancada no chão (imagem do Pedro), por baixo de todo mundo, sumindo aos poucos.
     for (const e of floating) if (e.type === 'pancada' && time >= e.at) rachadura(e, time - e.at);
-    for (const l of snapshot.loot) { shadow(l.x, l.y, 7); ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'crystal' ? '#83d2d3' : '#d7c8a3'; ctx.fillRect(l.x - 5, l.y - 6 + Math.sin(time * 3) * 2, 10, 9); ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3); }
+    for (const l of snapshot.loot) {
+      shadow(l.x, l.y, 7);
+      const item = NOVOS_ITENS[l.item];
+      let icone = lootIcones.get(l.item);
+      if (item && !icone) {
+        icone = new Image(); icone.src = item.icone; lootIcones.set(l.item, icone);
+      }
+      const y = l.y + Math.sin(time * 3) * 2;
+      if (icone?.complete && icone.naturalWidth) {
+        ctx.drawImage(icone, l.x - 8, y - 13, 16, 16);
+      } else {
+        ctx.fillStyle = l.item.startsWith('seed') ? '#a4cf72' : l.item === 'cristal-azul' ? '#83d2d3' : '#d7c8a3';
+        ctx.fillRect(l.x - 5, y - 6, 10, 9);
+        ctx.fillStyle = '#edf3c1'; ctx.fillRect(l.x - 2, l.y - 8, 4, 3);
+      }
+    }
   } else {
     // Planeta Terra: gramado verde limpo e seguro (tela inicial).
     ctx.fillStyle = '#5a8f3c'; ctx.fillRect(0, 0, world.w, world.h);

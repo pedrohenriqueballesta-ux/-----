@@ -2,10 +2,11 @@ import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
+import { dropsEspecificos } from '../public/shared/sistemas/catalogo-itens.mjs';
 import { criarBestiario } from '../public/shared/sistemas/bestiario.mjs';
 import { mobStats, TEMPO_CHEFE_RARO } from '../public/shared/nucleo/enemies.mjs';
 import { areaPorId } from '../public/shared/nucleo/config.mjs';
-import { RECOMPENSAS_MOBS } from '../public/shared/sistemas/recompensas-mobs.mjs';
+import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from '../public/shared/sistemas/recompensas-mobs.mjs';
 import { createGameServer } from '../server.mjs';
 
 test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda mortos', () => {
@@ -25,13 +26,19 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
   assert.deepEqual(criarBestiario(g.mobs.values()),catalogo,'HP atual não contamina atributos de referência');
 });
 
-test('drops e Zeni do catálogo preservam probabilidades e recompensas existentes', () => {
-  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:5,zeniVariacao:5,zeniChefe:100,fracaoCristal:.3,chanceSemente15:.008});
+test('drops e Zeni do catálogo mostram recompensas e chances do servidor', () => {
+  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:5,zeniVariacao:5,zeniChefe:100,fracaoCristal:.16,chanceSemente15:.008});
+  assert.deepEqual(faixaZeniMob(25),[5,9]);
+  assert.deepEqual(faixaZeniMob(100),[54,58]);
+  assert.deepEqual(faixaZeniMob(150,true),[100,100]);
   const g=new Game(),catalogo=criarBestiario(g.mobs.values());
   for(const m of catalogo){
-    assert.deepEqual(m.zeni,m.raro?[100,100]:[5,9]);
-    assert.deepEqual(m.drops.map(d=>d.item),['scrap','crystal','seed15']);
+    assert.deepEqual(m.zeni,faixaZeniMob(m.nivel,m.raro));
+    assert.deepEqual(m.drops.slice(0,3).map(d=>d.item),['scrap','cristal-azul','seed15']);
+    assert.deepEqual(m.drops.slice(3),dropsEspecificos(m.tipo));
     assert.equal(m.drops[0].fracaoLoot+m.drops[1].fracaoLoot,1);
+    assert.equal(m.drops[1].fracaoLoot,fracaoCristalAzul(m.tipo));
+    assert.equal(m.drops.filter(d => d.item === 'cristal-azul').length,1);
     assert.equal(m.drops[2].chance,.008);
   }
 });

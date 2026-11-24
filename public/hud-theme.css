@@ -148,8 +148,8 @@ body:has(#battlePassDialog[open]) .hud-menus [data-menu="battlepass"] {
   background: var(--db-hud-header);
 }
 .bestiario.hud-tema > header h2, .godmode-dialog.hud-tema > header h2, #shopDialog.hud-tema > header h2, .novidades-hud.hud-tema > header h2 { margin: 0; color: #fff; }
-.bestiario.hud-tema > .bestiario-filtros, .bestiario.hud-tema > .bestiario-resumo { margin-inline: 18px; }
-.bestiario.hud-tema > .bestiario-corpo { min-height: 0; margin: 0 18px; padding-bottom: 0; }
+.bestiario.hud-tema > :is(.enciclopedia-abas, .enciclopedia-painel) { padding-inline: clamp(12px, 3vw, 18px); }
+.bestiario.hud-tema > .enciclopedia-painel { padding-bottom: 18px; }
 .bestiario.hud-tema .bestiario-lista, .bestiario.hud-tema .bestiario-detalhe { scrollbar-width: thin; scrollbar-color: var(--db-hud-gold) var(--db-hud-panel); }
 .godmode-dialog.hud-tema[open] { display: flex; flex-direction: column; height: min(720px, calc(100dvh - 24px)); padding: 0; }
 .godmode-dialog.hud-tema > .godmode-tabs { flex: 0 0 auto; margin: 0; padding: 12px 18px; }
@@ -262,7 +262,7 @@ progress { accent-color: #05bfed; }
   .hud-funcional.hud-tema:not([data-hud-view="missoes"]) > header h2, .bestiario.hud-tema > header h2, .worlds-dialog.hud-tema .worlds-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
   .hud-funcional.hud-tema:not([data-hud-view="missoes"]) > .hud-funcional-corpo { padding: 14px 14px 64px; }
   .bestiario.hud-tema[open] { height: min(740px, calc(100dvh - 84px)); max-height: calc(100dvh - 84px); }
-  .bestiario.hud-tema > .bestiario-corpo { display: flex; flex: 1 1 auto; flex-direction: column; overflow: auto; padding-bottom: 0; }
+  .bestiario.hud-tema .enciclopedia-painel > .bestiario-corpo { display: flex; flex: 1 1 auto; flex-direction: column; overflow: auto; }
   .bestiario.hud-tema .bestiario-lista { flex: 0 0 auto; max-height: 155px; }
   .bestiario.hud-tema .bestiario-detalhe { flex: 0 0 auto; overflow: visible; }
   .worlds-dialog.hud-tema .worlds-body { padding: 14px 14px 64px; }

@@ -1,5 +1,6 @@
 import {consumivelValido,hotkeysConsumiveisValidas} from '../../shared/tecnicas/consumiveis-hotkeys.mjs';
 import {ITENS_NEGOCIAVEIS} from '../../shared/sistemas/itens-negociaveis.mjs';
+import { recargaConsumivel } from './recargas-hud.mjs';
 let arrastando=false,evitarCliqueAte=0;
 const botoes=()=>[document.getElementById('seedButton'),document.getElementById('kiPotionButton')];
 export function instalarConsumiveisHud(acao){
@@ -37,7 +38,7 @@ export function atualizarConsumiveisHud(s){
   b.dataset.item=id;
   const icone=b.querySelector('.tecnica-icone');icone.className='tecnica-icone consumivel-personalizado';icone.style.backgroundImage='url('+item.icone+')';
   b.querySelector('strong').textContent=item.nome;
-  const quantidade=s.inventory[id]||0,restante=id==='ki'?s.kiRemaining:id==='food'?Math.max(0,(s.foodRemaining||0)-1):s.seedRemaining;
+  const quantidade=s.inventory[id]||0,restante=recargaConsumivel(s,id);
   b.querySelector('.contagem').textContent=quantidade;b.querySelector('.recarga-item').textContent=restante>0?Math.ceil(restante)+'s':'';
   // Não desabilitar o elemento: ele deve aceitar drop mesmo sem estoque ou em cooldown.
   b.disabled=false;b.classList.toggle('consumivel-indisponivel',!quantidade||restante>0);b.classList.toggle('cooling',restante>0);

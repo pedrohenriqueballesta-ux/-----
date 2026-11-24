@@ -1,3 +1,4 @@
+import {NOVOS_ITENS} from '../sistemas/catalogo-itens.mjs';
 import {CONFIG} from '../nucleo/config.mjs';
 import {FORMAS,formaDisponivel,formasDaVocacao} from './formas.mjs';
 import {consumivelValido,acaoConsumivel} from './consumiveis-hotkeys.mjs';
@@ -23,6 +24,10 @@ export const TECNICAS=Object.freeze([
  {id:'skill:superKamehameha',nome:'Super Kamehameha',nivel:CONFIG.skills.superKamehameha,icone:'sprite-super-kame',custo:`${SUPER_KAME.custo} Ki`,recarga:`${SUPER_KAME.recarga} s`},
  {id:'item:food',nome:'Presunto',nivel:1,imagem:'/assets/inventario/comida.png',custo:'1 item',recarga:'Durante o efeito'},
  {id:'item:ki',nome:'Poção de Ki',nivel:1,imagem:'/assets/inventario/pocao_ki.png',custo:'1 item',recarga:'0,7 s'},
+ ...Object.values(NOVOS_ITENS).filter(item => item.consumo).map(item => ({
+   id: 'item:' + item.id, nome: item.nome, nivel: 1, imagem: item.icone, custo: '1 item',
+   recarga: item.consumo.tipo === 'comida' ? 'Durante o efeito' : '0,7 s compartilhada'
+ })),
  ...CONFIG.seedPotencies.map(n=>({id:'item:seed'+n,nome:'Semente '+n+'%',nivel:1,imagem:'/assets/inventario/semente_dos_deuses.png',custo:'1 item',recarga:'20 s'}))
 ]);
 const ids=new Set(TECNICAS.map(t=>t.id));

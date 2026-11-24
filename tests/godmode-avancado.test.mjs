@@ -55,12 +55,13 @@ test('God Mode valida configurações e entrega qualquer item do catálogo sem a
   assert.equal(game.action(player.id, { type: 'godmodeConfig', options: { level: 0 } }).ok, false);
   assert.equal(game.action(player.id, { type: 'godmodeGrantItem', item: 'food', quantidade: 1 }).ok, false);
   game.action(player.id, { type: 'godmode' });
-  for (const item of Object.values(ITENS_NEGOCIAVEIS)) {
+  const itens = Object.values(ITENS_NEGOCIAVEIS).filter(item => !item.origem);
+  for (const item of itens) {
     const antes = player.inventory[item.id] || 0;
     assert.equal(game.action(player.id, { type: 'godmodeGrantItem', item: item.id, quantidade: 3 }).ok, true);
     assert.equal(player.inventory[item.id], antes + 3, item.id);
   }
-  assert.equal(bagWeight(player.inventory), pesoAntes + Object.values(ITENS_NEGOCIAVEIS).reduce((soma, item) => soma + 3 * item.peso, 0));
+  assert.equal(bagWeight(player.inventory), pesoAntes + itens.reduce((soma, item) => soma + 3 * item.peso, 0));
   for (const dados of [
     { item: '__proto__', quantidade: 1 }, { item: 'toString', quantidade: 1 },
     { item: 'food', quantidade: 0 }, { item: 'food', quantidade: 1.5 }, { item: 'food', quantidade: 10000 }

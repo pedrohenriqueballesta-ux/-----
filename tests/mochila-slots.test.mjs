@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createPlayer, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila, slotsPadrao } from '../public/shared/nucleo/characters.mjs';
 
 const soma = (p, item) => p.slots.reduce((t, s) => t + (s && s.item === item ? s.qty : 0), 0);
-const inv = o => ({ food: 0, ki: 0, seed15: 0, seed30: 0, seed50: 0, seed100: 0, scrap: 0, crystal: 0, ...o });
+const inv = o => ({ food: 0, ki: 0, seed15: 0, seed30: 0, seed50: 0, seed100: 0, scrap: 0, ...o });
 function novo(o) { const p = { inventory: inv(o) }; p.slots = slotsPadrao(p.inventory); reconciliarSlots(p); return p; }
 
 test('o layout padrão empacota os totais nos primeiros espaços', () => {

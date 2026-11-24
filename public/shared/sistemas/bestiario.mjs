@@ -1,7 +1,8 @@
 import { PLANETS, areaPorId } from '../nucleo/config.mjs';
 import { mobStats, TEMPO_CHEFE_RARO } from '../nucleo/enemies.mjs';
 import { SOCA_E_ATIRA } from '../nucleo/game.mjs';
-import { RECOMPENSAS_MOBS } from './recompensas-mobs.mjs';
+import { NOVOS_ITENS, dropsEspecificos } from './catalogo-itens.mjs';
+import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from './recompensas-mobs.mjs';
 
 // Usa as espécies cadastradas no mundo, inclusive os chefes que ainda não nasceram.
 // Atributos vêm da ficha base, nunca da vida/dano temporário do mob em combate.
@@ -13,6 +14,7 @@ export function criarBestiario(inimigos) {
     vistos.add(id); return true;
   }).map(m => {
     const z = areaPorId(m.area), atributos = mobStats(m.type, m.area), raro = Boolean(m.raro);
+    const fracaoCristal = fracaoCristalAzul(m.type);
     const respawn = TEMPO_CHEFE_RARO[m.type];
     const categoria = raro ? 'Chefe raro' : m.type === 'subboss' ? 'Subchefe' : 'Comum';
     const ataques = m.type === 'neva' ? 'Magia da mão de curto alcance e rajada de Ki TARGET' : m.type === 'freezaBoss' ? 'Death Beam; Supernova na forma de nave' : m.type === 'oozaruDourado' ? 'Pancada em área e bola de energia negra' : m.type === 'subboss' ? 'Golpe em área' : SOCA_E_ATIRA.has(m.type) || m.type === 'veterano' ? 'Corpo a corpo e projéteis de Ki TARGET' : 'Corpo a corpo';
@@ -21,10 +23,10 @@ export function criarBestiario(inimigos) {
       hp:atributos.hp, ataque:atributos.attack, defesa:atributos.defesa, xp:atributos.xp, velocidade:atributos.speed,
       agressivo:atributos.agressivo, aggro:atributos.aggro, perseguicao:atributos.perseguicao, ataques,
       renascimento:respawn ? [respawn.minimo,respawn.maximo] : m.type === 'subboss' ? [60,60] : [12,12],
-      zeni:raro ? [RECOMPENSAS_MOBS.zeniChefe,RECOMPENSAS_MOBS.zeniChefe] : [RECOMPENSAS_MOBS.zeniMinimo,RECOMPENSAS_MOBS.zeniMinimo+RECOMPENSAS_MOBS.zeniVariacao-1],
-      drops:[{item:'scrap',nome:'Sucata',fracaoLoot:1-RECOMPENSAS_MOBS.fracaoCristal},
-        {item:'crystal',nome:'Cristal',fracaoLoot:RECOMPENSAS_MOBS.fracaoCristal},
-        {item:'seed15',nome:'Semente dos Deuses 15%',chance:RECOMPENSAS_MOBS.chanceSemente15}],
+      zeni:faixaZeniMob(atributos.level, raro),
+      drops:[{item:'scrap',nome:'Sucata',fracaoLoot:1-fracaoCristal},
+        {item:'cristal-azul',nome:NOVOS_ITENS['cristal-azul'].nome,fracaoLoot:fracaoCristal},
+        {item:'seed15',nome:'Semente dos Deuses 15%',chance:RECOMPENSAS_MOBS.chanceSemente15}, ...dropsEspecificos(m.type)],
       observacoes:[...(atributos.projetil ? ['Projétil TARGET: segue o jogador e acerta enquanto o alvo estiver vivo e válido. Safe zones e troca de área cancelam o ataque.'] : []),...(raro ? ['Chefe raro: a faixa recomendada é da hunt. Pode exigir grupo, equipamento e nível superior.'] : []),
         ...(atributos.nave ? ['Ao chegar a 40% do HP, Freeza entra na nave: ataque ×1,35, defesa ×1,25 e velocidade ×0,8.'] : [])]
     };

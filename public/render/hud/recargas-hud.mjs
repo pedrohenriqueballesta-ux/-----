@@ -1,3 +1,5 @@
+import { CONSUMIVEIS_LOOT } from '../../shared/tecnicas/consumiveis-loot.mjs';
+
 const campos = {
   'skill:basic': 'basicRemaining',
   'skill:ki': 'shotRemaining',
@@ -13,8 +15,9 @@ const campos = {
 };
 
 export function recargaConsumivel(estado, item) {
-  if (item === 'food') return Math.max(0, (estado?.foodRemaining ?? 0) - 1);
-  if (item === 'ki') return estado?.kiRemaining ?? 0;
+  const consumo = CONSUMIVEIS_LOOT[item];
+  if (item === 'food' || consumo?.tipo === 'comida') return Math.max(0, (estado?.foodRemaining ?? 0) - 1);
+  if (item === 'ki' || consumo?.tipo === 'pocao') return estado?.kiRemaining ?? 0;
   return item?.startsWith('seed') ? estado?.seedRemaining ?? 0 : 0;
 }
 
