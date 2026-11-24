@@ -52,6 +52,7 @@ export class Game {
     this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
   }
+  recarga(p, segundos) { return p.godmode && !p.godmodeOptions?.cooldownNormal ? 1 : segundos; }
   uid(prefix) { return prefix + (++this.serial); }
   emit(type, data = {}) { this.events.push({ id: this.uid('e'), type, at: this.time, ...data }); }
   notify(p, text) { this.emit('message', { playerId: p.id, text }); }
@@ -278,15 +279,18 @@ export class Game {
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
+      this.revalidarFormaAposGodmode(p);
       this.notify(p, p.godmode ? 'God Mode de teste ligado no nível ' + p.level + '.' : 'God Mode desligado: status reais restaurados.');
       return { ok: true };
     }
     if (kind === 'godmodeConfig') {
       const options = data.options;
       if (!options || !Number.isSafeInteger(options.level) || options.level < 1 || options.level > CONFIG.progression.nivelMaximo ||
-        ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean'))
+        ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean') ||
+        (options.cooldownNormal !== undefined && typeof options.cooldownNormal !== 'boolean'))
         return { ok: false, reason: 'Configuração de God Mode inválida.' };
-      configurarGodmode(p, opcoesGodmodeValidas(options));
+      configurarGodmode(p, opcoesGodmodeValidas({ cooldownNormal: p.godmodeOptions?.cooldownNormal, ...options }));
+      if (p.godmode) this.revalidarFormaAposGodmode(p);
       return { ok: true };
     }
     if (kind === 'godmodeGrantItem') {
@@ -452,7 +456,7 @@ export class Game {
     if (skill === 'dash') {
       if (p.level < CONFIG.skills.dash || this.time < p.dashReady) return automated ? { ok: false } : this.reject(p, 'Imagem Residual: nível ' + CONFIG.skills.dash + ' e recarga de 4s.');
       const dir = Math.hypot(p.input.x, p.input.y) > 0.1 ? norm(p.input.x, p.input.y) : this.aimDirection(p, null);
-      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + (p.godmode ? 1 : 4); p.charge = null;
+      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + this.recarga(p, 4); p.charge = null;
       this.emit('dash', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
     }
     if (skill === 'ki') {
@@ -488,7 +492,7 @@ export class Game {
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Galick Gun.');
       p.facing = norm(alvo.x - p.x, alvo.y - p.y);
       p.ki -= GALICK.custo;
-      p.galickReady = this.time + (p.godmode ? 1 : GALICK.recarga);
+      p.galickReady = this.time + this.recarga(p, GALICK.recarga);
       p.charge = { targetId: alvo.id, automated, until: this.time + GALICK.carga, started: this.time,
         direction: p.facing, galick: true, versao: estagio.versao, alcance: estagio.alcance };
       return { ok: true };
@@ -506,8 +510,8 @@ export class Game {
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
       p.ki -= custo;
-      if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
-      else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
+      if (superKame) p.superKameReady = this.time + this.recarga(p, SUPER_KAME.recarga);
+      else p.kameReady = this.time + this.recarga(p, CONFIG.skillCooldowns.kame);
       p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
         ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
@@ -515,14 +519,14 @@ export class Game {
     if (skill === 'barrier') {
       if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível ' + CONFIG.skills.barrier + '.');
       if (this.time < p.barrierReady || p.ki < CONFIG.skillCosts.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira em recarga ou Ki insuficiente.');
-      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.barrier);
+      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + this.recarga(p, CONFIG.skillCooldowns.barrier);
       p.barrierStarted = this.time; // Só sincroniza a animação nos clientes.
       this.emit('barrier', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Barreira de Ki ativada!'); return { ok: true };
     }
     if (skill === 'genki') {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível ' + CONFIG.skills.genki + '.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
-      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + this.recarga(p, CONFIG.skillCooldowns.genki);
       p.genkiLancado = null;p.genkiDirecao = null;
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
         owner: p.id, automated, targetId: target?.id || null, direction: dir,
@@ -550,6 +554,12 @@ export class Game {
     this.notify(p, disponivel.nome + ' ativado!' + (disponivel.duracao ? ' Duração: ' + Math.round(disponivel.duracao / 60) + ' min.' : ''));
     return { ok: true };
   }
+  revalidarFormaAposGodmode(p) {
+    if (p.forma === 'base' || formasDaVocacao(p.vocacao).some(f => f.forma === p.forma && p.level >= f.nivel)) return;
+    this.alternarForma(p, 'transform');
+    if (p.charge?.superKame) p.charge = null;
+    if (p.autoHunt) this.aplicarBuffDoCombo(p);
+  }
   aplicarBuffDoCombo(p) {
     const combo = p.comboAutoHunt;
     if (!combo) return false;
@@ -572,7 +582,7 @@ export class Game {
     if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
-    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
+    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + this.recarga(p, RYUKEN.recarga);
     p.ryuken = { automated, targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
     this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
     this.verificarKiDaForma(p);
@@ -681,7 +691,7 @@ export class Game {
     if (this.time + 1e-9 < p.healReady) return falha('Cura de Vida em recarga.');
     if (p.ki < cura.custo) return falha('Ki insuficiente para curar vida.');
     // Um único caminho para tecla, botão e automação: reserva a recarga antes de curar.
-    p.healReady = this.time + (p.godmode ? 1 : CURA.cooldown); p.ki -= cura.custo;
+    p.healReady = this.time + this.recarga(p, CURA.cooldown); p.ki -= cura.custo;
     registrarMissao(p,'skills',1,this.agora());
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
@@ -886,13 +896,14 @@ export class Game {
       p.facing = p.finalFlashAtivo.direction;
       return;
     }
+    const velocidade = p.stats.mobility * (p.montaria ? MULT_NIMBUS_DEV : 1);
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
-    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1) * (p.montaria ? MULT_NIMBUS_DEV : 1));
+    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, velocidade * (p.charge ? 0.35 : 1));
     else if (p.autoHunt && naZonaSegura(p)) {
       p.targetId = null; p.charge = null;
       p.saidaSegura ||= this.saidaDaZonaSegura(p);
-      if (p.saidaSegura) this.steer(p, p.saidaSegura, dt, p.stats.mobility);
+      if (p.saidaSegura) this.steer(p, p.saidaSegura, dt, velocidade);
     }
     else if (p.autoHunt) {
       p.saidaSegura = null;
@@ -900,7 +911,7 @@ export class Game {
       // quando outro se aproxima durante a perseguição atual.
       const alcanceKame = p.vocacao !== 'vegeta' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
       const raioCaca = p.autoSkills && alcanceKame
-        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + p.stats.mobility * KAME.carga) : CONFIG.autoHuntRaio;
+        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + velocidade * KAME.carga) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
       if (target) {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
@@ -908,7 +919,7 @@ export class Game {
         // A distância da técnica determina quando disparar, não onde a caça para.
         // Continua a aproximação para poder finalizar com ataque básico mesmo em recarga/sem Ki.
         if (distance(p, target) > 49) {
-          const alcancavel = this.steer(p, target, dt, p.stats.mobility, 40);
+          const alcancavel = this.steer(p, target, dt, velocidade, 40);
           const d = distance(p, target);
           if (!alcancavel) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
           else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
@@ -920,7 +931,7 @@ export class Game {
         if (p.patrulha) {
           const idPatrulha = 'patrulha:' + p.patrulha.id;
           if (idPatrulha !== p.caca?.alvo) p.caca = { alvo: idPatrulha, melhor: Infinity, desde: this.time };
-          const alcancavel = this.steer(p, p.patrulha, dt, p.stats.mobility, 40);
+          const alcancavel = this.steer(p, p.patrulha, dt, velocidade, 40);
           const d = distance(p, p.patrulha);
           if (!alcancavel) { p.patrulha = null; p.caca = null; p.rota = null; }
           else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
@@ -967,7 +978,7 @@ export class Game {
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const vegeta = p.vocacao === 'vegeta';
       const podeKame = !vegeta && p.level >= 3
-        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
+        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? velocidade * KAME.carga : 0);
       const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
       const tentar = skill => this.cast(p, skill, true).ok;
       let usouTecnica = false;
@@ -1038,13 +1049,14 @@ export class Game {
     k.direction = p.facing = norm(alvo.x - p.x, alvo.y - p.y);
     Object.assign(k, origemGalick(p, k.direction, contato));
     const distancia = Math.max(0, contato - GALICK.mao);
+    k.pesAlvoPrevisto = { x: alvo.x, y: alvo.y };
     k.distanciaContato = distancia;
     k.tempoVoo = Math.max(GALICK.vooMinimo, distancia / GALICK.velocidade);
     const progresso = Math.min(1, (this.time - k.started) / k.tempoVoo);
     k.distancia = distancia * progresso;
     if (progresso < 1) return true;
     if (!this.hit(p, alvo, k.damage)) return false;
-    k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, started: this.time };
+    k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, pesAlvo: k.pesAlvoPrevisto, started: this.time };
     return true;
   }
   alvoValidoBigBangAttack(ref, alvo) {
@@ -1069,7 +1081,7 @@ export class Game {
       return falha('Alvo fora do alcance do Big Bang Attack.');
     p.facing = origem.direction;
     p.ki -= BIG_BANG_ATTACK.custo;
-    p.bigBangAttackReady = this.time + (p.godmode ? 1 : BIG_BANG_ATTACK.recarga);
+    p.bigBangAttackReady = this.time + this.recarga(p, BIG_BANG_ATTACK.recarga);
     p.charge = { bigBangAttack: true, targetId: alvo.id, direction: p.facing, started: this.time,
       until: this.time + BIG_BANG_ATTACK.carga, automated };
     return { ok: true };
@@ -1141,7 +1153,7 @@ export class Game {
     p.facing = this.direcaoFinalFlash(p, alvo);
     p.moving = false;
     p.ki -= FINAL_FLASH.custo;
-    p.finalFlashReady = this.time + (p.godmode ? 1 : FINAL_FLASH.recarga);
+    p.finalFlashReady = this.time + this.recarga(p, FINAL_FLASH.recarga);
     p.charge = { finalFlash: true, targetId: alvo.id, direction: p.facing,
       started: this.time, until: this.time + FINAL_FLASH.carga, automated };
     return { ok: true };
@@ -1445,7 +1457,7 @@ export class Game {
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
         autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
         foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
-        kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), seedSelected: self.seedSelected,
+        kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), basicRemaining: Math.max(0, self.basicReady - this.time), seedSelected: self.seedSelected,
         kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), bigBangAttackRemaining: Math.max(0, self.bigBangAttackReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,

@@ -685,3 +685,16 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .servicos-dialog li{display:flex;justify-content:space-between;align-items:center;padding:calc(12 * var(--u)) calc(14 * var(--u));border:1px solid #3d5c98;border-radius:calc(8 * var(--u));background:#0d1a3a}
 .servicos-dialog li span{color:#9fb3d9;font-size:calc(13 * var(--u));border:1px solid #9fb3d955;border-radius:999px;padding:2px calc(10 * var(--u))}
 .servicos-nota{margin:0 calc(16 * var(--u)) calc(14 * var(--u));color:#9fb3d9;font-size:calc(12 * var(--u))}
+
+/* Recarga sobre o ícone, deixando a pilha de consumíveis legível no canto. */
+.tecnica-icone > .contador-recarga,
+.mochila .slot > .contador-recarga {
+  position:absolute;inset:0;z-index:2;display:grid;place-items:center;
+  border-radius:inherit;pointer-events:none;background:#070d1799;
+  color:#fff;text-shadow:0 1px 4px #000;font:bold clamp(12px,1.8em,24px)/1 system-ui;
+  -webkit-backdrop-filter:grayscale(1);backdrop-filter:grayscale(1);
+}
+.tecnica.cooling .tecnica-icone::after{display:none}
+.mochila .slot > .contador-recarga{font-size:clamp(10px,1em,16px)}
+.mochila .slot.cooling .mochila-item-icone{filter:grayscale(1)}
+.mochila .slot.cooling em{z-index:3}

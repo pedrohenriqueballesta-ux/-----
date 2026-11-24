@@ -23,7 +23,8 @@ export function detalhesHabilidade(chave, estado) {
     const forma=formasDaVocacao(estado.vocacao).find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
   }
-  if(chave==='form:auto')chave='transform';
+  const automatica = chave === 'form:auto';
+  if(automatica)chave='transform';
   if (chave === 'finalFlash' || chave === 'bigBangAttack') {
     const bigBang = chave === 'bigBangAttack';
     const { nivel, custo, recarga, alcance, carga, dano } = bigBang ? BIG_BANG_ATTACK : FINAL_FLASH;
@@ -59,9 +60,10 @@ export function detalhesHabilidade(chave, estado) {
   if (NOMES[chave] && !itemChave) {
     if (chave === 'kaioken' || chave === 'transform') {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
-      const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku'), ativa = estado.forma && estado.forma !== 'base';
+      const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku');
       const formas = formasDaVocacao(estado.vocacao), primeira = formas[0];
-      const mostrada = ativa ? estado.forma : disponivel?.forma || primeira.forma, proxima = formas.find(f => estado.level < f.nivel);
+      const mostrada = !automatica && estado.forma && estado.forma !== 'base' ? estado.forma : disponivel?.forma || primeira.forma;
+      const ativa = estado.forma === mostrada, proxima = formas.find(f => estado.level < f.nivel);
       return { nome: nomeDaForma(mostrada), linhas: [
         ['Desbloqueia', 'Nível ' + (formas.find(f => f.forma === mostrada)?.nivel ?? primeira.nivel)], ['Custo', 'Sem custo'], ['Cooldown', 'Sem recarga'],
         ['Manutenção', 'Drena ' + CONFIG.transformacao.drenoKi.toLocaleString('pt-BR') + ' Ki/s'],

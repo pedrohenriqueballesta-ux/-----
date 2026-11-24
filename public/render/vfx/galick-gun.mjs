@@ -95,7 +95,7 @@ export function carregarGalick(versao) {
   carregar(impactoUrl);
 }
 
-export function desenharImpactoGalick(ctx, impacto, tempo, versao = 1) {
+export function desenharImpactoGalick(ctx, impacto, tempo, versao = 1, pesAlvo = impacto.pesAlvo) {
   const frame = Math.floor((tempo - impacto.started) / GALICK.impactoQuadro);
   if (frame < 0 || frame >= GALICK.impactoQuadros) return false;
   const imagem = carregarImpacto();
@@ -103,7 +103,7 @@ export function desenharImpactoGalick(ctx, impacto, tempo, versao = 1) {
   const largura = 362, altura = 272;
   const escala = (largurasImpacto[versao - 1] ?? largurasImpacto[0]) / largura;
   ctx.save();
-  ctx.translate(impacto.x, impacto.y - GALICK.alturaMao);
+  ctx.translate(pesAlvo?.x ?? impacto.x, pesAlvo?.y ?? (impacto.y - GALICK.alturaMao));
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(imagem, frame % 4 * largura, Math.floor(frame / 4) * altura, largura, altura,
     -largura * escala / 2, -altura * escala / 2, largura * escala, altura * escala);
@@ -111,7 +111,7 @@ export function desenharImpactoGalick(ctx, impacto, tempo, versao = 1) {
   return true;
 }
 
-export function linhaGalick(efeito, tempo, mao = efeito) {
+export function linhaGalick(efeito, tempo, mao = efeito, pesAlvo) {
   const { direction: direcao } = efeito;
   // A projeção compensa o deslocamento da mão na direção do tiro. A altura da
   // montaria e a interpolação lateral deslocam a linha inteira, sem inclinar o feixe.
@@ -119,11 +119,15 @@ export function linhaGalick(efeito, tempo, mao = efeito) {
   const emVoo = !efeito.impacto && efeito.tempoVoo && Number.isFinite(efeito.distanciaContato);
   const limite = emVoo ? efeito.distanciaContato : efeito.distancia;
   const progresso = emVoo ? Math.max(0, Math.min(1, (tempo - efeito.started) / efeito.tempoVoo)) : 1;
+  if (pesAlvo) {
+    const dx = pesAlvo.x - mao.x, dy = pesAlvo.y - mao.y + GALICK.alturaMao;
+    return { distancia: Math.hypot(dx, dy) * progresso, ponta: { x: mao.x + dx * progresso, y: mao.y + dy * progresso } };
+  }
   const distancia = Math.max(0, limite + ajuste) * progresso;
   return { distancia, ponta: { x: mao.x + distancia * direcao.x, y: mao.y + distancia * direcao.y } };
 }
 
-export function desenharGalick(ctx, efeito, tempo, mao = efeito) {
+export function desenharGalick(ctx, efeito, tempo, mao = efeito, pesAlvo) {
   const idade = tempo - efeito.started;
   const lancamento = Math.min(4 * GALICK.quadro, efeito.tempoVoo ?? 4 * GALICK.quadro);
   const posContato = efeito.impacto ? tempo - efeito.impacto.started : null;
@@ -144,13 +148,14 @@ export function desenharGalick(ctx, efeito, tempo, mao = efeito) {
   const { direction: direcao } = efeito;
   ctx.save();
   ctx.translate(mao.x, mao.y - GALICK.alturaMao);
-  ctx.rotate(Math.atan2(direcao.y, direcao.x));
+  const linha = !efeito.carga && linhaGalick(efeito, tempo, mao, pesAlvo);
+  ctx.rotate(pesAlvo && linha?.distancia > 0 ? Math.atan2(linha.ponta.y - mao.y, linha.ponta.x - mao.x) : Math.atan2(direcao.y, direcao.x));
   ctx.imageSmoothingEnabled = true;
   if (dissipando) ctx.globalAlpha *= Math.min(1, (GALICK.sustentacaoContato + GALICK.dissipacao - posContato) / GALICK.quadro);
   if (efeito.carga) {
     ctx.drawImage(folha.imagem, q.x, q.y, q.largura, q.altura, -q.largura * escala / 2, -altura / 2, q.largura * escala, altura);
   } else {
-    const { distancia } = linhaGalick(efeito, tempo, mao);
+    const { distancia } = linha;
     // As extremidades mantêm a escala natural sempre que há espaço. Só o corpo varia com o alcance.
     if (distancia > 0) desenharFeixeSegmentado(ctx, folha.imagem, q, escala, distancia, altura);
   }
