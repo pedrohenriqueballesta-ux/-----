@@ -1,3 +1,4 @@
+import { GODMODE_PADRAO } from '../../shared/nucleo/characters.mjs';
 import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 import { CONFIG, areaPorId } from '../../shared/nucleo/config.mjs';
 import { CHEFES_TESTE, mobStats } from '../../shared/nucleo/enemies.mjs';
@@ -13,7 +14,7 @@ const criar = (tag, classe, texto = null) => {
 export function instalarGodmodeHud(acao) {
   const janela = $('godmodeDialog'), grade = $('godmodeItems');
   if (!janela || !grade) return { atualizar() {} };
-  const opcoes = ['hpInfinite', 'kiInfinite', 'zeniInfinite', 'capacityInfinite'];
+  const opcoes = ['hpInfinite', 'kiInfinite', 'zeniInfinite', 'capacityInfinite', 'cooldownNormal'];
   const botaoAplicar = $('godmodeApply');
   const valor = key => $(key).checked;
   const lerOpcoes = () => ({ level: Number($('godmodeLevel').value), ...Object.fromEntries(opcoes.map(key => [key, valor(key)])) });
@@ -30,7 +31,7 @@ export function instalarGodmodeHud(acao) {
     $('godmodeLevel').value = String(options.level);
     $('godmodeLevelInput').value = String(options.level);
     $('godmodeLevelValue').textContent = String(options.level);
-    for (const key of opcoes) $(key).checked = options[key] !== false;
+    for (const key of opcoes) $(key).checked = options[key] ?? GODMODE_PADRAO[key];
   };
   const enviarConfig = async () => {
     const options = lerOpcoes();
@@ -137,7 +138,7 @@ export function instalarGodmodeHud(acao) {
       $('godmodeToggle').classList.toggle('ligado', estado.godmode);
       $('godmodePanelToggle').textContent = estado.godmode ? 'Desligar God Mode' : 'Ligar God Mode';
       $('godmodeModeStatus').textContent = estado.godmode ? 'Ativo · alterações só afetam este personagem em modo de teste.' : 'Desligado · configure as opções e ative para testar.';
-      const options = estado.godmodeOptions || { level: CONFIG.progression.nivelMaximo, hpInfinite: true, kiInfinite: true, zeniInfinite: true, capacityInfinite: true };
+      const options = { ...GODMODE_PADRAO, ...estado.godmodeOptions };
       $('godmodeLevel').max = String(estado.godmodeLevelMax || CONFIG.progression.nivelMaximo);
       $('godmodeLevelInput').max = $('godmodeLevel').max;
       if (aguardandoSnapshot && iguais(options, aguardandoSnapshot)) aguardandoSnapshot = null;

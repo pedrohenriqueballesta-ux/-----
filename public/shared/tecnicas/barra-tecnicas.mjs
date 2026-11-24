@@ -1,5 +1,5 @@
 import {CONFIG} from '../nucleo/config.mjs';
-import {FORMAS,formasDaVocacao} from './formas.mjs';
+import {FORMAS,formaDisponivel,formasDaVocacao} from './formas.mjs';
 import {consumivelValido,acaoConsumivel} from './consumiveis-hotkeys.mjs';
 import {RYUKEN} from './ryuken.mjs';
 import {SUPER_KAME} from './kamehameha.mjs';
@@ -42,7 +42,7 @@ export function tecnicasDoPerfil(vocacao) {
   &&(vocacao!=='vegeta'||id.startsWith('form:')||id==='skill:heal'||id==='skill:galick'||id==='skill:finalFlash'||id==='skill:bigBangAttack'));
 }
 
-export const acaoDaTecnica=id=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform'}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
+export const acaoDaTecnica=(id, estado)=>id?.startsWith('skill:')?{type:'skill',skill:id.slice(6)}:id==='form:auto'?{type:'transform', ...(estado ? { forma: formaDisponivel(estado.level, estado.vocacao)?.forma } : {})}:id?.startsWith('form:')?{type:'transform',forma:id.slice(5)}:id?.startsWith('item:')?acaoConsumivel(id.slice(5)):null;
 export function barraPadrao(hotkeys={},semente=15,nivel=1,forma='base',vocacao='goku'){
  if(vocacao==='vegeta')return ['skill:heal','skill:galick','skill:bigBangAttack',null,'form:auto','skill:finalFlash','item:food','item:ki'];
  const item=n=>consumivelValido(hotkeys[n])?'item:'+hotkeys[n]:hotkeys[n]===null?null:n===7?'item:seed'+(CONFIG.seedPotencies.includes(semente)?semente:15):'item:ki';

@@ -4,6 +4,7 @@ import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
 import {instalarStore} from '../render/hud/store.mjs';
 import {instalarBattlePass} from '../render/hud/battle-pass-hud.mjs';
 import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/hud/barra-tecnicas-hud.mjs';
+import { atualizarContadorRecarga, recargaConsumivel } from '../render/hud/recargas-hud.mjs';
 import { instalarComboAutoHunt } from '../render/hud/combo-auto-hunt.mjs';
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hud/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/hud/janelas-hud.mjs';
@@ -325,34 +326,40 @@ function atualizarMochila(s) {
   const assinatura = abaMochila + '|' + Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
     const d = slots[n]; return d ? d.item + ':' + d.qty : '';
   }).join(',');
-  if (assinatura === mochilaDesenhada) return;
-  mochilaDesenhada = assinatura;
-  $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
-    const dado = slots[n] || null, item = dado && META_ITEM[dado.item], mostra = visivel(dado) && item;
-    const slot = document.createElement('button'); slot.type = 'button'; slot.className = 'slot'; slot.dataset.slot = n;
-    // Espaço vazio: alvo de arrasto (receber um item), sem clique. Espaço ocupado por item de outra aba: inerte.
-    if (!mostra) { if (dado) slot.classList.add('slot-oculto'); else { slot.classList.add('slot-vazio'); ligarDropSlot(slot, n); } return slot; }
-    const qtd = dado.qty;
-    slot.dataset.item = item.key; slot.draggable = true;
-    slot.addEventListener('dragstart', e => {
-      arrastandoSlot = true; evitarCliqueConsumivel = performance.now() + 300;
-      e.dataTransfer.effectAllowed = item.usar ? 'copyMove' : 'move';
-      e.dataTransfer.setData('application/x-dbi-slot', String(n));
-      if (item.usar) { e.dataTransfer.setData('application/x-dbi-consumivel', item.key); e.dataTransfer.setData('text/plain', item.key); }
-      if (item.usar) arrastandoConsumivel = true;   // habilita soltar na hotkey 7/8
-    });
-    slot.addEventListener('dragend', () => { arrastandoSlot = false; arrastandoConsumivel = false; evitarCliqueConsumivel = performance.now() + 300; mochilaDesenhada = ''; atualizarMochila(ctx?.snapshot()?.self); });
-    ligarDropSlot(slot, n);
-    const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
-    imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
-    slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar · arraste para mover ou para a hotkey 7/8 · botão direito para dividir/excluir' : ' — arraste para mover · botão direito para dividir/excluir');
-    slot.setAttribute('aria-label', slot.title);
-    if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
-    const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
-    slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && !arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar); };
-    slot.addEventListener('contextmenu', e => { e.preventDefault(); abrirMenuItem(e, n, item, qtd); });
-    return slot;
-  }));
+  if (assinatura !== mochilaDesenhada) {
+    mochilaDesenhada = assinatura;
+    $('mochilaGrade').replaceChildren(...Array.from({ length: CONFIG.mochilaSlots }, (_, n) => {
+      const dado = slots[n] || null, item = dado && META_ITEM[dado.item], mostra = visivel(dado) && item;
+      const slot = document.createElement('button'); slot.type = 'button'; slot.className = 'slot'; slot.dataset.slot = n;
+      // Espaço vazio: alvo de arrasto (receber um item), sem clique. Espaço ocupado por item de outra aba: inerte.
+      if (!mostra) { if (dado) slot.classList.add('slot-oculto'); else { slot.classList.add('slot-vazio'); ligarDropSlot(slot, n); } return slot; }
+      const qtd = dado.qty;
+      slot.dataset.item = item.key; slot.draggable = true;
+      slot.addEventListener('dragstart', e => {
+        arrastandoSlot = true; evitarCliqueConsumivel = performance.now() + 300;
+        e.dataTransfer.effectAllowed = item.usar ? 'copyMove' : 'move';
+        e.dataTransfer.setData('application/x-dbi-slot', String(n));
+        if (item.usar) { e.dataTransfer.setData('application/x-dbi-consumivel', item.key); e.dataTransfer.setData('text/plain', item.key); }
+        if (item.usar) arrastandoConsumivel = true;   // habilita soltar na hotkey 7/8
+      });
+      slot.addEventListener('dragend', () => { arrastandoSlot = false; arrastandoConsumivel = false; evitarCliqueConsumivel = performance.now() + 300; mochilaDesenhada = ''; atualizarMochila(ctx?.snapshot()?.self); });
+      ligarDropSlot(slot, n);
+      const imagem = document.createElement('img'); imagem.className = 'mochila-item-icone';
+      imagem.src = item.icone; imagem.alt = ''; imagem.draggable = false; slot.append(imagem);
+      slot.title = item.nome + ' × ' + qtd + (item.usar ? ' — clique para usar · arraste para mover ou para a hotkey 7/8 · botão direito para dividir/excluir' : ' — arraste para mover · botão direito para dividir/excluir');
+      slot.setAttribute('aria-label', slot.title);
+      if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
+      const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
+      slot.onclick = () => { slot.blur(); if (item.usar && !arrastandoConsumivel && !arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar); };
+      slot.addEventListener('contextmenu', e => { e.preventDefault(); abrirMenuItem(e, n, item, qtd); });
+      return slot;
+    }));
+  }
+  for (const slot of $('mochilaGrade').querySelectorAll('[data-item]')) {
+    const restante = recargaConsumivel(s, slot.dataset.item);
+    slot.classList.toggle('cooling', restante > 0);
+    atualizarContadorRecarga(slot, restante);
+  }
 }
 // Faz um espaço aceitar outro item arrastado da grade (reorganizar/juntar/trocar). Mandamos só a operação
 // (de qual índice para qual) e o servidor aplica sobre os slots atuais dele.

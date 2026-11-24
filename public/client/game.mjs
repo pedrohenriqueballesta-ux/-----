@@ -12,7 +12,7 @@ import { deslocar } from '../shared/mundo/passagem.mjs';
 import { frenteDaCasa, zonaSeguraDaHunt, MULT_NIMBUS_DEV } from '../shared/nucleo/config.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
-import { carregarGalick, desenharGalick, desenharImpactoGalick, linhaGalick } from '../render/vfx/galick-gun.mjs';
+import { carregarGalick, desenharGalick, desenharImpactoGalick } from '../render/vfx/galick-gun.mjs';
 import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
 import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
 import { colunaCargaBigBang, maoBigBang } from '../shared/tecnicas/big-bang-attack.mjs';
@@ -227,7 +227,7 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(key)) e.preventDefault();
   keys.add(key); sendInput(); if (e.repeat) return;
-  if (/^[1-8]$/.test(key)) {const id=barraValida(snapshot?.self?.barraTecnicas,snapshot?.self?.hotkeysConsumiveis,snapshot?.self?.seedSelected)[Number(key)-1];if(tecnicaDisponivel(id,snapshot?.self)){const uso=acaoDaTecnica(id);if(uso)action(uso);}}
+  if (/^[1-8]$/.test(key)) {const id=barraValida(snapshot?.self?.barraTecnicas,snapshot?.self?.hotkeysConsumiveis,snapshot?.self?.seedSelected)[Number(key)-1];if(tecnicaDisponivel(id,snapshot?.self)){const uso=acaoDaTecnica(id,snapshot.self);if(uso)action(uso);}}
   else if (key === ' ') action({type:'skill',skill:'basic'});
   else if (key === 'shift') action({type:'skill',skill:'dash'});
   else if (key === 't') action({ type: 'transform' });
@@ -841,13 +841,10 @@ function frame(now) {
     if (k.galick) {
       const mao = k.impacto ? posicaoMaoGalick(dono, k, k.direction, 0, k.impacto.started)
         : pos && dono ? posicaoMaoGalick(dono, pos, k.direction, Math.hypot(k.x - dono.x, k.y - dono.y)) : k;
-      adicionarEfeito(pos || k, () => desenharGalick(ctx, k, time, mao), camadaGalick(k.direction));
-      if (k.impacto) {
-        const impacto = { ...k.impacto, ...linhaGalick(k, time, mao).ponta };
-        // Desenha no ponto do acerto, mas usa a profundidade do alvo para cobrir o corpo.
-        const posAlvo = renderPositions.get(k.targetId) || k.impacto;
-        adicionarEfeito(posAlvo, () => desenharImpactoGalick(ctx, impacto, time, k.versao));
-      }
+      const posAlvo = renderPositions.get(k.targetId);
+      const pesAlvo = k.impacto?.pesAlvo || posAlvo || k.pesAlvoPrevisto;
+      adicionarEfeito(k.impacto ? pesAlvo || k : pos || k, () => desenharGalick(ctx, k, time, mao, pesAlvo), camadaGalick(k.direction));
+      if (k.impacto) adicionarEfeito(posAlvo || pesAlvo || k.impacto, () => desenharImpactoGalick(ctx, k.impacto, time, k.versao, pesAlvo), .03);
       continue;
     }
     adicionarEfeito(pos || k, () => {
