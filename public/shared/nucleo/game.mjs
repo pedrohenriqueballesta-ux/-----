@@ -13,6 +13,7 @@ import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, area
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
+import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
@@ -263,6 +264,12 @@ export class Game {
       if (!Array.isArray(data.ids) || data.ids.length > 100 || data.ids.some(id => typeof id !== 'string')) return { ok:false };
       for (const n of p.novidades) if (data.ids.includes(n.id)) n.lida = true;
       return { ok:true };
+    }
+    if (kind === 'configurarComboAutoHunt') {
+      const combo = validarCombo(data.combo, p.vocacao);
+      if (!combo) return this.reject(p, 'Configuração de combo inválida.');
+      p.comboAutoHunt = combo;
+      return { ok: true, combo };
     }
     if (kind === 'toggle') {
       if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
@@ -517,7 +524,7 @@ export class Game {
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
       p.genkiLancado = null;p.genkiDirecao = null;
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
-        owner: p.id, targetId: target?.id || null, direction: dir,
+        owner: p.id, automated, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
         damage: p.stats.attack * multiplicadorDaForma(p.forma, 'genki') });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
@@ -528,9 +535,11 @@ export class Game {
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
   alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
     const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):formasDaVocacao(p.vocacao).find(f=>f.forma===formaSolicitada);
-    if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível para esta vocação ou nível.');
-    // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
-    if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
+    if (formaSolicitada !== null && (!disponivel || p.level < disponivel.nivel))
+      return automatica ? { ok: false } : this.reject(p, 'Transformação indisponível para esta vocação ou nível.');
+    // A automação mantém uma forma já ativa e espera o Ki se recuperar antes de reativar.
+    if (automatica && (p.forma === disponivel?.forma || (formaSolicitada === null && p.forma !== 'base') ||
+      p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
     if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { const formaAnterior=p.forma; p.forma = 'base'; p.formaAte = 0; if (p.skin===formaAnterior) p.skin='base'; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + formasDaVocacao(p.vocacao)[0].nivel + '.');
     p.forma = disponivel.forma;
@@ -555,7 +564,7 @@ export class Game {
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
     p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
-    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
+    p.ryuken = { automated, targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
     this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
     this.verificarKiDaForma(p);
     return { ok: true };
@@ -568,7 +577,7 @@ export class Game {
     for (const p of this.players.values()) {
       if (!p.ryuken) { if (p.ryukenLancado && this.time - p.ryukenLancado > RYUKEN.sustentacao) p.ryukenLancado = null; continue; }
       const alvo = this.mobs.get(p.ryuken.targetId);
-      if (!ativo(p) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
+      if (!ativo(p) || (p.ryuken.automated && !p.autoHunt) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
       p.ryuken.direction = norm(alvo.x - p.x, alvo.y - p.y); p.facing = p.ryuken.direction;
       if (this.time + 1e-9 < p.ryuken.until) continue;
       const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
@@ -607,7 +616,7 @@ export class Game {
       && (!this.players.has(alvo.id) || (alvo.connected && this.canPvp(this.players.get(g.owner), alvo)));
     this.genkiCharges = this.genkiCharges.filter(g => {
       const p = this.players.get(g.owner);
-      if (!ativo(p, g)) return false;
+      if (!ativo(p, g) || (g.automated && !p.autoHunt)) return false;
       const alvo = this.mobs.get(g.targetId) || this.players.get(g.targetId);
       if (g.targetId && !alvoValido(alvo, g)) return false;
       g.x = p.x; g.y = p.y;
@@ -926,6 +935,12 @@ export class Game {
     if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    const combo = p.comboAutoHunt;
+    const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
+    if (p.autoHunt && combo && !p.charge && !conjurandoCombo) {
+      const buff = combo.buffMaisAlto ? formaDisponivel(p.level, p.vocacao)?.forma : combo.buff;
+      if (buff && p.forma !== buff && kiPermiteCombo(p, 'transform')) this.cast(p, 'transform', true, buff);
+    }
     let target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
@@ -936,7 +951,7 @@ export class Game {
       target = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
       p.targetId = target?.id || null;
     }
-    if (p.autoHunt && (p.autoSkills || p.autoAttack) && target && !p.charge && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
+    if (p.autoHunt && (p.autoSkills || p.autoAttack) && target && !p.charge && !conjurandoCombo && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
       const attackFactor = multiplicadorDaForma(p.forma, 'soco');
       const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
       const danoKi = Math.max(1, Math.round(p.stats.attack * multiplicadorDaForma(p.forma, 'rajada') * 100 / (100 + (target.defesa ?? 1) * 3)));
@@ -950,13 +965,16 @@ export class Game {
       const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
       const tentar = skill => this.cast(p, skill, true).ok;
       let usouTecnica = false;
-      if (p.autoSkills && vegeta) {
+      if (p.autoSkills && combo) {
+        // Uma técnica indisponível deixa a próxima prioridade disputar o mesmo turno.
+        usouTecnica = combo.ordem.some(({ id, ki }) => kiPermiteCombo(p, id, ki) && tentar(id));
+      } else if (p.autoSkills && vegeta) {
         usouTecnica = (!morreriaNoBasico && !prefereBasico && (tentar('finalFlash') || tentar('bigBangAttack'))) || tentar('galick');
       } else if (p.autoSkills && !morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
         usouTecnica = (usaSuperKame(p) && tentar('superKamehameha'))
           || (usaRyuken(p) && tentar('ryuken')) || tentar('kame');
       }
-      if (!usouTecnica && podeRajada) tentar('ki');
+      if (!usouTecnica && podeRajada && (!combo || kiPermiteCombo(p, 'ki'))) tentar('ki');
     }
     if (p.charge?.galick) this.atualizarCargaGalick(p);
     if (p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
@@ -1415,7 +1433,7 @@ export class Game {
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
         hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, slots: self.slots, weight: bagWeight(self.inventory),
-        autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
+        autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt, comboAutoHunt: self.comboAutoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
         kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },

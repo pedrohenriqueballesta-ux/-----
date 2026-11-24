@@ -153,6 +153,24 @@
         <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca de perto e usa Rajada de Ki à distância.</small></span><input id="autoAttack" type="checkbox"></label>
         <label class="auto-hunt-option"><span><strong>Técnicas automáticas</strong><small>Usa as técnicas de combate disponíveis.</small></span><input id="autoSkills" type="checkbox"></label>
       </fieldset>
+      <form id="autoComboForm" class="auto-combo">
+        <nav class="hunt-analyzer-abas" aria-label="Configuração de técnicas automáticas">
+          <button type="button" data-auto-combo-aba aria-pressed="true" aria-controls="autoComboAba">Combo</button>
+          <button type="button" data-auto-combo-aba aria-pressed="false" aria-controls="autoBuffAba">Buff</button>
+        </nav>
+        <section id="autoComboAba" aria-label="Prioridade das técnicas">
+          <label class="auto-hunt-threshold">Reserva após o ataque <span class="auto-combo-percentual"><input id="autoComboReserva" type="number" min="0" max="100" step="1" required> % Ki</span></label>
+          <ol id="autoComboOrdem"></ol>
+          <label class="auto-hunt-threshold">Técnica <select id="autoComboAdicionar"></select></label>
+        </section>
+        <section id="autoBuffAba" aria-label="Transformação automática" hidden>
+          <label class="auto-hunt-option"><strong>Mudar sempre para o Buff de nível mais alto</strong><input id="autoComboBuffMaisAlto" type="checkbox"></label>
+          <label class="auto-hunt-threshold">Manter transformação <select id="autoComboBuff"></select></label>
+          <p class="auto-hunt-note">A forma volta durante a caça quando houver Ki suficiente.</p>
+        </section>
+        <button type="submit" class="auto">Salvar combo e buff</button>
+        <output id="autoComboEstado" aria-live="polite"></output>
+      </form>
       <fieldset><legend>Recuperação</legend>
         <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Funciona somente com Auto Hunt ligado.</small></span><input id="autoHeal" type="checkbox" checked></label>
         <label class="auto-hunt-threshold">Curar abaixo de <span><input id="healThreshold" type="number" min="1" max="100" step="1" value="70" inputmode="numeric" aria-label="Limite de HP para autocura">% HP</span></label>
