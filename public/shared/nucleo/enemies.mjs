@@ -242,6 +242,8 @@ export function spawnPoints(random) {
     // atributos da hunt inicial de Namek, até chegarem as sprites dos mobs da Terra.
     ...espalhar(random, 'terra-descampado', 20, i => i % 2 ? 'inseto' : 'passaro'),
     // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
-    ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length])
+    ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
+    // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
+    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length])
   ];
 }

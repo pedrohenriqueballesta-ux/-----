@@ -34,7 +34,7 @@ export const SOLO_VEGETA = Object.freeze({ w: 4608, h: 3072 });
 export const ESCALA_VEGETA = ESCALA_MUNDO;
 // Solo da Terra das hunts (atlas hub + hunts, px). Escala 1 un/px: a mesma densidade de arte de Namek e Vegeta
 // (8192 px para ~8.300 un). Com 1,8 a arte aparecia esticada (Pedro, 23/11/2026: "qualidade inferior").
-export const SOLO_TERRA_HUNTS = Object.freeze({ w: 17323, h: 5461 });
+export const SOLO_TERRA_HUNTS = Object.freeze({ w: 25579, h: 5461 });
 export const ESCALA_TERRA_HUNTS = 1;
 export const naEscala = v => v * ESCALA_MUNDO;
 
@@ -111,7 +111,9 @@ export const ZONES = [
     { id: 'terra-hub', name: 'Clareira do Centro', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
     { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3096, y: 942, w: 5028, h: 2340, chegada: { x: 6981, y: 1996 } },
     // Deserto das mesas (6×6 telas, Pedro 23/11/2026): nível e mobs PROVISÓRIOS (os das Planícies Vermelhas do Vegeta).
-    { id: 'terra-deserto', name: 'Deserto das Mesas', nivel: [40, 62], cor: '#ffa51e', x: 9450, y: 372, w: 7320, h: 3918, chegada: { x: 13397, y: 1386 } }
+    { id: 'terra-deserto', name: 'Deserto das Mesas', nivel: [40, 62], cor: '#ffa51e', x: 9450, y: 372, w: 7320, h: 3918, chegada: { x: 13397, y: 1386 } },
+    // Montanhas nevadas (6×3 telas, Pedro 24/11/2026): nível e mobs PROVISÓRIOS (os da Floresta Seca do Vegeta).
+    { id: 'terra-neve', name: 'Montanhas Nevadas', nivel: [72, 106], cor: '#9fd8ff', x: 20424, y: 660, w: 4968, h: 2010, chegada: { x: 22987, y: 1600 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -210,9 +212,10 @@ export const PLANETS = {
     soloPorArea: {
       'terra-hub': { url: '/assets/terra-hunts/hub.webp', x: 0, y: 0, w: 2859, h: 982 },
       'terra-descampado': { url: '/assets/terra-hunts/descampado.webp', x: 2923, y: 0, w: 6144, h: 4096 },
-      'terra-deserto': { url: '/assets/terra-hunts/deserto.webp', x: 9131, y: 0, w: 8192, h: 5461 }
+      'terra-deserto': { url: '/assets/terra-hunts/deserto.webp', x: 9131, y: 0, w: 8192, h: 5461 },
+      'terra-neve': { url: '/assets/terra-hunts/neve.webp', x: 17387, y: 0, w: 8192, h: 2731 }
     },
-    vila: 'terra-hub', hunts: ['terra-descampado', 'terra-deserto'], spawn: areaPorId('terra-hub').chegada }
+    vila: 'terra-hub', hunts: ['terra-descampado', 'terra-deserto', 'terra-neve'], spawn: areaPorId('terra-hub').chegada }
 };
 export const PLANETAS_DE_HUNT = Object.values(PLANETS).filter(p => p.hunts);
 // Lugar de destino de um portal: a Terra ou uma das áreas de um planeta de hunt.
@@ -251,7 +254,7 @@ export const PORTAIS = [
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
     'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
   // Terra das hunts: no hub, o portal de cada hunt na beira da clareira, do lado onde a hunt fica no mapa-múndi.
-  ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 }, 'terra-deserto': { x: 1280, y: 640 } })
+  ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 }, 'terra-deserto': { x: 1280, y: 640 }, 'terra-neve': { x: 1440, y: 322 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por
