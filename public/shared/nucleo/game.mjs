@@ -1,5 +1,6 @@
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
-import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
+import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
+import {consumivelValido,acaoConsumivel,efeitoComida} from '../tecnicas/consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
@@ -11,7 +12,7 @@ import {Guildas} from '../sistemas/guildas.mjs';
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
 import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
@@ -23,10 +24,12 @@ import { FINAL_FLASH, formaFinalFlash, origemFinalFlash, contatoFinalFlash } fro
 import { BIG_BANG_ATTACK, formaBigBangAttack, maoBigBang } from '../tecnicas/big-bang-attack.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from '../mundo/projetil-mob.mjs';
 import { Mercado } from '../sistemas/mercado.mjs';
+import { avaliarVendaNpc, itensVendaNpc } from '../sistemas/venda-npc.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from '../sistemas/itens-negociaveis.mjs';
 import { LIMITE_ESTOQUE_LOJA, avaliarCarrinho } from '../sistemas/loja.mjs';
 import { CURA, curaPorNivel } from '../tecnicas/cura.mjs';
-import { RECOMPENSAS_MOBS } from '../sistemas/recompensas-mobs.mjs';
+import { NOVOS_ITENS, dropsEspecificos } from '../sistemas/catalogo-itens.mjs';
+import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from '../sistemas/recompensas-mobs.mjs';
 import { validarNovidade } from '../sistemas/novidades.mjs';
 import { GENKI } from '../tecnicas/genki.mjs';
 import { RYUKEN, usaRyuken, danoRyuken } from '../tecnicas/ryuken.mjs';
@@ -238,6 +241,8 @@ export class Game {
     // Reorganizar/dividir/descartar pilhas na mochila: o cliente manda só a OPERAÇÃO (por índice de espaço) e o
     // servidor aplica sobre os slots atuais dele. Operação (não layout inteiro) evita corrida com loot/uso que
     // mudam os totais enquanto se arrasta. Mover/dividir não mexem nos totais; descartar reduz o total da pilha.
+    if (kind === 'equiparItem') return this.equiparItem(p, data.item, { slot: data.slot, de: data.de });
+    if (kind === 'desequiparItem') return this.equiparItem(p, null, { slot: data.slot, esperado: data.item, para: data.para });
     if(kind==='moverSlot') return moverSlotMochila(p,Math.floor(Number(data.de)),Math.floor(Number(data.para)))?{ok:true}:{ok:false};
     if(kind==='dividirSlot') return dividirSlotMochila(p,Math.floor(Number(data.de)),data.quantidade)?{ok:true}:{ok:false};
     if(kind==='descartarSlot') return descartarSlotMochila(p,Math.floor(Number(data.de)))?{ok:true}:{ok:false};
@@ -274,7 +279,7 @@ export class Game {
       return { ok: true, combo, buffAplicado };
     }
     if (kind === 'toggle') {
-      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
+      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoEnergyPotion', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
     }
     if (kind === 'godmode') {
@@ -298,7 +303,7 @@ export class Game {
       if (!p.godmode) return { ok: false, reason: 'Ative o God Mode para pegar itens de teste.' };
       if (!item || !Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 9999 || (p.inventory[item.id] || 0) + quantidade > 99999)
         return { ok: false, reason: 'Item ou quantidade inválidos.' };
-      p.inventory[item.id] = (p.inventory[item.id] || 0) + quantidade;
+      if (!this.addItem(p, item.id, quantidade)) return this.reject(p, 'Libere espaço ou capacidade na mochila de teste.');
       this.notify(p, '+' + quantidade + ' × ' + item.nome + ' adicionado à mochila de teste.');
       return { ok: true };
     }
@@ -317,7 +322,7 @@ export class Game {
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
       const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
-      if (!['healThreshold', 'kiThreshold', 'seedThreshold'].includes(key)) return { ok: false };
+      if (!['healThreshold', 'kiThreshold', 'energyPotionThreshold', 'seedThreshold'].includes(key)) return { ok: false };
       if (!Number.isInteger(data.value) || data.value < 1 || data.value > 100) return this.reject(p, 'Escolha um limite entre 1% e 100%.');
       p[key] = data.value; return { ok: true };
     }
@@ -337,12 +342,18 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
+    if (kind === 'usarConsumivel') {
+      const item = Object.hasOwn(CONSUMIVEIS_LOOT, data.item) ? CONSUMIVEIS_LOOT[data.item] : null;
+      if (!item) return this.reject(p, 'Consumível inválido.');
+      return item.tipo === 'comida' ? this.useFood(p, data.item) : this.usePotion(p, data.item);
+    }
     if (kind === 'food') return this.useFood(p);
     if (kind === 'seed') return this.useSeed(p, Number(data.potency) || p.seedSelected);
     if (kind === 'potion') return this.usePotion(p);
     if (kind === 'buyAll') return this.buyAll(p,data.itens);
     if (kind === 'buy') return this.buy(p, data.item, data.quantidade);
     if (kind === 'sell') return this.sell(p);
+    if (kind === 'venderSelecionados') return this.venderLoteNpc(p, data.itens);
     if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
     if (['mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(kind)) {
       const metodo={mercadoAnunciar:'anunciar',mercadoComprar:'comprar',mercadoCancelar:'cancelar',mercadoReceber:'receber'}[kind];
@@ -360,15 +371,60 @@ export class Game {
   }
   reject(p, reason) { this.notify(p, reason); return { ok: false, reason }; }
   addItem(p, key, count = 1) {
-    if (!(key in CONFIG.itemWeights) || !Number.isInteger(count) || count < 1) return false;
-    if (bagWeight(p.inventory) + CONFIG.itemWeights[key] * count > p.stats.capacity + 0.0001) return false;
+    if (!Object.hasOwn(CONFIG.itemWeights, key) || !Number.isSafeInteger(count) || count < 1) return false;
+    if (!mochilaComporta(p, { [key]: count })) return false;
     p.inventory[key] = (p.inventory[key] || 0) + count; return true;
   }
-  useFood(p) {
-    if (!p.inventory.food) return this.reject(p, 'Você está sem comida. Visite o mercado da vila.');
+  equiparItem(p, id, { slot, esperado, de, para }) {
+    if (p.hp <= 0 || !p.connected) return this.reject(p, 'Personagem indisponível.');
+    if (id !== null) {
+      const item = Object.hasOwn(NOVOS_ITENS, id) ? NOVOS_ITENS[id] : null;
+      if (!item?.slot || !(p.inventory[id] > 0)) return this.reject(p, 'Equipamento indisponível na mochila.');
+      if (Math.min(p.levelReal ?? p.level, p.level) < item.nivel)
+        return this.reject(p, 'Este equipamento exige nível ' + item.nivel + '.');
+      if (slot !== undefined && slot !== item.slot) return this.reject(p, 'Use o encaixe correspondente à peça.');
+      slot = item.slot;
+    }
+    const anterior = Object.hasOwn(p.equipamentos, slot) ? p.equipamentos[slot] : null;
+    if (id === null && (!anterior || anterior !== esperado)) return this.reject(p, 'O equipamento desse espaço mudou.');
+    const slots = reconciliarSlots({ inventory: p.inventory, slots: p.slots });
+    const indiceValido = n => Number.isInteger(n) && n >= 0 && n < slots.length;
+    if (de !== undefined && (!indiceValido(de) || slots[de]?.item !== id))
+      return this.reject(p, 'O item desse espaço da mochila mudou.');
+    if (para !== undefined && (!indiceValido(para) || (slots[para] && slots[para].item !== anterior)))
+      return this.reject(p, 'Solte a peça em um espaço livre ou sobre outra cópia dela.');
+    if (id === anterior) return { ok: true };
+
+    const inventory = { ...p.inventory };
+    if (id) {
+      inventory[id]--;
+      if (de !== undefined && --slots[de].qty === 0) slots[de] = null;
+    }
+    if (anterior) {
+      inventory[anterior] = (inventory[anterior] || 0) + 1;
+      const destino = para ?? (de !== undefined && !slots[de] ? de : null);
+      if (destino !== null) slots[destino] = { item: anterior, qty: (slots[destino]?.qty || 0) + 1 };
+    }
+    const novoLayout = reconciliarSlots({ inventory, slots });
+    if (anterior && (inventory[anterior] > 99999 || bagWeight(inventory) > p.stats.capacity + 0.0001 ||
+      !novoLayout.some(pilha => pilha?.item === anterior)))
+      return this.reject(p, 'Libere espaço na mochila para retirar o equipamento.');
+    Object.assign(p.inventory, inventory);
+    p.slots = novoLayout;
+    if (id) p.equipamentos[slot] = id;
+    else delete p.equipamentos[slot];
+    atualizarAtributosEquipamento(p);
+    return { ok: true };
+  }
+  useFood(p, id = 'food') {
+    const duracao = id === 'food' ? CONFIG.foodDuration : CONSUMIVEIS_LOOT[id].duracao;
+    const nome = ITENS_NEGOCIAVEIS[id].nome;
+    if (!p.inventory[id]) return this.reject(p, 'Sem ' + nome + ' na mochila.');
     if (p.foodUntil > this.time + 1) return this.reject(p, 'A comida ainda está ativa.');
-    analisar(p,'supplies',1,'food'); p.inventory.food--; p.foodUntil = this.time + CONFIG.foodDuration;
-    this.notify(p, 'Presunto: regeneração por 5 minutos.'); return { ok: true };
+    analisar(p, 'supplies', 1, id);
+    p.inventory[id]--; p.foodId = id; p.foodUntil = this.time + duracao;
+    this.notify(p, nome + ': efeito ativo por ' + duracao + ' s.');
+    return { ok: true };
   }
   useSeed(p, potency) {
     if (!CONFIG.seedPotencies.includes(potency)) return { ok: false, reason: 'Potência inválida.' };
@@ -381,12 +437,26 @@ export class Game {
     this.emit('heal', { x: p.x, y: p.y, text: '+' + potency + '%', playerId: p.id });
     this.notify(p, 'Semente usada. Todas as potências em recarga por ' + CONFIG.seedCooldown + 's.'); return { ok: true };
   }
-  usePotion(p) {
-    if (this.time < p.kiReady) return this.reject(p, 'Poção de Ki em recarga.');
-    if (!p.inventory.ki) return this.reject(p, 'Você está sem poções de Ki.');
-    if (p.ki >= p.stats.ki) return this.reject(p, 'Seu Ki já está cheio.');
-    analisar(p,'supplies',1,'ki'); p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
-    this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
+  usePotion(p, id = 'ki') {
+    const recuperaKi = id === 'ki';
+    const recurso = recuperaKi ? 'ki' : 'hp';
+    const fracao = recuperaKi ? .45 : CONSUMIVEIS_LOOT[id].fracaoHp;
+    if (this.time < p.kiReady) return this.reject(p, 'Poções em recarga.');
+    if (!p.inventory[id]) return this.reject(p, 'Sem ' + ITENS_NEGOCIAVEIS[id].nome + ' na mochila.');
+    if (p[recurso] >= p.stats[recurso]) return this.reject(p, recuperaKi ? 'Seu Ki já está cheio.' : 'Sua vida já está cheia.');
+    analisar(p, 'supplies', 1, id);
+    p.inventory[id]--;
+    const antes = p[recurso];
+    p[recurso] = Math.min(p.stats[recurso], antes + p.stats[recurso] * fracao);
+    p.kiReady = this.time + CONFIG.kiCooldown;
+    if (recuperaKi) this.emit('ki', { x: p.x, y: p.y, playerId: p.id });
+    else {
+      const amount = p.hp - antes;
+      analisar(p, 'cura', amount);
+      this.emit('heal', { x: p.x, y: p.y, playerId: p.id, planet: p.planet, area: p.area,
+        amount, text: '+' + amount.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
+    }
+    return { ok: true };
   }
   buy(p, item, quantidade = 1) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na Vila.');
@@ -410,22 +480,25 @@ export class Game {
     for(const[item,q]of Object.entries(itens))if(q)p.inventory[item]=(p.inventory[item]||0)+q;
     p.zeni-=resultado.total;this.notify(p,'Compra conjunta concluída: '+resultado.quantidade+' itens por '+resultado.total+' Z.');return resultado;
   }
-  venderItem(p,item,quantidade) {
-    if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercador para vender.');
-    if(!Object.hasOwn(ITENS_NEGOCIAVEIS,item)||!Number.isSafeInteger(quantidade)||quantidade<1||quantidade>LIMITE_ESTOQUE_LOJA)return this.reject(p,'Item ou quantidade inválidos.');
-    if((p.inventory[item]||0)<quantidade)return this.reject(p,'Você não possui essa quantidade.');
-    const total=ITENS_NEGOCIAVEIS[item].precoNpc*quantidade;
-    if(!creditarZeni(p,total))return this.reject(p,'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
-    p.inventory[item]-=quantidade;this.notify(p,'Venda ao NPC concluída: '+quantidade+' por '+total+' Z.');
-    return{ok:true,item,quantidade,total};
+  venderItem(p, item, quantidade) {
+    if (typeof item !== 'string') return this.reject(p, 'Item inválido.');
+    const resultado = this.venderLoteNpc(p, { [item]: quantidade }, false);
+    return resultado.ok ? { ...resultado, item } : resultado;
   }
   sell(p) {
-    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na vila.');
-    const value = p.inventory.scrap * 8 + p.inventory.crystal * 15;
-    if (!value) return this.reject(p, 'Sem materiais para vender.');
-    if(!creditarZeni(p,value))return this.reject(p,'Seu saldo de Zeni está no limite.');
-    p.inventory.scrap = 0; p.inventory.crystal = 0;
-    this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
+    const resultado = this.venderLoteNpc(p, itensVendaNpc(p.inventory));
+    return resultado.ok ? { ...resultado, value: resultado.total } : resultado;
+  }
+  venderLoteNpc(p, itens, somenteElegiveis = true) {
+    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercador para vender.');
+    const resultado = avaliarVendaNpc(p.inventory, itens, somenteElegiveis);
+    if (!resultado.ok) return this.reject(p, resultado.reason);
+    if (!creditarZeni(p, resultado.total))
+      return this.reject(p, 'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
+    for (const [id, qtd] of Object.entries(itens)) p.inventory[id] -= qtd;
+    reconciliarSlots(p);
+    this.notify(p, 'Venda ao NPC concluída: ' + resultado.quantidade + ' por ' + resultado.total + ' Z.');
+    return resultado;
   }
   cast(p,skill,automated=false,formaSolicitada=null){
     const r=this.executarTecnica(p,skill,automated,formaSolicitada);
@@ -730,19 +803,30 @@ export class Game {
         if (attacker && this.players.has(attacker.id)) {
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
-          analisar(attacker,'xp',experiencia);const zeniAntes=attacker.zeni; this.awardXp(attacker, experiencia); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          analisar(attacker,'xp',experiencia);
+          this.awardXp(attacker, experiencia); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
+          const zeniAntes = attacker.zeni;
+          const [zeniMin, zeniMax] = faixaZeniMob(target.level, target.raro);
+          attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
-            const item=this.random()<RECOMPENSAS_MOBS.fracaoCristal?'crystal':'scrap';
+            const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
             this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
             analisar(attacker,'drops',1,item);
           }
           if (this.random() < RECOMPENSAS_MOBS.chanceSemente15) {
             this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
             analisar(attacker,'drops',1,'seed15');
+          }
+          let posicaoDrop = 0;
+          for (const { item, chance } of dropsEspecificos(target.type)) {
+            if (this.random() >= chance) continue;
+            const x = target.x - 14 - posicaoDrop++ * 9;
+            this.loot.push({ id: this.uid('l'), x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
+            analisar(attacker,'drops',1,item);
           }
         }
       }
@@ -755,7 +839,7 @@ export class Game {
     if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) return;
     p.xp += amount;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
-      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
+      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
       if(p.level===CONFIG.skills.superKamehameha)atualizarBarraPadrao(p);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
@@ -878,11 +962,17 @@ export class Game {
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;
-    if (p.foodUntil > this.time) {const antes=p.hp;p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);analisar(p,'cura',p.hp-antes);}
+    const comida = p.foodUntil > this.time ? efeitoComida(p) : null;
+    if (comida?.hpPorSegundo) {
+      const antes = p.hp;
+      p.hp = Math.min(p.stats.hp, p.hp + comida.hpPorSegundo * dt);
+      analisar(p, 'cura', p.hp - antes);
+    }
     if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
     // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
     if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
-    if (p.forma !== 'base' && !p.godmode) p.ki = Math.max(0, p.ki - dt * CONFIG.transformacao.drenoKi);
+    const kiPorSegundo = (p.stats.kiEquipamento ?? 0) + (comida?.kiPorSegundo ?? 0) - (p.forma !== 'base' && !p.godmode ? CONFIG.transformacao.drenoKi : 0);
+    p.ki = clamp(p.ki + dt * kiPorSegundo, 0, p.stats.ki);
     this.verificarKiDaForma(p);
     if (p.charge?.bigBangAttack) {
       this.atualizarCargaBigBangAttack(p);
@@ -952,8 +1042,15 @@ export class Game {
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
-    if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
-    if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
+    if (p.autoFood && p.autoHunt && p.hp / p.stats.hp <= CONFIG.autoFoodLimiteHp && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
+    if (p.autoHunt && this.time >= p.kiReady) {
+      const fracaoHp = p.hp / p.stats.hp;
+      const fracaoKi = p.ki / p.stats.ki;
+      const usarEnergia = p.autoEnergyPotion && fracaoHp < p.energyPotionThreshold / 100 && p.inventory['pocao-energia'] > 0;
+      const usarKi = p.autoKi && fracaoKi < p.kiThreshold / 100 && p.inventory.ki > 0;
+      if (usarEnergia && (!usarKi || fracaoHp <= fracaoKi)) this.usePotion(p, 'pocao-energia');
+      else if (usarKi) this.usePotion(p);
+    }
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
     const combo = p.comboAutoHunt;
     const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
@@ -1450,13 +1547,13 @@ export class Game {
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
-        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, slots: self.slots, weight: bagWeight(self.inventory),
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, equipamentos: self.equipamentos, slots: self.slots, weight: bagWeight(self.inventory),
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt, comboAutoHunt: self.comboAutoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
-        kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
+        kiThreshold: self.kiThreshold, energyPotionThreshold: self.energyPotionThreshold, seedThreshold: self.seedThreshold,
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
-        autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
-        foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
+        autoFood: self.autoFood, autoKi: self.autoKi, autoEnergyPotion: self.autoEnergyPotion, autoSeed: self.autoSeed, targetId: self.targetId,
+        foodId: self.foodId, foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), basicRemaining: Math.max(0, self.basicReady - this.time), seedSelected: self.seedSelected,
         kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), bigBangAttackRemaining: Math.max(0, self.bigBangAttackReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,

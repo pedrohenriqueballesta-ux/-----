@@ -1,4 +1,10 @@
 ﻿import { CONFIG } from '../../shared/nucleo/config.mjs';
+import { recargaConsumivel } from './recargas-hud.mjs';
+import { CONSUMIVEIS_LOOT } from '../../shared/tecnicas/consumiveis-loot.mjs';
+import { aplicarRaridadeItem } from './hud-elementos.mjs';
+import { COLECIONAVEIS } from '../../shared/sistemas/premium-config.mjs';
+import { RARIDADES_ITENS } from '../../shared/sistemas/catalogo-itens.mjs';
+import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 import { CURA, curaPorNivel } from '../../shared/tecnicas/cura.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
@@ -19,6 +25,7 @@ export function detalhesHabilidade(chave, estado) {
     if (chave === 'ki') return null;
   }
   if(itemChave)chave=chave.slice(5);
+  if (Object.hasOwn(CONSUMIVEIS_LOOT, chave)) return detalhesItem(chave, estado, 'barra');
   if(chave?.startsWith('form:')&&chave!=='form:auto'){
     const forma=formasDaVocacao(estado.vocacao).find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
@@ -89,15 +96,48 @@ export function detalhesHabilidade(chave, estado) {
   const semente = /^seed(15|30|50|100)$/.exec(chave);
   if (!semente && !['food', 'ki'].includes(chave)) return null;
   const nome = semente ? 'Semente dos Deuses · ' + semente[1] + '%' : chave === 'ki' ? 'Poção de Ki' : 'Presunto';
-  const restante = semente ? estado.seedRemaining : chave === 'ki' ? estado.kiRemaining : 0;
+  const restante = recargaConsumivel(estado, chave);
+  const comidaAtiva = chave === 'food' && (estado.foodId ?? 'food') === 'food' && estado.foodRemaining > 0;
   const quantidade = estado.inventory?.[chave] || 0;
   return { nome, linhas: [
     ['Desbloqueia', 'Nível 1'], ['Custo', '1 unidade · 0 Ki'],
     ['Cooldown', semente ? segundos(CONFIG.seedCooldown) + ' · compartilhado entre sementes' : chave === 'ki' ? segundos(CONFIG.kiCooldown) : 'Renovação ao fim do efeito'],
     ['Efeito', semente ? 'Recupera ' + semente[1] + '% do HP máximo' : chave === 'ki' ? 'Recupera 45% do Ki máximo' : 'Regenera HP durante ' + CONFIG.foodDuration / 60 + ' minutos'],
     ['Estoque', quantidade + (quantidade === 1 ? ' unidade' : ' unidades')],
-    ['Estado', quantidade === 0 ? 'Sem estoque' : restante > 0 ? 'Em recarga · ' + segundos(restante) : chave === 'food' && estado.foodRemaining > 0 ? 'Efeito ativo · ' + segundos(estado.foodRemaining) : 'Disponível']
+    ['Estado', comidaAtiva ? 'Efeito ativo · ' + segundos(estado.foodRemaining) : quantidade === 0 ? 'Sem estoque' : restante > 0 ? 'Em recarga · ' + segundos(restante) : 'Disponível']
   ] };
+}
+
+const numeroItem = valor => valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+export function detalhesItem(id, estado, local = 'mochila') {
+  if (!Object.hasOwn(ITENS_NEGOCIAVEIS, id)) return null;
+  const item = ITENS_NEGOCIAVEIS[id];
+  const efeito = item.origem ? null : detalhesHabilidade('item:' + id, estado);
+  const linhas = [];
+  if (item.raridade) linhas.push(['Raridade', RARIDADES_ITENS[item.raridade]]);
+  if (item.slot) {
+    linhas.push(['Nível exigido', item.nivel], ['Defesa', '+' + item.defesa], ['Regeneração de Ki', '+' + numeroItem(item.kiPorSegundo) + ' Ki/s']);
+    if (item.ataque) linhas.push(['Ataque', '+' + item.ataque]);
+  }
+  linhas.push(['Peso', numeroItem(item.peso) + ' kg'], ['Venda ao NPC', numeroItem(item.precoNpc) + ' Z']);
+  if (efeito) linhas.push(...(local === 'previa' ? efeito.linhas.filter(([rotulo]) => ['Efeito', 'Cooldown'].includes(rotulo)) : efeito.linhas));
+  if (item.consumo) {
+    const c = item.consumo, comida = c.tipo === 'comida';
+    const ganhos = comida
+      ? [c.hpPorSegundo && numeroItem(c.hpPorSegundo) + ' HP/s', c.kiPorSegundo && numeroItem(c.kiPorSegundo) + ' Ki/s']
+      : [numeroItem(c.fracaoHp * 100) + '% do HP máximo'];
+    linhas.push(['Efeito', ganhos.filter(Boolean).join(' e ')],
+      comida ? ['Duração', segundos(c.duracao)] : ['Recarga', segundos(CONFIG.kiCooldown) + ' · compartilhada com Poção de Ki']);
+    if (comida) linhas.push(['Recarga', 'Compartilhada entre comidas']);
+    if (local !== 'previa') {
+      const estoque = estado?.inventory?.[id] ?? 0, restante = recargaConsumivel(estado, id);
+      linhas.push(['Estoque', String(estoque)]);
+      if (comida && estado?.foodId === id && estado.foodRemaining > 0) linhas.push(['Estado', 'Efeito ativo · ' + segundos(estado.foodRemaining)]);
+      else if (restante > 0) linhas.push(['Estado', 'Em recarga · ' + segundos(restante)]);
+    }
+  }
+  if (item.slot && local !== 'previa') linhas.push(['Mover', local === 'equipado' ? 'Arraste para a mochila' : 'Arraste para o encaixe correspondente']);
+  return { nome: efeito?.nome ?? item.nome, linhas };
 }
 
 export function posicaoDetalhes(alvo, tamanho, largura, altura) {
@@ -108,13 +148,29 @@ export function posicaoDetalhes(alvo, tamanho, largura, altura) {
   return { x, y };
 }
 
+const MARGEM_ITEM = 8, FOLGA_ITEM = 10;
+function espacoLateralItem(alvo, largura) {
+  return {
+    esquerda: alvo.left - FOLGA_ITEM - MARGEM_ITEM,
+    direita: largura - alvo.right - FOLGA_ITEM - MARGEM_ITEM
+  };
+}
+export function posicaoDetalhesItem(alvo, tamanho, largura, altura) {
+  const { esquerda, direita } = espacoLateralItem(alvo, largura);
+  if (Math.max(esquerda, direita) < tamanho.width) return posicaoDetalhes(alvo, tamanho, largura, altura);
+  return {
+    x: direita >= esquerda ? alvo.right + FOLGA_ITEM : alvo.left - FOLGA_ITEM - tamanho.width,
+    y: Math.max(MARGEM_ITEM, Math.min(alvo.top + (alvo.height - tamanho.height) / 2, altura - tamanho.height - MARGEM_ITEM))
+  };
+}
+
 // A delegação atende botões desabilitados e os slots recriados ao mudar estoque/aba.
 export function instalarDetalhesHabilidades() {
   const janela = document.createElement('div'); janela.id = 'detalhesHabilidade';
   janela.className = 'detalhes-habilidade'; janela.setAttribute('role', 'tooltip'); janela.hidden = true;
   document.body.append(janela);
-  let estado = null, alvo = null, dispensado = null, assinatura = '';
-  const seletor = '[data-skill], #transformButton, #seedButton, #kiPotionButton, #foodBuff, #foodButton, [data-item]';
+  let estado = null, alvo = null, dispensado = null, assinatura = '', arrastando = false;
+  const seletor = '[data-skill], #transformButton, #seedButton, #kiPotionButton, #foodBuff, #foodButton, [data-item], [data-equip-item]:not([data-equip-item=""]), [data-inspecionar-item], [data-inspecionar-colecionavel]';
   const chave = el => {
     if (el.dataset.hotkeyConsumivel) return 'item:' + (el.dataset.item || '');
     const id = el.dataset.skill || el.dataset.item;
@@ -125,9 +181,16 @@ export function instalarDetalhesHabilidades() {
     alvo?.removeAttribute('aria-describedby'); alvo = null; assinatura = ''; janela.hidden = true;
   };
   const desenhar = () => {
-    if (!alvo?.isConnected) { esconder(); return; }
-    const detalhes = detalhesHabilidade(chave(alvo), estado);
+    if (!alvo?.isConnected || alvo.closest('dialog:not([open])') || !alvo.getClientRects().length || arrastando) { esconder(); return; }
+    const idMochila = alvo.dataset.equipItem || (alvo.closest('#mochilaGrade') ? alvo.dataset.item : null);
+    const { inspecionarItem, inspecionarColecionavel } = alvo.dataset;
+    const colecionavel = COLECIONAVEIS[inspecionarColecionavel];
+    const detalhes = idMochila ? detalhesItem(idMochila, estado, alvo.dataset.equipItem ? 'equipado' : 'mochila')
+      : inspecionarItem ? detalhesItem(inspecionarItem, estado, 'previa')
+        : colecionavel ? { nome: colecionavel.nome, linhas: [['Categoria', colecionavel.tipo], ['Destino', 'Coleção da conta']] }
+          : detalhesHabilidade(chave(alvo), estado);
     if (!detalhes) { esconder(); return; }
+    aplicarRaridadeItem(janela, idMochila || inspecionarItem || chave(alvo)?.replace(/^item:/, ''));
     const atalho = alvo.querySelector('kbd')?.textContent || (chave(alvo) === 'food' ? 'F' : '');
     const nova = JSON.stringify([detalhes, atalho]);
     if (assinatura !== nova) {
@@ -139,12 +202,22 @@ export function instalarDetalhesHabilidades() {
       }
       janela.replaceChildren(titulo, lista); assinatura = nova;
     }
+    // Um tooltip anexado ao body ficaria atrás da camada modal do God Mode.
+    const camada = alvo.closest('dialog:modal') ?? document.body;
+    if (janela.parentElement !== camada) camada.append(janela);
     janela.hidden = false; alvo.setAttribute('aria-describedby', janela.id);
-    const pos = posicaoDetalhes(alvo.getBoundingClientRect(), janela.getBoundingClientRect(), innerWidth, innerHeight);
+    const item = Boolean(idMochila || inspecionarItem || inspecionarColecionavel);
+    const ancora = item ? alvo.querySelector('[data-ancora-inspecao]') ?? alvo : alvo;
+    const caixa = ancora.getBoundingClientRect();
+    const { esquerda, direita } = espacoLateralItem(caixa, innerWidth);
+    const espaco = Math.floor(Math.max(esquerda, direita));
+    janela.style.maxWidth = item && espaco >= 195 ? espaco + 'px' : '';
+    const posicionar = item ? posicaoDetalhesItem : posicaoDetalhes;
+    const pos = posicionar(caixa, janela.getBoundingClientRect(), innerWidth, innerHeight);
     janela.style.left = pos.x + 'px'; janela.style.top = pos.y + 'px';
   };
   const mostrar = el => {
-    if (el === dispensado) return;
+    if (el === dispensado || arrastando) return;
     if (alvo !== el) { esconder(); alvo = el; }
     desenhar();
   };
@@ -157,7 +230,9 @@ export function instalarDetalhesHabilidades() {
   document.addEventListener('pointerout', e => { if (!e.relatedTarget) esconder(); }, true);
   document.addEventListener('focusin', e => { const el = e.target.closest?.(seletor); if (el) mostrar(el); });
   document.addEventListener('focusout', esconder);
-  document.addEventListener('dragstart', esconder);
+  document.addEventListener('dragstart', () => { arrastando = true; esconder(); });
+  document.addEventListener('dragend', () => { arrastando = false; });
+  document.addEventListener('drop', () => { arrastando = false; }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { dispensado = alvo; esconder(); } });
   addEventListener('blur', esconder);
   addEventListener('resize', esconder);
@@ -165,7 +240,7 @@ export function instalarDetalhesHabilidades() {
   return snapshot => {
     estado = snapshot;
     // Evita dois balões simultâneos (o nativo do navegador e a janela do jogo).
-    for (const el of document.querySelectorAll(seletor)) el.removeAttribute('title');
+    for (const el of document.querySelectorAll(':is(' + seletor + ')[title]')) el.removeAttribute('title');
     if (alvo) desenhar();
   };
 }

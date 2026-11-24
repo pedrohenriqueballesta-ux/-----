@@ -1,11 +1,11 @@
 import {mercadorPerto} from '../nucleo/config.mjs';
-import {bagWeight} from '../nucleo/characters.mjs';
+import {bagWeight,mochilaComporta} from '../nucleo/characters.mjs';
 import {ITENS_NEGOCIAVEIS,MAX_ZENI_NORMAL,saldoReal,creditarZeni} from './itens-negociaveis.mjs';
 import {LIMITE_ESTOQUE_LOJA} from './loja.mjs';
 const falha=reason=>({ok:false,reason});
 const inteiro=(n,max)=>Number.isSafeInteger(n)&&n>=1&&n<=max;
 export function limiteOferta(estado,oferta){
- if(!estado||!oferta||!Object.hasOwn(ITENS_NEGOCIAVEIS,oferta.item))return 0;
+ if(!estado||!oferta||!Object.hasOwn(ITENS_NEGOCIAVEIS,oferta.item)||!mochilaComporta(estado,{[oferta.item]:1}))return 0;
  const peso=Number.isFinite(estado.weight)?estado.weight:bagWeight(estado.inventory||{});
  return Math.max(0,Math.min(oferta.quantidade,Math.floor((estado.mercado?.carteiraReal??saldoReal(estado))/oferta.preco),Math.floor((estado.stats.capacity-peso+.0001)/ITENS_NEGOCIAVEIS[oferta.item].peso),LIMITE_ESTOQUE_LOJA-(estado.inventory[oferta.item]||0)));
 }
@@ -33,7 +33,7 @@ export class Mercado {
   const total=o.preco*quantidade,credito=this.creditos.get(o.vendedorId)||0;
   if(!Number.isSafeInteger(total)||!Number.isSafeInteger(credito+total))return falha('Valor da negociação inválido.');
   if(saldoReal(p)<total)return falha('Zeni insuficiente.');
-  if((p.inventory[o.item]||0)+quantidade>LIMITE_ESTOQUE_LOJA||bagWeight(p.inventory)+ITENS_NEGOCIAVEIS[o.item].peso*quantidade>p.stats.capacity+.0001)return falha('A mochila não comporta essa quantidade.');
+  if((p.inventory[o.item]||0)+quantidade>LIMITE_ESTOQUE_LOJA||!mochilaComporta(p,{[o.item]:quantidade}))return falha('A mochila não comporta essa quantidade.');
   // Todas as verificações precedem as mudanças. O loop do servidor serializa as operações.
   if(p.godmode&&p.zeniReal!=null&&!p.godmodeOptions?.zeniInfinite){p.zeniReal-=total;p.zeni=p.zeniReal;}else p.zeni-=total;p.inventory[o.item]=(p.inventory[o.item]||0)+quantidade;
   o.quantidade-=quantidade;if(!o.quantidade)this.ofertas.delete(id);
@@ -43,7 +43,7 @@ export class Mercado {
  cancelar(p,{id}){
   if(!perto(p))return falha('Aproxime-se do mercador para cancelar.');
   const o=this.ofertas.get(id);if(!o||o.vendedorId!==p.mercadoId)return falha('Anúncio não encontrado ou pertence a outro jogador.');
-  if((p.inventory[o.item]||0)+o.quantidade>LIMITE_ESTOQUE_LOJA||bagWeight(p.inventory)+ITENS_NEGOCIAVEIS[o.item].peso*o.quantidade>p.stats.capacity+.0001)return falha('Libere espaço na mochila para recuperar os itens do anúncio.');
+  if((p.inventory[o.item]||0)+o.quantidade>LIMITE_ESTOQUE_LOJA||!mochilaComporta(p,{[o.item]:o.quantidade}))return falha('Libere espaço na mochila para recuperar os itens do anúncio.');
   p.inventory[o.item]=(p.inventory[o.item]||0)+o.quantidade;this.ofertas.delete(id);this.revisao++;
   return{ok:true,quantidade:o.quantidade};
  }
@@ -58,8 +58,9 @@ export class Mercado {
  restaurar(estado){
   this.ofertas.clear();this.creditos.clear();this.revisao=Number.isSafeInteger(estado?.revisao)?Math.max(0,estado.revisao):0;this.serial=0;
   for(const o of (Array.isArray(estado?.ofertas)?estado.ofertas:[]).slice(0,1000)){
-   if(!o||typeof o.id!=='string'||!/^oferta-\d+$/.test(o.id)||!Number.isSafeInteger(Number(o.id.slice(7)))||!conta(o.vendedorId)||!Object.hasOwn(ITENS_NEGOCIAVEIS,o.item)||!inteiro(o.quantidade,LIMITE_ESTOQUE_LOJA)||!inteiro(o.preco,MAX_ZENI_NORMAL)||!Number.isFinite(o.criadoEm)||this.ofertas.has(o.id))continue;
-   this.ofertas.set(o.id,{id:o.id,vendedorId:o.vendedorId,vendedor:String(o.vendedor||'Guerreiro').slice(0,18),item:o.item,quantidade:o.quantidade,preco:o.preco,criadoEm:o.criadoEm});
+   const item = o?.item === 'crystal' ? 'cristal-azul' : o?.item;
+   if(!o||typeof o.id!=='string'||!/^oferta-\d+$/.test(o.id)||!Number.isSafeInteger(Number(o.id.slice(7)))||!conta(o.vendedorId)||!Object.hasOwn(ITENS_NEGOCIAVEIS,item)||!inteiro(o.quantidade,LIMITE_ESTOQUE_LOJA)||!inteiro(o.preco,MAX_ZENI_NORMAL)||!Number.isFinite(o.criadoEm)||this.ofertas.has(o.id))continue;
+   this.ofertas.set(o.id,{id:o.id,vendedorId:o.vendedorId,vendedor:String(o.vendedor||'Guerreiro').slice(0,18),item,quantidade:o.quantidade,preco:o.preco,criadoEm:o.criadoEm});
    this.serial=Math.max(this.serial,Number(o.id.slice(7))||0);
   }
   if(Number.isSafeInteger(estado?.serial))this.serial=Math.max(this.serial,estado.serial);

@@ -15,9 +15,16 @@ export function resumo(p){
  const a=p.huntAnalyzer||novaSessao();
  const itens=campo=>Object.entries(a[campo]||{}).map(([id,quantidade])=>({id,nome:ITENS_NEGOCIAVEIS[id].nome,icone:ITENS_NEGOCIAVEIS[id].icone,raridade:ITENS_NEGOCIAVEIS[id].raridade||'Não definida',quantidade}));
  const loot=itens('loot'),drops=itens('drops'),supplies=itens('supplies');
- const valorLoot=loot.reduce((n,i)=>n+i.quantidade*ITENS_NEGOCIAVEIS[i.id].precoNpc,0);
- const gastos=supplies.reduce((n,i)=>n+i.quantidade*(CONFIG.prices[i.id]||0),0);
- return {...a,abates:Object.values(a.abates||{}),mortes:Object.values(a.mortes||{}),totalAbates:Object.values(a.abates||{}).reduce((n,i)=>n+i.quantidade,0),totalMortes:Object.values(a.mortes||{}).reduce((n,i)=>n+i.quantidade,0),loot,drops,supplies,ativo:ativo(p),xpHora:a.segundos>0?a.xp*3600/a.segundos:0,valorLoot,gastos,receita:a.zeni+valorLoot,saldo:a.zeni+valorLoot-gastos};
+ let valorMateriais = 0, valorEquipamentos = 0;
+ for (const { id, quantidade } of loot) {
+   const item = ITENS_NEGOCIAVEIS[id], valor = item.precoNpc * quantidade;
+   if (item.slot) valorEquipamentos += valor;
+   else valorMateriais += valor;
+ }
+ const valorLoot = valorMateriais + valorEquipamentos;
+ const gastos=supplies.reduce((n,i)=>n+i.quantidade*(CONFIG.prices[i.id] ?? ITENS_NEGOCIAVEIS[i.id].precoNpc),0);
+ const saldoSemEquipamentos = a.zeni + valorMateriais - gastos;
+ return {...a,abates:Object.values(a.abates||{}),mortes:Object.values(a.mortes||{}),totalAbates:Object.values(a.abates||{}).reduce((n,i)=>n+i.quantidade,0),totalMortes:Object.values(a.mortes||{}).reduce((n,i)=>n+i.quantidade,0),loot,drops,supplies,ativo:ativo(p),xpHora:a.segundos>0?a.xp*3600/a.segundos:0,valorLoot,valorMateriais,valorEquipamentos,gastos,receita:a.zeni+valorLoot,saldoSemEquipamentos,saldo:saldoSemEquipamentos+valorEquipamentos};
 }
 
 // Executado antes do golpe fatal reduzir HP ou desligar o Auto Hunt.

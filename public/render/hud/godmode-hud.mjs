@@ -1,4 +1,6 @@
+import { instalarCatalogoItens } from './catalogo-itens-hud.mjs';
 import { GODMODE_PADRAO } from '../../shared/nucleo/characters.mjs';
+import { marcarItemInspecionavel, nomeComRaridade } from './hud-elementos.mjs';
 import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 import { CONFIG, areaPorId } from '../../shared/nucleo/config.mjs';
 import { CHEFES_TESTE, mobStats } from '../../shared/nucleo/enemies.mjs';
@@ -110,14 +112,19 @@ export function instalarGodmodeHud(acao) {
     finally { bossButton.disabled = false; }
   });
 
-  for (const item of Object.values(ITENS_NEGOCIAVEIS)) {
+  let godmodeAtivo = false;
+  const botoesAdicionar = [];
+  const criarCard = item => {
     const card = criar('article', 'godmode-item'); card.dataset.godmodeItem = item.id;
-    const img = criar('img', 'godmode-item-icon'); img.src = item.icone; img.alt = '';
-    const nome = criar('strong', 'godmode-item-name', item.nome);
+    marcarItemInspecionavel(card, item.id);
+    const img = criar('img', 'godmode-item-icon'); img.src = item.icone; img.alt = ''; img.loading = 'lazy'; img.dataset.ancoraInspecao = '';
+    const nome = nomeComRaridade(criar('strong', 'godmode-item-name', item.nome), item.id);
     const peso = criar('small', 'godmode-item-weight', 'Peso unitário · ' + item.peso.toLocaleString('pt-BR') + ' kg');
     const qtd = criar('input', 'godmode-item-quantity'); qtd.type = 'number'; qtd.min = '1'; qtd.max = '9999'; qtd.step = '1'; qtd.value = '1';
     qtd.setAttribute('aria-label', 'Quantidade de ' + item.nome);
     const pegar = criar('button', 'godmode-item-grant', 'Adicionar'); pegar.type = 'button';
+    pegar.disabled = !godmodeAtivo;
+    botoesAdicionar.push(pegar);
     pegar.addEventListener('click', async () => {
       const quantidade = Number(qtd.value);
       if (!Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 9999) {
@@ -126,10 +133,13 @@ export function instalarGodmodeHud(acao) {
       pegar.disabled = true; pegar.textContent = 'Adicionando…';
       try { avisarFalha(await acao({ type: 'godmodeGrantItem', item: item.id, quantidade })); }
       catch (erro) { $('godmodeStatus').textContent = erro.message || 'Não foi possível adicionar o item.'; }
-      finally { pegar.disabled = false; pegar.textContent = 'Adicionar'; }
+      finally { pegar.disabled = !godmodeAtivo; pegar.textContent = 'Adicionar'; }
     });
-    card.append(img, nome, peso, qtd, pegar); grade.append(card);
-  }
+    card.append(img, nome, peso, qtd, pegar);
+    return card;
+  };
+  const mostrarItens = instalarCatalogoItens({ grade, itens:Object.values(ITENS_NEGOCIAVEIS), criarCard });
+  mostrarItens();
 
   return {
     atualizar(estado) {
@@ -144,7 +154,10 @@ export function instalarGodmodeHud(acao) {
       if (aguardandoSnapshot && iguais(options, aguardandoSnapshot)) aguardandoSnapshot = null;
       if (!alteracoesPendentes && !aguardandoSnapshot) mostrarOpcoes(options);
       botaoAplicar.disabled = aplicando || !alteracoesPendentes;
-      for (const btn of grade.querySelectorAll('.godmode-item-grant')) btn.disabled = !estado.godmode;
+      if (godmodeAtivo !== estado.godmode) {
+        godmodeAtivo = estado.godmode;
+        for (const btn of botoesAdicionar) btn.disabled = !godmodeAtivo || btn.textContent === 'Adicionando…';
+      }
       $('godmodeItemHint').textContent = estado.godmode ? 'Escolha a quantidade e adicione diretamente à mochila de teste.' : 'Ative o God Mode para conceder itens.';
       bossButton.disabled = !estado.godmode;
     }

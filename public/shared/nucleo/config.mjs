@@ -1,3 +1,4 @@
+import { NOVOS_ITENS } from '../sistemas/catalogo-itens.mjs';
 // Dados do mundo e números de balanceamento do protótipo. Todos ajustáveis.
 import { PEGADAS } from '../mundo/pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from '../mundo/decoracao-namek.mjs';
@@ -42,7 +43,7 @@ export const CONFIG = Object.freeze({
     penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 })
   }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
-  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
+  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2, autoFoodLimiteHp: 0.90,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
   mochilaSlots: 30,
   // Raio de seleção de mobs pela Auto Hunt (Pedro, 09/11/2026).
@@ -51,8 +52,8 @@ export const CONFIG = Object.freeze({
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
-  itemWeights: { food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.7, crystal: 0.45 },
-  prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
+  itemWeights: { ...Object.fromEntries(Object.values(NOVOS_ITENS).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
+  prices: { food: 12, ki: 18, 'pocao-energia': 50, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),
   skillCosts: { ki: 7, kame: 25, galick: 25, bigBangAttack: 120, finalFlash: 180, kaioken: 0, barrier: 30, transform: 0, genki: 60 },

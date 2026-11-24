@@ -1,10 +1,11 @@
 import {registrarAtividadePasse} from './battle-pass.mjs';
-import {bagWeight} from '../nucleo/characters.mjs';
-import {CONFIG} from '../nucleo/config.mjs';
+import {mochilaComporta} from '../nucleo/characters.mjs';
+import {RECOMPENSA_PATRULHA} from './catalogo-itens.mjs';
 import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from './itens-negociaveis.mjs';
 export const MISSOES=Object.freeze([
  {id:'primeiros-passos',nome:'Primeiros passos',categoria:'principal',descricao:'Alcance o nível 40 para dominar o Kamehameha.',evento:'nivel',meta:40,recompensa:{zeni:30,xp:10}},
  {id:'dominio-ki',nome:'Domínio do Ki',categoria:'principal',descricao:'Alcance o nível 100 para liberar o Super Saiyajin.',evento:'nivel',meta:100,requer:'primeiros-passos',recompensa:{zeni:60,xp:20}},
+ {id:'patrulha-inicial',nome:'Primeira patrulha',categoria:'secundaria',descricao:'Derrote 12 inimigos para receber a Armadura e as Botas de Patrulha (nível 5).',evento:'kills',meta:12,recompensa:{itens:RECOMPENSA_PATRULHA}},
  {id:'defensor',nome:'Defensor dos campos',categoria:'secundaria',descricao:'Derrote 20 inimigos.',evento:'kills',meta:20,recompensa:{zeni:50}},
  {id:'coletor',nome:'Recursos da expedição',categoria:'secundaria',descricao:'Recolha 10 drops deixados pelos inimigos.',evento:'coleta',meta:10,recompensa:{zeni:25,itens:{ki:1}}},
  {id:'caca-diaria',nome:'Caçada diária',categoria:'diaria',descricao:'Derrote 15 inimigos hoje (UTC).',evento:'kills',meta:15,recompensa:{zeni:40,xp:15}},
@@ -40,8 +41,8 @@ export function listarMissoes(p,agora=Date.now()){
 export function resgatarMissao(g,p,id){
  const m=listarMissoes(p,g.agora()).find(m=>m.id===id);if(!m||m.estado!=='concluida')return{ok:false,reason:'Missão indisponível para resgate.'};
  if(p.godmode)return{ok:false,reason:'Desative o God Mode para resgatar recompensas.'};
- const r=m.recompensa,itens=r.itens||{},peso=Object.entries(itens).reduce((n,[k,q])=>n+CONFIG.itemWeights[k]*q,0);
- if(saldoReal(p)+(r.zeni||0)>MAX_ZENI_NORMAL||bagWeight(p.inventory)+peso>p.stats.capacity+.0001||Object.entries(itens).some(([k,q])=>(p.inventory[k]||0)+q>99999))return{ok:false,reason:'Libere espaço na mochila ou na carteira para receber a recompensa.'};
+ const r=m.recompensa,itens=r.itens||{};
+ if(saldoReal(p)+(r.zeni||0)>MAX_ZENI_NORMAL||(Object.keys(itens).length && !mochilaComporta(p,itens)))return{ok:false,reason:'Libere espaço na mochila ou na carteira para receber a recompensa.'};
  (p.missoes[m.categoria]?.resgatadas||p.missoes.resgatadas).push(id);
  if(r.zeni)creditarZeni(p,r.zeni);for(const[k,q]of Object.entries(itens))p.inventory[k]=(p.inventory[k]||0)+q;
  registrarAtividadePasse(p,'missoes',1,g.agora());

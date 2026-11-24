@@ -36,10 +36,12 @@ test('vida só regenera com comida ativa e o efeito termina após cinco minutos'
 
 test('subir de nível aumenta todos os atributos automaticamente e libera técnicas', () => {
   const game = world(), p = game.addPlayer('a'), before = { ...p.stats };
+  const atributosDeNivel = Object.keys(statsFor(p.level, p.vocacao));
   assert.equal(game.cast(p, 'ki').ok, false);
   game.awardXp(p, xpForLevel(1));
   assert.equal(p.level, 2);
-  for (const key of Object.keys(before)) assert.ok(p.stats[key] > before[key], key + ' deve aumentar');
+  for (const key of atributosDeNivel) assert.ok(p.stats[key] > before[key], key + ' deve aumentar');
+  assert.equal(p.stats.kiEquipamento, before.kiEquipamento);
   for (let nivel = 2; nivel < CONFIG.skills.ki; nivel++) game.awardXp(p, xpForLevel(nivel));
   assert.equal(p.level, CONFIG.skills.ki);
   assert.equal(game.cast(p, 'ki').ok, true);

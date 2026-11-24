@@ -698,3 +698,58 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .mochila .slot > .contador-recarga{font-size:clamp(10px,1em,16px)}
 .mochila .slot.cooling .mochila-item-icone{filter:grayscale(1)}
 .mochila .slot.cooling em{z-index:3}
+
+.mochila .slot-equip[data-equip-item]:not([data-equip-item=""]) img { opacity:1; }
+.mochila .slot-equip[data-equip-item]:not([data-equip-item=""]) { border-color:var(--ouro); }
+.mochila .slot[draggable="true"] { cursor:grab; }
+.mochila .slot-equip.slot-destino { border-color:var(--ouro);box-shadow:0 0 calc(8 * var(--um)) #ff9d2a99; }
+
+.recompensa-item, .godmode-item[data-inspecionar-item] { cursor:help; }
+.recompensa-item { text-decoration:underline dotted; text-underline-offset:3px; }
+.recompensa-item:focus-visible, .godmode-item[data-inspecionar-item]:focus-visible { outline:2px solid #ffd36b;outline-offset:2px; }
+
+/* A cor reforça a raridade escrita e usa o mesmo tom em todas as HUDs. */
+[data-raridade-item="comum"] { --raridade-item:#c5cbd5; }
+[data-raridade-item="incomum"] { --raridade-item:#72dc87; }
+[data-raridade-item="raro"] { --raridade-item:#80bfff; }
+[data-raridade-item="epico"] { --raridade-item:#cf9cff; }
+[data-raridade-item="lendario"] { --raridade-item:#ffd66b; }
+.nome-item[data-raridade-item], .detalhes-habilidade[data-raridade-item] > strong { color:var(--raridade-item); }
+.detalhes-habilidade[data-raridade-item] { border-color:var(--raridade-item); }
+.mochila .slot[data-raridade-item]:not(.slot-destino) { border-color:var(--raridade-item); }
+
+.venda-acoes-npc{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.venda-selecao{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;padding:0;overflow:auto;border:2px solid var(--ouro);border-radius:14px;background:#0d1c2f;color:var(--texto)}
+.venda-selecao::backdrop{background:#000a}
+.venda-selecao header,.venda-selecao footer{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;background:#142d4c}
+.venda-selecao header{position:sticky;top:0;z-index:1}
+.venda-selecao h2{margin:0;color:var(--ouro-claro)}
+.venda-selecao button,.venda-acoes-npc button{padding:8px 12px;border:1px solid var(--borda-azul);border-radius:8px;background:#1d4370;color:#fff;font-weight:700}
+.venda-selecao button:disabled,.venda-acoes-npc button:disabled{opacity:.55}
+.venda-selecao-grade{display:grid;gap:8px;padding:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr))}
+.venda-selecao-item{display:grid;grid-template-columns:auto minmax(0,1fr) 58px;gap:7px;align-items:center;padding:8px;border:1px solid var(--borda-azul);border-radius:8px;background:#0b223d}
+.venda-selecao-item.selecionado{border-color:var(--ouro);background:#193350}
+.venda-selecao-item input{min-width:0;color:#fff;background:#0a1a31;border:1px solid var(--borda-azul);border-radius:4px;padding:4px;accent-color:var(--ouro)}
+.venda-selecao-info{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:2px 6px;cursor:help}
+.venda-selecao-info img{width:30px;height:30px;object-fit:contain;grid-row:1/4}
+.venda-selecao-info small{grid-column:2;color:#a9bfd5}
+.venda-selecao footer{position:sticky;bottom:0}
+.venda-selecao footer .venda-status{flex-basis:100%;margin:0}
+.venda-selecao footer .venda-status:empty{display:none}
+
+.enciclopedia-abas{display:flex;flex-shrink:0;gap:8px;margin-top:10px}
+.enciclopedia-abas button{padding:7px 14px;border:1px solid var(--borda-azul);border-radius:8px;background:#10243c;color:var(--texto);font-weight:700}
+.enciclopedia-abas button[aria-pressed="true"]{border-color:var(--ouro);background:#183858;color:var(--ouro-claro)}
+.enciclopedia-painel{display:flex;flex:1;flex-direction:column;min-height:0}
+.enciclopedia-painel[hidden]{display:none}
+.catalogo-item-filtros{display:grid;grid-template-columns:1.3fr 1fr 1.2fr 1.2fr;gap:7px;margin:12px 0 0}
+.catalogo-item-filtros :is(input,select){width:100%;min-width:0;padding:7px;border:1px solid #466486;border-radius:7px;background:#10243c;color:var(--texto)}
+.catalogo-item-resumo{color:#b7c6d9;margin:8px 0;font-size:12px}
+.enciclopedia-grade-itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,215px),1fr));align-content:start;gap:8px;min-height:0;overflow:auto;padding:2px}
+.enciclopedia-item{display:grid;grid-template-columns:44px minmax(0,1fr);gap:3px 8px;align-items:center;padding:8px;border:1px solid #344c67;border-radius:8px;background:#09192bbd;cursor:help}
+.enciclopedia-item img{width:40px;height:40px;object-fit:contain;grid-row:1/3}
+.enciclopedia-item small{color:#a9c0d7}
+.catalogo-item-vazio{grid-column:1/-1;margin:10px 0;color:#b7c6d9}
+@media(max-width:570px){
+  .catalogo-item-filtros{grid-template-columns:1fr 1fr}
+}

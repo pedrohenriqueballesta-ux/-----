@@ -82,7 +82,7 @@ test('nada vaza para Planícies ou Vegeta: dano, alvo, projétil e snapshot',()=
 test('bestiário registra as três fichas, magia de Neva, recompensas padrão e retratos',()=>{
   const g=new Game({random:()=>.5}),fichas=criarBestiario(g.mobs.values()).filter(m=>m.area==='norte');assert.equal(fichas.length,3);
   const n=fichas.find(m=>m.tipo==='neva');assert.equal(n.raro,true);assert.match(n.ataques,/Magia da mão/);assert.deepEqual(n.zeni,[RECOMPENSAS_MOBS.zeniChefe,RECOMPENSAS_MOBS.zeniChefe]);
-  for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[30,40]);assert.ok(f.xp>0);assert.equal(f.drops.length,3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
+  for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[30,40]);assert.ok(f.xp>0);assert.deepEqual(f.drops.slice(0,3).map(d=>d.item),['scrap','cristal-azul','seed15']);assert.ok(f.drops.length>3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
 });
 test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três inimigos com 1,25× Goku',async()=>{
   for(const [tipo,estados]of Object.entries(FOLHAS_NAMEK_NORTE)) {

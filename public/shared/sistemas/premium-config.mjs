@@ -29,9 +29,9 @@ export const RECOMPENSAS_PASSE=Object.fromEntries(['gratis','premium'].map(trilh
  const cosm={1:'traje-escarlate',10:'aura-azul',20:'titulo-guardiao',25:'moldura-estelar',35:'efeito-celeste',40:'nimbus-dourada',50:'emblema-campeao'};
  if(trilha==='gratis'&&n===1)return {colecao:['goku-natalino']};
  if(trilha==='premium'&&cosm[n])return {colecao:[cosm[n]]};
- if(n%10===0)return {bau:true,itens:{ki:3*q*f,crystal:q*f,scrap:2*q*f},zeni:100*q*f};
+ if(n%10===0)return {bau:true,itens:{ki:3*q*f,'cristal-azul':q*f,scrap:2*q*f},zeni:100*q*f};
  if(n%5===0)return {moedas:10*f};
- return [{zeni:50*q*f},{itens:{ki:2*q*f}},{itens:{crystal:q*f}},{itens:{seed15:q*f}},{itens:{scrap:2*q*f}}][i%5];
+ return [{zeni:50*q*f},{itens:{ki:2*q*f}},{itens:{'cristal-azul':q*f}},{itens:{seed15:q*f}},{itens:{scrap:2*q*f}}][i%5];
 })]));
 export function recompensaPasse(nivel,trilha){return RECOMPENSAS_PASSE[trilha]?.[nivel-1];}
 export const PRODUTOS_STORE=Object.freeze([
