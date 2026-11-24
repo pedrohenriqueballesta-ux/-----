@@ -1,6 +1,7 @@
 import {montariaValida} from '../sistemas/montarias.mjs';
 import {restaurarBattlePass} from '../sistemas/battle-pass.mjs';
 import {hotkeysConsumiveisValidas} from '../tecnicas/consumiveis-hotkeys.mjs';
+import { validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import {vocacaoDoPersonagem} from '../sistemas/vocacoes.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
@@ -222,6 +223,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     zeni: clamp(Number(saved?.zeni ?? 200), 0, 9999999), inventory, kills: Number(saved?.kills) || 0,
     input: { x: 0, y: 0 }, facing: { x: 1, y: 0 }, aim: null, inputAt: now,
     autoAttack: false, autoSkills: false, autoHunt: false, targetId: null,
+    comboAutoHunt: validarCombo(saved?.comboAutoHunt, vocacao.id),
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0,
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
@@ -261,5 +263,5 @@ export function exportPlayer(p) {
     foodUntil: p.foodUntil, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,
     kiThreshold: p.kiThreshold, seedThreshold: p.seedThreshold, seedSelected: p.seedSelected,
-    autoFood: p.autoFood, autoKi: p.autoKi, autoSeed: p.autoSeed };
+    autoFood: p.autoFood, autoKi: p.autoKi, autoSeed: p.autoSeed, comboAutoHunt: p.comboAutoHunt };
 }

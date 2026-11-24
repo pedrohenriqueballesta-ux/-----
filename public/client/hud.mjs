@@ -4,6 +4,7 @@ import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
 import {instalarStore} from '../render/hud/store.mjs';
 import {instalarBattlePass} from '../render/hud/battle-pass-hud.mjs';
 import {instalarBarraTecnicas,atualizarBarraTecnicas} from '../render/hud/barra-tecnicas-hud.mjs';
+import { instalarComboAutoHunt } from '../render/hud/combo-auto-hunt.mjs';
 import {atualizarHuntAnalyzer,instalarHuntAnalyzer} from '../render/hud/hunt-analyzer.mjs';
 import {instalarJanelasHud} from '../render/hud/janelas-hud.mjs';
 import {instalarAbasHud} from '../render/hud/abas-hud.mjs';
@@ -21,6 +22,7 @@ import { instalarGodmodeHud } from '../render/hud/godmode-hud.mjs';
 import { instalarPainelMovel, instalarArrasto } from '../render/hud/painel-movel.mjs';
 
 let atualizarDetalhes = () => {};
+let atualizarComboAutoHunt;
 let novidadesHud = null;
 let lojaHud = null;let abasHud=null;let godmodeHud=null;
 const avisados = new Set();
@@ -155,6 +157,7 @@ export function atualizarHud(snapshot, playerId) {
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed']) $(key).checked = s[key];
   $('autoHeal').checked = s.autoHeal;
+  atualizarComboAutoHunt?.(s, snapshot.selfId);
   for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
     if (document.activeElement !== $(key)) $(key).value = s[key];
   }
@@ -477,6 +480,7 @@ export function ligarHud(contexto) {
   godmodeHud = instalarGodmodeHud(action);
   instalarIconesAnimados();
   instalarHuntAnalyzer();
+  atualizarComboAutoHunt = instalarComboAutoHunt($('autoHuntDialog'), dados => ctx.api('action', dados));
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);

@@ -212,6 +212,20 @@ button{cursor:pointer}
 .auto-hunt-option input{width:19px;height:19px;accent-color:#7cdb78;flex-shrink:0;cursor:pointer}
 .auto-hunt-threshold{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;color:#c4d2e3;font-size:12px}.auto-hunt-threshold>span{white-space:nowrap}
 .auto-hunt-threshold input,.auto-hunt-threshold select{padding:6px;border:1px solid #5274ab;border-radius:6px;background:#0b1830;color:#fff}.auto-hunt-threshold input{width:62px;text-align:center;margin-right:5px}.auto-hunt-threshold input:focus,.auto-hunt-threshold select:focus{outline:2px solid var(--ouro)}
+.auto-combo{margin-top:12px;padding:9px 10px;border:1px solid #3d5c98;border-radius:10px}
+.auto-combo .hunt-analyzer-abas{margin-top:0}
+.auto-combo ol{margin:6px 0 10px;padding-left:22px}
+.auto-combo li{padding:6px 0;border-bottom:1px solid #526b8966}
+.auto-combo li::marker{color:var(--ouro-claro);font-weight:700}
+.auto-combo .auto-hunt-threshold{margin:4px 0}
+.auto-combo .auto-hunt-threshold select{max-width:65%}
+.auto-combo-percentual{display:inline-flex;align-items:center;gap:4px}
+.auto-combo .auto-combo-percentual input{margin-right:0}
+.auto-combo-controles{display:inline-flex;gap:4px;float:right}
+.auto-combo-controles button{color:#fff;background:#182a40;border:1px solid #536b84;border-radius:4px;min-width:26px;cursor:pointer}
+.auto-combo-controles button:disabled{opacity:.5;cursor:default}
+.auto-combo>button{margin-top:8px}
+.auto-combo output{display:block;color:#c4d2e3;margin-top:4px}
 .auto-hunt-note{margin:14px 0 0;color:#9db0c7;font-size:11px;line-height:1.5}
 #autoHuntButton[aria-expanded="true"]{border-color:#a8e6a0;box-shadow:0 0 12px #5fcb7777}
 #autoHuntButton[aria-expanded="true"]>i:last-child{transform:rotate(180deg)}
