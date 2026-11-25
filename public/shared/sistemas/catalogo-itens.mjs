@@ -2,10 +2,15 @@ import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 
 // Percentuais independentes por abate. Fontes futuras têm chance proposta e não são sorteadas.
 const recursos = [
-  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32}],
+  // Robôs do Pilaf e dinossauros da Terra Selvagem (25/11/2026): drops PROVISÓRIOS com materiais que já existem
+  // (sem ícone para material novo ainda); drops próprios a decidir com o Pedro.
+  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32,"roboMai":0.22,"roboShu":0.24,"roboPilaf":0.3,"maquinaPilaf":0.6}],
   ["antenas-namek","Antenas Namekuseijins",0.05,8,"comum",{"guerreiro":0.26,"veterano":0.3,"nail":0.35,"piccoloDaimaoh":0.28}],
   ["asas-namek","Asas de Inseto de Namek",0.03,6,"comum",{"inseto":0.36}],
   ["carne-oozaru","Carne de Oozaru",0.44,30,"comum",{"oozaru":0.35,"oozaruGuerreiro":0.46,"oozaruDourado":0.68}],
+  // Dinossauros do Vale da Cachoeira (primeira hunt, 25/11/2026): peso, preço e chances PROVISÓRIOS; ícone provisório
+  // recortado da folha do T-Rex.
+  ["carne-dinossauro","Carne de Dinossauro",0.4,6,"comum",{"estegossauro":0.3,"triceratops":0.32,"espinossauro":0.36,"tiranossauro":0.42}],
   ["circuito-tsufu","Circuito Tsufu",0.08,28,"incomum",{"tsufuruGuerreiro":0.16,"tsufuruGeneral":0.23,"hatchiyack":0.34}],
   ["cristal-azul","Cristal Azul",0.09,21,"comum",{}],
   ["cristal-esmeralda","Cristal Esmeralda",0.1,32,"incomum",{"piccoloDaimaoh":0.15,"neva":0.45,"boss":0.32}],

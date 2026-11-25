@@ -79,6 +79,26 @@ import { ZARBON_KI } from './personagens/zarbon/zarbon-ki.mjs';
 import { DODORIA_PASSO } from './personagens/dodoria/dodoria-passo.mjs';
 import { DODORIA_SOCO } from './personagens/dodoria/dodoria-soco.mjs';
 import { DODORIA_KI } from './personagens/dodoria/dodoria-ki.mjs';
+// Mobs da Terra Selvagem (Pedro, 25/11/2026): dinossauros (Vale da Cachoeira) e robôs do Pilaf (Descampado).
+import { TIRANOSSAURO_PASSO } from './personagens/dinossauros/tiranossauro-andar.mjs';
+import { TIRANOSSAURO_ATAQUE } from './personagens/dinossauros/tiranossauro-ataque.mjs';
+import { TRICERATOPS_PASSO } from './personagens/dinossauros/triceratops-andar.mjs';
+import { TRICERATOPS_ATAQUE } from './personagens/dinossauros/triceratops-ataque.mjs';
+import { ESTEGOSSAURO_PASSO } from './personagens/dinossauros/estegossauro-andar.mjs';
+import { ESTEGOSSAURO_ATAQUE } from './personagens/dinossauros/estegossauro-ataque.mjs';
+import { ESPINOSSAURO_PASSO } from './personagens/dinossauros/espinossauro-andar.mjs';
+import { ESPINOSSAURO_ATAQUE } from './personagens/dinossauros/espinossauro-ataque.mjs';
+import { ROBO_PILAF_PASSO } from './personagens/robos-pilaf/robo-pilaf-andar.mjs';
+import { ROBO_PILAF_SOCO } from './personagens/robos-pilaf/robo-pilaf-soco.mjs';
+import { ROBO_PILAF_CANHAO } from './personagens/robos-pilaf/robo-pilaf-canhao.mjs';
+import { ROBO_SHU_PASSO } from './personagens/robos-pilaf/robo-shu-andar.mjs';
+import { ROBO_SHU_SOCO } from './personagens/robos-pilaf/robo-shu-soco.mjs';
+import { ROBO_SHU_CANHAO } from './personagens/robos-pilaf/robo-shu-canhao.mjs';
+import { ROBO_MAI_PASSO } from './personagens/robos-pilaf/robo-mai-andar.mjs';
+import { ROBO_MAI_SOCO } from './personagens/robos-pilaf/robo-mai-soco.mjs';
+import { ROBO_MAI_CANHAO } from './personagens/robos-pilaf/robo-mai-canhao.mjs';
+import { MAQUINA_PILAF_PASSO } from './personagens/robos-pilaf/maquina-pilaf-andar.mjs';
+import { MAQUINA_PILAF_SOCO } from './personagens/robos-pilaf/maquina-pilaf-soco.mjs';
 
 // Five distinct views, with the three opposite views mirrored for consistent anatomy.
 // Back-diagonal views use a rear three-quarter drawing, never a side/front substitute.
@@ -128,7 +148,7 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
 const PASSO = { kaioken: FOLHAS_GOKU_KAIOKEN.andar, gokuSsj: FOLHAS_GOKU_SSJ.andar, gokuSsj2: FOLHAS_GOKU_SSJ2.andar, gokuSsj3: FOLHAS_GOKU_SSJ3.andar, gokuSsj4: FOLHAS_GOKU_SSJ4.andar, ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).map(([tipo,f])=>[tipo,f.andar])), goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'],
-  freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'] };
+  freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'], tiranossauro: [TIRANOSSAURO_PASSO, 'tiranossauroPasso'], triceratops: [TRICERATOPS_PASSO, 'triceratopsPasso'], estegossauro: [ESTEGOSSAURO_PASSO, 'estegossauroPasso'], espinossauro: [ESPINOSSAURO_PASSO, 'espinossauroPasso'], roboPilaf: [ROBO_PILAF_PASSO, 'roboPilafPasso'], roboShu: [ROBO_SHU_PASSO, 'roboShuPasso'], roboMai: [ROBO_MAI_PASSO, 'roboMaiPasso'], maquinaPilaf: [MAQUINA_PILAF_PASSO, 'maquinaPilafPasso'] };
 export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).flatMap(([tipo,f])=>[[tipo,f.ataque],[tipo+'Ki',f.rajada]])), goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
   veteranoKi: [VETERANO_KI, 'veteranoKi'],
   tsufuruGuerreiro: [TSUFURU_GUERREIRO_SOCO, 'tsufuruGuerreiroSoco'], tsufuruGuerreiroKi: [TSUFURU_GUERREIRO_KI, 'tsufuruGuerreiroKi'],
@@ -145,7 +165,15 @@ export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).
   broly: [BROLY_SOCO, 'brolySoco'], brolyKi: [BROLY_KI, 'brolyKi'],
   oozaruDourado: [OOZARU_DOURADO_PANCADA, 'oozaruDouradoPancada'], oozaruDouradoKi: [OOZARU_DOURADO_LASER, 'oozaruDouradoLaser'],
   zarbon: [ZARBON_SOCO, 'zarbonSoco'], zarbonKi: [ZARBON_KI, 'zarbonKi'],
-  dodoria: [DODORIA_SOCO, 'dodoriaSoco'], dodoriaKi: [DODORIA_KI, 'dodoriaKi'] };
+  dodoria: [DODORIA_SOCO, 'dodoriaSoco'], dodoriaKi: [DODORIA_KI, 'dodoriaKi'],
+  tiranossauro: [TIRANOSSAURO_ATAQUE, 'tiranossauroGolpe'],
+  triceratops: [TRICERATOPS_ATAQUE, 'triceratopsGolpe'],
+  estegossauro: [ESTEGOSSAURO_ATAQUE, 'estegossauroGolpe'],
+  espinossauro: [ESPINOSSAURO_ATAQUE, 'espinossauroGolpe'],
+  roboPilaf: [ROBO_PILAF_SOCO, 'roboPilafGolpe'], roboPilafKi: [ROBO_PILAF_CANHAO, 'roboPilafCanhao'],
+  roboShu: [ROBO_SHU_SOCO, 'roboShuGolpe'], roboShuKi: [ROBO_SHU_CANHAO, 'roboShuCanhao'],
+  roboMai: [ROBO_MAI_SOCO, 'roboMaiGolpe'], roboMaiKi: [ROBO_MAI_CANHAO, 'roboMaiCanhao'],
+  maquinaPilaf: [MAQUINA_PILAF_SOCO, 'maquinaPilafGolpe'] };
 function drawPasso(ctx, kind, pos, height, facing, moving, stride, phase = 0) {
   const [sheet, key] = PASSO[kind];
   const bob = moving ? walkBob(walkStep(pos.travelled || 0, stride, phase)) * height : 0;

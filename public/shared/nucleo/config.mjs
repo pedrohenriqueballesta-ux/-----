@@ -118,8 +118,8 @@ export const ZONES = [
     // Montanhas nevadas (6×3 telas, Pedro 24/11/2026): nível e mobs PROVISÓRIOS (os da Floresta Seca do Vegeta).
     { id: 'terra-neve', name: 'Montanhas Nevadas', nivel: [72, 106], cor: '#9fd8ff', x: 20424, y: 660, w: 4968, h: 2010, chegada: { x: 22987, y: 1600 } },
     // Vale da Cachoeira (6×4 telas de mapa, Pedro 24/11/2026): por ora só o vale central é andável (o resto é mata e
-    // montanha, sem passagem desenhada). Nível e mobs PROVISÓRIOS (os dos Campos de Lava do Vegeta).
-    { id: 'terra-montanhas', name: 'Vale da Cachoeira', nivel: [106, 128], cor: '#eb2d2d', x: 27690, y: 1956, w: 2136, h: 1512, chegada: { x: 28843, y: 2293 } },
+    // montanha, sem passagem desenhada). Os dinossauros: primeira hunt do jogo (Pedro, 25/11); faixa de nível PROVISÓRIA.
+    { id: 'terra-montanhas', name: 'Vale da Cachoeira', nivel: [1, 10], cor: '#eb2d2d', x: 27690, y: 1956, w: 2136, h: 1512, chegada: { x: 28843, y: 2293 } },
     // Ilha da Arena (4×4 telas, Pedro 25/11/2026; partes finais feitas pelo amigo dele): platô com a arena de terra.
     // Nível e mobs PROVISÓRIOS (os da Grande Cratera do Vegeta).
     { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [128, 150], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },

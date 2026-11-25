@@ -20,6 +20,14 @@ import { OOZARU_DOURADO_PARADO } from './personagens/oozaru/oozaru-dourado-parad
 import { REI_VEGETA_PARADO } from './personagens/rei-vegeta/rei-vegeta-parado.mjs';
 import { BROLY_PARADO } from './personagens/broly/broly-parado.mjs';
 import { FREEZA_PE_PARADO } from './personagens/freeza/freeza-pe-parado.mjs';
+import { TIRANOSSAURO_PARADO } from './personagens/dinossauros/tiranossauro-parado.mjs';
+import { TRICERATOPS_PARADO } from './personagens/dinossauros/triceratops-parado.mjs';
+import { ESTEGOSSAURO_PARADO } from './personagens/dinossauros/estegossauro-parado.mjs';
+import { ESPINOSSAURO_PARADO } from './personagens/dinossauros/espinossauro-parado.mjs';
+import { ROBO_PILAF_PARADO } from './personagens/robos-pilaf/robo-pilaf-parado.mjs';
+import { ROBO_SHU_PARADO } from './personagens/robos-pilaf/robo-shu-parado.mjs';
+import { ROBO_MAI_PARADO } from './personagens/robos-pilaf/robo-mai-parado.mjs';
+import { MAQUINA_PILAF_PARADO } from './personagens/robos-pilaf/maquina-pilaf-parado.mjs';
 
 export const PARADO = {
   guerreiro: [GUERREIRO_PARADO, 'guerreiroParado'],
@@ -39,5 +47,13 @@ export const PARADO = {
   reiVegeta: [REI_VEGETA_PARADO, 'reiVegetaParado'],
   broly: [BROLY_PARADO, 'brolyParado'],
   freezaPe: [FREEZA_PE_PARADO, 'freezaPeParado'],
+  tiranossauro: [TIRANOSSAURO_PARADO, 'tiranossauroParado'],
+  triceratops: [TRICERATOPS_PARADO, 'triceratopsParado'],
+  estegossauro: [ESTEGOSSAURO_PARADO, 'estegossauroParado'],
+  espinossauro: [ESPINOSSAURO_PARADO, 'espinossauroParado'],
+  roboPilaf: [ROBO_PILAF_PARADO, 'roboPilafParado'],
+  roboShu: [ROBO_SHU_PARADO, 'roboShuParado'],
+  roboMai: [ROBO_MAI_PARADO, 'roboMaiParado'],
+  maquinaPilaf: [MAQUINA_PILAF_PARADO, 'maquinaPilafParado'],
   ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).filter(([, f]) => f.parado).map(([tipo, f]) => [tipo, f.parado]))
 };
