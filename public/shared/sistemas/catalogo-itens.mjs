@@ -2,10 +2,15 @@ import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 
 // Percentuais independentes por abate. Fontes futuras têm chance proposta e não são sorteadas.
 const recursos = [
-  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32}],
+  // Robôs do Pilaf, Androides e dinossauros da Terra Selvagem (25/11/2026): drops PROVISÓRIOS com materiais que já existem
+  // (sem ícone para material novo ainda); drops próprios a decidir com o Pedro.
+  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32,"roboMai":0.22,"roboShu":0.24,"roboPilaf":0.3,"maquinaPilaf":0.6,"androide18":0.24,"androide17":0.26,"androide16":0.34}],
   ["antenas-namek","Antenas Namekuseijins",0.05,8,"comum",{"guerreiro":0.26,"veterano":0.3,"nail":0.35,"piccoloDaimaoh":0.28}],
   ["asas-namek","Asas de Inseto de Namek",0.03,6,"comum",{"inseto":0.36}],
   ["carne-oozaru","Carne de Oozaru",0.44,30,"comum",{"oozaru":0.35,"oozaruGuerreiro":0.46,"oozaruDourado":0.68}],
+  // Dinossauros do Vale da Cachoeira (primeira hunt, 25/11/2026): peso, preço e chances PROVISÓRIOS; ícone provisório
+  // recortado da folha do T-Rex.
+  ["carne-dinossauro","Carne de Dinossauro",0.4,6,"comum",{"estegossauro":0.3,"triceratops":0.32,"espinossauro":0.36,"tiranossauro":0.42}],
   ["circuito-tsufu","Circuito Tsufu",0.08,28,"incomum",{"tsufuruGuerreiro":0.16,"tsufuruGeneral":0.23,"hatchiyack":0.34}],
   ["cristal-azul","Cristal Azul",0.09,21,"comum",{}],
   ["cristal-esmeralda","Cristal Esmeralda",0.1,32,"incomum",{"piccoloDaimaoh":0.15,"neva":0.45,"boss":0.32}],
@@ -17,7 +22,8 @@ const recursos = [
   ["pele-oozaru","Pele de Oozaru",0.31,38,"incomum",{"oozaru":0.19,"oozaruGuerreiro":0.29,"oozaruDourado":0.55}],
   ["carne-porunga","Carne de Porunga",0.24,19,"comum",{"porunga":0.3,"boss":0.66}],
   ["garra-porunga","Garra de Porunga",0.12,30,"incomum",{"porunga":0.15,"boss":0.45}],
-  ["pocao-energia","Poção de Energia",0.10,25,"incomum",{"veterano":0.11,"tsufuruGeneral":0.16,"subboss":0.24,"dodoria":0.12,"zarbon":0.19}],
+  // Yamcha (Vale da Cachoeira, 25/11/2026): drop PROVISÓRIO.
+  ["pocao-energia","Poção de Energia",0.10,25,"incomum",{"yamcha":0.2,"veterano":0.11,"tsufuruGeneral":0.16,"subboss":0.24,"dodoria":0.12,"zarbon":0.19}],
   ["presa-oozaru","Presa de Oozaru",0.2,55,"raro",{"oozaru":0.05,"oozaruGuerreiro":0.08,"oozaruDourado":0.42}],
   ["scouter-danificado","Scouter Saiyajin Danificado",0.08,27,"incomum",{"raditz":0.21,"bardock":0.25,"reiVegeta":0.3,"dodoria":0.13,"zarbon":0.18,"freezaBoss":0.48}],
 ];

@@ -90,6 +90,30 @@ const ATRIBUTOS = {
     // PROVISÓRIO: lugar (chefe raro da Grande Cratera, no lugar do Porunga BOSS) e números, até o Pedro decidir.
     freezaBoss: { level:150, nivelBase:60, hp: 85000, attack: 230, xp: 60000, defesa: 70, speed: 96, corpo: 32, name: 'Freeza',
       nave: { aPartirDe: 0.4, ataque: 1.35, defesa: 1.25, velocidade: 0.8, corpo: 40, nome: 'Freeza (nave)' } }
+  },
+  // Terra Selvagem (Pedro, 25/11/2026): os dinossauros são a PRIMEIRA hunt do jogo (Vale da Cachoeira) e os robôs do
+  // Pilaf ficam no Descampado do Oeste. Ordem de força decidida pelo Pedro (do mais fraco ao mais forte); os NÚMEROS
+  // são PROVISÓRIOS, pela curva da hunt inicial de Namek, até o Pedro ajustar os níveis das hunts.
+  'terra-montanhas': {
+    estegossauro: { level:2, hp: 62, attack: 9, xp: 14, defesa: 1, speed: 100, corpo: 12, name: 'Estegossauro' },
+    triceratops: { level:4, hp: 98, attack: 12, xp: 23, defesa: 2, speed: 110, corpo: 12, name: 'Triceratops' },
+    espinossauro: { level:7, hp: 150, attack: 16, xp: 35, defesa: 4, speed: 112, corpo: 16, name: 'Espinossauro' },
+    // Yamcha e Puar (Pedro, 25/11/2026): Punho do Lobo de perto e rajada de ki de longe; PROVISÓRIO, entre o Espinossauro e o T-Rex.
+    yamcha: { level:9, hp: 185, attack: 18, xp: 44, defesa: 5, speed: 118, name: 'Yamcha' },
+    tiranossauro: { level:10, hp: 202, attack: 19, xp: 48, defesa: 5, speed: 115, corpo: 20, name: 'Tiranossauro' }
+  },
+  // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), 18 < 17 < 16. Números PROVISÓRIOS, na faixa atual da hunt.
+  'terra-neve': {
+    androide18: { level:84, nivelBase:42, hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 112, name: 'Androide 18' },
+    androide17: { level:95, nivelBase:45, hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 114, name: 'Androide 17' },
+    androide16: { level:106, nivelBase:48, hp: 5600, attack: 130, xp: 1900, defesa: 48, speed: 100, corpo: 14, name: 'Androide 16' }
+  },
+  'terra-descampado': {
+    roboMai: { level:6, hp: 132, attack: 14, xp: 31, defesa: 3, speed: 108, name: 'Robô da Mai' },
+    roboShu: { level:8, hp: 168, attack: 17, xp: 39, defesa: 4, speed: 108, name: 'Robô do Shu' },
+    roboPilaf: { level:12, hp: 238, attack: 22, xp: 56, defesa: 6, speed: 104, name: 'Robô do Pilaf' },
+    // Chefe raro do Descampado (aparece num ponto sorteado da hunt, 45–90 min), números PROVISÓRIOS.
+    maquinaPilaf: { level:18, hp: 3600, attack: 42, xp: 700, defesa: 9, speed: 90, corpo: 28, name: 'Máquina Pilaf' }
   }
 };
 // Mobs de uma hunt pela curva de Namek, no nível dado: { tipo: velocidade } → { [area]: { tipo: atributos } }.
@@ -107,7 +131,7 @@ function mobsDaFaixa(area, nivel, tipos) {
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 // Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
 // diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
-export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss']);
+export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf']);
 // Apenas chefes que têm um spawn real no mundo; compartilhado pelo God Mode e pela validação no servidor.
 export const CHEFES_TESTE = Object.freeze([
   { type:'subboss', area:'media' },
@@ -130,7 +154,7 @@ export function mobStats(type, area = 'inicial') {
     defesa: Math.round(base.defesa * Math.sqrt(statsNivel.defense / statsNivelBase.defense)),
     xp: Math.round(base.xp * xpForLevel(base.level) / xpForLevel(nivelBase))
   } : {};
-  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss';
+  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss' || type === 'maquinaPilaf';
   const chefe = TIPOS_CHEFE.has(type) ? { name: nomeDeChefe(base.name), ...(base.nave ? { nave: { ...base.nave, nome: nomeDeChefe(base.nave.nome) } } : {}) } : {};
   const { nivelBase: _nivelBase, ...atributosOriginais } = base;
   const mob = { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...atributosOriginais, ...atributosEscalados, ...chefe };
@@ -140,7 +164,7 @@ export function mobStats(type, area = 'inicial') {
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 // Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
-export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
+export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, maquinaPilaf: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
   oozaruDourado: { minimo: 6 * 3600, maximo: 12 * 3600 },
   freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
 export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
@@ -154,7 +178,9 @@ export const CHEFES_RAROS = {
   // Vegeta: no meio do chão da Grande Cratera (provisório, como o chefe).
   'vegeta-cratera': { x: 2100 * PLANETS.vegeta.escala, y: 2470 * PLANETS.vegeta.escala, r: 300 * PLANETS.vegeta.escala, aviso: 'chegou à Grande Cratera!' },
   // Oozaru Super: num ponto sorteado em qualquer lugar da hunt (todaHunt), não num círculo.
-  'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' }
+  'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' },
+  // Máquina Pilaf: num ponto sorteado do Descampado do Oeste (Pedro, 25/11/2026).
+  'terra-descampado': { todaHunt: true, aviso: 'invadiu o Descampado do Oeste!' }
 };
 export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
 export function pontoNoCirculo(random, area = 'dificil') {
@@ -238,15 +264,15 @@ export function spawnPoints(random) {
     // Grande Cratera: 10 mobs, 60% Rei Vegeta e 40% Broly (Pedro, 06/11: 6 e 4), misturados, e o chefe raro.
     ...espalhar(random, 'vegeta-cratera', 10, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
     { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true },
-    // Terra das hunts, Descampado do Oeste (nível 1): Pássaros e Insetos de Namek PROVISÓRIOS (Pedro, 22/11/2026), com os
-    // atributos da hunt inicial de Namek, até chegarem as sprites dos mobs da Terra.
-    ...espalhar(random, 'terra-descampado', 20, i => i % 2 ? 'inseto' : 'passaro'),
+    // Descampado do Oeste: robôs do Pilaf (Pedro, 25/11/2026), mais Mai e Shu que Pilaf; a Máquina Pilaf é o chefe raro.
+    ...espalhar(random, 'terra-descampado', 20, i => ['roboMai', 'roboShu', 'roboMai', 'roboShu', 'roboPilaf'][i % 5]),
+    { type: 'maquinaPilaf', ...pontoNoCirculo(random, 'terra-descampado'), area: 'terra-descampado', raro: true },
     // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
     ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
-    // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
-    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
-    // Vale da Cachoeira: mobs dos Campos de Lava PROVISÓRIOS (Pedro, 24/11/2026); 8 pelo chão pequeno do vale.
-    ...espalhar(random, 'terra-montanhas', 8, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru', { passo: 120 }),
+    // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), mais 18 e 17 que 16.
+    ...espalhar(random, 'terra-neve', 16, i => ['androide18', 'androide17', 'androide18', 'androide17', 'androide16'][i % 5]),
+    // Vale da Cachoeira: os dinossauros, primeira hunt do jogo (Pedro, 25/11/2026); mais dos fracos que dos fortes.
+    ...espalhar(random, 'terra-montanhas', 10, i => ['estegossauro', 'triceratops', 'estegossauro', 'espinossauro', 'triceratops', 'yamcha', 'tiranossauro'][i % 7], { passo: 110 }),
     // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).
     ...espalhar(random, 'terra-ilha', 12, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
     // Floresta do Sudeste: mobs dos Cânions PROVISÓRIOS (Pedro, 25/11/2026).

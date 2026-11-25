@@ -9,10 +9,10 @@ import { CONFIG, MERCHANT, lugar } from '../public/shared/nucleo/config.mjs';
 import { bagWeight, statsFor } from '../public/shared/nucleo/characters.mjs';
 import { Game } from '../public/shared/nucleo/game.mjs';
 
-test('catálogo integra os 97 ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
+test('catálogo integra os 98 ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
   const itens = Object.values(NOVOS_ITENS);
-  assert.equal(itens.length, 97);
-  assert.equal(itens.filter(i => i.tipo === 'material').length, 14);
+  assert.equal(itens.length, 98);   // + Carne de Dinossauro (Terra Selvagem, 25/11/2026)
+  assert.equal(itens.filter(i => i.tipo === 'material').length, 15);
   assert.equal(itens.filter(i => i.tipo === 'consumivel').length, 4);
   assert.equal(itens.filter(i => i.tipo === 'equipamento').length, 79);
   for (const item of itens) {

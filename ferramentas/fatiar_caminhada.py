@@ -46,6 +46,18 @@ frente = ndimage.binary_opening(frente, iterations=1)
 fechado = ndimage.binary_dilation(frente, iterations=2 if MODO == "conectado" else 6)
 rot, n = ndimage.label(fechado)
 caixas = [sl for sl in ndimage.find_objects(rot) if sl and (sl[0].stop - sl[0].start) > 60]
+if len(caixas) > LINHAS * COLUNAS:
+    # Traço de golpe (rastro de soco, poeira) solto do corpo vira um pedaço a mais. Plano B (25/11/2026): junta os
+    # pedaços pela célula da grade onde fica o centro de cada um. Folhas que já davam certo não passam por aqui.
+    ch, cw = rgb.shape[0] / LINHAS, rgb.shape[1] / COLUNAS
+    grupos = {}
+    for sl in caixas:
+        cel = (min(int((sl[0].start + sl[0].stop) / 2 // ch), LINHAS - 1), min(int((sl[1].start + sl[1].stop) / 2 // cw), COLUNAS - 1))
+        a = grupos.get(cel)
+        grupos[cel] = sl if a is None else (slice(min(a[0].start, sl[0].start), max(a[0].stop, sl[0].stop)),
+                                             slice(min(a[1].start, sl[1].start), max(a[1].stop, sl[1].stop)))
+    print(f"aviso: {len(caixas)} pedaços juntados pela grade em {len(grupos)} personagens")
+    caixas = list(grupos.values())
 assert len(caixas) == LINHAS * COLUNAS, f"esperava {LINHAS * COLUNAS} personagens, achei {len(caixas)}"
 caixas.sort(key=lambda sl: sl[0].start)
 grade = [sorted(caixas[r * COLUNAS:(r + 1) * COLUNAS], key=lambda sl: sl[1].start) for r in range(LINHAS)]
@@ -99,6 +111,10 @@ for r, linha in enumerate(quadros):
     # Âncora horizontal no centro do tronco (não dos pés, que ficam abertos no quadro de contato).
     a0 = linha[0][..., 3] > 0
     faixa = a0[int(alt0 * 0.45):int(alt0 * 0.65)]
+    # Companheiro solto ao lado (o Puar do Yamcha, 25/11/2026): a âncora fica só no maior pedaço, o corpo.
+    rf, nf = ndimage.label(faixa)
+    if nf > 1:
+        faixa = rf == np.bincount(rf.ravel())[1:].argmax() + 1
     cols = np.nonzero(faixa.any(0))[0]
     tronco0 = (cols[0] + cols[-1]) / 2
     ref = cabeca(linha[0], alt0)
