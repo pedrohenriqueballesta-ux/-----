@@ -102,6 +102,12 @@ const ATRIBUTOS = {
     yamcha: { level:9, hp: 185, attack: 18, xp: 44, defesa: 5, speed: 118, name: 'Yamcha' },
     tiranossauro: { level:10, hp: 202, attack: 19, xp: 48, defesa: 5, speed: 115, corpo: 20, name: 'Tiranossauro' }
   },
+  // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), 18 < 17 < 16. Números PROVISÓRIOS, na faixa atual da hunt.
+  'terra-neve': {
+    androide18: { level:84, nivelBase:42, hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 112, name: 'Androide 18' },
+    androide17: { level:95, nivelBase:45, hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 114, name: 'Androide 17' },
+    androide16: { level:106, nivelBase:48, hp: 5600, attack: 130, xp: 1900, defesa: 48, speed: 100, corpo: 14, name: 'Androide 16' }
+  },
   'terra-descampado': {
     roboMai: { level:6, hp: 132, attack: 14, xp: 31, defesa: 3, speed: 108, name: 'Robô da Mai' },
     roboShu: { level:8, hp: 168, attack: 17, xp: 39, defesa: 4, speed: 108, name: 'Robô do Shu' },
@@ -263,8 +269,8 @@ export function spawnPoints(random) {
     { type: 'maquinaPilaf', ...pontoNoCirculo(random, 'terra-descampado'), area: 'terra-descampado', raro: true },
     // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
     ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
-    // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
-    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
+    // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), mais 18 e 17 que 16.
+    ...espalhar(random, 'terra-neve', 16, i => ['androide18', 'androide17', 'androide18', 'androide17', 'androide16'][i % 5]),
     // Vale da Cachoeira: os dinossauros, primeira hunt do jogo (Pedro, 25/11/2026); mais dos fracos que dos fortes.
     ...espalhar(random, 'terra-montanhas', 10, i => ['estegossauro', 'triceratops', 'estegossauro', 'espinossauro', 'triceratops', 'yamcha', 'tiranossauro'][i % 7], { passo: 110 }),
     // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).

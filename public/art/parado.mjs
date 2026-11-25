@@ -29,6 +29,9 @@ import { ROBO_SHU_PARADO } from './personagens/robos-pilaf/robo-shu-parado.mjs';
 import { ROBO_MAI_PARADO } from './personagens/robos-pilaf/robo-mai-parado.mjs';
 import { MAQUINA_PILAF_PARADO } from './personagens/robos-pilaf/maquina-pilaf-parado.mjs';
 import { YAMCHA_PARADO } from './personagens/yamcha/yamcha-parado.mjs';
+import { ANDROIDE_18_PARADO } from './personagens/androides/androide-18-parado.mjs';
+import { ANDROIDE_17_PARADO } from './personagens/androides/androide-17-parado.mjs';
+import { ANDROIDE_16_PARADO } from './personagens/androides/androide-16-parado.mjs';
 
 export const PARADO = {
   guerreiro: [GUERREIRO_PARADO, 'guerreiroParado'],
@@ -57,5 +60,8 @@ export const PARADO = {
   roboMai: [ROBO_MAI_PARADO, 'roboMaiParado'],
   maquinaPilaf: [MAQUINA_PILAF_PARADO, 'maquinaPilafParado'],
   yamcha: [YAMCHA_PARADO, 'yamchaParado'],
+  androide18: [ANDROIDE_18_PARADO, 'androide18Parado'],
+  androide17: [ANDROIDE_17_PARADO, 'androide17Parado'],
+  androide16: [ANDROIDE_16_PARADO, 'androide16Parado'],
   ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).filter(([, f]) => f.parado).map(([tipo, f]) => [tipo, f.parado]))
 };

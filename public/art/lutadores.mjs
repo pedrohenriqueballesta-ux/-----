@@ -32,7 +32,9 @@ export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 148 }, picc
   estegossauro: { altura: 84 }, triceratops: { altura: 86 }, espinossauro: { altura: 110 }, tiranossauro: { altura: 125 },
   roboMai: { altura: 82 }, roboShu: { altura: 82 }, roboPilaf: { altura: 86 }, maquinaPilaf: { altura: 150 },
   // Yamcha com o Puar ao lado (Vale da Cachoeira, Pedro 25/11/2026); a altura é a do Yamcha.
-  yamcha: { altura: 74 } };   // Pedro, 06/11: Rei +20%, Broly +35%
+  yamcha: { altura: 74 },
+  // Androides nas Montanhas Nevadas (Pedro, 25/11/2026): o 16 é bem maior (o GPT desenhou os três quase da mesma altura).
+  androide18: { altura: 72 }, androide17: { altura: 74 }, androide16: { altura: 96 } };   // Pedro, 06/11: Rei +20%, Broly +35%
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false, tempo = 0) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];

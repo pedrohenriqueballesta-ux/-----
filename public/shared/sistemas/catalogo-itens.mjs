@@ -2,9 +2,9 @@ import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 
 // Percentuais independentes por abate. Fontes futuras têm chance proposta e não são sorteadas.
 const recursos = [
-  // Robôs do Pilaf e dinossauros da Terra Selvagem (25/11/2026): drops PROVISÓRIOS com materiais que já existem
+  // Robôs do Pilaf, Androides e dinossauros da Terra Selvagem (25/11/2026): drops PROVISÓRIOS com materiais que já existem
   // (sem ícone para material novo ainda); drops próprios a decidir com o Pedro.
-  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32,"roboMai":0.22,"roboShu":0.24,"roboPilaf":0.3,"maquinaPilaf":0.6}],
+  ["minerio","Aglomerado de Minério",0.22,12,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32,"roboMai":0.22,"roboShu":0.24,"roboPilaf":0.3,"maquinaPilaf":0.6,"androide18":0.24,"androide17":0.26,"androide16":0.34}],
   ["antenas-namek","Antenas Namekuseijins",0.05,8,"comum",{"guerreiro":0.26,"veterano":0.3,"nail":0.35,"piccoloDaimaoh":0.28}],
   ["asas-namek","Asas de Inseto de Namek",0.03,6,"comum",{"inseto":0.36}],
   ["carne-oozaru","Carne de Oozaru",0.44,30,"comum",{"oozaru":0.35,"oozaruGuerreiro":0.46,"oozaruDourado":0.68}],

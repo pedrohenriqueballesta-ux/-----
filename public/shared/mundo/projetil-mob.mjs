@@ -1,5 +1,5 @@
 ﻿// Mesmos inimigos que já combinavam soco e rajada; chefes especiais ficam fora.
-export const TIPOS_SOCA_E_ATIRA = Object.freeze(['nail','piccoloDaimaoh','neva','veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria','roboPilaf','roboShu','roboMai','yamcha']);
+export const TIPOS_SOCA_E_ATIRA = Object.freeze(['nail','piccoloDaimaoh','neva','veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria','roboPilaf','roboShu','roboMai','yamcha','androide18','androide17','androide16']);
 export const ARTE_PROJETIL_MOB = Object.freeze({ arquivo:'/assets/mobs/projetil-ki/spritesheet.png',quadros:8,largura:288,altura:256,fps:12,tonalidadeOriginal:270,ancoraX:224,ancoraY:128 });
 // Tonalidades extraídas das cores saturadas das artes atuais (graus no círculo de cor).
 // Cada espécie pode sobrescrever qualquer campo; a ficha individual também aceita `projetil`.
@@ -10,7 +10,9 @@ export const PROJETEIS_POR_MOB = Object.freeze({
   nappa:{cor:45},raditz:{cor:45},bardock:{cor:345},oozaru:{cor:15},oozaruGuerreiro:{cor:45},
   oozaruSuper:{cor:45,cooldown:1.5},reiVegeta:{cor:345},broly:{cor:75},zarbon:{cor:225},dodoria:{cor:345},
   // Canhão da barriga dos robôs do Pilaf (clarão amarelo nas folhas; o da Mai é rosa).
-  roboPilaf:{cor:50},roboShu:{cor:50},roboMai:{cor:320},yamcha:{cor:200}
+  roboPilaf:{cor:50},roboShu:{cor:50},roboMai:{cor:320},yamcha:{cor:200},
+  // Androides: ki amarelo-claro (18), verde (17) e Hell's Flash amarelo (16).
+  androide18:{cor:55},androide17:{cor:110},androide16:{cor:45,tamanho:60}
 });
 export function configurarProjetilMob(tipo, atributos) {
   const perfil=PROJETEIS_POR_MOB[tipo];if(!perfil)return null;
