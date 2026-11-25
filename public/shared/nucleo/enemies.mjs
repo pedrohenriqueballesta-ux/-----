@@ -237,6 +237,19 @@ export function spawnPoints(random) {
     { type: 'oozaruDourado', ...pontoNoCirculo(random, 'vegeta-lava'), area: 'vegeta-lava', raro: true },
     // Grande Cratera: 10 mobs, 60% Rei Vegeta e 40% Broly (Pedro, 06/11: 6 e 4), misturados, e o chefe raro.
     ...espalhar(random, 'vegeta-cratera', 10, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
-    { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true }
+    { type: 'freezaBoss', ...pontoNoCirculo(random, 'vegeta-cratera'), area: 'vegeta-cratera', raro: true },
+    // Terra das hunts, Descampado do Oeste (nível 1): Pássaros e Insetos de Namek PROVISÓRIOS (Pedro, 22/11/2026), com os
+    // atributos da hunt inicial de Namek, até chegarem as sprites dos mobs da Terra.
+    ...espalhar(random, 'terra-descampado', 20, i => i % 2 ? 'inseto' : 'passaro'),
+    // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
+    ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
+    // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
+    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
+    // Vale da Cachoeira: mobs dos Campos de Lava PROVISÓRIOS (Pedro, 24/11/2026); 8 pelo chão pequeno do vale.
+    ...espalhar(random, 'terra-montanhas', 8, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru', { passo: 120 }),
+    // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).
+    ...espalhar(random, 'terra-ilha', 12, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
+    // Floresta do Sudeste: mobs dos Cânions PROVISÓRIOS (Pedro, 25/11/2026).
+    ...espalhar(random, 'terra-floresta', 12, i => CANIONS[i % CANIONS.length])
   ];
 }

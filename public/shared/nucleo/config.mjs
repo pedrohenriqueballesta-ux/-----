@@ -5,6 +5,7 @@ import { PEGADAS } from '../mundo/pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from '../mundo/decoracao-namek.mjs';
 import { OBJETOS_DECORACAO } from '../mundo/decoracao-objetos.mjs';
 import { CURA } from '../tecnicas/cura.mjs';
+import { TAMANHO_TERRA, PRACA_TERRA, MERCADORES_TERRA } from '../mundo/terra.mjs';
 
 // Modo de teste GOD MODE (nível máximo + HP/Ki infinitos). DESLIGADO por padrão.
 // Liga so no servidor local com a variavel de ambiente DBI_GODMODE=1.
@@ -33,6 +34,10 @@ export const SOLO_NAMEK = Object.freeze({ w: 4608, h: 3072 });
 // em px da imagem de 4608×3072 (o solo.webp tem 8192×5461, o mapa de 36 partes), mesma escala do mundo.
 export const SOLO_VEGETA = Object.freeze({ w: 4608, h: 3072 });
 export const ESCALA_VEGETA = ESCALA_MUNDO;
+// Solo da Terra das hunts (atlas hub + hunts, px). Escala 1 un/px: a mesma densidade de arte de Namek e Vegeta
+// (8192 px para ~8.300 un). Com 1,8 a arte aparecia esticada (Pedro, 23/11/2026: "qualidade inferior").
+export const SOLO_TERRA_HUNTS = Object.freeze({ w: 46507, h: 5461 });
+export const ESCALA_TERRA_HUNTS = 1;
 export const naEscala = v => v * ESCALA_MUNDO;
 
 export const CONFIG = Object.freeze({
@@ -100,6 +105,27 @@ export const ZONES = [
     { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [72, 106], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
     { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [106, 128], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
     { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [128, 150], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
+  ]),
+  // Terra das hunts (Pedro, 22/11/2026): planeta à parte da Cidade do Oeste, feito do mapa-múndi da Terra. Cada hunt tem
+  // o próprio mapa (tamanhos variados) e o solo é um atlas com o hub e as hunts lado a lado (só se troca por portal).
+  // Por enquanto só o hub (clareira do centro) e a hunt 1 (descampado do oeste, nível 1). Nomes e níveis PROVISÓRIOS.
+  // Caixas = contorno do chão na máscara (terra-hunts-passagem.mjs); chegadas em chão livre, longe da borda.
+  ...zonasEmPx('terra-hunts', ESCALA_TERRA_HUNTS, [
+    { id: 'terra-hub', name: 'Clareira do Centro', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
+    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3096, y: 942, w: 5028, h: 2340, chegada: { x: 6981, y: 1996 } },
+    // Deserto das mesas (6×6 telas, Pedro 23/11/2026): nível e mobs PROVISÓRIOS (os das Planícies Vermelhas do Vegeta).
+    { id: 'terra-deserto', name: 'Deserto das Mesas', nivel: [40, 62], cor: '#ffa51e', x: 9450, y: 372, w: 7320, h: 3918, chegada: { x: 13397, y: 1386 } },
+    // Montanhas nevadas (6×3 telas, Pedro 24/11/2026): nível e mobs PROVISÓRIOS (os da Floresta Seca do Vegeta).
+    { id: 'terra-neve', name: 'Montanhas Nevadas', nivel: [72, 106], cor: '#9fd8ff', x: 20424, y: 660, w: 4968, h: 2010, chegada: { x: 22987, y: 1600 } },
+    // Vale da Cachoeira (6×4 telas de mapa, Pedro 24/11/2026): por ora só o vale central é andável (o resto é mata e
+    // montanha, sem passagem desenhada). Nível e mobs PROVISÓRIOS (os dos Campos de Lava do Vegeta).
+    { id: 'terra-montanhas', name: 'Vale da Cachoeira', nivel: [106, 128], cor: '#eb2d2d', x: 27690, y: 1956, w: 2136, h: 1512, chegada: { x: 28843, y: 2293 } },
+    // Ilha da Arena (4×4 telas, Pedro 25/11/2026; partes finais feitas pelo amigo dele): platô com a arena de terra.
+    // Nível e mobs PROVISÓRIOS (os da Grande Cratera do Vegeta).
+    { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [128, 150], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },
+    // Floresta do Sudeste (5×5 telas de mapa, Pedro 25/11/2026): trilhas e clareiras do norte; a parte sul (colina) fica
+    // fora até o ajuste de colisão. Nível e mobs PROVISÓRIOS (os dos Cânions do Vegeta).
+    { id: 'terra-floresta', name: 'Floresta do Sudeste', nivel: [62, 72], cor: '#d6e632', x: 40128, y: 18, w: 4686, h: 2400, chegada: { x: 41982, y: 1042 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;
@@ -119,8 +145,9 @@ export const zonasDe = planet => ZONES.filter(z => z.planet === planet);
 // Mercador na beira da praça da Vila Namekiana (px da imagem). A barraca e o vendedor
 // mantêm o tamanho; só a posição acompanha o mapa.
 export const MERCHANT = { planet: 'namek', area: 'vila', x: naEscala(560), y: naEscala(1290) };
-// Mercadores de todos os planetas (um por Vila). Comprar e vender pede estar no mesmo lugar e perto.
-export const MERCADORES = [MERCHANT, { planet: 'vegeta', area: 'vegeta-cidade', x: 2420 * ESCALA_VEGETA, y: 1220 * ESCALA_VEGETA }];
+// Mercadores de todos os planetas (um por Vila) e os da Cidade do Oeste (porta da Loja do Mestre Karin e do Mercado de
+// comida, sem vendedor desenhado: `predio`). Comprar e vender pede estar no mesmo lugar e perto.
+export const MERCADORES = [MERCHANT, { planet: 'vegeta', area: 'vegeta-cidade', x: 2420 * ESCALA_VEGETA, y: 1220 * ESCALA_VEGETA }, ...MERCADORES_TERRA];
 export const mercadorPerto = (p, alcance = 180) => MERCADORES.find(m => m.planet === p.planet && m.area === (p.area || null)
   && Math.hypot(m.x - p.x, m.y - p.y) <= alcance) || null;
 // Árvores e pedras do mapa antigo saíram com o solo novo de Namekusei (28/10).
@@ -182,14 +209,28 @@ export function casaBloqueia(planet, x, y) {
 export const PLANETS = {
   // Cidade do Oeste: mapa grande integrado ao renderer da Terra. O spawn fica no largo
   // central e a saída interplanetária é a porta da nave, não mais a nuvem do lobby antigo.
-  terra: { id: 'terra', name: 'Terra', w: 8400, h: 5600, solo: 'terraSolo', spawn: { x: 4400, y: 2300 },
+  terra: { id: 'terra', name: 'Terra', w: TAMANHO_TERRA.w, h: TAMANHO_TERRA.h, solo: 'terraSolo', spawn: PRACA_TERRA.chegada,
     soloUrl: '/assets/terra/chao.webp', fundo: '#5a8f3c', imagem: '/assets/worlds/terra.webp' },
   namek: { id: 'namek', name: 'Namekusei', w: CONFIG.width, h: CONFIG.height, escala: ESCALA_MUNDO, solo: 'namekSolo',
     soloUrl: '/assets/namek/solo.webp', fundo: '#385a2d', imagem: '/assets/worlds/namek.webp',
     vila: 'vila', hunts: ['inicial', 'media', 'dificil', 'norte'], spawn: areaPorId('vila').chegada }, // praça da Vila Namekiana
   vegeta: { id: 'vegeta', name: 'Planeta Vegeta', w: SOLO_VEGETA.w * ESCALA_VEGETA, h: SOLO_VEGETA.h * ESCALA_VEGETA, escala: ESCALA_VEGETA,
     solo: 'vegetaSolo', soloUrl: '/assets/vegeta/solo.webp', fundo: '#0b0308', imagem: '/assets/worlds/vegeta.webp', vila: 'vegeta-cidade',
-    hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada }
+    hunts: ['vegeta-planicies', 'vegeta-canions', 'vegeta-floresta', 'vegeta-lava', 'vegeta-cratera'], spawn: areaPorId('vegeta-cidade').chegada },
+  'terra-hunts': { id: 'terra-hunts', name: 'Terra Selvagem', w: SOLO_TERRA_HUNTS.w * ESCALA_TERRA_HUNTS, h: SOLO_TERRA_HUNTS.h * ESCALA_TERRA_HUNTS, escala: ESCALA_TERRA_HUNTS,
+    solo: 'terraHuntsSolo', soloUrl: '/assets/terra-hunts/visao.webp', fundo: '#0c2846', imagem: '/assets/worlds/terra.webp',
+    // Um chão por área (x, y, w, h = retângulo do mundo coberto): só a área onde se está fica carregada. `soloUrl` é a
+    // visão geral pequena (menu Mapa).
+    soloPorArea: {
+      'terra-hub': { url: '/assets/terra-hunts/hub.webp', x: 0, y: 0, w: 2859, h: 982 },
+      'terra-descampado': { url: '/assets/terra-hunts/descampado.webp', x: 2923, y: 0, w: 6144, h: 4096 },
+      'terra-deserto': { url: '/assets/terra-hunts/deserto.webp', x: 9131, y: 0, w: 8192, h: 5461 },
+      'terra-neve': { url: '/assets/terra-hunts/neve.webp', x: 17387, y: 0, w: 8192, h: 2731 },
+      'terra-montanhas': { url: '/assets/terra-hunts/montanhas.webp', x: 25643, y: 0, w: 8192, h: 4096 },
+      'terra-ilha': { url: '/assets/terra-hunts/ilha.webp', x: 33899, y: 0, w: 6144, h: 4096 },
+      'terra-floresta': { url: '/assets/terra-hunts/floresta.webp', x: 40107, y: 0, w: 6400, h: 4267 }
+    },
+    vila: 'terra-hub', hunts: ['terra-descampado', 'terra-deserto', 'terra-floresta', 'terra-neve', 'terra-montanhas', 'terra-ilha'], spawn: areaPorId('terra-hub').chegada }
 };
 export const PLANETAS_DE_HUNT = Object.values(PLANETS).filter(p => p.hunts);
 // Lugar de destino de um portal: a Terra ou uma das áreas de um planeta de hunt.
@@ -221,12 +262,14 @@ function portaisDoPlaneta(planet, entradas) {
   ];
 }
 export const PORTAIS = [
-  { id: 'terra-nave', planet: 'terra', area: null, x: 2150, y: 2085, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
+  { id: 'terra-nave', planet: 'terra', area: null, ...PRACA_TERRA.portal, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
   ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 600, y: 1050 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2675, y: 1480 }, 'vegeta-cratera': { x: 2275, y: 1600 } })
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2675, y: 1480 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
+  // Terra das hunts: no hub, o portal de cada hunt na beira da clareira, do lado onde a hunt fica no mapa-múndi.
+  ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 }, 'terra-deserto': { x: 1280, y: 640 }, 'terra-neve': { x: 1440, y: 322 }, 'terra-montanhas': { x: 1723, y: 470 }, 'terra-ilha': { x: 1665, y: 631 }, 'terra-floresta': { x: 1344, y: 464 } })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por

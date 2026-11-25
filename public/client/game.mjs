@@ -123,7 +123,7 @@ const transicaoTeleport = criarTransicaoTeleport({
   pronto: id => {
     const destino = lugar(id);
     if (!snapshot || snapshot.planet !== destino.planet || snapshot.area !== destino.area) return false;
-    const mundo = PLANETS[destino.planet], solo = mundo.solo ? soloDe(mundo) : null;
+    const mundo = PLANETS[destino.planet], solo = mundo.solo ? soloDe(mundo, destino.area) : null;
     return !solo || Boolean(solo.complete && solo.naturalWidth);
   },
   concluir: () => { keys.clear(); touchVector = { x: 0, y: 0 }; pointerAim = null; },
@@ -198,7 +198,7 @@ function conectarMundo(data){
 }
 async function entrarNoMundo(){
  let pronto=false,carregado=false;
- const ok=await new Promise(resolve=>{const animacao=criarTransicaoTeleport({container:document.getElementById('welcomeDialog'),viajar:async()=>{const r=await requisitarAuth('entrar',{});entrada.atualizarConta(r.conta);await conectarMundo(r);pronto=true;return{ok:true};},pronto:()=>{if(!snapshot?.self)return false;const mundo=PLANETS[snapshot.planet],solo=mundo.solo?soloDe(mundo):null;carregado=!solo||Boolean(solo.complete&&solo.naturalWidth);return carregado;},concluir:()=>resolve(pronto&&carregado),avisar:()=>{}});animacao.iniciar('entrada');});
+ const ok=await new Promise(resolve=>{const animacao=criarTransicaoTeleport({container:document.getElementById('welcomeDialog'),viajar:async()=>{const r=await requisitarAuth('entrar',{});entrada.atualizarConta(r.conta);await conectarMundo(r);pronto=true;return{ok:true};},pronto:()=>{if(!snapshot?.self)return false;const mundo=PLANETS[snapshot.planet],solo=mundo.solo?soloDe(mundo,snapshot.area):null;carregado=!solo||Boolean(solo.complete&&solo.naturalWidth);return carregado;},concluir:()=>resolve(pronto&&carregado),avisar:()=>{}});animacao.iniciar('entrada');});
  if(!ok)sairDoMundo();else setTimeout(()=>tutorial?.iniciar(),0);return ok;
 }
 
@@ -638,11 +638,12 @@ function drawMinimap(world = PLANETS.namek, area = null) {
   const { x: ox, y: oy, w: vw, h: vh } = vista;
   const sx = mapW / vw, sy = mapH / vh, X = x => (x - ox) * sx, Y = y => (y - oy) * sy;
   mctx.fillStyle = world.fundo || '#4f8a3a'; mctx.fillRect(0, 0, mapW, mapH);
-  const solo = world.solo && soloDe(world);
+  const solo = world.solo && soloDe(world, snapshot.area);
   if (solo?.complete && solo.naturalWidth) {
-    const kx = solo.naturalWidth / world.w, ky = solo.naturalHeight / world.h;
+    const r = solo.rect || { x: 0, y: 0, w: world.w, h: world.h };
+    const kx = solo.naturalWidth / r.w, ky = solo.naturalHeight / r.h;
     mctx.imageSmoothingEnabled = true;
-    mctx.drawImage(solo, ox * kx, oy * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
+    mctx.drawImage(solo, (ox - r.x) * kx, (oy - r.y) * ky, vw * kx, vh * ky, 0, 0, mapW, mapH);
   }
   const hoveraveis = [];
   for (const o of portaisAqui()) { const x = X(o.x), y = Y(o.y); drawMiniPortal(x, y); hoveraveis.push({ x, y, raio: 9, texto: destinosDoPortal(o) }); }
@@ -749,7 +750,7 @@ function frame(now) {
   // Planeta de hunt tem solo desenhado, áreas, casas, mercador e decoração; a Terra (lobby) é um gramado.
   const world = PLANETS[snapshot.planet] || PLANETS.namek, comSolo = Boolean(world.solo), aquiNoPlaneta = o => o.planet === world.id;
   const prediosTerra = world.id === 'terra' ? PREDIOS_TERRA : [];
-  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(aquiNoPlaneta);
+  const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(m => aquiNoPlaneta(m) && !m.predio);
   const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
   for (const entity of [...snapshot.players, ...snapshot.mobs]) {
@@ -769,7 +770,7 @@ function frame(now) {
   const decoVisivel = comSolo ? DECORACAO.filter(d => d.planet === world.id && d.x > camera.x - 300 && d.x < camera.x + width / camera.scale + 300
     && d.y > camera.y - 100 && d.y < camera.y + height / camera.scale + 400) : [];
   if (comSolo) {
-    if (drawGroundImage(ctx, soloDe(world), world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
+    if (drawGroundImage(ctx, soloDe(world, snapshot.area), world, camera, width, height)) { for (const c of casas) drawHouseGround(ctx, c); for (const m of mercadores) drawMarket(ctx, m); }
     else { ctx.fillStyle = world.fundo; ctx.fillRect(0, 0, world.w, world.h); } // solo ainda carregando
     const segura = zonaSeguraDaHunt(snapshot.area);
     if (segura) desenharRachaduras(ctx, segura, snapshot.area);
