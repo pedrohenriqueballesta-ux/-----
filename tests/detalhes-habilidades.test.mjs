@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { CONFIG } from '../public/shared/nucleo/config.mjs';
 import { CURA } from '../public/shared/tecnicas/cura.mjs';
 import { formaDisponivel } from '../public/shared/tecnicas/formas.mjs';
-import { detalhesHabilidade, posicaoDetalhes } from '../public/render/hud/detalhes-habilidades.mjs';
+import { detalhesHabilidade, detalhesItem, posicaoDetalhes, posicaoDetalhesItem } from '../public/render/hud/detalhes-habilidades.mjs';
 const estado = { level: 50, inventory: { ki: 3, seed30: 2, food: 1 }, seedSelected: 30 };
 const campos = detalhe => Object.fromEntries(detalhe.linhas);
 
@@ -52,4 +52,38 @@ test('janela fica acima da barra e se mantém dentro das bordas em HUDs reposici
     assert.ok(p.y >= 8 && p.y + tamanho.height <= altura - 8);
     if (alvo.top >= 272) assert.ok(p.y + tamanho.height < alvo.top);
   }
+});
+
+test('balão dos itens usa os atributos do catálogo e mantém os efeitos dos consumíveis', () => {
+  const armadura = detalhesItem('armadura-vegeta', estado, 'equipado');
+  assert.equal(armadura.nome, 'Armadura de Vegeta');
+  assert.equal(campos(armadura)['Nível exigido'], 125);
+  assert.equal(campos(armadura).Defesa, '+22');
+  assert.equal(campos(armadura)['Regeneração de Ki'], '+1,85 Ki/s');
+  assert.equal(campos(armadura).Peso, '6,91 kg');
+  assert.equal(campos(armadura).Mover, 'Arraste para a mochila');
+  assert.equal(campos(armadura).Estado, 'Bônus inativos no nível atual');
+  assert.equal(campos(detalhesItem('seed30', estado)).Efeito, 'Recupera 30% do HP máximo');
+  assert.equal(campos(detalhesItem('fruta-namek', estado)).Peso, '0,08 kg');
+  const energia = campos(detalhesItem('pocao-energia', estado));
+  assert.equal(energia.Efeito, '15% do HP máximo');
+  assert.match(energia.Recarga, /compartilhada com Poção de Ki/);
+});
+
+test('prévia de recompensa mostra defesa e efeito sem instruções da mochila', () => {
+  const armadura = campos(detalhesItem('armadura-vegeta', estado, 'previa'));
+  assert.equal(armadura.Defesa, '+22');
+  assert.equal(armadura.Mover, undefined);
+  const semente = campos(detalhesItem('seed30', estado, 'previa'));
+  assert.equal(semente.Efeito, 'Recupera 30% do HP máximo');
+  assert.equal(semente.Estoque, undefined);
+});
+
+test('balão de item escolhe o lado disponível e mantém margens nas bordas', () => {
+  const tamanho = { width: 280, height: 220 };
+  const alvo = (left, top) => ({ left, top, right: left + 40, bottom: top + 40, width: 40, height: 40 });
+  assert.deepEqual(posicaoDetalhesItem(alvo(12, 300), tamanho, 800, 600), { x: 62, y: 210 });
+  assert.deepEqual(posicaoDetalhesItem(alvo(740, 520), tamanho, 800, 600), { x: 450, y: 372 });
+  assert.deepEqual(posicaoDetalhesItem(alvo(12, 20), tamanho, 800, 600), { x: 62, y: 8 });
+  assert.deepEqual(posicaoDetalhesItem(alvo(140, 310), tamanho, 320, 600), { x: 20, y: 78 });
 });

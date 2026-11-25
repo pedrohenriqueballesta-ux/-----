@@ -1,8 +1,8 @@
 import { CONFIG } from '../nucleo/config.mjs';
-import { bagWeight } from '../nucleo/characters.mjs';
+import { bagWeight, mochilaComporta } from '../nucleo/characters.mjs';
 export const LIMITE_ESTOQUE_LOJA = 99999;
 export function limiteCompra(estado,item) {
-  if(!estado || !Object.hasOwn(CONFIG.prices,item))return 0;
+  if(!estado || !Object.hasOwn(CONFIG.prices,item)||!mochilaComporta(estado,{[item]:1}))return 0;
   const peso=Number.isFinite(estado.weight)?estado.weight:bagWeight(estado.inventory||{});
   const dinheiro=Math.floor(estado.zeni/CONFIG.prices[item]);
   const capacidade=Math.floor((estado.stats.capacity-peso+.0001)/CONFIG.itemWeights[item]);
@@ -22,6 +22,6 @@ export function avaliarCarrinho(estado,itens){
  if(!quantidade)return falha('Selecione pelo menos uma unidade.');
  if(total>estado.zeni)return falha('Zeni insuficiente para todos os itens selecionados.');
  const atual=Number.isFinite(estado.weight)?estado.weight:bagWeight(estado.inventory||{});
- if(atual+peso>estado.stats.capacity+.0001)return falha('A mochila não comporta todos os itens selecionados.');
+ if(atual+peso>estado.stats.capacity+.0001||!mochilaComporta(estado,Object.fromEntries(Object.entries(itens).filter(([,q])=>q>0))))return falha('A mochila não comporta todos os itens selecionados.');
  return{ok:true,total,peso,quantidade};
 }

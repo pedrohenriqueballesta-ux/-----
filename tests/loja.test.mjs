@@ -65,6 +65,20 @@ test('compra conjunta soma itens diferentes, ignora zeros e desconta apenas uma 
  assert.ok(r.ok);assert.equal(r.total,78);assert.equal(r.quantidade,5);
  assert.equal(p.zeni,antes[0]-78);assert.equal(p.inventory.food,antes[1].food+2);assert.equal(p.inventory.ki,antes[1].ki+3);assert.equal(p.inventory.seed15,antes[1].seed15);
 });
+test('NPC vende Poção de Energia junto com Poção de Ki e cobra o preço configurado', () => {
+ const {g,p}=cena();
+ const saldo=p.zeni, estoqueKi=p.inventory.ki;
+ const resultado=g.action(p.id,{type:'buyAll',itens:{ki:1,'pocao-energia':2}});
+ assert.equal(resultado.ok,true);
+ assert.equal(resultado.total,118);
+ assert.equal(p.zeni,saldo-118);
+ assert.equal(p.inventory.ki,estoqueKi+1);
+ assert.equal(p.inventory['pocao-energia'],2);
+ assert.ok(g.action(p.id,{type:'buy',item:'pocao-energia'}).ok);
+ assert.equal(p.zeni,saldo-168);
+ assert.equal(p.inventory['pocao-energia'],3);
+});
+
 test('compra conjunta rejeita custo ou peso total excessivo sem entregar lote parcial',()=>{
  for(const motivo of ['dinheiro','peso','estoque','distancia']){
   const {g,p}=cena();p.zeni=1000;p.stats.capacity=1000;

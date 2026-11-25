@@ -57,10 +57,10 @@ test('poção de Ki e Cura de Vida usam o mesmo cooldown configurado', () => {
   assert.equal(p.healReady, g.time + CURA.cooldown);
 });
 
-test('limites padrão e configuração de cura, Ki e semente são validados no servidor', () => {
+test('limites padrão de recuperação são validados no servidor', () => {
   const { g, p } = cena();
-  assert.deepEqual([p.healThreshold, p.kiThreshold, p.seedThreshold], [70, 25, 30]);
-  for (const key of ['healThreshold', 'kiThreshold', 'seedThreshold']) {
+  assert.deepEqual([p.healThreshold, p.kiThreshold, p.energyPotionThreshold, p.seedThreshold], [70, 25, 50, 30]);
+  for (const key of ['healThreshold', 'kiThreshold', 'energyPotionThreshold', 'seedThreshold']) {
     for (const value of [0, -1, 101, 40.5, '60', null, NaN, Infinity]) {
       const antes = p[key]; assert.equal(limitar(g, p, key, value).ok, false); assert.equal(p[key], antes);
     }
@@ -89,6 +89,56 @@ test('poção usa o limite personalizado, estoque e recarga existente, sem dupli
   g.updatePlayer(p, 0); assert.equal(p.ki, 0, 'sem item não recupera Ki');
 });
 
+test('Poção de Energia respeita o limite e usa a mesma recarga que a Poção de Ki', () => {
+  const { g, p } = cena();
+  p.inventory['pocao-energia'] = 1;
+  assert.equal(p.autoEnergyPotion, false);
+  g.action(p.id, { type: 'toggle', key: 'autoEnergyPotion', value: true });
+  limitar(g, p, 'energyPotionThreshold', 60);
+  p.hp = p.stats.hp * .6;
+  g.updatePlayer(p, 0);
+  assert.equal(p.inventory['pocao-energia'], 1, 'não usa no limite exato');
+
+  p.hp = p.stats.hp * .125;
+  p.ki = p.stats.ki * .2;
+  const hp = p.hp, ki = p.ki, estoqueKi = p.inventory.ki;
+  p.autoKi = true;
+  g.updatePlayer(p, 0);
+  assert.equal(p.inventory['pocao-energia'], 0);
+  assert.equal(p.hp, hp + p.stats.hp * .15);
+  assert.equal(p.ki, ki);
+  assert.equal(p.inventory.ki, estoqueKi);
+  g.updatePlayer(p, 0);
+  assert.equal(p.inventory.ki, estoqueKi, 'recarga bloqueia a poção de Ki');
+  g.time = p.kiReady;
+  g.updatePlayer(p, 0);
+  assert.equal(p.inventory.ki, estoqueKi - 1, 'sem estoque de Energia, usa a poção de Ki');
+});
+
+test('na recarga compartilhada, Auto Hunt prioriza o menor percentual entre os recursos elegíveis', () => {
+  const casos = [
+    { hp: .125, ki: .05, consumir: 'ki' },
+    { hp: .125, ki: .125, consumir: 'pocao-energia' },
+    { hp: .125, ki: .05, limiteKi: 5, consumir: 'pocao-energia' },
+    { hp: .0625, ki: .125, estoqueEnergia: 0, consumir: 'ki' },
+    { hp: .0625, ki: .125, autoEnergia: false, consumir: 'ki' },
+  ];
+  for (const { hp, ki, limiteKi = 25, estoqueEnergia = 1, autoEnergia = true, consumir } of casos) {
+    const { g, p } = cena();
+    p.autoEnergyPotion = autoEnergia;
+    p.autoKi = true;
+    p.kiThreshold = limiteKi;
+    p.inventory['pocao-energia'] = estoqueEnergia;
+    p.hp = p.stats.hp * hp;
+    p.ki = p.stats.ki * ki;
+    const estoqueKi = p.inventory.ki;
+    g.updatePlayer(p, 0);
+    assert.equal(p.inventory.ki, estoqueKi - Number(consumir === 'ki'));
+    assert.equal(p.inventory['pocao-energia'], estoqueEnergia - Number(consumir === 'pocao-energia'));
+    assert.equal(p.kiReady, g.time + CONFIG.kiCooldown);
+  }
+});
+
 test('semente usa potência selecionada, limite próprio e mesma recarga para todas as potências', () => {
   const { g, p } = cena(); p.autoSeed = true; p.hp = p.stats.hp * .6;
   limitar(g, p, 'seedThreshold', 60);
@@ -108,6 +158,7 @@ test('semente usa potência selecionada, limite próprio e mesma recarga para to
 test('controles desligados, safe zone e desconexão impedem consumo automático', () => {
   for (const modo of ['desligado', 'principal desligado', 'safe', 'desconectado']) {
     const { g, p } = cena(); p.autoKi = modo !== 'desligado'; p.autoSeed = modo !== 'desligado';
+    p.autoEnergyPotion = modo !== 'desligado'; p.inventory['pocao-energia'] = 1;
     p.hp = 1; p.ki = 0;
     if (modo === 'principal desligado') p.autoHunt = false;
     if (modo === 'safe') g.levar(p, lugar('inicial'));
@@ -119,13 +170,13 @@ test('controles desligados, safe zone e desconexão impedem consumo automático'
 
 test('preferências de recuperação e potência persistem sem reativar caça ao reconectar', () => {
   const { g, p } = cena();
-  for (const [key, value] of [['healThreshold', 65], ['kiThreshold', 45], ['seedThreshold', 20]]) limitar(g, p, key, value);
-  for (const key of ['autoHeal', 'autoKi', 'autoSeed']) g.action(p.id, { type: 'toggle', key, value: true });
+  for (const [key, value] of [['healThreshold', 65], ['kiThreshold', 45], ['energyPotionThreshold', 40], ['seedThreshold', 20]]) limitar(g, p, key, value);
+  for (const key of ['autoHeal', 'autoKi', 'autoEnergyPotion', 'autoSeed']) g.action(p.id, { type: 'toggle', key, value: true });
   g.action(p.id, { type: 'selectSeed', potency: 50 });
   p.autoHunt = true; p.autoAttack = true; p.autoSkills = true;
   const salvo = g.exportPlayer(p), q = g.addPlayer('reconectado', 'Teste', salvo);
-  assert.deepEqual([q.healThreshold, q.kiThreshold, q.seedThreshold, q.seedSelected], [65,45,20,50]);
-  assert.deepEqual([q.autoHeal, q.autoKi, q.autoSeed, q.autoFood], [true,true,true,false]);
+  assert.deepEqual([q.healThreshold, q.kiThreshold, q.energyPotionThreshold, q.seedThreshold, q.seedSelected], [65,45,40,20,50]);
+  assert.deepEqual([q.autoHeal, q.autoKi, q.autoEnergyPotion, q.autoSeed, q.autoFood], [true,true,true,true,false]);
   assert.deepEqual([q.autoHunt, q.autoAttack, q.autoSkills], [false,false,false]);
   const antigo = g.addPlayer('antigo', 'Antigo', { kiThreshold: '90', seedThreshold: -5, seedSelected: 999 });
   assert.deepEqual([antigo.kiThreshold, antigo.seedThreshold, antigo.seedSelected], [25,30,15]);

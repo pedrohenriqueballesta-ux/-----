@@ -35,8 +35,8 @@ test('temporada seguinte configurada começa zerada e exige nova compra, preserv
 });
 test('troca de personagem e reenvio de resgate não duplicam recursos nem ignoram capacidade',()=>{
  const p=createPlayer('p','QA'),q=createPlayer('q','QA2'),a={id:'conta'},e=new EconomiaPremium({agora:()=>now});vincularPasseConta(a,p,now);vincularPasseConta(a,q,now);passeDoPersonagem(p,now).xp=10000;
- const antes=q.inventory.crystal;q.stats.capacity=0;assert.equal(e.resgatar(a,q,3,'gratis').ok,false);q.stats.capacity=9999;
- assert.equal(e.resgatar(a,q,3,'gratis').ok,true);assert.equal(q.inventory.crystal,antes+1);assert.equal(e.resgatar(a,p,3,'gratis').ok,false);assert.equal(q.inventory.crystal,antes+1);
+ const antes=q.inventory['cristal-azul'] ?? 0;q.stats.capacity=0;assert.equal(e.resgatar(a,q,3,'gratis').ok,false);q.stats.capacity=9999;
+ assert.equal(e.resgatar(a,q,3,'gratis').ok,true);assert.equal(q.inventory['cristal-azul'],antes+1);assert.equal(e.resgatar(a,p,3,'gratis').ok,false);assert.equal(q.inventory['cristal-azul'],antes+1);
 });
 
 test('cotação de Premium anterior não pode ser confirmada após virar a temporada',()=>{

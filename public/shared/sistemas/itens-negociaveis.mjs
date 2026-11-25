@@ -1,10 +1,12 @@
 ﻿import {CONFIG} from '../nucleo/config.mjs';
+import { NOVOS_ITENS } from './catalogo-itens.mjs';
+import { ITENS_PREMIUM } from './itens-premium.mjs';
 export const MAX_ZENI_NORMAL = 9999999;
-export const ITENS_NEGOCIAVEIS = Object.freeze(Object.fromEntries([
+export const ITENS_NEGOCIAVEIS = Object.freeze({ ...NOVOS_ITENS, ...ITENS_PREMIUM, ...Object.fromEntries([
  ['food','Presunto','comida'],['ki','Poção de Ki','pocao_ki'],
- ...CONFIG.seedPotencies.map(n=>['seed'+n,'Semente '+n+'%','semente_dos_deuses']),
- ['scrap','Sucata','sucata'],['crystal','Cristal','cristal']
-].map(([id,nome,icone])=>[id,Object.freeze({id,nome,icone:'/assets/inventario/'+icone+'.png',peso:CONFIG.itemWeights[id],precoNpc:CONFIG.prices[id]?Math.floor(CONFIG.prices[id]*.5):id==='scrap'?8:15,negociavel:true})])));
+ ...CONFIG.seedPotencies.map(n=>['seed'+n,'Semente '+n+'%',n===30||n===50?'semente_dos_deuses_'+n:'semente_dos_deuses']),
+ ['scrap','Sucata','sucata']
+].map(([id,nome,icone])=>[id,Object.freeze({id,nome,icone:'/assets/inventario/'+icone+'.png',peso:CONFIG.itemWeights[id],precoNpc:CONFIG.prices[id]?Math.floor(CONFIG.prices[id]*.5):id==='scrap'?8:15,negociavel:true})])) });
 export const saldoReal = p => p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni;
 export function creditarZeni(p,valor) {
  const saldo=saldoReal(p);if(!Number.isSafeInteger(valor)||valor<0||saldo+valor>MAX_ZENI_NORMAL)return false;

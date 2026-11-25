@@ -5,6 +5,8 @@ import {MAGIAS_PERSONAGEM,tecnicasDoPerfil,barraValida,tecnicaDisponivel,nivelDa
 import {drawVegeta} from '../../art/personagens/vegeta/vegeta.mjs';
 import {dadosTecnica} from './barra-tecnicas-hud.mjs';
 import {iconeDaForma} from '../../shared/tecnicas/formas.mjs';
+import {formaBigBangAttack} from '../../shared/tecnicas/big-bang-attack.mjs';
+import {formaFinalFlash} from '../../shared/tecnicas/final-flash.mjs';
 const skinsGoku = [
  { forma: 'base', nome: 'Goku · Base', icone: '/assets/goku-portrait.png' },
  { forma: 'natalino', nome: 'Goku · Natalino', icone: '/assets/goku-portrait.png' }
@@ -48,13 +50,61 @@ export function montarPerfil(container,{acao}={}){
  personalizacao.append(el('h3','Skin do personagem'),silhuetaSkinEsq,skinCanvas,silhuetaSkinDir,seletorSkin,notaSkin,montarias);
  let drawGoku=null;import('../../art/personagens/goku/goku.mjs').then(m=>{drawGoku=m.drawGoku;atualizarPersonalizacao();});
  const coluna=el('div',null,'perfil-visual'),canvas=el('canvas');canvas.width=240;canvas.height=220;canvas.setAttribute('aria-label','Sprite atual do personagem');canvas.setAttribute('role','img');
- const nome=el('h3'),forma=el('p'),xp=barra(0,1),xpTexto=el('p'),attrs=el('dl',null,'perfil-atributos'),buffs=el('p'),nota=el('p','Atributos crescem automaticamente com o nível. Equipamentos ainda não estão implementados.','hud-nota');
- coluna.append(canvas,nome,forma,xp,xpTexto);const dados=el('div');dados.append(attrs,buffs,nota);const grid=el('div',null,'perfil-grid');grid.append(coluna,dados);
+ const nome=el('h3'),forma=el('p'),xp=barra(0,1),xpTexto=el('p');
+ coluna.append(canvas,nome,forma,xp,xpTexto);
+
+ const painel = (titulo, conteudo) => {
+  const secao = el('section', null, 'perfil-secao');
+  secao.append(el('h4', titulo), conteudo);
+  return secao;
+ };
+ const atributos = (campos) => {
+  const lista = el('dl', null, 'perfil-atributos');
+  const valores = campos.map(([rotulo, dica]) => {
+   const chave = el('dt', rotulo), valor = el('dd');
+   if (dica) { chave.title = dica; chave.tabIndex = 0; }
+   lista.append(chave, valor);
+   return valor;
+  });
+  return { lista, valores };
+ };
+ const combate = atributos([
+  ['Ataque físico', 'Inclui ataque dos equipamentos e multiplicador da forma.'],
+  ['Defesa', 'Reduz o dano recebido por 100 / (100 + defesa × 3).'],
+  ['Poder de combate', 'Indicador derivado dos atributos do personagem.']
+ ]);
+ const exploracao = atributos([
+  ['Movimento base'], ['Capacidade da mochila'], ['Chance de drop', 'Chance de gerar o drop principal.'], ['Vitórias']
+ ]);
+ const recursos = el('div', null, 'perfil-recursos');
+ const medidores = [
+  ['hp', 'Vida', 'HP'],
+  ['ki', 'Ki', 'Ki']
+ ].map(([chave, titulo, unidade]) => {
+  const card = el('article', null, 'perfil-recurso perfil-recurso-' + chave);
+  const cabecalho = el('div', null, 'perfil-recurso-cabecalho');
+  const atual = el('strong'), total = el('strong'), fontes = el('dl', null, 'perfil-atributos');
+  const vazio = el('p', 'Sem fontes ativas', 'hud-nota');
+  cabecalho.append(el('h5', titulo), atual);
+  card.append(cabecalho, total, fontes, vazio);
+  recursos.append(card);
+  return { chave, unidade, atual, total, fontes, vazio, ultimaLista: null };
+ });
+ const buffs = el('ul', null, 'perfil-efeitos');
+ const dados = el('div', null, 'perfil-secoes');
+ dados.append(painel('Recuperação', recursos), painel('Combate', combate.lista),
+  painel('Exploração', exploracao.lista), painel('Efeitos do personagem', buffs));
+ const grid = el('div', null, 'perfil-grid'); grid.append(coluna, dados);
  const abas=el('nav',null,'perfil-abas'),abaDados=botao('Personagem',()=>mostrar('personagem')),abaTecnicas=botao('Técnicas',()=>mostrar('tecnicas'));
  abas.setAttribute('aria-label','Abas do personagem');abas.append(abaDados,abaTecnicas);
  const acoesPersonalizacao=el('div',null,'perfil-personalizacao-acoes');acoesPersonalizacao.append(aplicar,resetar);personalizacao.append(acoesPersonalizacao);const painelDados=el('div',null,'perfil-painel'),painelTecnicas=el('div',null,'perfil-painel perfil-tecnicas');painelDados.append(grid,personalizacao);
  const mostrar=qual=>{const tecnicas=qual==='tecnicas';painelDados.hidden=tecnicas;painelTecnicas.hidden=!tecnicas;abaDados.setAttribute('aria-pressed',String(!tecnicas));abaTecnicas.setAttribute('aria-pressed',String(tecnicas));};
- const aviso=el('p','Arraste uma magia ou transformação para qualquer slot de 1 a 8. Consumíveis podem ser colocados na barra pela mochila. Técnicas bloqueadas ficam visíveis.','hud-nota');painelTecnicas.append(aviso);
+ const acoesTecnicas = el('div', null, 'perfil-tecnicas-acoes');
+ const aviso = el('p', 'Arraste técnicas para a barra. Para equipar consumíveis, use a mochila.', 'hud-nota');
+ const restaurarBarra = botao('Voltar ao padrão', () => acao?.({ type: 'restaurarBarraPadrao' }));
+ restaurarBarra.title = 'Restaurar os oito slots da barra de habilidades';
+ acoesTecnicas.append(aviso, restaurarBarra);
+ painelTecnicas.append(acoesTecnicas);
  const lista=el('div',null,'perfil-tecnicas-lista');painelTecnicas.append(lista);container.append(abas,painelDados,painelTecnicas);mostrar('personagem');
  let ultimo=null;
  const cards=[...MAGIAS_PERSONAGEM].sort((a,b)=>a.nivel-b.nivel).map(t=>{
@@ -67,7 +117,7 @@ export function montarPerfil(container,{acao}={}){
   seletor.onchange=()=>{const slot=Number(seletor.value)-1;seletor.value='';if(!ultimo||slot<0)return;const novos=barraValida(ultimo.barraTecnicas,ultimo.hotkeysConsumiveis,ultimo.seedSelected),anterior=novos.indexOf(t.id);if(anterior>=0)novos[anterior]=novos[slot];novos[slot]=t.id;acao?.({type:'configurarBarra',slots:novos});};
   texto.append(titulo,detalhes,estado);card.append(img,texto,seletor);lista.append(card);return {t,card,detalhes,estado,seletor,formaId,img};
  });
- let ultimoEstado=null,selfId=null;
+ let ultimoEstado=null,selfId=null, textoEfeitos=null;
  try {
   const salvo = JSON.parse(localStorage.getItem('dbi-personalizacao') || 'null');
   if (skinsGoku.some(o => o.forma === salvo?.skin)) skinPreferida = salvo.skin;
@@ -101,18 +151,18 @@ export function montarPerfil(container,{acao}={}){
   silhuetaMontariaEsq.src = silhuetaMontariaDir.src = '/assets/montarias/nimbus/sprites/nimbus_s_01.png';
  };
  let atualizarPersonalizacao=desenharPreview;
- const linhas=[['HP','Vida atual e máxima.'],['Ki','Energia atual e máxima.'],['Ataque físico','Valor base e bônus de transformação/Kaioken usados pelo soco.'],['Ataques de Ki','As técnicas usam multiplicadores próprios do ataque base; não existe atributo de ataque de Ki separado.'],['Defesa','Reduz o dano por 100 / (100 + defesa × 3).'],['Movimento','Velocidade real de deslocamento por segundo.'],['Regeneração','HP por segundo da comida ativa. Sem comida não há regeneração passiva de HP.'],['Poder de combate','Indicador derivado: HP/10 + Ki/10 + ataque×5 + defesa×3. Não altera o dano.'],['Capacidade','Peso máximo da mochila.'],['Chance de drop','Chance de gerar o drop principal; algumas recompensas possuem chance própria.'],['Vitórias','Total de mobs e chefes raros derrotados.']].map(([n,t])=>{const dt=el('dt',n),dd=el('dd');dt.title=t;dt.tabIndex=0;attrs.append(dt,dd);return dd;});
  return s=>{const p=s?.self?.perfil;if(!p)return;ultimoEstado=s;selfId=s.selfId;atualizarPersonalizacao=desenharPreview;ultimo=s.self;const equipadas=barraValida(s.self.barraTecnicas,s.self.hotkeysConsumiveis,s.self.seedSelected);
- const tecnicas = new Set(tecnicasDoPerfil(s.self.vocacao));
+ const tecnicas = new Set(tecnicasDoPerfil(s.self.vocacao).map(t=>t.id));
  for(const {t,card,detalhes,estado,seletor,formaId,img} of cards){
-  card.hidden = !tecnicas.has(t);
+  card.hidden = !tecnicas.has(t.id);
   card.querySelector('strong').textContent=s.self.vocacao==='vegeta'?(NOMES_TECNICAS_VEGETA[t.id]||t.nome):t.nome;
   const nivel = nivelDaTecnica(t, s.self.vocacao);
   const d=dadosTecnica(t,s.self),liberada=!card.hidden&&s.self.level>=nivel,slot=equipadas.indexOf(t.id);
   if(formaId&&t.imagem)img.src=iconeDaForma(formaId,s.self.vocacao||'goku');
-  const requerForma=liberada&&!tecnicaDisponivel(t.id,s.self)
-   ? t.id==='skill:superKamehameha'?' · requer SSJ4':t.id==='skill:ryuken'?' · requer SSJ3 ou SSJ4':''
-   : '';
+  const requerForma = !liberada ? ''
+    : (t.id==='skill:finalFlash' && !formaFinalFlash(s.self.forma)) || (t.id==='skill:bigBangAttack' && !formaBigBangAttack(s.self.forma)) ? ' · requer SSJ1 ou superior'
+    : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:superKamehameha' ? ' · requer SSJ4'
+    : !tecnicaDisponivel(t.id,s.self) && t.id==='skill:ryuken' ? ' · requer SSJ3 ou SSJ4' : '';
   card.draggable=liberada;card.classList.toggle('bloqueada',!liberada);
   detalhes.textContent=`Nv. ${nivel} · ${d.custo} · recarga ${d.recarga}${t.duracao?' · duração '+Math.round(t.duracao/60)+' min':''}`;
   estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+nivel)+requerForma;
@@ -126,6 +176,29 @@ export function montarPerfil(container,{acao}={}){
   skinIndice = Math.max(0, skinOpcoes.findIndex(o => o.forma === skinPreferida));
  }
  atualizarPersonalizacao();
- const valores=[numero(p.hp)+' / '+numero(p.stats.hp),numero(p.ki)+' / '+numero(p.stats.ki),numero(p.ataqueAtual)+' (base '+numero(p.base.attack)+' + bônus '+numero(p.bonusAtaque)+')','Multiplicadores por técnica',numero(p.stats.defense),numero(p.stats.mobility),numero(p.regeneracao)+' HP/s',numero(p.poder),numero(p.stats.capacity)+' kg',numero(p.stats.lootChance*100)+'%',numero(p.kills)+' mobs · '+numero(p.bossKills)+' chefes raros'];linhas.forEach((e,i)=>e.textContent=valores[i]);buffs.textContent=p.buffs.length?p.buffs.join(' '):'Nenhum buff ativo.';
+ const dadosCombate = [numero(p.ataqueAtual), numero(p.stats.defense), numero(p.poder)];
+ const dadosExploracao = [numero(p.stats.mobility), numero(p.stats.capacity) + ' kg',
+  numero(p.stats.lootChance * 100) + '%', numero(p.kills) + ' mobs · ' + numero(p.bossKills) + ' chefes raros'];
+ combate.valores.forEach((campo, i) => { campo.textContent = dadosCombate[i]; });
+ exploracao.valores.forEach((campo, i) => { campo.textContent = dadosExploracao[i]; });
+ for (const medidor of medidores) {
+  const { chave, unidade, atual, total, fontes, vazio } = medidor;
+  const taxa = p.regeneracao[chave];
+  const formatar = valor => (valor > 0 ? '+' : '') + numero(valor) + ' ' + unidade + '/s';
+  atual.textContent = numero(p[chave]) + ' / ' + numero(p.stats[chave]);
+  total.textContent = taxa.ilimitada ? 'Ilimitado · God Mode' : formatar(taxa.total);
+  total.classList.toggle('perfil-taxa-negativa', taxa.total < 0 && !taxa.ilimitada);
+  const lista = JSON.stringify(taxa.fontes);
+  if (medidor.ultimaLista !== lista) {
+   medidor.ultimaLista = lista;
+   fontes.replaceChildren(...taxa.fontes.flatMap(([fonte, valor]) => [el('dt', fonte), el('dd', formatar(valor))]));
+  }
+  vazio.hidden = taxa.fontes.length > 0 || taxa.ilimitada;
+ }
+ const efeitos=p.buffs.length?p.buffs:['Nenhum efeito ativo.'];
+ if (textoEfeitos!==efeitos.join('\n')) {
+  textoEfeitos=efeitos.join('\n');
+  buffs.replaceChildren(...efeitos.map(efeito=>el('li',efeito)));
+ }
  const c=canvas.getContext('2d');c.clearRect(0,0,240,220);c.save();c.imageSmoothingEnabled=false;const montado=montaria==='nimbus';c.translate(120,montado?170:186);c.scale(montado?1.8:2.2,montado?1.8:2.2);const jogador={...s.players.find(v=>v.id===s.selfId),moving:false,charge:null,facing:{x:0,y:1}},g=desenharNimbus(c,jogador,{x:0,y:0},s.time,{flutuar:!s.self.preferencias.reduzirAnimacoes});(s.self.vocacao==='vegeta'?drawVegeta:drawGoku)?.(c,jogador,g?.personagem||{x:0,y:0},s.time);c.restore();};
 }

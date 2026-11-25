@@ -284,7 +284,7 @@ test('Auto Hunt transfere a carga de Kamehameha para outro mob sem cobrar Ki nov
 
 test('Auto Hunt escolhe Rajada de Ki em vez de Kamehameha quando o alvo cai com o golpe barato',()=>{
   const {g,p,mob}=cena(20),alvo=mob(100);
-  p.autoHunt=true;p.autoSkills=true;
+  p.autoHunt=true;p.autoSkills=true;p.autoAttack=true;
   alvo.hp=Math.round(p.stats.attack*1.2);
   const ki=p.ki;
   g.tick(.01);

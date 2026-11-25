@@ -24,7 +24,7 @@
         <nav class="hud-menus" id="hudMenus" aria-label="Menus do jogo">
         <button type="button" data-menu="personagem" title="Personagem"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/personagem.png" alt=""></i><span>Personagem</span></button>        <button type="button" data-menu="mochila" title="Mochila"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mochila.png" alt=""></i><span>Mochila</span></button>
         <button type="button" data-menu="missoes" title="Missões"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/missoes.png" alt=""></i><span>Missões</span></button>
-        <button type="button" data-menu="bestiario" title="Bestiário" aria-controls="bestiarioDialog"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/bestiario.png" alt=""></i><span>Bestiário</span></button>
+        <button type="button" data-menu="bestiario" title="Enciclopédia" aria-controls="bestiarioDialog"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/bestiario.png" alt=""></i><span>Enciclopédia</span></button>
         <button type="button" data-menu="mapa" title="Mapa"><i aria-hidden="true"><img class="hud-ico" src="/assets/hud/mapa.png" alt=""></i><span>Mapa</span></button>
         <button type="button" data-menu="store" class="hud-premium-icone" title="Store" aria-controls="storeDialog"><i aria-hidden="true"><img class="hud-ico" src="/assets/premium/store.gif" alt=""></i><span>Store</span></button>
         <button type="button" data-menu="battlepass" class="hud-premium-icone" title="Battle Pass" aria-controls="battlePassDialog"><i aria-hidden="true"><img class="hud-ico" src="/assets/premium/battle-pass.gif" alt=""></i><span>Battle Pass</span></button>
@@ -37,7 +37,7 @@
       </header>
       <div id="safeZoneAviso" class="hud-safe-zone" role="status" aria-hidden="true"><strong>SAFE ZONE</strong><span>Você está protegido · Saia para caçar</span></div>
       <section class="hud-jogador moldura" aria-label="Seu personagem">
-        <img class="hud-retrato" src="/assets/goku-avatar.png" alt="Goku">
+        <img id="playerPortrait" class="hud-retrato" src="/assets/hud/vocacoes/goku.png" alt="Goku">
         <div class="hud-status">
           <div class="hud-nome"><strong id="playerName">Goku</strong><span id="levelBadge">Nv. 1</span></div>
           <div class="barra barra-hp"><i id="hpBar"></i><b id="hpText">0 / 0</b></div>
@@ -85,7 +85,7 @@
       <footer class="hud-dica">WASD mover • Tab perfil • I mochila • H caça • X montaria • Esc configurações</footer>
     </div>
     <div id="joystick" aria-label="Direcional de toque"><div id="joystickKnob"></div></div>
-    <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><span id="respawnText">Retornando à vila...</span></div>
+    <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><strong id="respawnPenalty" hidden></strong><span id="respawnText">Voltando ao começo da área...</span></div>
     <div id="notifications" class="notifications" aria-live="polite"></div>
   </main>
   <dialog id="welcomeDialog" class="entrada" aria-label="Dragon Ball Idle"></dialog>
@@ -101,7 +101,9 @@
         <label><input id="kiInfinite" type="checkbox" checked> Ki infinito</label>
         <label><input id="zeniInfinite" type="checkbox" checked> Zeni infinito</label>
         <label><input id="capacityInfinite" type="checkbox" checked> Capacidade infinita</label>
+        <label><input id="cooldownNormal" type="checkbox"> Manter recarga normal</label>
       </fieldset>
+      <button type="button" id="godmodeLimparEfeitos" hidden disabled>Limpar efeitos e VIP</button>
       <p id="godmodeStatus" class="godmode-status" aria-live="polite">As opções do God Mode não alteram o progresso real do personagem.</p>
     </section>
     <section id="godmodeItemsPanel" class="godmode-panel" hidden>
@@ -116,7 +118,7 @@
       <p id="godmodeBossStatus" class="godmode-status" role="status" aria-live="polite">Ative o God Mode para invocar um chefe.</p>
     </section>
   </dialog>
-  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><h2>Mercado de suprimentos</h2><div class="shop-scroll-content"><span class="eyebrow">VILA DO LAGO</span><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button id="sellButton" class="primary">Vender todos os materiais</button><small>Todos os preços são provisórios para o protótipo.</small></div></dialog>
+  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><h2>Mercado de suprimentos</h2><div class="shop-scroll-content"><span class="eyebrow">VILA DO LAGO</span><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button type="button" id="sellButton" class="primary">Vender Tudo</button><small>Todos os preços são provisórios para o protótipo.</small></div></dialog>
   <!-- Portal: abre ao encostar num portal do mapa; cada cartão é um destino (client/hud.mjs). -->
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-body"><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></div></dialog>
   <!-- Mapa: só consulta (onde estou, as áreas e os portais); viajar é pelos portais. -->
@@ -150,18 +152,38 @@
       <button id="lootTrackerOpen" class="hunt-loot-abrir" type="button" aria-controls="lootTrackerWindow">Abrir Loot Tracker ↗</button>
       <section class="auto-hunt-start"><p id="autoHuntLocation">Entre em uma hunt para iniciar.</p><button type="button" id="quickHunt" class="auto auto-caca"><span>Caça automática · <b>OFF</b></span></button><small>H liga ou pausa toda a automação. Ao iniciar, ataque e técnicas são ativados.</small></section>
       <fieldset><legend>Combate</legend>
-        <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca os alvos próximos.</small></span><input id="autoAttack" type="checkbox"></label>
+        <label class="auto-hunt-option"><span><strong>Ataque automático</strong><small>Soca de perto e usa Rajada de Ki à distância.</small></span><input id="autoAttack" type="checkbox"></label>
         <label class="auto-hunt-option"><span><strong>Técnicas automáticas</strong><small>Usa as técnicas de combate disponíveis.</small></span><input id="autoSkills" type="checkbox"></label>
       </fieldset>
+      <form id="autoComboForm" class="auto-combo">
+        <nav class="hunt-analyzer-abas" aria-label="Configuração de técnicas automáticas">
+          <button type="button" data-auto-combo-aba aria-pressed="true" aria-controls="autoComboAba">Combo</button>
+          <button type="button" data-auto-combo-aba aria-pressed="false" aria-controls="autoBuffAba">Buff</button>
+        </nav>
+        <section id="autoComboAba" aria-label="Prioridade das técnicas">
+          <label class="auto-hunt-threshold">Reserva após o ataque <span class="auto-combo-percentual"><input id="autoComboReserva" type="number" min="0" max="100" step="1" required> % Ki</span></label>
+          <ol id="autoComboOrdem"></ol>
+          <label class="auto-hunt-threshold">Técnica <select id="autoComboAdicionar"></select></label>
+        </section>
+        <section id="autoBuffAba" aria-label="Transformação automática" hidden>
+          <label class="auto-hunt-option"><strong>Mudar sempre para o Buff de nível mais alto</strong><input id="autoComboBuffMaisAlto" type="checkbox"></label>
+          <label class="auto-hunt-threshold">Manter transformação <select id="autoComboBuff"></select></label>
+          <p class="auto-hunt-note">Ao salvar, o jogo tenta aplicar a forma. Durante a caça, ela é reativada quando houver Ki suficiente.</p>
+        </section>
+        <button type="submit" class="auto">Salvar combo e buff</button>
+        <output id="autoComboEstado" aria-live="polite"></output>
+      </form>
       <fieldset><legend>Recuperação</legend>
         <label class="auto-hunt-option"><span><strong>Cura de Vida automática</strong><small>Funciona somente com Auto Hunt ligado.</small></span><input id="autoHeal" type="checkbox" checked></label>
         <label class="auto-hunt-threshold">Curar abaixo de <span><input id="healThreshold" type="number" min="1" max="100" step="1" value="70" inputmode="numeric" aria-label="Limite de HP para autocura">% HP</span></label>
+        <label class="auto-hunt-option"><span><strong>Poção de Energia automática</strong><small id="autoEnergyPotionInfo">Usa poções da mochila.</small></span><input id="autoEnergyPotion" type="checkbox"></label>
+        <label class="auto-hunt-threshold">Usar Poção de Energia abaixo de <span><input id="energyPotionThreshold" type="number" min="1" max="100" step="1" value="50" inputmode="numeric" aria-label="Limite de HP para usar Poção de Energia">% HP</span></label>
         <label class="auto-hunt-option"><span><strong>Poção de Ki automática</strong><small id="autoKiInfo">Usa poções do inventário.</small></span><input id="autoKi" type="checkbox"></label>
         <label class="auto-hunt-threshold">Usar poção abaixo de <span><input id="kiThreshold" type="number" min="1" max="100" step="1" value="25" inputmode="numeric" aria-label="Limite de Ki para usar poção">% Ki</span></label>
         <label class="auto-hunt-option"><span><strong>Semente automática</strong><small id="autoSeedInfo">Usa a potência selecionada.</small></span><input id="autoSeed" type="checkbox"></label>
         <label class="auto-hunt-threshold">Usar semente abaixo de <span><input id="seedThreshold" type="number" min="1" max="100" step="1" value="30" inputmode="numeric" aria-label="Limite de HP para usar semente">% HP</span></label>
         <label class="auto-hunt-threshold">Potência da semente <select id="seedSelect" aria-label="Potência da semente"><option value="15">15%</option><option value="30">30%</option><option value="50">50%</option><option value="100">100%</option></select></label>
-        <label class="auto-hunt-option"><span><strong>Comida automática</strong><small>Renova o efeito da comida durante a caça.</small></span><input id="autoFood" type="checkbox" checked></label>
+        <label class="auto-hunt-option"><span><strong>Comida automática</strong><small>Usa comida com 90% de HP ou menos.</small></span><input id="autoFood" type="checkbox" checked></label>
       </fieldset>
       <p class="auto-hunt-note">Com Auto Hunt OFF, combate e recuperação automáticos ficam pausados. As configurações são mantidas. As porcentagens ativam ao ficar abaixo do valor escolhido. Itens respeitam o estoque e a recarga. O jogo continua com este painel aberto.</p>
     </div>

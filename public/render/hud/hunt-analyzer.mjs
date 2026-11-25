@@ -1,3 +1,4 @@
+import { nomeComRaridade } from './hud-elementos.mjs';
 import {retrato} from './bestiario.mjs';
 import {instalarArrasto} from './painel-movel.mjs';
 import {agruparLootPorRaridade} from '../../shared/sistemas/hunt-analyzer.mjs';
@@ -33,7 +34,7 @@ function atualizarLootTracker(a){
    const grade=textoElemento('div','','hunt-loot-grade');
    for(const i of [...lista].sort((a,b)=>a.nome.localeCompare(b.nome))){
      const card=textoElemento('article','','hunt-loot-item'),img=document.createElement('img');img.src=i.icone;img.alt='';img.width=36;img.height=36;
-     card.append(img,textoElemento('strong',i.nome),textoElemento('b','× '+numero(i.quantidade),'hunt-loot-quantidade'),textoElemento('small',i.raridade||'Não definida','hunt-loot-raridade'));grade.append(card);
+     card.append(img,nomeComRaridade(textoElemento('strong',i.nome),i.id),textoElemento('b','× '+numero(i.quantidade),'hunt-loot-quantidade'),textoElemento('small',i.raridade||'Não definida','hunt-loot-raridade'));grade.append(card);
    }
    secao.append(grade);fragment.append(secao);
  }
@@ -98,7 +99,7 @@ export function atualizarHuntAnalyzer(a,id){
  atualizarMini(a,id);atualizarLootTracker(a);
  const root=document.getElementById('huntAnalyzer');if(!root||!root.open)return;
  const segundos=Math.floor(a.segundos),tempo=[Math.floor(segundos/3600),Math.floor(segundos/60)%60,segundos%60].map(n=>String(n).padStart(2,'0')).join(':');
- const dados=[['Tempo ativo',tempo],['XP / hora',numero(a.xpHora)],['XP ganho',numero(a.xp)],['Dano causado',numero(a.danoCausado)],['Dano recebido',numero(a.danoRecebido)],['Cura efetiva',numero(a.cura)],['Zeni coletado',numero(a.zeni)+' Z'],['Valor do loot',numero(a.valorLoot)+' Z'],['Gastos com supplies',numero(a.gastos)+' Z']];
+ const dados=[['Tempo ativo',tempo],['XP / hora',numero(a.xpHora)],['XP ganho',numero(a.xp)],['Dano causado',numero(a.danoCausado)],['Dano recebido',numero(a.danoRecebido)],['Cura efetiva',numero(a.cura)],['Zeni coletado',numero(a.zeni)+' Z'],['Materiais e consumíveis recolhidos',numero(a.valorMateriais)+' Z'],['Equipamentos recolhidos',numero(a.valorEquipamentos)+' Z'],['Gastos com consumíveis',numero(a.gastos)+' Z']];
  const fragment=document.createDocumentFragment();
  const texto=(tag,s,classe)=>{const e=document.createElement(tag);e.textContent=s;if(classe)e.className=classe;return e;};
  if(aba==='abates'||aba==='mortes'){
@@ -122,7 +123,8 @@ export function atualizarHuntAnalyzer(a,id){
  delete root.querySelector('.hunt-analyzer-dados').dataset.encontros;
  fragment.append(texto('p',(a.ativo?'● Contando':'Ⅱ Pausado')+(a.teste?' · Sessão com God Mode':'')));
  const dl=document.createElement('dl');for(const [k,v]of dados)dl.append(texto('dt',k),texto('dd',v));fragment.append(dl);
- fragment.append(texto('p','Saldo estimado: '+(a.saldo>0?'+':'')+numero(a.saldo)+' Z',a.saldo<0?'hunt-prejuizo':'hunt-lucro'));
+ fragment.append(texto('p','Saldo sem vender equipamento: '+(a.saldoSemEquipamentos>0?'+':'')+numero(a.saldoSemEquipamentos)+' Z',a.saldoSemEquipamentos<0?'hunt-prejuizo':'hunt-lucro'));
+ fragment.append(texto('p','Saldo total a preços de NPC: '+(a.saldo>0?'+':'')+numero(a.saldo)+' Z',a.saldo<0?'hunt-prejuizo':'hunt-lucro'));
  const itens=a.supplies;
  fragment.append(texto('h4','Supplies usados'));if(!itens.length)fragment.append(texto('p','Nenhum consumível usado nesta sessão.'));
  for(const i of itens){const linha=document.createElement('p'),img=document.createElement('img');img.src=i.icone;img.alt='';img.width=24;img.height=24;linha.append(img,document.createTextNode(i.nome+' × '+numero(i.quantidade)));fragment.append(linha);}

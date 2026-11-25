@@ -2,7 +2,9 @@ import {randomBytes} from 'node:crypto';
 import {PRODUTOS_STORE,COLECIONAVEIS,MAX_PREMIUM,recompensaPasse,temporadaEm} from '../public/shared/sistemas/premium-config.mjs';
 import {passeDoPersonagem,resumoBattlePass,temporadaAtiva,resgatarMissaoPasse,vincularPasseConta} from '../public/shared/sistemas/battle-pass.mjs';
 import {CONFIG} from '../public/shared/nucleo/config.mjs';
-import {bagWeight} from '../public/shared/nucleo/characters.mjs';
+import {ITENS_PREMIUM} from '../public/shared/sistemas/itens-premium.mjs';
+import {LIMITE_ESTOQUE_LOJA} from '../public/shared/sistemas/loja.mjs';
+import {bagWeight,encerrarExtensor,mochilaComporta,reconciliarSlots} from '../public/shared/nucleo/characters.mjs';
 import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from '../public/shared/sistemas/itens-negociaveis.mjs';
 import {PagamentoSimulado} from './pagamentos.mjs';
 const falha=reason=>({ok:false,reason});
@@ -14,8 +16,15 @@ export class EconomiaPremium{
     colecao:[...new Set((Array.isArray(v?.colecao)?v.colecao:[]).filter(id=>Object.hasOwn(COLECIONAVEIS,id)))],transacoes:(Array.isArray(v?.transacoes)?v.transacoes:[]).filter(t=>t&&typeof t.id==='string'&&Number.isSafeInteger(t.quando))};this.inicializadas.add(a);
   }return a.premium;
  }
+ vincularVip(a,p){p.vipAte=this.carteira(a).vipAte;}
  catalogo(){const t=temporadaEm(this.agora());return PRODUTOS_STORE.map(x=>x.temporada?{...x,id:"passe-"+t.id,temporada:t.id,preco:t.precoPremium,nome:"Passe Premium · "+t.nome}:x);}
- impedimento(a,p,produto){
+ quantidadeNaMochila(p, item, quantidade) {
+  const pesoLivre = p.stats.capacity - bagWeight(p.inventory);
+  const limite = Math.min(quantidade, LIMITE_ESTOQUE_LOJA - (p.inventory[item] ?? 0),
+   Math.floor((pesoLivre + 0.0001) / ITENS_PREMIUM[item].peso));
+  return limite > 0 && mochilaComporta(p, { [item]: limite }) ? limite : 0;
+ }
+ impedimento(a,p,produto,quantidade=1){
   if(!produto)return 'Oferta expirada ou indisponível nesta temporada.';
   vincularPasseConta(a,p,this.agora());const TEMPORADA=temporadaEm(this.agora());
   const w=this.carteira(a);if(!p.connected||p.hp<=0)return 'Personagem indisponível.';
@@ -24,34 +33,79 @@ export class EconomiaPremium{
   if(produto.colecao&&w.colecao.includes(produto.colecao))return 'A conta já possui este colecionável.';
   if(produto.temporada&&(!temporadaAtiva(this.agora())||produto.temporada!==TEMPORADA.id))return 'O passe não está disponível nesta temporada.';
   if(produto.temporada&&passeDoPersonagem(p,this.agora()).premium)return 'Esta conta já possui o passe premium.';
-  if(produto.preco>w.saldo)return 'Saldo premium insuficiente.';
+  if(produto.item && (p.entregasPremium[produto.item] ?? 0) + quantidade - this.quantidadeNaMochila(p,produto.item,quantidade) > LIMITE_ESTOQUE_LOJA)
+   return 'Recolha os itens pendentes antes de comprar mais.';
+  if((produto.preco||0)*quantidade>w.saldo)return 'Saldo premium insuficiente.';
   if(produto.moedas&&w.saldo+produto.moedas>MAX_PREMIUM)return 'Limite do saldo premium atingido.';
   return null;
  }
  estado(a,p){
-  vincularPasseConta(a,p,this.agora());const w=this.carteira(a);return {ok:true,simulacao:this.pagamentos.habilitado,saldo:w.saldo,vipAte:w.vipAte,vipAtivo:w.vipAte>this.agora(),
-   colecao:w.colecao.map(id=>({id,...COLECIONAVEIS[id]})),historico:w.transacoes.slice(-100).reverse(),totalTransacoes:w.transacoes.length,
-   produtos:this.catalogo().map(produto=>({...produto,impedimento:this.impedimento(a,p,produto)})),battlePass:resumoBattlePass(p,this.agora())};
+  vincularPasseConta(a,p,this.agora());this.vincularVip(a,p);const w=this.carteira(a);return {ok:true,simulacao:this.pagamentos.habilitado,saldo:w.saldo,vipAte:w.vipAte,vipAtivo:w.vipAte>this.agora(),
+   entregasPremium:{...p.entregasPremium},colecao:w.colecao.map(id=>({id,...COLECIONAVEIS[id]})),historico:w.transacoes.slice(-100).reverse(),totalTransacoes:w.transacoes.length,
+   produtos:this.catalogo().map(produto=>({...produto,maxQuantidade:produto.item?Math.min(99,Math.floor(w.saldo/produto.preco)):1,impedimento:this.impedimento(a,p,produto)})),battlePass:resumoBattlePass(p,this.agora())};
  }
- preparar(a,p,id){
-  const produto=this.catalogo().find(x=>x.id===id);if(!produto)return falha('Produto inválido.');const motivo=this.impedimento(a,p,produto);if(motivo)return falha(motivo);
+ preparar(a,p,id,quantidade=1){
+  const produto=this.catalogo().find(x=>x.id===id);
+  if(!produto)return falha('Produto inválido.');
+  if(!Number.isSafeInteger(quantidade)||quantidade<1||quantidade>(produto.item?99:1))return falha('Quantidade inválida para esta oferta.');
+  const motivo=this.impedimento(a,p,produto,quantidade);if(motivo)return falha(motivo);
   const agora=this.agora();for(const [id,c]of this.cotacoes)if(c.expira<=agora)this.cotacoes.delete(id);
   if([...this.cotacoes.values()].filter(c=>c.conta===a.id).length>=8)return falha('Confirme ou aguarde expirar as compras pendentes.');
-  const c={id:randomBytes(18).toString('hex'),produto:produto.id,conta:a.id,personagem:p.personagemId||p.id,expira:agora+120000};this.cotacoes.set(c.id,c);
-  return {ok:true,cotacao:{id:c.id,nome:produto.nome,expira:c.expira,preco:produto.preco||0,precoCentavos:produto.precoCentavos||0,simulada:Boolean(produto.moedas)}};
+  const c={id:randomBytes(18).toString('hex'),produto:produto.id,quantidade,preco:(produto.preco||0)*quantidade,conta:a.id,personagem:p.personagemId||p.id,expira:agora+120000};this.cotacoes.set(c.id,c);
+  return {ok:true,cotacao:{id:c.id,nome:produto.nome,expira:c.expira,quantidade,preco:c.preco,precoCentavos:produto.precoCentavos||0,simulada:Boolean(produto.moedas)}};
  }
  confirmar(a,p,id){
   const w=this.carteira(a),anterior=w.transacoes.find(t=>t.id===id);if(anterior)return {ok:true,transacao:anterior,repetida:true};
   const c=this.cotacoes.get(id);if(!c||c.conta!==a.id||c.personagem!==(p.personagemId||p.id)||c.expira<=this.agora())return falha('Confirmação inválida ou expirada.');
-  const produto=this.catalogo().find(x=>x.id===c.produto),motivo=this.impedimento(a,p,produto);if(motivo)return falha(motivo);
+  const produto=this.catalogo().find(x=>x.id===c.produto),motivo=this.impedimento(a,p,produto,c.quantidade);if(motivo)return falha(motivo);
+  if((produto.preco||0)*c.quantidade!==c.preco)return falha('O preço mudou. Revise uma nova confirmação.');
   let referencia=null;if(produto.moedas){const r=this.pagamentos.confirmar(c);if(!r.ok)return r;referencia=r.referencia;}
   // Valida tudo antes de mutar. Não há await entre débito e entrega.
-  w.saldo-=produto.preco||0;if(produto.moedas)w.saldo+=produto.moedas;
-  if(produto.dias)w.vipAte=Math.max(this.agora(),w.vipAte)+produto.dias*86400000;
+  w.saldo-=c.preco;if(produto.moedas)w.saldo+=produto.moedas;
+  if(produto.dias){
+   w.vipAte=Math.max(this.agora(),w.vipAte)+produto.dias*86400000;
+   this.vincularVip(a,p);
+  }
+  let entrega = null;
+  if (produto.item) {
+   const {item} = produto;
+   const mochila = this.quantidadeNaMochila(p, item, c.quantidade);
+   const pendentes = c.quantidade - mochila;
+   if (mochila) {
+    p.inventory[item] = (p.inventory[item] ?? 0) + mochila;
+    reconciliarSlots(p);
+   }
+   if (pendentes) p.entregasPremium[item] = (p.entregasPremium[item] ?? 0) + pendentes;
+   entrega = { entrega: pendentes ? (mochila ? 'parcial' : 'pendente') : 'mochila', mochila, pendentes };
+  }
   if(produto.colecao)w.colecao.push(produto.colecao);
   if(produto.temporada)passeDoPersonagem(p,this.agora()).premium=true;
-  const t={id:c.id,produto:produto.id,nome:produto.nome,quando:this.agora(),personagem:p.name,personagemId:p.personagemId||p.id,moedasDelta:(produto.moedas||0)-(produto.preco||0),simulada:Boolean(produto.moedas),precoCentavos:produto.precoCentavos||0,referencia};
+  const t={id:c.id,produto:produto.id,nome:produto.nome,quando:this.agora(),personagem:p.name,personagemId:p.personagemId||p.id,quantidade:c.quantidade,moedasDelta:(produto.moedas||0)-c.preco,simulada:Boolean(produto.moedas),precoCentavos:produto.precoCentavos||0,referencia,...entrega};
   w.transacoes.push(t);this.cotacoes.delete(id);return {ok:true,transacao:t};
+ }
+ recolherEntrega(p, id) {
+  if (!p.connected || p.hp <= 0) return falha('Personagem indisponível.');
+  if (!Object.hasOwn(ITENS_PREMIUM, id) || !p.entregasPremium[id]) return falha('Nenhuma entrega pendente deste item.');
+  const estoque = p.inventory[id] ?? 0;
+  const quantidade = this.quantidadeNaMochila(p, id, p.entregasPremium[id]);
+  if (!quantidade) return falha('Libere peso ou espaço na mochila.');
+  p.inventory[id] = estoque + quantidade;
+  p.entregasPremium[id] -= quantidade;
+  if (!p.entregasPremium[id]) delete p.entregasPremium[id];
+  reconciliarSlots(p);
+  return { ok: true, quantidade };
+ }
+ limparEfeitos(a, p) {
+  if (!this.pagamentos.habilitado || !p.godmode || !p.connected || p.hp <= 0)
+   return falha('Ative o God Mode no ambiente de desenvolvimento para limpar efeitos.');
+  p.bonusPremium.xp = null;
+  p.bonusPremium.restoXp = 0;
+  p.foodUntil = 0;
+  p.foodId = 'food';
+  if (p.equipamentos.mochila) encerrarExtensor(p);
+  this.carteira(a).vipAte = 0;
+  this.vincularVip(a, p);
+  return { ok: true };
  }
  resgatar(a,p,nivel,trilha){
   vincularPasseConta(a,p,this.agora());const TEMPORADA=temporadaEm(this.agora());
@@ -70,8 +124,9 @@ export class EconomiaPremium{
  processar(a,p,d){
   vincularPasseConta(a,p,this.agora());
   if(d.operacao==='cancelarCompra'){const c=this.cotacoes.get(d.cotacao);if(c?.conta===a.id)this.cotacoes.delete(d.cotacao);return {ok:true};}
-  if(d.operacao==='prepararCompra')return this.preparar(a,p,d.produto);
+  if(d.operacao==='prepararCompra')return this.preparar(a,p,d.produto,d.quantidade);
   if(d.operacao==='confirmarCompra')return this.confirmar(a,p,d.cotacao);
+  if(d.operacao==='recolherEntrega')return this.recolherEntrega(p,d.item);
   if(d.operacao==='resgatarRecompensa')return this.resgatar(a,p,d.nivel,d.trilha);
   if(d.operacao==='resgatarMissao')return resgatarMissaoPasse(p,d.id,this.agora());
   return falha('Operação inválida.');

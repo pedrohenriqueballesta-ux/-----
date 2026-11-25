@@ -17,11 +17,11 @@ export function fecharOutrasJanelas(atual){
  // A mochila é um painel persistente: abrir outra janela não deve fechá-la. Ao abrir a
  // mochila, também preserva a janela que já estava aberta para permitir consultar as duas.
  if(atual?.id==='mochilaDialog')return;
- for(const janela of document.querySelectorAll('dialog[open]'))if(janela!==atual&&janela.id!=='welcomeDialog'&&janela.id!=='mochilaDialog')janela.close();
+ for(const janela of document.querySelectorAll('dialog[open]'))if(janela!==atual&&janela.id!==atual?.dataset.janelaPai&&janela.id!=='welcomeDialog'&&janela.id!=='mochilaDialog')janela.close();
 }
 export function instalarJanelasHud(){
  if(instalado)return;instalado=true;
- document.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.isComposing)return;const abertas=[...document.querySelectorAll('dialog[open]:not(#welcomeDialog):not(#tutorialDialog)')],aberta=abertas.find(j=>j.id!=='mochilaDialog');if(aberta){aberta.close();e.preventDefault();e.stopImmediatePropagation();}else if(abertas.length){e.preventDefault();e.stopImmediatePropagation();}},true);
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.isComposing)return;const abertas=[...document.querySelectorAll('dialog[open]:not(#welcomeDialog):not(#tutorialDialog)')],aberta=abertas.find(j=>j.dataset.janelaPai)||abertas.find(j=>j.id!=='mochilaDialog');if(aberta){aberta.close();e.preventDefault();e.stopImmediatePropagation();}else if(abertas.length){e.preventDefault();e.stopImmediatePropagation();}},true);
  const preparar=janela=>{
   if(controles.has(janela)||janela.id==='welcomeDialog')return;
   let cabecalho=janela.querySelector('header,.worlds-head,.mochila-topo,.auto-hunt-head');

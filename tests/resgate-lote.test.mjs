@@ -10,7 +10,7 @@ test('resgate em lote calcula o espaço total e informa quanto falta',()=>{
 });
 
 test('resgate em lote pede confirmação quando os itens ocupam a capacidade restante',()=>{
- const r=avaliarResgateLote([{itens:{crystal:2}}],19.1,20);
+ const r=avaliarResgateLote([{itens:{'cristal-azul':10}}],19.1,20);
  assert.ok(Math.abs(r.pesoRecompensas-.9)<1e-9);
  assert.equal(r.faltam,0);
  assert.equal(r.lotara,true);

@@ -1,3 +1,8 @@
+import { instalarCatalogoItens } from './catalogo-itens-hud.mjs';
+import { COLECIONAVEIS } from '../../shared/sistemas/premium-config.mjs';
+import { marcarItemInspecionavel, nomeComRaridade } from './hud-elementos.mjs';
+import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
+
 const criar = (tag,texto,classe) => { const el=document.createElement(tag); if(texto!=null)el.textContent=texto;if(classe)el.className=classe;return el; };
 const numero = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
 const tempo = segundos => segundos>=3600 ? numero(segundos/3600)+' h' : segundos>=60 ? numero(segundos/60)+' min' : numero(segundos)+' s';
@@ -32,8 +37,8 @@ export function retrato(tipo) {
 export function instalarBestiario(obterEstado) {
   let catalogo=null,selecionado=null,carregando=false;
   const janela=criar('dialog',null,'bestiario');janela.id='bestiarioDialog';janela.setAttribute('aria-labelledby','bestiarioTitulo');
-  const header=criar('header'),titulo=criar('h2','Bestiário');titulo.id='bestiarioTitulo';
-  const fechar=criar('button','✕');fechar.type='button';fechar.setAttribute('aria-label','Fechar bestiário');fechar.onclick=()=>janela.close();header.append(titulo,fechar);
+  const header=criar('header'),titulo=criar('h2','Enciclopédia');titulo.id='bestiarioTitulo';
+  const fechar=criar('button','✕');fechar.type='button';fechar.setAttribute('aria-label','Fechar Enciclopédia');fechar.onclick=()=>janela.close();header.append(titulo,fechar);
   const filtros=criar('div',null,'bestiario-filtros');
   const busca=criar('input');busca.type='search';busca.placeholder='Buscar inimigo ou hunt';busca.setAttribute('aria-label','Buscar inimigo ou hunt');
   const planeta=criar('select');planeta.setAttribute('aria-label','Filtrar por planeta');
@@ -42,7 +47,37 @@ export function instalarBestiario(obterEstado) {
   filtros.append(busca,planeta,categoria);
   const corpo=criar('div',null,'bestiario-corpo'),lista=criar('nav',null,'bestiario-lista'),detalhe=criar('section',null,'bestiario-detalhe');lista.setAttribute('aria-label','Inimigos do bestiário');detalhe.setAttribute('aria-live','polite');corpo.append(lista,detalhe);
   const resumo=criar('p','Carregando catálogo…','bestiario-resumo');resumo.setAttribute('role','status');
-  janela.append(header,filtros,resumo,corpo);document.body.append(janela);
+  const abas=criar('nav',null,'enciclopedia-abas');abas.setAttribute('aria-label','Seções da Enciclopédia');
+  const painelBestiario=criar('section',null,'enciclopedia-painel');painelBestiario.id='enciclopediaBestiario';
+  painelBestiario.append(filtros,resumo,corpo);
+  const painelItens=criar('section',null,'enciclopedia-painel');painelItens.id='enciclopediaItens';painelItens.hidden=true;
+  const grade=criar('div',null,'enciclopedia-grade-itens');painelItens.append(grade);
+  const itens = [
+    ...Object.values(ITENS_NEGOCIAVEIS),
+    ...Object.entries(COLECIONAVEIS).map(([id, item]) => ({
+      id, nome:item.nome, icone:item.imagem, tipo:'colecionavel', categoria:item.tipo
+    }))
+  ];
+  const mostrarItens=instalarCatalogoItens({ grade, itens, criarCard(item) {
+    const cartao=marcarItemInspecionavel(criar('article',null,'enciclopedia-item'),item.id);
+    cartao.dataset.enciclopediaItem=item.id;
+    const img=criar('img');img.src=item.icone;img.alt='';img.loading='lazy';img.dataset.ancoraInspecao='';
+    const nome=nomeComRaridade(criar('strong',item.nome),item.id);
+    const detalhe=criar('small',item.categoria ?? ('Peso unitário · '+numero(item.peso)+' kg'));
+    cartao.append(img,nome,detalhe);
+    return cartao;
+  }});
+  let itensMontados=false;
+  function selecionarAba(nome) {
+    painelBestiario.hidden=nome!=='bestiario';painelItens.hidden=nome!=='itens';
+    for (const botao of abas.children) botao.setAttribute('aria-pressed',String(botao.dataset.enciclopediaAba===nome));
+    if (nome==='itens' && !itensMontados) { mostrarItens();itensMontados=true; }
+  }
+  for (const [nome,rotulo,id] of [['bestiario','Bestiário',painelBestiario.id],['itens','Itens',painelItens.id]]) {
+    const botao=criar('button',rotulo);botao.type='button';botao.dataset.enciclopediaAba=nome;
+    botao.setAttribute('aria-controls',id);botao.onclick=()=>selecionarAba(nome);abas.append(botao);
+  }
+  janela.append(header,abas,painelBestiario,painelItens);document.body.append(janela);
   const tabela = pares => {const dl=criar('dl');for(const [k,v]of pares)dl.append(criar('dt',k),criar('dd',v));return dl;};
   const exibir = m => {
     selecionado=m.id;
@@ -51,8 +86,8 @@ export function instalarBestiario(obterEstado) {
     const atributos=tabela([['Nível da criatura',numero(m.nivel)],['Nível recomendado da hunt',intervalo(m.recomendado)],['HP máximo',numero(m.hp)],['Ataque',numero(m.ataque)],['Defesa',numero(m.defesa)],['XP base por abate',numero(m.xp)+' XP'],['Zeni por abate',intervalo(m.zeni)+' Z'],['Renascimento',intervalo(m.renascimento,tempo)],['Velocidade',numero(m.velocidade)],['Comportamento',m.agressivo?'Agressivo':'Reage ao ser atacado'],['Ataques',m.ataques],['Raio de percepção',numero(m.aggro)+' unidades'],['Limite de perseguição',numero(m.perseguicao)+' unidades']]);
     const drops=criar('ul',null,'bestiario-drops');
     const sorte=obterEstado()?.stats?.lootChance;
-    for(const drop of m.drops){const chance=drop.chance ?? (sorte!=null?drop.fracaoLoot*sorte:null);const texto=chance!=null?numero(chance*100)+'% por abate':numero(drop.fracaoLoot*100)+'% da chance de loot do personagem';const li=criar('li');const img=criar('img');img.src='/assets/inventario/'+({scrap:'sucata',crystal:'cristal',seed15:'semente_dos_deuses'}[drop.item])+'.png';img.alt='';li.append(img,criar('span',drop.nome),criar('b',texto));drops.append(li);}
-    detalhe.replaceChildren(topo,atributos,criar('h4','Drops possíveis'),drops,criar('p','O XP base é reduzido gradualmente quando a criatura está abaixo do seu nível. Sucata e cristal dependem da chance de loot do seu personagem e são alternativas do mesmo sorteio. A semente tem sorteio independente. O peso disponível limita a coleta.','bestiario-nota'));
+    for(const drop of m.drops){const chance=drop.chance ?? (sorte!=null?drop.fracaoLoot*sorte:null);const texto=chance!=null?numero(chance*100)+'% por abate':numero(drop.fracaoLoot*100)+'% da chance de loot do personagem';const li=marcarItemInspecionavel(criar('li'),drop.item);const img=criar('img');img.dataset.ancoraInspecao='';img.src=ITENS_NEGOCIAVEIS[drop.item].icone;img.alt='';li.append(img,nomeComRaridade(criar('span',drop.nome),drop.item),criar('b',texto));drops.append(li);}
+    detalhe.replaceChildren(topo,atributos,criar('h4','Drops possíveis'),drops,criar('p','O XP base é reduzido gradualmente quando a criatura está abaixo do seu nível. Sucata e Cristal Azul dependem da chance de loot do seu personagem e são alternativas do mesmo sorteio. A semente tem sorteio independente. O peso disponível limita a coleta.','bestiario-nota'));
     for(const nota of m.observacoes)detalhe.append(criar('p',nota,'bestiario-aviso'));
   };
   const filtrar = () => {
@@ -77,5 +112,5 @@ export function instalarBestiario(obterEstado) {
     }catch{resumo.textContent='Não foi possível carregar o bestiário.';const tentar=criar('button','Tentar novamente');tentar.type='button';tentar.onclick=carregar;detalhe.replaceChildren(tentar);}
     finally{carregando=false;}
   };
-  return () => {if(janela.open){janela.close();return;}janela.show();if(catalogo)filtrar();else carregar();};
+  return () => {if(janela.open){janela.close();return;}selecionarAba('bestiario');janela.show();if(catalogo)filtrar();else carregar();};
 }

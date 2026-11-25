@@ -31,7 +31,13 @@ test('Loot Tracker agrupa itens por raridade e sinaliza os itens sem classifica�
 });
 test('Loot Tracker registra o item assim que cai do mob, antes de ser recolhido',()=>{
  const {g,p}=cena();g.random=()=>0;const mob=g.addMob('saibaman',p.x,p.y,'inicial');mob.hp=1;g.hit(p,mob,100000);
- const a=resumo(p);assert.deepEqual(a.drops.map(i=>i.id),['crystal','seed15']);assert.equal(a.drops.reduce((n,i)=>n+i.quantidade,0),2);assert.equal(a.loot.length,0);
+ const a=resumo(p);assert.deepEqual(a.drops.map(i=>i.id),['cristal-azul','seed15']);assert.equal(a.drops.reduce((n,i)=>n+i.quantidade,0),2);assert.equal(a.loot.length,0);
+ g.updatePlayer(p,0);
+ const coletado=resumo(p);
+ assert.equal(p.inventory['cristal-azul'],1);
+ const valorSemente=Math.floor(CONFIG.prices.seed15/2);
+ assert.equal(coletado.valorMateriais,21+valorSemente);
+ assert.equal(coletado.saldo,coletado.zeni+21+valorSemente);
 });
 test('Loot Tracker não conta drops de abates feitos fora da Auto Hunt',()=>{
  const {g,p}=cena();p.autoHunt=false;g.random=()=>0;const mob=g.addMob('saibaman',p.x,p.y,'inicial');mob.hp=1;g.hit(p,mob,100000);
@@ -53,7 +59,7 @@ test('dano causado não inclui overkill e snapshot é privado por personagem',()
  const outro=g.addPlayer('outro');assert.equal(g.snapshot(outro.id).self.huntAnalyzer.xp,0);assert.equal(g.snapshot(p.id).self.huntAnalyzer.xp,m.xp);
 });
 test('reset limpa análise sem mudar estoque, HP ou dinheiro; God Mode fica identificado',()=>{
- const {g,p}=cena();p.godmode=true;registrar(p,'segundos',4);registrar(p,'xp',5);registrar(p,'drops',1,'crystal');assert.equal(resumo(p).teste,true);
+ const {g,p}=cena();p.godmode=true;registrar(p,'segundos',4);registrar(p,'xp',5);registrar(p,'drops',1,'cristal-azul');assert.equal(resumo(p).teste,true);
  const antes=[p.hp,p.zeni,JSON.stringify(p.inventory)];assert.equal(g.action(p.id,{type:'huntAnalyzerReset'}).ok,true);
  assert.equal(resumo(p).xp,0);assert.equal(resumo(p).segundos,0);assert.equal(resumo(p).drops.length,0);assert.deepEqual([p.hp,p.zeni,JSON.stringify(p.inventory)],antes);
 });

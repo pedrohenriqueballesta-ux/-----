@@ -55,12 +55,13 @@ test('God Mode valida configurações e entrega qualquer item do catálogo sem a
   assert.equal(game.action(player.id, { type: 'godmodeConfig', options: { level: 0 } }).ok, false);
   assert.equal(game.action(player.id, { type: 'godmodeGrantItem', item: 'food', quantidade: 1 }).ok, false);
   game.action(player.id, { type: 'godmode' });
-  for (const item of Object.values(ITENS_NEGOCIAVEIS)) {
+  const itens = Object.values(ITENS_NEGOCIAVEIS).filter(item => !item.origem);
+  for (const item of itens) {
     const antes = player.inventory[item.id] || 0;
     assert.equal(game.action(player.id, { type: 'godmodeGrantItem', item: item.id, quantidade: 3 }).ok, true);
     assert.equal(player.inventory[item.id], antes + 3, item.id);
   }
-  assert.equal(bagWeight(player.inventory), pesoAntes + Object.values(ITENS_NEGOCIAVEIS).reduce((soma, item) => soma + 3 * item.peso, 0));
+  assert.equal(bagWeight(player.inventory), pesoAntes + itens.reduce((soma, item) => soma + 3 * item.peso, 0));
   for (const dados of [
     { item: '__proto__', quantidade: 1 }, { item: 'toString', quantidade: 1 },
     { item: 'food', quantidade: 0 }, { item: 'food', quantidade: 1.5 }, { item: 'food', quantidade: 10000 }
@@ -78,10 +79,53 @@ test('opções do God Mode são salvas sem persistir o nível de teste como prog
   assert.equal(salvo.xp, 9);
   assert.equal(salvo.godmode, true);
   assert.deepEqual(salvo.godmodeOptions, {
-    level: CONFIG.progression.nivelMaximo, hpInfinite: false, kiInfinite: true, zeniInfinite: false, capacityInfinite: true
+    level: CONFIG.progression.nivelMaximo, hpInfinite: false, kiInfinite: true, zeniInfinite: false, capacityInfinite: true,
+    cooldownNormal: false
   });
   const restaurado = game.addPlayer('godmode-restored', 'Restaurado', salvo);
   assert.equal(restaurado.level, CONFIG.progression.nivelMaximo);
   assert.equal(restaurado.godmode, true);
   assert.deepEqual(restaurado.godmodeOptions, salvo.godmodeOptions);
+});
+
+test('ao desligar God Mode, Auto Hunt recalcula a forma permitida pelo nível real', () => {
+  for (const [level, buff, buffMaisAlto, esperada] of [
+    [60, null, true, 'base'],
+    [200, null, true, 'majin'],
+    [200, 'ultraEgo', false, 'base']
+  ]) {
+    const game = new Game({ populate: false });
+    const p = game.addPlayer('vegeta', 'Vegeta', { level, vocacao: 'vegeta' });
+    p.autoHunt = true;
+    assert.ok(game.action(p.id, { type: 'godmode' }).ok);
+    const configuracao = game.action(p.id, {
+      type: 'configurarComboAutoHunt', combo: { ordem: [], reserva: 20, buff, buffMaisAlto }
+    });
+    assert.equal(configuracao.buffAplicado, true);
+    assert.equal(p.forma, 'ultraEgo');
+
+    assert.ok(game.action(p.id, { type: 'godmode' }).ok);
+    assert.equal(p.level, level);
+    assert.equal(p.forma, esperada);
+    assert.equal(p.autoHunt, true);
+    assert.deepEqual([p.comboAutoHunt.buff, p.comboAutoHunt.buffMaisAlto], [buff, buffMaisAlto]);
+    game.tick(0.05);
+    assert.equal(p.forma, esperada);
+  }
+});
+
+test('God Mode preserva forma já liberada e remove forma que o novo nível de teste bloqueia', () => {
+  const game = new Game({ populate: false });
+  const p = game.addPlayer('vegeta', 'Vegeta', { level: 100, vocacao: 'vegeta' });
+  game.action(p.id, { type: 'godmode' });
+  assert.ok(game.action(p.id, { type: 'transform', forma: 'ssj' }).ok);
+  game.action(p.id, { type: 'godmode' });
+  assert.equal(p.forma, 'ssj');
+
+  game.action(p.id, { type: 'godmode' });
+  assert.ok(game.action(p.id, { type: 'transform', forma: 'ultraEgo' }).ok);
+  assert.ok(game.action(p.id, { type: 'godmodeConfig', options: { ...p.godmodeOptions, level: 60 } }).ok);
+  assert.equal(p.forma, 'base');
+  assert.equal(p.formaAte, 0);
+  assert.equal(p.godmode, true);
 });

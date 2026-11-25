@@ -1,7 +1,7 @@
 import { instalarVendas } from './vendas.mjs';
 import { CONFIG } from '../../shared/nucleo/config.mjs';
 import { limiteCompra, avaliarCarrinho } from '../../shared/sistemas/loja.mjs';
-const NOMES={food:'Presunto',ki:'Poção de Ki',...Object.fromEntries(CONFIG.seedPotencies.map(n=>['seed'+n,'Semente '+n+'%']))};
+import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 const criar=(tag,texto,classe)=>{const e=document.createElement(tag);if(texto!=null)e.textContent=texto;if(classe)e.className=classe;return e;};
 const numero=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
 export function instalarLoja({janela,obterEstado,comprar,avisar}) {
@@ -24,15 +24,16 @@ export function instalarLoja({janela,obterEstado,comprar,avisar}) {
     linha.slider.setAttribute('aria-valuetext',linha.slider.value+' unidades');
   };
   for(const[item,preco]of Object.entries(CONFIG.prices)){
+    const produto=ITENS_NEGOCIAVEIS[item];
     const row=criar('div',null,'shop-item');row.dataset.itemLoja=item;
     const figura=criar('div',null,'shop-item-figura'),img=criar('img');
-    img.src='/assets/inventario/'+(item==='food'?'comida':item==='ki'?'pocao_ki':'semente_dos_deuses')+'.png';img.alt='';figura.append(img);
+    img.src=produto.icone;img.alt='';figura.append(img);
     if(item.startsWith('seed'))figura.append(criar('small',item.slice(4)+'%'));
-    const nome=criar('div',null,'shop-item-nome');nome.append(criar('strong',NOMES[item]),criar('small',numero(preco)+' Z por unidade'));
+    const nome=criar('div',null,'shop-item-nome');nome.append(criar('strong',produto.nome),criar('small',numero(preco)+' Z por unidade'));
     const botao=criar('button','Comprar');botao.type='button';botao.className='shop-comprar';
     const controles=criar('div',null,'shop-quantidade'),slider=criar('input'),campo=criar('input');
-    slider.type='range';slider.min='0';slider.max='1';slider.step='1';slider.value='0';slider.setAttribute('aria-label','Quantidade de '+NOMES[item]);
-    campo.type='number';campo.min='0';campo.max='1';campo.step='1';campo.value='0';campo.inputMode='numeric';campo.setAttribute('aria-label','Digitar quantidade de '+NOMES[item]);
+    slider.type='range';slider.min='0';slider.max='1';slider.step='1';slider.value='0';slider.setAttribute('aria-label','Quantidade de '+produto.nome);
+    campo.type='number';campo.min='0';campo.max='1';campo.step='1';campo.value='0';campo.inputMode='numeric';campo.setAttribute('aria-label','Digitar quantidade de '+produto.nome);
     controles.append(slider,campo);
     const limite=criar('small',null,'shop-item-limite');
     const linha={item,row,slider,campo,botao,limite,pendente:false};linhas.push(linha);

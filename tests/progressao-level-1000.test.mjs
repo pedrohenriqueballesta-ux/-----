@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { CONFIG, PORTAIS, PLANETS, lugar } from '../public/shared/nucleo/config.mjs';
 import { mobStats, spawnPoints } from '../public/shared/nucleo/enemies.mjs';
-import { xpAjustadoPorNivel, fatorXPPorDiferencaNivel } from '../public/shared/sistemas/progressao.mjs';
+import { xpAjustadoPorNivel, fatorXPPorDiferencaNivel, progressoAposMorte } from '../public/shared/sistemas/progressao.mjs';
 import { statsFor, xpForLevel } from '../public/shared/nucleo/characters.mjs';
 
 test('todas as hunts atuais têm nível recomendado e cada mob tem nível de referência próprio', () => {
@@ -87,4 +87,49 @@ test('God Mode leva ao nível máximo e desligá-lo restaura nível e recursos r
   assert.equal(p.xp, 0);
   assert.equal(game.action(p.id, { type: 'godmode' }).ok, true);
   assert.deepEqual([p.level, p.hp, p.ki, p.zeni], [37, 321, 123, 456]);
+});
+
+test('morte desconta níveis inteiros, preserva a fração de XP e respeita o nível mínimo', () => {
+  for (const [nivel, destino] of [[10, 9], [250, 249], [251, 249], [501, 498], [751, 747], [1000, 996]]) {
+    const xp = Math.floor(xpForLevel(nivel) / 2);
+    const resultado = progressoAposMorte(nivel, xp);
+    const xpRestante = Math.floor(xp / xpForLevel(nivel) * xpForLevel(destino));
+    let perda = xp - xpRestante;
+    for (let n = destino; n < nivel; n++) perda += xpForLevel(n);
+    assert.deepEqual(resultado, { nivel: destino, xp: xpRestante, perda });
+  }
+  assert.deepEqual(progressoAposMorte(1, 10), { nivel: 1, xp: 0, perda: 10 });
+});
+
+test('golpe fatal aplica perda uma vez, atualiza atributos e salva o novo progresso', () => {
+  const g = new Game({ populate: false, now: 100 });
+  const p = g.addPlayer('a', 'Goku', { level: 500, xp: 0, bonusPremium: { capacidade: 20 } });
+  Object.assign(p, { planet: 'namek', area: 'inicial', x: 1000, y: 1000, hp: 1, forma: 'ssj4', autoHunt: true });
+  const m = g.addMob('saibaman', 1000, 1020, 'inicial');
+  const antes = structuredClone(p.inventory);
+  assert.equal(g.hit(m, p, 1e8), true);
+  assert.equal(p.level, 498);
+  assert.equal(p.forma, 'base');
+  assert.equal(p.autoHunt, false);
+  assert.deepEqual(p.stats, statsFor(498, p.vocacao, p.equipamentos, 20));
+  assert.deepEqual(p.inventory, antes);
+  assert.ok(g.snapshot(p.id).events.some(e => e.type === 'message' && /Perdeu .+ XP\. Nível 500 → 498\./.test(e.text)));
+  const xp = p.xp;
+  assert.equal(g.hit(m, p, 1e8), false);
+  g.time += CONFIG.respawnDelay;
+  g.updatePlayer(p, 0.02);
+  assert.equal(p.hp, p.stats.hp);
+  assert.equal(p.xp, xp);
+  const reentrada = g.addPlayer('b', p.name, g.exportPlayer(p));
+  assert.deepEqual([reentrada.level, reentrada.xp], [498, xp]);
+});
+
+test('morte em God Mode com HP finito preserva o progresso real', () => {
+  const g = new Game({ populate: false, now: 100 });
+  const p = g.addPlayer('a', 'Teste', { level: 80, xp: 451, godmode: true, godmodeOptions: { hpInfinite: false } });
+  Object.assign(p, { planet: 'namek', area: 'inicial', x: 1000, y: 1000, hp: 1 });
+  const m = g.addMob('saibaman', 1000, 1020, 'inicial');
+  assert.equal(g.hit(m, p, 1e8), true);
+  assert.equal(p.level, CONFIG.progression.nivelMaximo);
+  assert.deepEqual([g.exportPlayer(p).level, g.exportPlayer(p).xp], [80, 451]);
 });

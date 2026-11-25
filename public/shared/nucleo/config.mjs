@@ -1,3 +1,5 @@
+import { ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
+import { NOVOS_ITENS } from '../sistemas/catalogo-itens.mjs';
 // Dados do mundo e números de balanceamento do protótipo. Todos ajustáveis.
 import { PEGADAS } from '../mundo/pegadas-casas.mjs';
 import { DECORACAO_NAMEK } from '../mundo/decoracao-namek.mjs';
@@ -44,10 +46,11 @@ export const CONFIG = Object.freeze({
     // Mantém literalmente a curva histórica até o nível 100; depois acelera gradualmente.
     curvaXP: Object.freeze({ preservarAteNivel: 100, coeficiente: 30, expoentePreservado: 1.35, expoenteAvancado: 1.5 }),
     // Acima do nível da criatura, a recompensa cai suavemente e nunca zera.
-    penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 })
+    penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 }),
+    perdaXpMorte: Object.freeze({ niveisPorFaixa: 250 })
   }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
-  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2,
+  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2, autoFoodLimiteHp: 0.90,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
   mochilaSlots: 30,
   // Raio de seleção de mobs pela Auto Hunt (Pedro, 09/11/2026).
@@ -56,18 +59,18 @@ export const CONFIG = Object.freeze({
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
-  itemWeights: { food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.7, crystal: 0.45 },
-  prices: { food: 12, ki: 18, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
+  itemWeights: { ...Object.fromEntries(Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
+  prices: { food: 12, ki: 18, 'pocao-energia': 50, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),
-  skillCosts: { ki: 7, kame: 25, galick: 25, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
-  skillCooldowns: { ki: 0.7, kame: 5, galick: 5, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
+  skillCosts: { ki: 7, kame: 25, galick: 25, bigBangAttack: 120, finalFlash: 180, kaioken: 0, barrier: 30, transform: 0, genki: 60 },
+  skillCooldowns: { ki: 0.7, kame: 5, galick: 5, bigBangAttack: 10, finalFlash: 18, kaioken: 0, barrier: 8, transform: 0, genki: 45 },
   // Marcos atuais das formas de Goku; parâmetros e comportamento compartilhados em shared/formas.mjs.
   // Habilidades implementadas progridem até a Genki Dama, alinhada ao marco do SSJ2.
   // Transformações atuais permanecem inalteradas até a implementação da nova escada.
   // ryuken (SSJ3 e SSJ4) e superKamehameha (SSJ4): técnicas próprias nos oito slots configuráveis (Pedro, 12 e
   // 16/11/2026); o Kamehameha continua em todas as formas (shared/ryuken.mjs, shared/kamehameha.mjs).
-  skills: { ki: 20, dash: 20, kame: 40, galick: 40, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 200, ryuken: 300, ssj4: 500, ssj4Vegeta: 300, ssjGod: 500, ssjBlue: 700, ultraEgo: 900, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
+  skills: { ki: 20, dash: 20, kame: 40, galick: 40, bigBangAttack: 100, finalFlash: 200, kaioken: 50, barrier: 80, transform: 100, ssj2: 200, ssj3: 300, majin: 200, ryuken: 300, ssj4: 500, ssj4Vegeta: 300, ssjGod: 500, ssjBlue: 700, ultraEgo: 900, superKamehameha: 500, gogeta: 700, vegito: 900, genki: 200 },
   // Marcos planejados para técnicas futuras; não liberam nem ativam habilidades ainda inexistentes.
   plannedSkillUnlocks: Object.freeze({})
 });
@@ -264,7 +267,7 @@ export const PORTAIS = [
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
-    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2590, y: 1522 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
+    'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2675, y: 1480 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
   // Terra das hunts: no hub, o portal de cada hunt na beira da clareira, do lado onde a hunt fica no mapa-múndi.
   ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 }, 'terra-deserto': { x: 1280, y: 640 }, 'terra-neve': { x: 1440, y: 322 }, 'terra-montanhas': { x: 1723, y: 470 }, 'terra-ilha': { x: 1665, y: 631 }, 'terra-floresta': { x: 1344, y: 464 } })
 ];

@@ -1,4 +1,5 @@
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
+import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
@@ -11,24 +12,32 @@ import {Guildas} from '../sistemas/guildas.mjs';
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, atualizarCapacidade, reterCapacidadeDoExtensor, encerrarExtensor, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import {barraValida,atualizarBarraPadrao,tecnicaDaVocacao,nivelRajadaKi} from '../tecnicas/barra-tecnicas.mjs';
+import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
+import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
 import { GALICK, estagioGalick, origemGalick } from '../tecnicas/galick-gun.mjs';
+import { FINAL_FLASH, formaFinalFlash, origemFinalFlash, contatoFinalFlash } from '../tecnicas/final-flash.mjs';
+import { BIG_BANG_ATTACK, formaBigBangAttack, maoBigBang } from '../tecnicas/big-bang-attack.mjs';
 import { TIPOS_SOCA_E_ATIRA, iniciarVooTarget, avancarVooTarget } from '../mundo/projetil-mob.mjs';
 import { Mercado } from '../sistemas/mercado.mjs';
+import { avaliarVendaNpc, itensVendaNpc } from '../sistemas/venda-npc.mjs';
 import { ITENS_NEGOCIAVEIS, creditarZeni } from '../sistemas/itens-negociaveis.mjs';
 import { LIMITE_ESTOQUE_LOJA, avaliarCarrinho } from '../sistemas/loja.mjs';
 import { CURA, curaPorNivel } from '../tecnicas/cura.mjs';
-import { RECOMPENSAS_MOBS } from '../sistemas/recompensas-mobs.mjs';
+import { NOVOS_ITENS, dropsEspecificos } from '../sistemas/catalogo-itens.mjs';
+import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from '../sistemas/recompensas-mobs.mjs';
 import { validarNovidade } from '../sistemas/novidades.mjs';
 import { GENKI } from '../tecnicas/genki.mjs';
 import { RYUKEN, usaRyuken, danoRyuken } from '../tecnicas/ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from '../tecnicas/variacao-combate.mjs';
-import { xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
+import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
+import { avancarPocaoXp, bonusXpPremium, DURACAO_POCAO_XP } from '../sistemas/bonus-premium.mjs';
+import { progressoAposMorte, xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
+import { taxasRegeneracao } from '../sistemas/regeneracao.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
@@ -42,13 +51,15 @@ export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga:
 export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
 
 export class Game {
-  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false } = {}) {
+  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false, beneficiosDeTeste = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
+    this.beneficiosDeTeste = beneficiosDeTeste;
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
   }
+  recarga(p, segundos) { return p.godmode && !p.godmodeOptions?.cooldownNormal ? 1 : segundos; }
   uid(prefix) { return prefix + (++this.serial); }
   emit(type, data = {}) { this.events.push({ id: this.uid('e'), type, at: this.time, ...data }); }
   notify(p, text) { this.emit('message', { playerId: p.id, text }); }
@@ -90,8 +101,8 @@ export class Game {
   levar(p, destino, {preservarForma = false} = {}) {
     if (!preservarForma) { p.forma = 'base'; p.formaAte = 0; }
     atualizarBarraPadrao(p);
-    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null;
-    this.projectiles = this.projectiles.filter(s => s.kind !== 'ryuken' || s.owner !== p.id);
+    p.genkiLancado = null; p.genkiDirecao = null; p.ryuken = null; p.finalFlashAtivo = null; p.bigBangLancado = null;
+    this.projectiles = this.projectiles.filter(s => !['ryuken', 'bigBangAttack'].includes(s.kind) || s.owner !== p.id);
     this.genkiCharges = this.genkiCharges.filter(g => g.owner !== p.id);
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
@@ -191,14 +202,33 @@ export class Game {
     if (p.aim) return norm(p.aim.x - p.x, p.aim.y - p.y);
     return p.facing;
   }
-  action(id, data) {
+  action(id, data, carteiraPremium) {
+    const resultado = this.processarAcao(id, data, carteiraPremium);
+    const p = this.players.get(id);
+    if (resultado.ok && p?.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
+    if (resultado.ok && data.type === 'descartarSlot') {
+      for (const item of Object.keys(p.bonusPremium.extensores)) {
+        if (p.equipamentos.mochila !== item && !p.inventory[item]) delete p.bonusPremium.extensores[item];
+      }
+    }
+    return resultado;
+  }
+  processarAcao(id, data, carteiraPremium) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
+    if (kind === 'restaurarBarraPadrao') {
+      p.barraTecnicas = barraPadrao({}, p.seedSelected, p.level, p.forma, p.vocacao);
+      p.barraPersonalizada = false;
+      p.barraKameManual = false;
+      return { ok: true };
+    }
     if(kind==='configurarBarra'){
       if(!Array.isArray(data.slots)||data.slots.length!==8||data.slots.some(v=>v!==null&&typeof v!=='string'))return {ok:false,reason:'Barra inválida.'};
       const validada=barraValida(data.slots);
       if(validada.some((v,i)=>v!==data.slots[i]))return {ok:false,reason:'Técnica inválida ou repetida.'};
       if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
+      if (p.vocacao !== 'vegeta' && validada.includes('skill:finalFlash')) return this.reject(p, 'O Final Flash é exclusivo do Vegeta.');
+      if (p.vocacao !== 'vegeta' && validada.includes('skill:bigBangAttack')) return this.reject(p, 'O Big Bang Attack é exclusivo do Vegeta.');
       if (validada.some(id => id?.startsWith('form:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Transformação indisponível para esta vocação.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
@@ -223,6 +253,14 @@ export class Game {
       if(![7,8].includes(data.slot))return {ok:false};
       const uso=acaoConsumivel(p.hotkeysConsumiveis[data.slot]);return uso?this.action(id,uso):{ok:false};
     }
+    // Reorganizar/dividir/descartar pilhas na mochila: o cliente manda só a OPERAÇÃO (por índice de espaço) e o
+    // servidor aplica sobre os slots atuais dele. Operação (não layout inteiro) evita corrida com loot/uso que
+    // mudam os totais enquanto se arrasta. Mover/dividir não mexem nos totais; descartar reduz o total da pilha.
+    if (kind === 'equiparItem') return this.equiparItem(p, data.item, { slot: data.slot, de: data.de });
+    if (kind === 'desequiparItem') return this.equiparItem(p, null, { slot: data.slot, esperado: data.item, para: data.para });
+    if(kind==='moverSlot') return moverSlotMochila(p,Math.floor(Number(data.de)),Math.floor(Number(data.para)))?{ok:true}:{ok:false};
+    if(kind==='dividirSlot') return dividirSlotMochila(p,Math.floor(Number(data.de)),data.quantidade)?{ok:true}:{ok:false};
+    if(kind==='descartarSlot') return descartarSlotMochila(p,Math.floor(Number(data.de)))?{ok:true}:{ok:false};
     if(kind === 'huntAnalyzerReset'){p.huntAnalyzer=novaSessao();return {ok:true};}
     if (kind === 'target') {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
@@ -248,29 +286,41 @@ export class Game {
       for (const n of p.novidades) if (data.ids.includes(n.id)) n.lida = true;
       return { ok:true };
     }
+    if (kind === 'configurarComboAutoHunt') {
+      const combo = validarCombo(data.combo, p.vocacao);
+      if (!combo) return this.reject(p, 'Configuração de combo inválida.');
+      p.comboAutoHunt = combo;
+      const buffAplicado = this.aplicarBuffDoCombo(p);
+      return { ok: true, combo, buffAplicado };
+    }
     if (kind === 'toggle') {
-      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
+      if (!['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoEnergyPotion', 'autoSeed', 'autoHeal'].includes(data.key)) return { ok: false };
       p[data.key] = Boolean(data.value); return { ok: true };
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
+      this.revalidarFormaAposGodmode(p);
       this.notify(p, p.godmode ? 'God Mode de teste ligado no nível ' + p.level + '.' : 'God Mode desligado: status reais restaurados.');
       return { ok: true };
     }
     if (kind === 'godmodeConfig') {
       const options = data.options;
       if (!options || !Number.isSafeInteger(options.level) || options.level < 1 || options.level > CONFIG.progression.nivelMaximo ||
-        ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean'))
+        ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean') ||
+        (options.cooldownNormal !== undefined && typeof options.cooldownNormal !== 'boolean'))
         return { ok: false, reason: 'Configuração de God Mode inválida.' };
-      configurarGodmode(p, opcoesGodmodeValidas(options));
+      configurarGodmode(p, opcoesGodmodeValidas({ cooldownNormal: p.godmodeOptions?.cooldownNormal, ...options }));
+      if (p.godmode) this.revalidarFormaAposGodmode(p);
       return { ok: true };
     }
     if (kind === 'godmodeGrantItem') {
       const item = Object.hasOwn(ITENS_NEGOCIAVEIS, data.item) ? ITENS_NEGOCIAVEIS[data.item] : null, quantidade = data.quantidade;
       if (!p.godmode) return { ok: false, reason: 'Ative o God Mode para pegar itens de teste.' };
+      if (Object.hasOwn(ITENS_PREMIUM, data.item) && !this.beneficiosDeTeste)
+        return this.reject(p, 'Itens premium de teste estão disponíveis somente em desenvolvimento.');
       if (!item || !Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 9999 || (p.inventory[item.id] || 0) + quantidade > 99999)
         return { ok: false, reason: 'Item ou quantidade inválidos.' };
-      p.inventory[item.id] = (p.inventory[item.id] || 0) + quantidade;
+      if (!this.addItem(p, item.id, quantidade)) return this.reject(p, 'Libere espaço ou capacidade na mochila de teste.');
       this.notify(p, '+' + quantidade + ' × ' + item.nome + ' adicionado à mochila de teste.');
       return { ok: true };
     }
@@ -289,7 +339,7 @@ export class Game {
     }
     if (kind === 'healThreshold' || kind === 'automationThreshold') {
       const key = kind === 'healThreshold' ? 'healThreshold' : data.key;
-      if (!['healThreshold', 'kiThreshold', 'seedThreshold'].includes(key)) return { ok: false };
+      if (!['healThreshold', 'kiThreshold', 'energyPotionThreshold', 'seedThreshold'].includes(key)) return { ok: false };
       if (!Number.isInteger(data.value) || data.value < 1 || data.value > 100) return this.reject(p, 'Escolha um limite entre 1% e 100%.');
       p[key] = data.value; return { ok: true };
     }
@@ -309,16 +359,24 @@ export class Game {
       return { ok: true };
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
+    if (kind === 'usarConsumivel') {
+      if (Object.hasOwn(ITENS_PREMIUM, data.item) && ITENS_PREMIUM[data.item].bonusXp) return this.usarItemPremium(p, ITENS_PREMIUM[data.item]);
+      const item = Object.hasOwn(CONSUMIVEIS_LOOT, data.item) ? CONSUMIVEIS_LOOT[data.item] : null;
+      if (!item) return this.reject(p, 'Consumível inválido.');
+      return item.tipo === 'comida' ? this.useFood(p, data.item) : this.usePotion(p, data.item);
+    }
     if (kind === 'food') return this.useFood(p);
     if (kind === 'seed') return this.useSeed(p, Number(data.potency) || p.seedSelected);
     if (kind === 'potion') return this.usePotion(p);
     if (kind === 'buyAll') return this.buyAll(p,data.itens);
     if (kind === 'buy') return this.buy(p, data.item, data.quantidade);
     if (kind === 'sell') return this.sell(p);
+    if (kind === 'venderSelecionados') return this.venderLoteNpc(p, data.itens);
     if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
     if (['mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(kind)) {
       const metodo={mercadoAnunciar:'anunciar',mercadoComprar:'comprar',mercadoCancelar:'cancelar',mercadoReceber:'receber'}[kind];
-      const resultado=this.mercado[metodo](p,data,this.time);
+      const resultado=metodo === 'anunciar' ? this.mercado.anunciar(p, data, this.time, carteiraPremium)
+        : this.mercado[metodo](p, data, carteiraPremium);
       if(!resultado.ok)return this.reject(p,resultado.reason);
       this.notify(p,({mercadoAnunciar:'Anúncio publicado. Os itens estão reservados no mercado.',mercadoComprar:'Compra no mercado concluída.',mercadoCancelar:'Anúncio cancelado. Itens devolvidos.',mercadoReceber:'Saldo de vendas recebido.'})[kind]);
       return resultado;
@@ -332,15 +390,75 @@ export class Game {
   }
   reject(p, reason) { this.notify(p, reason); return { ok: false, reason }; }
   addItem(p, key, count = 1) {
-    if (!(key in CONFIG.itemWeights) || !Number.isInteger(count) || count < 1) return false;
-    if (bagWeight(p.inventory) + CONFIG.itemWeights[key] * count > p.stats.capacity + 0.0001) return false;
+    if (!Object.hasOwn(CONFIG.itemWeights, key) || !Number.isSafeInteger(count) || count < 1) return false;
+    if (!mochilaComporta(p, { [key]: count })) return false;
     p.inventory[key] = (p.inventory[key] || 0) + count; return true;
   }
-  useFood(p) {
-    if (!p.inventory.food) return this.reject(p, 'Você está sem comida. Visite o mercado da vila.');
+  equiparItem(p, id, { slot, esperado, de, para }) {
+    if (p.hp <= 0 || !p.connected) return this.reject(p, 'Personagem indisponível.');
+    if (id !== null) {
+      const item = Object.hasOwn(ITENS_NEGOCIAVEIS, id) ? ITENS_NEGOCIAVEIS[id] : null;
+      if (!item?.slot || !(p.inventory[id] > 0)) return this.reject(p, 'Equipamento indisponível na mochila.');
+      if (p.level < item.nivel)
+        return this.reject(p, 'Este equipamento exige nível ' + item.nivel + '.');
+      if (slot !== undefined && slot !== item.slot) return this.reject(p, 'Use o encaixe correspondente à peça.');
+      slot = item.slot;
+    }
+    const anterior = Object.hasOwn(p.equipamentos, slot) ? p.equipamentos[slot] : null;
+    if (id === null && (!anterior || anterior !== esperado)) return this.reject(p, 'O equipamento desse espaço mudou.');
+    const slots = reconciliarSlots({ inventory: p.inventory, slots: p.slots });
+    const indiceValido = n => Number.isInteger(n) && n >= 0 && n < slots.length;
+    if (de !== undefined && (!indiceValido(de) || slots[de]?.item !== id))
+      return this.reject(p, 'O item desse espaço da mochila mudou.');
+    if (para !== undefined && (!indiceValido(para) || (slots[para] && slots[para].item !== anterior)))
+      return this.reject(p, 'Solte a peça em um espaço livre ou sobre outra cópia dela.');
+    if (id === anterior) return { ok: true };
+
+    const inventory = { ...p.inventory };
+    if (id) {
+      inventory[id]--;
+      if (de !== undefined && --slots[de].qty === 0) slots[de] = null;
+    }
+    if (anterior) {
+      inventory[anterior] = (inventory[anterior] || 0) + 1;
+      const destino = para ?? (de !== undefined && !slots[de] ? de : null);
+      if (destino !== null) slots[destino] = { item: anterior, qty: (slots[destino]?.qty || 0) + 1 };
+    }
+    const novoLayout = reconciliarSlots({ inventory, slots });
+    if (anterior && (inventory[anterior] > 99999 || bagWeight(inventory) > p.stats.capacity + 0.0001 ||
+      !novoLayout.some(pilha => pilha?.item === anterior)))
+      return this.reject(p, 'Libere espaço na mochila para retirar o equipamento.');
+    if (slot === 'mochila' && anterior) reterCapacidadeDoExtensor(p);
+    Object.assign(p.inventory, inventory);
+    p.slots = novoLayout;
+    if (id) p.equipamentos[slot] = id;
+    else delete p.equipamentos[slot];
+    atualizarAtributosEquipamento(p);
+    if (slot === 'mochila') {
+      if (id) p.bonusPremium.extensores[id] ??= DURACAO_EXTENSOR;
+      atualizarCapacidade(p);
+      return { ok: true, itemPremium: true };
+    }
+    return { ok: true };
+  }
+  usarItemPremium(p, item) {
+    if (!(p.inventory[item.id] > 0)) return this.reject(p, 'Você não tem este item na mochila.');
+    if (item.bonusXp && p.bonusPremium.xp) return this.reject(p, 'Aguarde a poção de XP atual terminar.');
+    p.inventory[item.id]--;
+    reconciliarSlots(p);
+    p.bonusPremium.xp = { percentual: item.bonusXp, segundos: DURACAO_POCAO_XP };
+    this.notify(p, item.nome + ' ativado.');
+    return { ok: true, itemPremium: true };
+  }
+  useFood(p, id = 'food') {
+    const duracao = id === 'food' ? CONFIG.foodDuration : CONSUMIVEIS_LOOT[id].duracao;
+    const nome = ITENS_NEGOCIAVEIS[id].nome;
+    if (!p.inventory[id]) return this.reject(p, 'Sem ' + nome + ' na mochila.');
     if (p.foodUntil > this.time + 1) return this.reject(p, 'A comida ainda está ativa.');
-    analisar(p,'supplies',1,'food'); p.inventory.food--; p.foodUntil = this.time + CONFIG.foodDuration;
-    this.notify(p, 'Presunto: regeneração por 5 minutos.'); return { ok: true };
+    analisar(p, 'supplies', 1, id);
+    p.inventory[id]--; p.foodId = id; p.foodUntil = this.time + duracao;
+    this.notify(p, nome + ': efeito ativo por ' + duracao + ' s.');
+    return { ok: true };
   }
   useSeed(p, potency) {
     if (!CONFIG.seedPotencies.includes(potency)) return { ok: false, reason: 'Potência inválida.' };
@@ -353,12 +471,26 @@ export class Game {
     this.emit('heal', { x: p.x, y: p.y, text: '+' + potency + '%', playerId: p.id });
     this.notify(p, 'Semente usada. Todas as potências em recarga por ' + CONFIG.seedCooldown + 's.'); return { ok: true };
   }
-  usePotion(p) {
-    if (this.time < p.kiReady) return this.reject(p, 'Poção de Ki em recarga.');
-    if (!p.inventory.ki) return this.reject(p, 'Você está sem poções de Ki.');
-    if (p.ki >= p.stats.ki) return this.reject(p, 'Seu Ki já está cheio.');
-    analisar(p,'supplies',1,'ki'); p.inventory.ki--; p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki * 0.45); p.kiReady = this.time + CONFIG.kiCooldown;
-    this.emit('ki', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
+  usePotion(p, id = 'ki') {
+    const recuperaKi = id === 'ki';
+    const recurso = recuperaKi ? 'ki' : 'hp';
+    const fracao = recuperaKi ? .45 : CONSUMIVEIS_LOOT[id].fracaoHp;
+    if (this.time < p.kiReady) return this.reject(p, 'Poções em recarga.');
+    if (!p.inventory[id]) return this.reject(p, 'Sem ' + ITENS_NEGOCIAVEIS[id].nome + ' na mochila.');
+    if (p[recurso] >= p.stats[recurso]) return this.reject(p, recuperaKi ? 'Seu Ki já está cheio.' : 'Sua vida já está cheia.');
+    analisar(p, 'supplies', 1, id);
+    p.inventory[id]--;
+    const antes = p[recurso];
+    p[recurso] = Math.min(p.stats[recurso], antes + p.stats[recurso] * fracao);
+    p.kiReady = this.time + CONFIG.kiCooldown;
+    if (recuperaKi) this.emit('ki', { x: p.x, y: p.y, playerId: p.id });
+    else {
+      const amount = p.hp - antes;
+      analisar(p, 'cura', amount);
+      this.emit('heal', { x: p.x, y: p.y, playerId: p.id, planet: p.planet, area: p.area,
+        amount, text: '+' + amount.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
+    }
+    return { ok: true };
   }
   buy(p, item, quantidade = 1) {
     if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na Vila.');
@@ -382,34 +514,43 @@ export class Game {
     for(const[item,q]of Object.entries(itens))if(q)p.inventory[item]=(p.inventory[item]||0)+q;
     p.zeni-=resultado.total;this.notify(p,'Compra conjunta concluída: '+resultado.quantidade+' itens por '+resultado.total+' Z.');return resultado;
   }
-  venderItem(p,item,quantidade) {
-    if(!mercadorPerto(p))return this.reject(p,'Aproxime-se do mercador para vender.');
-    if(!Object.hasOwn(ITENS_NEGOCIAVEIS,item)||!Number.isSafeInteger(quantidade)||quantidade<1||quantidade>LIMITE_ESTOQUE_LOJA)return this.reject(p,'Item ou quantidade inválidos.');
-    if((p.inventory[item]||0)<quantidade)return this.reject(p,'Você não possui essa quantidade.');
-    const total=ITENS_NEGOCIAVEIS[item].precoNpc*quantidade;
-    if(!creditarZeni(p,total))return this.reject(p,'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
-    p.inventory[item]-=quantidade;this.notify(p,'Venda ao NPC concluída: '+quantidade+' por '+total+' Z.');
-    return{ok:true,item,quantidade,total};
+  venderItem(p, item, quantidade) {
+    if (typeof item !== 'string') return this.reject(p, 'Item inválido.');
+    const resultado = this.venderLoteNpc(p, { [item]: quantidade }, false);
+    return resultado.ok ? { ...resultado, item } : resultado;
   }
   sell(p) {
-    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercado na vila.');
-    const value = p.inventory.scrap * 8 + p.inventory.crystal * 15;
-    if (!value) return this.reject(p, 'Sem materiais para vender.');
-    if(!creditarZeni(p,value))return this.reject(p,'Seu saldo de Zeni está no limite.');
-    p.inventory.scrap = 0; p.inventory.crystal = 0;
-    this.notify(p, 'Materiais vendidos por ' + value + ' Zeni.'); return { ok: true, value };
+    const resultado = this.venderLoteNpc(p, itensVendaNpc(p.inventory));
+    return resultado.ok ? { ...resultado, value: resultado.total } : resultado;
+  }
+  venderLoteNpc(p, itens, somenteElegiveis = true) {
+    if (!mercadorPerto(p)) return this.reject(p, 'Aproxime-se do mercador para vender.');
+    const resultado = avaliarVendaNpc(p.inventory, itens, somenteElegiveis);
+    if (!resultado.ok) return this.reject(p, resultado.reason);
+    if (!creditarZeni(p, resultado.total))
+      return this.reject(p, 'Seu saldo de Zeni está no limite. Venda uma quantidade menor.');
+    for (const [id, qtd] of Object.entries(itens)) p.inventory[id] -= qtd;
+    reconciliarSlots(p);
+    this.notify(p, 'Venda ao NPC concluída: ' + resultado.quantidade + ' por ' + resultado.total + ' Z.');
+    return resultado;
   }
   cast(p,skill,automated=false,formaSolicitada=null){
     const r=this.executarTecnica(p,skill,automated,formaSolicitada);
     this.verificarKiDaForma(p);
-    if(r.ok&&skill!=='basic'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
+    if(r.ok&&skill!=='basic'&&skill!=='ki'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
-    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
+    if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick','finalFlash','bigBangAttack'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
-    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (naZonaSegura(p) && ['basic', 'ki', 'kame', 'superKamehameha', 'ryuken', 'genki', 'galick', 'finalFlash', 'bigBangAttack'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Saia da safe zone para atacar.');
+    if (p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo &&
+      ['basic', 'ki', 'galick', 'finalFlash', 'bigBangAttack'].includes(skill)) return { ok: false };
+    if (skill === 'finalFlash') return this.iniciarFinalFlash(p, automated);
+    if (skill === 'bigBangAttack') return this.iniciarBigBangAttack(p, automated);
+    if ((p.finalFlashAtivo && ['basic', 'ki', 'galick'].includes(skill)) || ((p.charge?.finalFlash || p.charge?.bigBangAttack) && skill === 'basic'))
+      return { ok: false };
     const target = this.targetOf(p) || this.nearestMob(p, skill === 'basic' ? 70 : 430);
     if (skill === 'basic') {
       if (this.time < p.basicReady) return { ok: false };
@@ -422,13 +563,12 @@ export class Game {
     if (skill === 'dash') {
       if (p.level < CONFIG.skills.dash || this.time < p.dashReady) return automated ? { ok: false } : this.reject(p, 'Imagem Residual: nível ' + CONFIG.skills.dash + ' e recarga de 4s.');
       const dir = Math.hypot(p.input.x, p.input.y) > 0.1 ? norm(p.input.x, p.input.y) : this.aimDirection(p, null);
-      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + (p.godmode ? 1 : 4); p.charge = null;
+      p.dashDirection = dir; p.dashUntil = this.time + 0.18; p.dashReady = this.time + this.recarga(p, 4); p.charge = null;
       this.emit('dash', { x: p.x, y: p.y, playerId: p.id }); return { ok: true };
     }
     if (skill === 'ki') {
       // A Rajada de Ki é o ataque à distância básico de todas as vocações.
-      // Para Vegeta ela já existe desde o início, assim como no fluxo básico do Goku.
-      const nivelRajada = nivelRajadaKi(p.vocacao);
+      const nivelRajada = p.vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
       if (p.level < nivelRajada) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + nivelRajada + '.');
       if (this.time < p.shotReady || p.ki < CONFIG.skillCosts.ki || p.charge) return { ok: false };
       p.ki -= CONFIG.skillCosts.ki; p.shotReady = this.time + CONFIG.skillCooldowns.ki;
@@ -439,7 +579,7 @@ export class Game {
         ttl: 0.95, kind: 'ki', started: this.time, cor: 285, corHex: p.vocacao === 'vegeta' ? '#B52CFF' : '#0072FB', tamanho: 48, fps: 12 });
       return { ok: true };
     }
-    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4, na tecla 8; o Kamehameha continua na 2.
+    // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4; o Kamehameha continua disponível.
     if (skill === 'ryuken') {
       if (p.level < CONFIG.skills.ryuken) return automated ? { ok: false } : this.reject(p, 'Ryuken libera no nível ' + CONFIG.skills.ryuken + '.');
       if (!usaRyuken(p)) return automated ? { ok: false } : this.reject(p, 'O Ryuken só sai no Super Saiyajin 3 ou 4.');
@@ -459,7 +599,7 @@ export class Game {
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Galick Gun.');
       p.facing = norm(alvo.x - p.x, alvo.y - p.y);
       p.ki -= GALICK.custo;
-      p.galickReady = this.time + (p.godmode ? 1 : GALICK.recarga);
+      p.galickReady = this.time + this.recarga(p, GALICK.recarga);
       p.charge = { targetId: alvo.id, automated, until: this.time + GALICK.carga, started: this.time,
         direction: p.facing, galick: true, versao: estagio.versao, alcance: estagio.alcance };
       return { ok: true };
@@ -477,8 +617,8 @@ export class Game {
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
       p.ki -= custo;
-      if (superKame) p.superKameReady = this.time + (p.godmode ? 1 : SUPER_KAME.recarga);
-      else p.kameReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.kame);
+      if (superKame) p.superKameReady = this.time + this.recarga(p, SUPER_KAME.recarga);
+      else p.kameReady = this.time + this.recarga(p, CONFIG.skillCooldowns.kame);
       p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
         ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
@@ -486,17 +626,17 @@ export class Game {
     if (skill === 'barrier') {
       if (p.level < CONFIG.skills.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira de Ki libera no nível ' + CONFIG.skills.barrier + '.');
       if (this.time < p.barrierReady || p.ki < CONFIG.skillCosts.barrier) return automated ? { ok: false } : this.reject(p, 'Barreira em recarga ou Ki insuficiente.');
-      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.barrier);
+      p.ki -= CONFIG.skillCosts.barrier; p.barrierUntil = this.time + 2.5; p.barrierReady = this.time + this.recarga(p, CONFIG.skillCooldowns.barrier);
       p.barrierStarted = this.time; // Só sincroniza a animação nos clientes.
       this.emit('barrier', { x: p.x, y: p.y, playerId: p.id }); this.notify(p, 'Barreira de Ki ativada!'); return { ok: true };
     }
     if (skill === 'genki') {
       if (p.level < CONFIG.skills.genki) return automated ? { ok: false } : this.reject(p, 'Genki Dama libera no nível ' + CONFIG.skills.genki + '.');
       if (this.time < p.genkiReady || p.ki < CONFIG.skillCosts.genki || p.charge || this.genkiCharges.some(g => g.owner === p.id)) return automated ? { ok: false } : this.reject(p, 'Genki Dama em recarga ou Ki insuficiente.');
-      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + (p.godmode ? 1 : CONFIG.skillCooldowns.genki);
+      const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir; p.ki -= CONFIG.skillCosts.genki; p.genkiReady = this.time + this.recarga(p, CONFIG.skillCooldowns.genki);
       p.genkiLancado = null;p.genkiDirecao = null;
       this.genkiCharges.push({ id: this.uid('g'), x: p.x, y: p.y, planet: p.planet, area: p.area,
-        owner: p.id, targetId: target?.id || null, direction: dir,
+        owner: p.id, automated, targetId: target?.id || null, direction: dir,
         aim: p.aim ? { x: p.aim.x, y: p.aim.y - GENKI.alturaAlvo } : null, started: this.time, until: this.time + GENKI.carga,
         damage: p.stats.attack * multiplicadorDaForma(p.forma, 'genki') });
       this.emit('genki', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id }); return { ok: true };
@@ -507,9 +647,11 @@ export class Game {
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
   alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
     const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):formasDaVocacao(p.vocacao).find(f=>f.forma===formaSolicitada);
-    if(formaSolicitada!==null&&(!disponivel||p.level<disponivel.nivel))return this.reject(p,'Transformação indisponível para esta vocação ou nível.');
-    // A automação nunca alterna/desliga formas; o limite de entrada é provisório.
-    if (automatica && (p.forma !== 'base' || p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
+    if (formaSolicitada !== null && (!disponivel || p.level < disponivel.nivel))
+      return automatica ? { ok: false } : this.reject(p, 'Transformação indisponível para esta vocação ou nível.');
+    // A automação mantém uma forma já ativa e espera o Ki se recuperar antes de reativar.
+    if (automatica && (p.forma === disponivel?.forma || (formaSolicitada === null && p.forma !== 'base') ||
+      p.ki <= p.stats.ki * CONFIG.transformacao.limiteAutomatico)) return { ok: false };
     if (p.forma !== 'base' && (formaSolicitada===null||p.forma===formaSolicitada)) { const formaAnterior=p.forma; p.forma = 'base'; p.formaAte = 0; if (p.skin===formaAnterior) p.skin='base'; atualizarBarraPadrao(p); this.notify(p, 'Forma base.'); return { ok: true }; }
     if (!disponivel) return automatica ? { ok: false } : this.reject(p, 'Transformação libera no nível ' + formasDaVocacao(p.vocacao)[0].nivel + '.');
     p.forma = disponivel.forma;
@@ -518,6 +660,20 @@ export class Game {
     if (p.forma === 'kaioken') this.emit('kaioken', { x: p.x, y: p.y, playerId: p.id });
     this.notify(p, disponivel.nome + ' ativado!' + (disponivel.duracao ? ' Duração: ' + Math.round(disponivel.duracao / 60) + ' min.' : ''));
     return { ok: true };
+  }
+  revalidarFormaAposGodmode(p) {
+    if (p.forma === 'base' || formasDaVocacao(p.vocacao).some(f => f.forma === p.forma && p.level >= f.nivel)) return;
+    this.alternarForma(p, 'transform');
+    if (p.charge?.superKame) p.charge = null;
+    if (p.autoHunt) this.aplicarBuffDoCombo(p);
+  }
+  aplicarBuffDoCombo(p) {
+    const combo = p.comboAutoHunt;
+    if (!combo) return false;
+    const buff = combo.buffMaisAlto ? formaDisponivel(p.level, p.vocacao)?.forma : combo.buff;
+    if (!buff || p.forma === buff || p.charge || p.finalFlashAtivo || p.ryuken ||
+      this.genkiCharges.some(g => g.owner === p.id) || !kiPermiteCombo(p, 'transform')) return false;
+    return this.cast(p, 'transform', true, buff).ok;
   }
   verificarKiDaForma(p) {
     if (p.forma !== 'base' && p.ki <= 0 && !p.godmode) {
@@ -533,8 +689,8 @@ export class Game {
     if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
-    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + (p.godmode ? 1 : RYUKEN.recarga);
-    p.ryuken = { targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
+    p.ki -= RYUKEN.custo; p.ryukenReady = this.time + this.recarga(p, RYUKEN.recarga);
+    p.ryuken = { automated, targetId: alvo.id, started: this.time, until: this.time + RYUKEN.lancamento, direction: dir, damage: p.stats.attack * danoRyuken(p.forma) };
     this.emit('ryuken', { x: p.x, y: p.y, playerId: p.id });
     this.verificarKiDaForma(p);
     return { ok: true };
@@ -547,7 +703,7 @@ export class Game {
     for (const p of this.players.values()) {
       if (!p.ryuken) { if (p.ryukenLancado && this.time - p.ryukenLancado > RYUKEN.sustentacao) p.ryukenLancado = null; continue; }
       const alvo = this.mobs.get(p.ryuken.targetId);
-      if (!ativo(p) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
+      if (!ativo(p) || (p.ryuken.automated && !p.autoHunt) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
       p.ryuken.direction = norm(alvo.x - p.x, alvo.y - p.y); p.facing = p.ryuken.direction;
       if (this.time + 1e-9 < p.ryuken.until) continue;
       const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
@@ -586,7 +742,7 @@ export class Game {
       && (!this.players.has(alvo.id) || (alvo.connected && this.canPvp(this.players.get(g.owner), alvo)));
     this.genkiCharges = this.genkiCharges.filter(g => {
       const p = this.players.get(g.owner);
-      if (!ativo(p, g)) return false;
+      if (!ativo(p, g) || (g.automated && !p.autoHunt)) return false;
       const alvo = this.mobs.get(g.targetId) || this.players.get(g.targetId);
       if (g.targetId && !alvoValido(alvo, g)) return false;
       g.x = p.x; g.y = p.y;
@@ -642,7 +798,7 @@ export class Game {
     if (this.time + 1e-9 < p.healReady) return falha('Cura de Vida em recarga.');
     if (p.ki < cura.custo) return falha('Ki insuficiente para curar vida.');
     // Um único caminho para tecla, botão e automação: reserva a recarga antes de curar.
-    p.healReady = this.time + (p.godmode ? 1 : CURA.cooldown); p.ki -= cura.custo;
+    p.healReady = this.time + this.recarga(p, CURA.cooldown); p.ki -= cura.custo;
     registrarMissao(p,'skills',1,this.agora());
     p.healStarted = this.time; // Um único efeito por ativação confirmada, inclusive na autocura.
     const antes = p.hp;
@@ -675,19 +831,22 @@ export class Game {
     if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
-      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.formaAte = 0; target.charge = null; atualizarBarraPadrao(target); this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
+      if (playerTarget) this.derrotarJogador(target);
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
-          analisar(attacker,'xp',experiencia);const zeniAntes=attacker.zeni; this.awardXp(attacker, experiencia); attacker.kills++;registrarMissao(attacker,'kills',1,this.agora()); attacker.zeni += target.raro ? RECOMPENSAS_MOBS.zeniChefe : RECOMPENSAS_MOBS.zeniMinimo + Math.floor(this.random() * RECOMPENSAS_MOBS.zeniVariacao);
+          this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
+          const zeniAntes = attacker.zeni;
+          const [zeniMin, zeniMax] = faixaZeniMob(target.level, target.raro);
+          attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
-            const item=this.random()<RECOMPENSAS_MOBS.fracaoCristal?'crystal':'scrap';
+            const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
             this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
             analisar(attacker,'drops',1,item);
           }
@@ -695,18 +854,59 @@ export class Game {
             this.loot.push({ id: this.uid('l'), x: target.x + 12, y: target.y, ...onde, item: 'seed15', owner: attacker.id, until: this.time + 45 });
             analisar(attacker,'drops',1,'seed15');
           }
+          let posicaoDrop = 0;
+          for (const { item, chance } of dropsEspecificos(target.type)) {
+            if (this.random() >= chance) continue;
+            const x = target.x - 14 - posicaoDrop++ * 9;
+            this.loot.push({ id: this.uid('l'), x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
+            analisar(attacker,'drops',1,item);
+          }
         }
       }
     }
     return true;
   }
-  awardXp(p, amount) {
-    // God Mode é uma sessão de teste com nível selecionável; XP de combate continua
-    // contabilizado no Hunt Analyzer, mas não altera o nível escolhido nem o save real.
-    if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) return;
-    p.xp += amount;
+  derrotarJogador(p) {
+    p.respawnAt = this.time + CONFIG.respawnDelay;
+    p.autoHunt = false;
+    p.transformed = false;
+    p.formaAte = 0;
+    p.charge = null;
+
+    p.penalidadeMorte = null;
+    let aviso = 'Derrotado.';
+    if (!p.godmode) {
+      const { nivel, xp, perda } = progressoAposMorte(p.level, p.xp);
+      p.xp = xp;
+      if (perda > 0) p.penalidadeMorte = { xp: perda, nivelAnterior: p.level };
+      if (perda > 0) aviso += ' Perdeu ' + perda.toLocaleString('pt-BR') + ' XP.';
+      if (nivel < p.level) {
+        aviso += ' Nível ' + p.level + ' → ' + nivel + '.';
+        p.level = nivel;
+        p.stats = statsFor(nivel, p.vocacao, p.equipamentos);
+        atualizarCapacidade(p);
+        p.ki = Math.min(p.ki, p.stats.ki);
+      }
+    }
+    atualizarBarraPadrao(p);
+    this.notify(p, aviso + ' Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.');
+  }
+  awardXp(p, amount, deAbate = false) {
+    // No God Mode, o Analyzer continua registrando XP de combate sem alterar o progresso real.
+    if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) {
+      if (deAbate) analisar(p, 'xp', amount);
+      return;
+    }
+    const bonus = bonusXpPremium(p, this.agora());
+    // Acumula os centésimos para que abates que rendem pouco XP respeitem o percentual.
+    const centesimos = amount * bonus + p.bonusPremium.restoXp;
+    const xp = amount + Math.floor(centesimos / 100);
+    p.bonusPremium.restoXp = centesimos % 100;
+    if (deAbate) analisar(p, 'xp', xp);
+    p.xp += xp;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
-      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao);
+      p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
+      atualizarCapacidade(p);
       if(p.level===CONFIG.skills.superKamehameha)atualizarBarraPadrao(p);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
@@ -811,36 +1011,63 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) { p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
+    if (!p.connected) { if (p.charge?.bigBangAttack) p.charge = null; p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
+    const extensor = p.equipamentos.mochila;
+    if (extensor && p.bonusPremium.extensores[extensor] !== undefined) {
+      p.bonusPremium.extensores[extensor] -= dt;
+      if (p.bonusPremium.extensores[extensor] <= 0) {
+        encerrarExtensor(p);
+        this.notify(p, 'O extensor da mochila expirou.');
+      }
+    }
     if (p.godmode) {
       if (p.godmodeOptions?.hpInfinite !== false) p.hp = p.stats.hp;
       if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
     }
     if (p.hp <= 0) {
+      if (p.charge?.bigBangAttack) p.charge = null;
       p.forma = 'base'; p.formaAte = 0;
       atualizarBarraPadrao(p);
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
     }
+    avancarPocaoXp(p, dt);
     if (p.forma === 'gogeta' && p.formaAte > 0 && this.time >= p.formaAte) {
       p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;
-    if (p.foodUntil > this.time) {const antes=p.hp;p.hp = Math.min(p.stats.hp, p.hp + CONFIG.foodHealPerSecond * p.stats.healing * dt);analisar(p,'cura',p.hp-antes);}
+    const taxas = taxasRegeneracao(p, this.time);
+    if (taxas.hpComida) {
+      const antes = p.hp;
+      p.hp = Math.min(p.stats.hp, p.hp + taxas.hpComida * dt);
+      analisar(p, 'cura', p.hp - antes);
+    }
     if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
-    // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
-    if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
-    if (p.forma !== 'base' && !p.godmode) p.ki = Math.max(0, p.ki - dt * CONFIG.transformacao.drenoKi);
+    if (taxas.kiNatural) p.ki = Math.min(p.stats.ki, p.ki + dt * taxas.kiNatural);
+    p.ki = clamp(p.ki + dt * (taxas.kiEquipamento + taxas.kiComida - taxas.drenoForma), 0, p.stats.ki);
     this.verificarKiDaForma(p);
+    if (p.charge?.bigBangAttack) {
+      this.atualizarCargaBigBangAttack(p);
+      if (p.charge?.bigBangAttack) return;
+    }
+    if (p.charge?.finalFlash) {
+      this.atualizarCargaFinalFlash(p);
+      if (p.charge?.finalFlash) return;
+    }
+    if (p.finalFlashAtivo) {
+      p.facing = p.finalFlashAtivo.direction;
+      return;
+    }
+    const velocidade = p.stats.mobility * (p.montaria ? MULT_NIMBUS_DEV : 1);
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
-    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, p.stats.mobility * (p.charge ? 0.35 : 1) * (p.montaria ? MULT_NIMBUS_DEV : 1));
+    else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, velocidade * (p.charge ? 0.35 : 1));
     else if (p.autoHunt && naZonaSegura(p)) {
       p.targetId = null; p.charge = null;
       p.saidaSegura ||= this.saidaDaZonaSegura(p);
-      if (p.saidaSegura) this.steer(p, p.saidaSegura, dt, p.stats.mobility);
+      if (p.saidaSegura) this.steer(p, p.saidaSegura, dt, velocidade);
     }
     else if (p.autoHunt) {
       p.saidaSegura = null;
@@ -848,7 +1075,7 @@ export class Game {
       // quando outro se aproxima durante a perseguição atual.
       const alcanceKame = p.vocacao !== 'vegeta' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
       const raioCaca = p.autoSkills && alcanceKame
-        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + p.stats.mobility * KAME.carga) : CONFIG.autoHuntRaio;
+        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + velocidade * KAME.carga) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
       if (target) {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
@@ -856,7 +1083,7 @@ export class Game {
         // A distância da técnica determina quando disparar, não onde a caça para.
         // Continua a aproximação para poder finalizar com ataque básico mesmo em recarga/sem Ki.
         if (distance(p, target) > 49) {
-          const alcancavel = this.steer(p, target, dt, p.stats.mobility, 40);
+          const alcancavel = this.steer(p, target, dt, velocidade, 40);
           const d = distance(p, target);
           if (!alcancavel) { (p.ignorar ||= {})[target.id] = this.time + 10; p.targetId = null; p.caca = null; p.rota = null; }
           else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
@@ -868,7 +1095,7 @@ export class Game {
         if (p.patrulha) {
           const idPatrulha = 'patrulha:' + p.patrulha.id;
           if (idPatrulha !== p.caca?.alvo) p.caca = { alvo: idPatrulha, melhor: Infinity, desde: this.time };
-          const alcancavel = this.steer(p, p.patrulha, dt, p.stats.mobility, 40);
+          const alcancavel = this.steer(p, p.patrulha, dt, velocidade, 40);
           const d = distance(p, p.patrulha);
           if (!alcancavel) { p.patrulha = null; p.caca = null; p.rota = null; }
           else if (d < p.caca.melhor - 8) { p.caca.melhor = d; p.caca.desde = this.time; }
@@ -898,9 +1125,20 @@ export class Game {
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
-    if (p.autoFood && p.autoHunt && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
-    if (p.autoHunt && p.autoKi && p.ki / p.stats.ki < p.kiThreshold / 100 && p.inventory.ki > 0 && this.time >= p.kiReady) this.usePotion(p);
+    if (p.autoFood && p.autoHunt && p.hp / p.stats.hp <= CONFIG.autoFoodLimiteHp && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
+    if (p.autoHunt && this.time >= p.kiReady) {
+      const fracaoHp = p.hp / p.stats.hp;
+      const fracaoKi = p.ki / p.stats.ki;
+      const usarEnergia = p.autoEnergyPotion && fracaoHp < p.energyPotionThreshold / 100 && p.inventory['pocao-energia'] > 0;
+      const usarKi = p.autoKi && fracaoKi < p.kiThreshold / 100 && p.inventory.ki > 0;
+      if (usarEnergia && (!usarKi || fracaoHp <= fracaoKi)) this.usePotion(p, 'pocao-energia');
+      else if (usarKi) this.usePotion(p);
+    }
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
+    const combo = p.comboAutoHunt;
+    const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
+    if (p.autoHunt && !conjurandoCombo) this.aplicarBuffDoCombo(p);
     let target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
@@ -911,7 +1149,7 @@ export class Game {
       target = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
       p.targetId = target?.id || null;
     }
-    if (p.autoHunt && p.autoSkills && target && !p.charge && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
+    if (p.autoHunt && (p.autoSkills || p.autoAttack) && target && !p.charge && !conjurandoCombo && !this.kamehamehas.some(k => k.owner === p.id && !k.impacto)) {
       const attackFactor = multiplicadorDaForma(p.forma, 'soco');
       const danoBasico = Math.max(1, Math.round(p.stats.attack * attackFactor * 100 / (100 + (target.defesa ?? 1) * 3)));
       const danoKi = Math.max(1, Math.round(p.stats.attack * multiplicadorDaForma(p.forma, 'rajada') * 100 / (100 + (target.defesa ?? 1) * 3)));
@@ -921,19 +1159,23 @@ export class Game {
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const vegeta = p.vocacao === 'vegeta';
       const podeKame = !vegeta && p.level >= 3
-        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? p.stats.mobility * KAME.carga : 0);
-      const podeRajada = !morreriaNoBasico && !prefereBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390 && target.hp > danoBasico;
-      if (vegeta) {
-        if (!this.cast(p, 'galick', true).ok && podeRajada) this.cast(p, 'ki', true);
-      } else if (!morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
-        // Auto Hunt: no SSJ4 tenta o Super Kamehameha, no SSJ3/SSJ4 o Ryuken, e por fim o Kamehameha (o que estiver pronto).
-        const tentou = skill => this.cast(p, skill, true).ok;
-        if (!(usaSuperKame(p) && tentou('superKamehameha')) && !(usaRyuken(p) && tentou('ryuken'))) this.cast(p, 'kame', true);
+        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? velocidade * KAME.carga : 0);
+      const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
+      const tentar = skill => this.cast(p, skill, true).ok;
+      let usouTecnica = false;
+      if (p.autoSkills && combo) {
+        // Uma técnica indisponível deixa a próxima prioridade disputar o mesmo turno.
+        usouTecnica = combo.ordem.some(({ id, ki }) => kiPermiteCombo(p, id, ki) && tentar(id));
+      } else if (p.autoSkills && vegeta) {
+        usouTecnica = (!morreriaNoBasico && !prefereBasico && (tentar('finalFlash') || tentar('bigBangAttack'))) || tentar('galick');
+      } else if (p.autoSkills && !morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
+        usouTecnica = (usaSuperKame(p) && tentar('superKamehameha'))
+          || (usaRyuken(p) && tentar('ryuken')) || tentar('kame');
       }
-      else if (podeRajada) this.cast(p, 'ki', true);
+      if (!usouTecnica && podeRajada && (!combo || kiPermiteCombo(p, 'ki'))) tentar('ki');
     }
     if (p.charge?.galick) this.atualizarCargaGalick(p);
-    if (p.charge && !p.charge.galick) {
+    if (p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
       let alvo = this.mobs.get(p.charge.targetId);
       if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
         alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
@@ -943,7 +1185,7 @@ export class Game {
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const cargaKame = p.charge && !p.charge.galick ? p.charge : null;
+    const cargaKame = p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack ? p.charge : null;
     const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
     const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
     if (cargaNoAlcance && this.time >= cargaKame.until) {
@@ -988,19 +1230,167 @@ export class Game {
     k.direction = p.facing = norm(alvo.x - p.x, alvo.y - p.y);
     Object.assign(k, origemGalick(p, k.direction, contato));
     const distancia = Math.max(0, contato - GALICK.mao);
+    k.pesAlvoPrevisto = { x: alvo.x, y: alvo.y };
     k.distanciaContato = distancia;
     k.tempoVoo = Math.max(GALICK.vooMinimo, distancia / GALICK.velocidade);
     const progresso = Math.min(1, (this.time - k.started) / k.tempoVoo);
     k.distancia = distancia * progresso;
     if (progresso < 1) return true;
     if (!this.hit(p, alvo, k.damage)) return false;
-    k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, started: this.time };
+    k.impacto = { x: k.x + k.direction.x * distancia, y: k.y + k.direction.y * distancia, pesAlvo: k.pesAlvoPrevisto, started: this.time };
+    return true;
+  }
+  alvoValidoBigBangAttack(ref, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(ref, alvo) && !naZonaSegura(alvo);
+  }
+  origemBigBangAttack(p, alvo) {
+    const direcao = norm(alvo.x - p.x, alvo.y - p.y);
+    const direction = direcao.x || direcao.y ? direcao : p.facing;
+    return { direction, ...maoBigBang(p, direction) };
+  }
+  iniciarBigBangAttack(p, automated) {
+    const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
+    if (p.vocacao !== 'vegeta') return falha('O Big Bang Attack é exclusivo do Vegeta.');
+    if (p.level < BIG_BANG_ATTACK.nivel) return falha('Big Bang Attack libera no nível ' + BIG_BANG_ATTACK.nivel + '.');
+    if (!formaBigBangAttack(p.forma)) return falha('Big Bang Attack requer Super Saiyajin ou superior.');
+    if (p.charge || p.finalFlashAtivo || this.time < p.bigBangAttackReady || p.ki < BIG_BANG_ATTACK.custo)
+      return falha('Big Bang Attack em recarga, outra conjuração ativa ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    if (!this.alvoValidoBigBangAttack(p, alvo)) return falha('Selecione um mob vivo para o Big Bang Attack.');
+    const origem = this.origemBigBangAttack(p, alvo);
+    if (distance(origem, alvo) - this.raioMob(alvo) > BIG_BANG_ATTACK.alcance)
+      return falha('Alvo fora do alcance do Big Bang Attack.');
+    p.facing = origem.direction;
+    p.ki -= BIG_BANG_ATTACK.custo;
+    p.bigBangAttackReady = this.time + this.recarga(p, BIG_BANG_ATTACK.recarga);
+    p.charge = { bigBangAttack: true, targetId: alvo.id, direction: p.facing, started: this.time,
+      until: this.time + BIG_BANG_ATTACK.carga, automated };
+    return { ok: true };
+  }
+  atualizarCargaBigBangAttack(p) {
+    const carga = p.charge, alvo = this.mobs.get(carga.targetId);
+    if (!formaBigBangAttack(p.forma) || naZonaSegura(p) || !this.alvoValidoBigBangAttack(p, alvo)) {
+      p.charge = null;
+      return;
+    }
+    const { direction, ...origem } = this.origemBigBangAttack(p, alvo);
+    if (distance(origem, alvo) - this.raioMob(alvo) > BIG_BANG_ATTACK.alcance) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = direction;
+    if (this.time + 1e-9 < carga.until) return;
+    p.bigBangLancado = { started: this.time, direction };
+    this.projectiles.push({ id: this.uid('s'), kind: 'bigBangAttack', ownerType: 'player', owner: p.id,
+      planet: p.planet, area: p.area, targetId: alvo.id, ...origem, dx: direction.x, dy: direction.y, direcaoLancamento: direction,
+      started: this.time, speed: BIG_BANG_ATTACK.velocidade, restante: BIG_BANG_ATTACK.alcance,
+      damage: p.stats.attack * BIG_BANG_ATTACK.dano, ttl: 1 });
+    p.charge = null;
+  }
+  atualizarBigBangAttack(s, dt) {
+    const p = this.players.get(s.owner);
+    if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, s) || naZonaSegura(p)) {
+      s.ttl = 0;
+      return;
+    }
+    if (s.impactoEm !== undefined) {
+      if (this.time - s.impactoEm >= BIG_BANG_ATTACK.impacto) s.ttl = 0;
+      return;
+    }
+    const alvo = this.mobs.get(s.targetId);
+    if (!formaBigBangAttack(p.forma) || !this.alvoValidoBigBangAttack(s, alvo)) {
+      s.ttl = 0;
+      return;
+    }
+    const direcao = norm(alvo.x - s.x, alvo.y - s.y);
+    s.dx = direcao.x; s.dy = direcao.y;
+    const contato = contatoFinalFlash(s, direcao, alvo, this.raioMob(alvo));
+    s.pesAlvo = { x: alvo.x, y: alvo.y };
+    const passo = Math.min(contato, s.restante, s.started === this.time ? 0 : s.speed * dt);
+    s.x += s.dx * passo; s.y += s.dy * passo;
+    s.restante -= passo;
+    if (contato <= passo) {
+      if (this.hit(p, alvo, s.damage)) {
+        s.impactoEm = this.time;
+      } else s.ttl = 0;
+    } else if (s.restante <= 1e-9) s.ttl = 0;
+    // Limite da previsão visual entre snapshots. O cliente só renderiza esse percurso.
+    s.distanciaAteContato = Math.max(0, contato - passo);
+    s.avancoVisual = Math.min(s.restante, s.distanciaAteContato);
+  }
+  alvoValidoFinalFlash(p, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo)
+      && distance(p, alvo) - this.raioMob(alvo) <= FINAL_FLASH.alcance + FINAL_FLASH.mao;
+  }
+  iniciarFinalFlash(p, automated) {
+    const falha = motivo => automated ? { ok: false } : this.reject(p, motivo);
+    if (p.vocacao !== 'vegeta') return falha('O Final Flash é exclusivo do Vegeta.');
+    if (p.level < FINAL_FLASH.nivel) return falha('Final Flash libera no nível ' + FINAL_FLASH.nivel + '.');
+    if (!formaFinalFlash(p.forma)) return falha('Final Flash requer Super Saiyajin ou superior.');
+    if (p.charge || p.finalFlashAtivo || this.time < p.finalFlashReady || p.ki < FINAL_FLASH.custo)
+      return falha('Final Flash em recarga, outra conjuração ativa ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    if (!this.alvoValidoFinalFlash(p, alvo)) return falha('Selecione um mob vivo dentro do alcance do Final Flash.');
+    p.facing = this.direcaoFinalFlash(p, alvo);
+    p.moving = false;
+    p.ki -= FINAL_FLASH.custo;
+    p.finalFlashReady = this.time + this.recarga(p, FINAL_FLASH.recarga);
+    p.charge = { finalFlash: true, targetId: alvo.id, direction: p.facing,
+      started: this.time, until: this.time + FINAL_FLASH.carga, automated };
+    return { ok: true };
+  }
+  direcaoFinalFlash(p, alvo) {
+    return p.x === alvo.x && p.y === alvo.y ? p.facing : norm(alvo.x - p.x, alvo.y - p.y);
+  }
+  atualizarCargaFinalFlash(p) {
+    const carga = p.charge, alvo = this.mobs.get(carga.targetId);
+    if (naZonaSegura(p) || !formaFinalFlash(p.forma) || !this.alvoValidoFinalFlash(p, alvo)) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = this.direcaoFinalFlash(p, alvo);
+    if (this.time < carga.until) return;
+    const ateContato = Math.max(0, distance(p, alvo) - this.raioMob(alvo));
+    const origem = origemFinalFlash(p, carga.direction, ateContato);
+    const efeito = { id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origem,
+      finalFlash: true, targetId: alvo.id, direction: carga.direction, started: this.time,
+      emissor: { x: p.x, y: p.y },
+      distanciaPrevista: FINAL_FLASH.alcance, damage: p.stats.attack * FINAL_FLASH.dano };
+    this.kamehamehas.push(efeito);
+    p.finalFlashAtivo = efeito;
+    p.charge = null;
+  }
+  atualizarFinalFlash(efeito, p) {
+    if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, efeito) || naZonaSegura(p)) return false;
+    if (efeito.impacto) return this.time - efeito.impacto.started < FINAL_FLASH.impactoQuadros * FINAL_FLASH.impactoQuadro;
+    const alvo = this.mobs.get(efeito.targetId);
+    if (!formaFinalFlash(p.forma) || !this.alvoValidoFinalFlash(p, alvo)) return false;
+    const raio = this.raioMob(alvo);
+    const ateContato = Math.max(0, distance(efeito.emissor, alvo) - raio);
+    efeito.direction = p.facing = this.direcaoFinalFlash(p, alvo);
+    Object.assign(efeito, origemFinalFlash(efeito.emissor, efeito.direction, ateContato));
+    const distancia = contatoFinalFlash(efeito, efeito.direction, alvo, raio);
+    const alcanceAtual = Math.max(0, this.time - efeito.started) * FINAL_FLASH.velocidade;
+    efeito.distanciaPrevista = distancia;
+    efeito.pesAlvoPrevisto = { x: alvo.x, y: alvo.y };
+    if (alcanceAtual < distancia) return true;
+    if (!this.hit(p, alvo, efeito.damage)) return false;
+    efeito.impacto = {
+      x: efeito.x + efeito.direction.x * distancia, y: efeito.y + efeito.direction.y * distancia,
+      pesAlvo: efeito.pesAlvoPrevisto, distancia, started: this.time
+    };
     return true;
   }
   atualizarKamehamehas() {
     this.kamehamehas = this.kamehamehas.filter(k => {
       const p = this.players.get(k.owner);
       if (k.galick) return this.atualizarGalick(k, p);
+      if (k.finalFlash) {
+        const manter = this.atualizarFinalFlash(k, p);
+        if (p?.finalFlashAtivo === k && (!manter || k.impacto && this.time - k.impacto.started >= FINAL_FLASH.sustentacao))
+          p.finalFlashAtivo = null;
+        return manter;
+      }
       const g = geometriaKame(k.nivel, this.time - k.started);
       if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, k) || naZonaSegura(p)) return false;
       if (k.impacto) return this.time - k.impacto.started < IMPACTO_KAME.quadros * IMPACTO_KAME.quadro;
@@ -1189,6 +1579,7 @@ export class Game {
     this.atualizarRyukens(dt);
     for (const s of this.projectiles) {
       if (s.kind === 'genki' || s.kind === 'ryuken') continue;
+      if (s.kind === 'bigBangAttack') { this.atualizarBigBangAttack(s, dt); continue; }
       if (s.kind === 'mobKiTarget') {
         const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
         if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
@@ -1216,8 +1607,10 @@ export class Game {
     this.projectiles = this.projectiles.filter(s => s.ttl > 0);
     this.loot = this.loot.filter(l => !l.taken && this.time < l.until);
   }
-  snapshot(id) {
+  snapshot(id, saldoPremium = 0) {
     const self = this.players.get(id);
+    // Mantém o layout dos espaços da mochila coerente com os totais (loot/uso/compra mudam o estoque por fora).
+    if (self) reconciliarSlots(self);
     // Cada jogador só recebe o lugar onde está (planeta + área): os outros lugares não existem para ele.
     const here = self || { planet: 'terra', area: null }, aqui = e => this.mesmoLugar(here, e);
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
@@ -1232,27 +1625,29 @@ export class Game {
         // Enquanto o dragão voa, o Goku segura o soco (a pose não volta antes do impacto).
         ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
+        bigBangLancado: p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
-        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, weight: bagWeight(self.inventory),
-        autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt,
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, equipamentos: self.equipamentos, slots: self.slots, weight: bagWeight(self.inventory), extensorRestante: self.bonusPremium.extensores[self.equipamentos.mochila] ?? 0,
+        autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt, comboAutoHunt: self.comboAutoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
-        kiThreshold: self.kiThreshold, seedThreshold: self.seedThreshold,
+        kiThreshold: self.kiThreshold, energyPotionThreshold: self.energyPotionThreshold, seedThreshold: self.seedThreshold,
         cura: { ...curaPorNivel(self.level), cooldown: CURA.cooldown, remaining: Math.max(0, self.healReady - this.time) },
-        autoFood: self.autoFood, autoKi: self.autoKi, autoSeed: self.autoSeed, targetId: self.targetId,
-        foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
-        kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), seedSelected: self.seedSelected,
-        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
+        autoFood: self.autoFood, autoKi: self.autoKi, autoEnergyPotion: self.autoEnergyPotion, autoSeed: self.autoSeed, targetId: self.targetId,
+        foodId: self.foodId, foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
+        kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), basicRemaining: Math.max(0, self.basicReady - this.time), seedSelected: self.seedSelected,
+        kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), bigBangAttackRemaining: Math.max(0, self.bigBangAttackReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
         ryukenRemaining: Math.max(0, (self.ryukenReady || 0) - this.time),
-        novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
+        novidades: self.novidades.map(n => ({...n})), mercado:{...this.mercado.resumo(self),saldoPremium,pertoDoMercador:Boolean(mercadorPerto(self)),entregasPremium:{...self.entregasPremium},extensores:{...self.bonusPremium.extensores}},
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
-        godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
+        beneficiosDeTeste:this.beneficiosDeTeste, godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
+        penalidadeMorte: self.hp <= 0 ? self.penalidadeMorte ?? null : null,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
