@@ -1,3 +1,5 @@
+import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
+import { restaurarBonusPremium } from '../sistemas/bonus-premium.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 import { NOVOS_ITENS, SET_INICIAL } from '../sistemas/catalogo-itens.mjs';
 import {montariaValida} from '../sistemas/montarias.mjs';
@@ -17,8 +19,9 @@ import { CURA } from '../tecnicas/cura.mjs';
 import { xpForLevel } from '../sistemas/progressao.mjs';
 export { xpForLevel } from '../sistemas/progressao.mjs';
 
-export function statsFor(level, vocacao = 'goku', equipamentos) {
+export function statsFor(level, vocacao = 'goku', equipamentos, bonusCapacidade = 0) {
   const stats = vocacaoDoPersonagem(vocacao).atributos(level);
+  if (bonusCapacidade) stats.capacity *= 1 + bonusCapacidade / 100;
   for (const id of Object.values(equipamentos ?? {})) {
     const item = NOVOS_ITENS[id];
     if (!item || item.nivel > level) continue;
@@ -34,6 +37,37 @@ export function atualizarAtributosEquipamento(p) {
   Object.assign(p.stats, { attack, defense, kiEquipamento });
 }
 
+
+export function bonusDoExtensor(p) {
+  return ITENS_PREMIUM[p.equipamentos.mochila]?.bonusCapacidade ?? 0;
+}
+
+export function atualizarCapacidade(p) {
+  const base = statsFor(p.level, p.vocacao, null, bonusDoExtensor(p)).capacity;
+  const bonus = p.bonusPremium;
+  if (bonus.capacidadeRetida) {
+    const retida = Math.min(bonus.capacidadeRetida, bagWeight(p.inventory));
+    const baseReal = p.levelReal == null ? base : statsFor(p.levelReal, p.vocacao, null, bonusDoExtensor(p)).capacity;
+    bonus.capacidadeRetida = retida > baseReal ? retida : 0;
+  }
+  p.stats.capacity = p.godmode && p.godmodeOptions.capacityInfinite
+    ? GODMODE_CAPACITY : Math.max(base, bonus.capacidadeRetida);
+}
+
+export function reterCapacidadeDoExtensor(p) {
+  const capacidade = statsFor(p.levelReal ?? p.level, p.vocacao, null, bonusDoExtensor(p)).capacity;
+  p.bonusPremium.capacidadeRetida = Math.max(p.bonusPremium.capacidadeRetida, capacidade);
+}
+
+export function encerrarExtensor(p) {
+  const id = p.equipamentos.mochila;
+  if (id) {
+    reterCapacidadeDoExtensor(p);
+    delete p.equipamentos.mochila;
+    delete p.bonusPremium.extensores[id];
+  }
+  atualizarCapacidade(p);
+}
 
 // Valores "praticamente infinitos" usados pelo god mode de teste.
 export const GODMODE_ZENI = 999999999;
@@ -65,6 +99,7 @@ export function aplicarGodmode(p, on, opcoes = p.godmodeOptions) {
     p.godmodeOptions = opcoesGodmodeValidas(opcoes);
     p.godmode = true; p.level = p.godmodeOptions.level; p.xp = 0;
     p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
+    atualizarCapacidade(p);
     atualizarBarraPadrao(p);
     aplicarOpcoesGodmode(p);
   } else {
@@ -73,6 +108,7 @@ export function aplicarGodmode(p, on, opcoes = p.godmodeOptions) {
     if (p.xpReal != null) p.xp = p.xpReal;
     if (p.zeniReal != null) p.zeni = p.zeniReal;
     p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
+    atualizarCapacidade(p);
     atualizarBarraPadrao(p);
     p.hp = Math.min(p.hpReal != null ? p.hpReal : p.hp, p.stats.hp);
     p.ki = Math.min(p.kiReal != null ? p.kiReal : p.ki, p.stats.ki);
@@ -87,6 +123,7 @@ export function configurarGodmode(p, opcoes) {
   const kiRatio = p.stats.ki > 0 ? p.ki / p.stats.ki : 1;
   p.level = p.godmodeOptions.level; p.xp = 0;
   p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
+  atualizarCapacidade(p);
   atualizarBarraPadrao(p);
   p.hp = p.godmodeOptions.hpInfinite ? p.stats.hp : Math.min(p.stats.hp, Math.round(p.stats.hp * hpRatio));
   p.ki = p.godmodeOptions.kiInfinite ? p.stats.ki : Math.min(p.stats.ki, Math.round(p.stats.ki * kiRatio));
@@ -207,11 +244,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const level = clamp(Math.floor(Number(saved?.level) || 1), 1, CONFIG.progression.nivelMaximo);
   const vocacao = vocacaoDoPersonagem(saved);
   const equipamentos = Object.fromEntries(Object.entries(saved?.equipamentos ?? {}).filter(([slot, id]) =>
-    Object.hasOwn(NOVOS_ITENS, id) && NOVOS_ITENS[id].slot === slot));
+    (NOVOS_ITENS[id]?.slot ?? ITENS_PREMIUM[id]?.slot) === slot));
   const inventory = { ...STARTING_INVENTORY };
   if (saved?.inventory) {
     for (const key of Object.keys(inventory)) inventory[key] = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, 99999);
-    for (const key of Object.keys(NOVOS_ITENS)) {
+    for (const key of Object.keys({ ...NOVOS_ITENS, ...ITENS_PREMIUM })) {
       // Cristais de dois estoques legados podem superar o limite de uma pilha de inventário.
       const limite = key === 'cristal-azul' ? 199998 : 99999;
       const qtd = clamp(Math.floor(Number(saved.inventory[key]) || 0), 0, limite);
@@ -222,12 +259,29 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
       inventory['cristal-azul'] = (inventory['cristal-azul'] ?? 0) + cristaisLegados;
     }
   }
+  for (const [slotAntigo, id] of [['cinto', 'saia-freeza'], ['braco', 'faixa-treino']]) {
+    if (saved?.equipamentos?.[slotAntigo] !== id) continue;
+    const { slot } = NOVOS_ITENS[id];
+    if (equipamentos[slot]) inventory[id] = (inventory[id] || 0) + 1;
+    else equipamentos[slot] = id;
+  }
+  const entregasPremium = Object.fromEntries(Object.keys(ITENS_PREMIUM)
+    .map(id => [id, saved?.entregasPremium?.[id]])
+    .filter(([, quantidade]) => Number.isSafeInteger(quantidade) && quantidade > 0 && quantidade <= 99999));
   const personagemNovo = level === 1 && saved?.equipamentos == null && !saved?.inventory;
   const personagemExistente = Boolean(saved?.inventory && typeof saved.mercadoId === 'string');
   const jaPossuiPecaInicial = Object.values(SET_INICIAL).some(id => inventory[id] > 0 || Object.values(equipamentos).includes(id));
   if (!saved?.setInicialProcessado && !jaPossuiPecaInicial && (personagemNovo || personagemExistente)) {
     // A entrega preenche os encaixes livres, inclusive quando o inventário já excede seu peso.
     for (const [slot, id] of Object.entries(SET_INICIAL)) equipamentos[slot] ??= id;
+  }
+  const bonusPremium = restaurarBonusPremium(saved?.bonusPremium);
+  if ([10, 20].includes(saved?.bonusPremium?.capacidade) && !equipamentos.mochila) {
+    equipamentos.mochila = 'extensor-mochila-' + saved.bonusPremium.capacidade;
+  }
+  if (equipamentos.mochila) bonusPremium.extensores[equipamentos.mochila] ??= DURACAO_EXTENSOR;
+  for (const id of Object.keys(bonusPremium.extensores)) {
+    if (equipamentos.mochila !== id && !inventory[id]) delete bonusPremium.extensores[id];
   }
   const stats = statsFor(level, vocacao.id, equipamentos);
   const hotkeys=hotkeysConsumiveisValidas(saved?.hotkeysConsumiveis,saved?.seedSelected);
@@ -266,6 +320,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const barraPersonalizada=saved?.barraPersonalizada===true||(saved?.barraPersonalizada!==false&&Array.isArray(saved?.barraTecnicas)&&barraSalva.some((id,i)=>id!==padrao[i]));
   const barraKameManual=saved?.barraKameManual===true||(saved?.barraKameManual!==false&&Array.isArray(saved?.barraTecnicas)&&!['skill:kame','skill:superKamehameha'].includes(barraSalva[1]));
   const p = { montaria:montariaValida(saved?.montaria), montariaPreferida:montariaValida(saved?.montariaPreferida)||montariaValida(saved?.montaria)||'nimbus', battlePass:restaurarBattlePass(saved?.battlePass), id, mercadoId: typeof saved?.mercadoId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(saved.mercadoId) ? saved.mercadoId : id, name: String(name).trim().slice(0, 18) || 'Guerreiro', character:vocacao.personagem,vocacao:vocacao.id, level,
+    bonusPremium, entregasPremium, vipAte: 0,
     levelReal: null, xpReal: null, zeniReal: null, hpReal: null, kiReal: null, godmode: false,
     // Preserve XP saved at the old level cap: it may exceed the former per-level threshold.
     xp: Number.isFinite(Number(saved?.xp)) ? clamp(Number(saved.xp), 0, Number.MAX_SAFE_INTEGER) : 0, stats,
@@ -302,6 +357,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     ? saved.slots.map(slot => slot?.item === 'crystal' ? { ...slot, item: 'cristal-azul' } : slot)
     : slotsPadrao(inventory);
   reconciliarSlots(p);
+  atualizarCapacidade(p);
   p.skin = vocacao.id !== 'vegeta' && saved?.skin === 'natalino' ? 'natalino' : 'base';
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
   atualizarBarraPadrao(p);
@@ -315,6 +371,7 @@ export function exportPlayer(p) {
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
     novidades: restaurarNovidades(p.novidades),
+    bonusPremium: restaurarBonusPremium(p.bonusPremium), entregasPremium: { ...p.entregasPremium },
     hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),barraPersonalizada:!!p.barraPersonalizada,barraKameManual:!!p.barraKameManual,barraTecnicas:barraValida(p.barraTecnicas),inventory: p.inventory, equipamentos: { ...p.equipamentos }, setInicialProcessado: true, slots: p.slots, kills: p.kills, bossKills: p.bossKills,
     foodUntil: p.foodUntil, foodId: p.foodId, seedReady: p.seedReady, kiReady: p.kiReady,
     healReady: p.healReady, autoHeal: p.autoHeal, healThreshold: p.healThreshold,

@@ -12,6 +12,18 @@ export function xpForLevel(level) {
   return Math.round(base * Math.pow(nivel / curva.preservarAteNivel, curva.expoenteAvancado));
 }
 
+// Perde níveis inteiros e transporta a porcentagem da barra de XP para o nível de destino.
+export function progressoAposMorte(nivel, xp) {
+  if (nivel <= 1) return { nivel: 1, xp: 0, perda: xp };
+  const { niveisPorFaixa } = CONFIG.progression.perdaXpMorte;
+  const destino = Math.max(1, nivel - 1 - Math.floor((nivel - 1) / niveisPorFaixa));
+  const fracao = Math.min(xp / xpForLevel(nivel), 1 - 1 / xpForLevel(nivel));
+  const xpRestante = Math.floor(fracao * xpForLevel(destino));
+  let perda = xp - xpRestante;
+  for (let n = destino; n < nivel; n++) perda += xpForLevel(n);
+  return { nivel: destino, xp: xpRestante, perda };
+}
+
 // Mobs abaixo do jogador continuam rendendo XP, em escala progressiva e sem corte abrupto.
 export function fatorXPPorDiferencaNivel(nivelJogador, nivelMob) {
   const diferenca = Math.max(0, Math.floor(Number(nivelJogador) || 1) - Math.floor(Number(nivelMob) || 1));

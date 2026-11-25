@@ -1,4 +1,6 @@
+import {ITENS_PREMIUM} from '../sistemas/itens-premium.mjs';
 import {NOVOS_ITENS} from '../sistemas/catalogo-itens.mjs';
+import {ITENS_NEGOCIAVEIS} from '../sistemas/itens-negociaveis.mjs';
 import {CONFIG} from '../nucleo/config.mjs';
 import {FORMAS,formaDisponivel,formasDaVocacao} from './formas.mjs';
 import {consumivelValido,acaoConsumivel} from './consumiveis-hotkeys.mjs';
@@ -28,7 +30,11 @@ export const TECNICAS=Object.freeze([
    id: 'item:' + item.id, nome: item.nome, nivel: 1, imagem: item.icone, custo: '1 item',
    recarga: item.consumo.tipo === 'comida' ? 'Durante o efeito' : '0,7 s compartilhada'
  })),
- ...CONFIG.seedPotencies.map(n=>({id:'item:seed'+n,nome:'Semente '+n+'%',nivel:1,imagem:'/assets/inventario/semente_dos_deuses.png',custo:'1 item',recarga:'20 s'}))
+ ...Object.values(ITENS_PREMIUM).filter(item => item.bonusXp).map(item => ({
+   id: 'item:' + item.id, nome: item.nome, nivel: 1, imagem: item.icone, custo: '1 item',
+   recarga: 'Renovação ao fim do efeito'
+ })),
+ ...CONFIG.seedPotencies.map(n=>({id:'item:seed'+n,nome:'Semente '+n+'%',nivel:1,imagem:ITENS_NEGOCIAVEIS['seed'+n].icone,custo:'1 item',recarga:'20 s'}))
 ]);
 const ids=new Set(TECNICAS.map(t=>t.id));
 // A lista do Profile mostra apenas magias e transformações do personagem.

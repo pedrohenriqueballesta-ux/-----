@@ -27,7 +27,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   // (aí o atalho volta a aparecer só com `npm run dev`, nunca em produção.)
   const pularLogin = process.env.DBI_SKIP_LOGIN !== '0';
   const economiaPremium=new EconomiaPremium({ambiente});
-  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random });
+  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development' });
   const sessions = new Map(), streams = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
   if (dataDir) {
@@ -98,7 +98,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if(rota==='selecionar'){autenticacao.dono(a.conta,d.id);congelar(a.id);a.registro.selecionado=d.id;return json(res,200,{ok:true});}
         if(rota==='entrar'){
           const c=autenticacao.dono(a.conta,a.registro.selecionado);congelarConta(a.conta.id);a.registro.selecionado=c.id;a.registro.ativo=c.id;
-          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;vincularPasseConta(a.conta,p);if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);await save();return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
+          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;vincularPasseConta(a.conta,p);economiaPremium.vincularVip(a.conta,p);if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);await save();return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
         }
         if(rota==='preferencias'){
           if(d.idioma!==undefined){if(!['pt-BR','en','es'].includes(d.idioma))throw new FalhaAuth('idiomaInvalido');a.conta.idioma=d.idioma;}
@@ -119,7 +119,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         res.write('retry: 1500\n\n');
         if (!streams.has(token)) streams.set(token, new Set());
         streams.get(token).add(res); p.connected = true;
-        res.write('data: ' + JSON.stringify(game.snapshot(p.id)) + '\n\n');
+        res.write('data: ' + JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(acesso.conta).saldo)) + '\n\n');
         req.on('close', () => {
           streams.get(token)?.delete(res);
           if(!streams.get(token)?.size&&sessions.get(token)===p)congelar(token);
@@ -147,9 +147,14 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
           return json(res,400,{ok:false,reason:'Aba inválida.'});
         }
         if (url.pathname === '/api/input') { game.setInput(p.id, data); return json(res, 200, { ok: true }); }
-        const resultado=game.action(p.id,data);
+        if (data.type === 'godmodeLimparEfeitos') {
+          const resultado = economiaPremium.limparEfeitos(acesso.conta, p);
+          if (resultado.ok) await save();
+          return json(res, 200, resultado);
+        }
+        const resultado=game.action(p.id,data,data.type?.startsWith?.('mercado') ? economiaPremium.carteira(acesso.conta) : undefined);
         if(resultado.ok&&data.type==='preferencias')acesso.conta.audio={musicaAtiva:p.preferencias.musicaAtiva,volumeMusica:p.preferencias.volumeMusica};
-        if(resultado.ok && ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','montaria','preferencias','configurarBarra','restaurarBarraPadrao','configurarComboAutoHunt','resgatarMissao','acompanharMissao','correio','lerNovidades','godmode','godmodeConfig','godmodeGrantItem'].includes(data.type))await save();
+        if(resultado.ok && (resultado.itemPremium || ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','montaria','preferencias','configurarBarra','restaurarBarraPadrao','configurarComboAutoHunt','resgatarMissao','acompanharMissao','correio','lerNovidades','godmode','godmodeConfig','godmodeGrantItem'].includes(data.type)))await save();
         return json(res,200,resultado);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Método não permitido.' });
@@ -173,7 +178,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       lastBroadcast = now;
       for (const [token, connections] of streams) {
         if (!connections.size) continue;
-        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}const payload = 'data: ' + JSON.stringify(game.snapshot(p.id)) + '\n\n';
+        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}const payload = 'data: ' + JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo)) + '\n\n';
         for (const response of connections) if (!response.destroyed) response.write(payload);
       }
     }

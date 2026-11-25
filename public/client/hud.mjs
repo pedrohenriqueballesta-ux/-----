@@ -1,6 +1,8 @@
 import { aplicarRaridadeItem } from '../render/hud/hud-elementos.mjs';
 import { acaoConsumivel } from '../shared/tecnicas/consumiveis-hotkeys.mjs';
 import { NOVOS_ITENS } from '../shared/sistemas/catalogo-itens.mjs';
+import { ITENS_PREMIUM } from '../shared/sistemas/itens-premium.mjs';
+import { ITENS_NEGOCIAVEIS } from '../shared/sistemas/itens-negociaveis.mjs';
 import { nomeDaForma } from '../shared/tecnicas/formas.mjs';
 import { nivelDaTecnica, tecnicasDoPerfil } from '../shared/tecnicas/barra-tecnicas.mjs';
 import {instalarIconesAnimados} from '../render/hud/icones-animados.mjs';
@@ -179,7 +181,7 @@ export function atualizarHud(snapshot, playerId) {
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food;
   $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + (s.inventory['cristal-azul'] ?? 0) + ' cristais azuis';
-  $('bagLabel').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
+  $('bagLabel').textContent = formatoPeso.format(s.weight) + ' / ' + formatoPeso.format(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);abasHud?.atualizar(snapshot);
   if (document.activeElement !== $('seedSelect')) $('seedSelect').value = String(s.seedSelected);
@@ -226,6 +228,10 @@ export function atualizarHud(snapshot, playerId) {
   novidadesHud?.atualizar(s);
   lojaHud?.atualizar();
   $('respawn').classList.toggle('hidden', s.hp > 0);
+  const perda = s.penalidadeMorte;
+  const textoPerda = perda ? '−' + integer(perda.xp) + ' XP' + (perda.nivelAnterior > s.level ? ' · Nv. ' + perda.nivelAnterior + ' → ' + s.level : '') : '';
+  $('respawnPenalty').textContent = textoPerda;
+  $('respawnPenalty').hidden = !textoPerda;
   $('respawnText').textContent = 'Voltando ao começo da área em ' + Math.ceil(s.respawnRemaining) + 's';
 }
 
@@ -295,15 +301,15 @@ function abrirMapa() {
 const ITENS_MOCHILA = [
   { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
   { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
-  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: '/assets/inventario/semente_dos_deuses.png', marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
+  ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: ITENS_NEGOCIAVEIS['seed' + n].icone, marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
   { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
-  ...Object.values(NOVOS_ITENS).map(item => ({ ...item, key: item.id, usar: acaoConsumivel(item.id) }))
+  ...Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => ({ ...item, key: item.id, usar: acaoConsumivel(item.id) }))
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).
 const AREA_EQUIP = [180, 140, 493, 445], SILHUETA = [318, 225, 534, 582];
 const SLOTS_EQUIP = [['mochila', 'Mochila', 212, 189, 306, 276], ['cabeca', 'Capacete / bandana', 377, 152, 476, 231], ['colar', 'Colar / brincos', 547, 189, 641, 276],
-  ['anel', 'Anel', 212, 301, 306, 387], ['peito', 'Roupa', 379, 305, 475, 387], ['braco', 'Munhequeira', 547, 301, 641, 387],
-  ['arma', 'Arma', 212, 411, 306, 497], ['calca', 'Calça', 379, 407, 475, 489], ['cinto', 'Faixa', 547, 411, 641, 497], ['botas', 'Botas', 379, 499, 475, 573]];
+  ['arma', 'Arma', 212, 301, 306, 387], ['peito', 'Roupa', 379, 305, 475, 387], ['braco', 'Luvas / braçadeiras', 547, 301, 641, 387],
+  ['anel', 'Anel', 212, 411, 306, 497], ['calca', 'Calça', 379, 407, 475, 489], ['cinto', 'Faixa', 547, 411, 641, 497], ['botas', 'Botas', 379, 499, 475, 573]];
 let abaMochila = 'tudo', mochilaDesenhada = '', arrastandoConsumivel=false, evitarCliqueConsumivel=0, arrastandoSlot=false;
 // Item da mochila por chave (para desenhar cada espaço a partir do layout de slots s.slots).
 const META_ITEM = Object.fromEntries(ITENS_MOCHILA.map(i => [i.key, i]));
@@ -350,20 +356,37 @@ function montarMochila() {
     atualizarMochila(ctx?.snapshot()?.self);
   };
 }
+const formatoPeso = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
 function atualizarMochila(s) {
   if (!s || !$('mochilaDialog').open || arrastandoConsumivel || arrastandoSlot) return;
   const pesoCheio = s.weight >= s.stats.capacity - 0.01;
-  $('mochilaPeso').textContent = s.weight.toFixed(1).replace('.', ',') + ' / ' + Math.round(s.stats.capacity) + ' kg';
+  $('mochilaPeso').textContent = formatoPeso.format(s.weight) + ' / ' + formatoPeso.format(s.stats.capacity) + ' kg';
   $('mochilaPesoBarra').style.width = Math.min(100, 100 * s.weight / Math.max(1, s.stats.capacity)) + '%';
   $('mochilaPesoBarra').parentElement?.classList.toggle('cheia', pesoCheio);
   $('mochilaZeni').textContent = integer(s.zeni);
   for (const slot of $('mochilaEquip').querySelectorAll('[data-equip-slot]')) {
-    const id = slot.dataset.equipSlot, item = NOVOS_ITENS[s.equipamentos?.[id]];
+    const id = slot.dataset.equipSlot, item = ITENS_NEGOCIAVEIS[s.equipamentos?.[id]];
+    if (id === 'mochila') {
+      const restante = Math.ceil(s.extensorRestante || 0);
+      const contador = slot.querySelector('.extensor-contador');
+      if (restante) {
+        const etiqueta = contador ?? document.createElement('span');
+        etiqueta.className = 'extensor-contador';
+        const texto = [Math.floor(restante / 3600), Math.floor(restante / 60) % 60, restante % 60]
+          .map(n => String(n).padStart(2, '0')).join(':');
+        if (etiqueta.textContent !== texto) etiqueta.textContent = texto;
+        if (!contador) slot.append(etiqueta);
+      } else contador?.remove();
+    }
     const chave = item?.id ?? '';
     if (slot.dataset.equipItem === chave) continue;
     slot.dataset.equipItem = chave;
     aplicarRaridadeItem(slot, chave);
-    slot.querySelector('img').src = item?.icone ?? '/assets/hud/mochila/' + id + '.png';
+    const imagem = document.createElement('img');
+    imagem.src = item?.icone ?? '/assets/hud/mochila/' + id + '.png';
+    imagem.alt = '';
+    imagem.draggable = false;
+    slot.querySelector('img, canvas').replaceWith(imagem);
     slot.draggable = Boolean(item);
     if (item) slot.removeAttribute('title');
     else slot.title = slot.dataset.equipNome + ' (vazio)';
@@ -400,7 +423,11 @@ function atualizarMochila(s) {
       slot.setAttribute('aria-label', item.nome + ' × ' + qtd + (item.slot ? ' · arraste para equipar' : ''));
       if (item.marca) { const m = document.createElement('small'); m.textContent = item.marca; slot.append(m); }
       const q = document.createElement('em'); q.textContent = qtd; slot.append(q);
-      if (item.usar) slot.onclick = () => {
+      if (Object.hasOwn(ITENS_PREMIUM, item.key)) {
+        slot.onclick = e => {
+          if (!arrastandoSlot && performance.now() > evitarCliqueConsumivel) abrirMenuItem(e, n, item, qtd);
+        };
+      } else if (item.usar) slot.onclick = () => {
         slot.blur();
         if (!arrastandoSlot && performance.now() > evitarCliqueConsumivel) action(item.usar);
       };
@@ -452,6 +479,15 @@ function abrirMenuItem(e, n, item, qtd) {
   fecharMenuItem();
   const menu = document.createElement('div'); menu.className = 'mochila-menu'; menuItemEl = menu;
   const titulo = document.createElement('strong'); titulo.textContent = item.nome + ' × ' + qtd; menu.append(titulo);
+  if (Object.hasOwn(ITENS_PREMIUM, item.key)) {
+    const usar = document.createElement('button'); usar.type = 'button';
+    usar.textContent = item.slot ? 'Equipar' : 'Usar';
+    usar.onclick = () => {
+      fecharMenuItem();
+      action(item.usar ?? { type: 'equiparItem', item: item.key, slot: item.slot, de: n });
+    };
+    menu.append(usar);
+  }
   if (qtd >= 2) {
     const dividir = document.createElement('button'); dividir.type = 'button'; dividir.textContent = 'Dividir';
     dividir.onclick = () => { fecharMenuItem(); abrirDividir(n, item, qtd); };
@@ -463,7 +499,9 @@ function abrirMenuItem(e, n, item, qtd) {
   $('mochilaDialog').append(menu);
   // Posiciona junto ao cursor, mantendo o menu dentro da janela.
   const r = $('mochilaDialog').getBoundingClientRect(), m = menu.getBoundingClientRect();
-  const x = Math.min(e.clientX - r.left, r.width - m.width - 6), y = Math.min(e.clientY - r.top, r.height - m.height - 6);
+  const slot = e.currentTarget.getBoundingClientRect();
+  const x = Math.min((e.detail ? e.clientX : slot.right) - r.left, r.width - m.width - 6);
+  const y = Math.min((e.detail ? e.clientY : slot.top) - r.top, r.height - m.height - 6);
   menu.style.left = Math.max(6, x) + 'px'; menu.style.top = Math.max(6, y) + 'px';
 }
 // Seletor de quantidade da divisão: 1 a qtd-1 (precisa sobrar ao menos 1 no espaço original).

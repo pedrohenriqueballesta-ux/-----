@@ -85,7 +85,7 @@
       <footer class="hud-dica">WASD mover • Tab perfil • I mochila • H caça • X montaria • Esc configurações</footer>
     </div>
     <div id="joystick" aria-label="Direcional de toque"><div id="joystickKnob"></div></div>
-    <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><span id="respawnText">Retornando à vila...</span></div>
+    <div id="respawn" class="respawn hidden"><b>Você foi derrotado</b><strong id="respawnPenalty" hidden></strong><span id="respawnText">Voltando ao começo da área...</span></div>
     <div id="notifications" class="notifications" aria-live="polite"></div>
   </main>
   <dialog id="welcomeDialog" class="entrada" aria-label="Dragon Ball Idle"></dialog>
@@ -103,6 +103,7 @@
         <label><input id="capacityInfinite" type="checkbox" checked> Capacidade infinita</label>
         <label><input id="cooldownNormal" type="checkbox"> Manter recarga normal</label>
       </fieldset>
+      <button type="button" id="godmodeLimparEfeitos" hidden disabled>Limpar efeitos e VIP</button>
       <p id="godmodeStatus" class="godmode-status" aria-live="polite">As opções do God Mode não alteram o progresso real do personagem.</p>
     </section>
     <section id="godmodeItemsPanel" class="godmode-panel" hidden>

@@ -37,7 +37,7 @@ export function instalarCatalogoItens({ grade, itens, criarCard }) {
   busca.setAttribute('aria-label', 'Pesquisar itens');
   const raridade = selecionar([['','Todas as raridades'], ...Object.entries(RARIDADES_ITENS), ['sem-raridade','Sem raridade']], 'Raridade dos itens');
   const tiposDisponiveis = new Set(itens.map(tipoItem));
-  const tipo = selecionar([['','Todos os tipos'], ...Object.entries(TIPOS).filter(([chave]) => tiposDisponiveis.has(chave))], 'Tipo de item');
+  const tipo = selecionar([['','Todos os tipos'], ...Object.entries(TIPOS).filter(([chave]) => chave === 'cinto' || tiposDisponiveis.has(chave))], 'Tipo de item');
   const ordem = selecionar(ORDENS, 'Ordenar itens');
   const resumo = el('p', null, 'catalogo-item-resumo'); resumo.setAttribute('role', 'status');
   filtros.append(busca, raridade, tipo, ordem); grade.before(filtros, resumo);

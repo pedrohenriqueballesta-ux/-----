@@ -62,6 +62,7 @@ test('balão dos itens usa os atributos do catálogo e mantém os efeitos dos co
   assert.equal(campos(armadura)['Regeneração de Ki'], '+1,85 Ki/s');
   assert.equal(campos(armadura).Peso, '6,91 kg');
   assert.equal(campos(armadura).Mover, 'Arraste para a mochila');
+  assert.equal(campos(armadura).Estado, 'Bônus inativos no nível atual');
   assert.equal(campos(detalhesItem('seed30', estado)).Efeito, 'Recupera 30% do HP máximo');
   assert.equal(campos(detalhesItem('fruta-namek', estado)).Peso, '0,08 kg');
   const energia = campos(detalhesItem('pocao-energia', estado));

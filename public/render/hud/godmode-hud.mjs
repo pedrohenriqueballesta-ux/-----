@@ -17,7 +17,22 @@ export function instalarGodmodeHud(acao) {
   const janela = $('godmodeDialog'), grade = $('godmodeItems');
   if (!janela || !grade) return { atualizar() {} };
   const opcoes = ['hpInfinite', 'kiInfinite', 'zeniInfinite', 'capacityInfinite', 'cooldownNormal'];
-  const botaoAplicar = $('godmodeApply');
+  const botaoAplicar = $('godmodeApply'), botaoLimpar = $('godmodeLimparEfeitos');
+  let limpando = false;
+  botaoLimpar?.addEventListener('click', async () => {
+    if (limpando || !confirm('Remover a poção de XP, a comida e o extensor deste personagem, além do VIP da conta?')) return;
+    limpando = true;
+    botaoLimpar.disabled = true;
+    try {
+      const resultado = await acao({ type: 'godmodeLimparEfeitos' });
+      if (resultado?.ok) $('godmodeStatus').textContent = 'Efeitos de itens removidos do personagem. VIP da conta removido.';
+      else avisarFalha(resultado);
+    } catch (erro) {
+      $('godmodeStatus').textContent = erro.message || 'Não foi possível limpar os efeitos.';
+    } finally {
+      limpando = false;
+    }
+  });
   const valor = key => $(key).checked;
   const lerOpcoes = () => ({ level: Number($('godmodeLevel').value), ...Object.fromEntries(opcoes.map(key => [key, valor(key)])) });
   const iguais = (a, b) => !!a && !!b && ['level', ...opcoes].every(key => a[key] === b[key]);
@@ -146,6 +161,10 @@ export function instalarGodmodeHud(acao) {
       if (!estado) return;
       $('godmodeToggle').querySelector('b').textContent = estado.godmode ? 'ON' : 'OFF';
       $('godmodeToggle').classList.toggle('ligado', estado.godmode);
+      if (botaoLimpar) {
+        botaoLimpar.hidden = !estado.beneficiosDeTeste;
+        botaoLimpar.disabled = !estado.godmode || limpando || estado.hp <= 0;
+      }
       $('godmodePanelToggle').textContent = estado.godmode ? 'Desligar God Mode' : 'Ligar God Mode';
       $('godmodeModeStatus').textContent = estado.godmode ? 'Ativo · alterações só afetam este personagem em modo de teste.' : 'Desligado · configure as opções e ative para testar.';
       const options = { ...GODMODE_PADRAO, ...estado.godmodeOptions };

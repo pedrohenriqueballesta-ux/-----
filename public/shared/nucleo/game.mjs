@@ -1,6 +1,6 @@
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
-import {consumivelValido,acaoConsumivel,efeitoComida} from '../tecnicas/consumiveis-hotkeys.mjs';
+import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
@@ -12,7 +12,7 @@ import {Guildas} from '../sistemas/guildas.mjs';
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
 import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
-import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
+import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, atualizarCapacidade, reterCapacidadeDoExtensor, encerrarExtensor, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
 import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
@@ -34,7 +34,10 @@ import { validarNovidade } from '../sistemas/novidades.mjs';
 import { GENKI } from '../tecnicas/genki.mjs';
 import { RYUKEN, usaRyuken, danoRyuken } from '../tecnicas/ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from '../tecnicas/variacao-combate.mjs';
-import { xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
+import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
+import { avancarPocaoXp, bonusXpPremium, DURACAO_POCAO_XP } from '../sistemas/bonus-premium.mjs';
+import { progressoAposMorte, xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
+import { taxasRegeneracao } from '../sistemas/regeneracao.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
@@ -48,9 +51,10 @@ export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga:
 export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
 
 export class Game {
-  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false } = {}) {
+  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false, beneficiosDeTeste = false } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
+    this.beneficiosDeTeste = beneficiosDeTeste;
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
@@ -198,7 +202,18 @@ export class Game {
     if (p.aim) return norm(p.aim.x - p.x, p.aim.y - p.y);
     return p.facing;
   }
-  action(id, data) {
+  action(id, data, carteiraPremium) {
+    const resultado = this.processarAcao(id, data, carteiraPremium);
+    const p = this.players.get(id);
+    if (resultado.ok && p?.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
+    if (resultado.ok && data.type === 'descartarSlot') {
+      for (const item of Object.keys(p.bonusPremium.extensores)) {
+        if (p.equipamentos.mochila !== item && !p.inventory[item]) delete p.bonusPremium.extensores[item];
+      }
+    }
+    return resultado;
+  }
+  processarAcao(id, data, carteiraPremium) {
     const p = this.players.get(id); if (!p || !p.connected || p.hp <= 0) return { ok: false, reason: 'Personagem indisponível.' };
     const kind = data.type;
     if (kind === 'restaurarBarraPadrao') {
@@ -301,6 +316,8 @@ export class Game {
     if (kind === 'godmodeGrantItem') {
       const item = Object.hasOwn(ITENS_NEGOCIAVEIS, data.item) ? ITENS_NEGOCIAVEIS[data.item] : null, quantidade = data.quantidade;
       if (!p.godmode) return { ok: false, reason: 'Ative o God Mode para pegar itens de teste.' };
+      if (Object.hasOwn(ITENS_PREMIUM, data.item) && !this.beneficiosDeTeste)
+        return this.reject(p, 'Itens premium de teste estão disponíveis somente em desenvolvimento.');
       if (!item || !Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 9999 || (p.inventory[item.id] || 0) + quantidade > 99999)
         return { ok: false, reason: 'Item ou quantidade inválidos.' };
       if (!this.addItem(p, item.id, quantidade)) return this.reject(p, 'Libere espaço ou capacidade na mochila de teste.');
@@ -343,6 +360,7 @@ export class Game {
     }
     if (kind === 'selectSeed' && CONFIG.seedPotencies.includes(Number(data.potency))) { p.seedSelected = Number(data.potency); return { ok: true }; }
     if (kind === 'usarConsumivel') {
+      if (Object.hasOwn(ITENS_PREMIUM, data.item) && ITENS_PREMIUM[data.item].bonusXp) return this.usarItemPremium(p, ITENS_PREMIUM[data.item]);
       const item = Object.hasOwn(CONSUMIVEIS_LOOT, data.item) ? CONSUMIVEIS_LOOT[data.item] : null;
       if (!item) return this.reject(p, 'Consumível inválido.');
       return item.tipo === 'comida' ? this.useFood(p, data.item) : this.usePotion(p, data.item);
@@ -357,7 +375,8 @@ export class Game {
     if (kind === 'venderItem') return this.venderItem(p,data.item,data.quantidade);
     if (['mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber'].includes(kind)) {
       const metodo={mercadoAnunciar:'anunciar',mercadoComprar:'comprar',mercadoCancelar:'cancelar',mercadoReceber:'receber'}[kind];
-      const resultado=this.mercado[metodo](p,data,this.time);
+      const resultado=metodo === 'anunciar' ? this.mercado.anunciar(p, data, this.time, carteiraPremium)
+        : this.mercado[metodo](p, data, carteiraPremium);
       if(!resultado.ok)return this.reject(p,resultado.reason);
       this.notify(p,({mercadoAnunciar:'Anúncio publicado. Os itens estão reservados no mercado.',mercadoComprar:'Compra no mercado concluída.',mercadoCancelar:'Anúncio cancelado. Itens devolvidos.',mercadoReceber:'Saldo de vendas recebido.'})[kind]);
       return resultado;
@@ -378,9 +397,9 @@ export class Game {
   equiparItem(p, id, { slot, esperado, de, para }) {
     if (p.hp <= 0 || !p.connected) return this.reject(p, 'Personagem indisponível.');
     if (id !== null) {
-      const item = Object.hasOwn(NOVOS_ITENS, id) ? NOVOS_ITENS[id] : null;
+      const item = Object.hasOwn(ITENS_NEGOCIAVEIS, id) ? ITENS_NEGOCIAVEIS[id] : null;
       if (!item?.slot || !(p.inventory[id] > 0)) return this.reject(p, 'Equipamento indisponível na mochila.');
-      if (Math.min(p.levelReal ?? p.level, p.level) < item.nivel)
+      if (p.level < item.nivel)
         return this.reject(p, 'Este equipamento exige nível ' + item.nivel + '.');
       if (slot !== undefined && slot !== item.slot) return this.reject(p, 'Use o encaixe correspondente à peça.');
       slot = item.slot;
@@ -409,12 +428,27 @@ export class Game {
     if (anterior && (inventory[anterior] > 99999 || bagWeight(inventory) > p.stats.capacity + 0.0001 ||
       !novoLayout.some(pilha => pilha?.item === anterior)))
       return this.reject(p, 'Libere espaço na mochila para retirar o equipamento.');
+    if (slot === 'mochila' && anterior) reterCapacidadeDoExtensor(p);
     Object.assign(p.inventory, inventory);
     p.slots = novoLayout;
     if (id) p.equipamentos[slot] = id;
     else delete p.equipamentos[slot];
     atualizarAtributosEquipamento(p);
+    if (slot === 'mochila') {
+      if (id) p.bonusPremium.extensores[id] ??= DURACAO_EXTENSOR;
+      atualizarCapacidade(p);
+      return { ok: true, itemPremium: true };
+    }
     return { ok: true };
+  }
+  usarItemPremium(p, item) {
+    if (!(p.inventory[item.id] > 0)) return this.reject(p, 'Você não tem este item na mochila.');
+    if (item.bonusXp && p.bonusPremium.xp) return this.reject(p, 'Aguarde a poção de XP atual terminar.');
+    p.inventory[item.id]--;
+    reconciliarSlots(p);
+    p.bonusPremium.xp = { percentual: item.bonusXp, segundos: DURACAO_POCAO_XP };
+    this.notify(p, item.nome + ' ativado.');
+    return { ok: true, itemPremium: true };
   }
   useFood(p, id = 'food') {
     const duracao = id === 'food' ? CONFIG.foodDuration : CONSUMIVEIS_LOOT[id].duracao;
@@ -797,14 +831,13 @@ export class Game {
     if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
     if (target.hp <= 0) {
-      if (playerTarget) { target.respawnAt = this.time + CONFIG.respawnDelay; target.autoHunt = false; target.transformed = false; target.formaAte = 0; target.charge = null; atualizarBarraPadrao(target); this.notify(target, 'Derrotado. Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.'); }
+      if (playerTarget) this.derrotarJogador(target);
       else {
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (attacker && this.players.has(attacker.id)) {
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
-          analisar(attacker,'xp',experiencia);
-          this.awardXp(attacker, experiencia); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
+          this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
           const zeniAntes = attacker.zeni;
           const [zeniMin, zeniMax] = faixaZeniMob(target.level, target.raro);
           attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
@@ -833,13 +866,47 @@ export class Game {
     }
     return true;
   }
-  awardXp(p, amount) {
-    // God Mode é uma sessão de teste com nível selecionável; XP de combate continua
-    // contabilizado no Hunt Analyzer, mas não altera o nível escolhido nem o save real.
-    if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) return;
-    p.xp += amount;
+  derrotarJogador(p) {
+    p.respawnAt = this.time + CONFIG.respawnDelay;
+    p.autoHunt = false;
+    p.transformed = false;
+    p.formaAte = 0;
+    p.charge = null;
+
+    p.penalidadeMorte = null;
+    let aviso = 'Derrotado.';
+    if (!p.godmode) {
+      const { nivel, xp, perda } = progressoAposMorte(p.level, p.xp);
+      p.xp = xp;
+      if (perda > 0) p.penalidadeMorte = { xp: perda, nivelAnterior: p.level };
+      if (perda > 0) aviso += ' Perdeu ' + perda.toLocaleString('pt-BR') + ' XP.';
+      if (nivel < p.level) {
+        aviso += ' Nível ' + p.level + ' → ' + nivel + '.';
+        p.level = nivel;
+        p.stats = statsFor(nivel, p.vocacao, p.equipamentos);
+        atualizarCapacidade(p);
+        p.ki = Math.min(p.ki, p.stats.ki);
+      }
+    }
+    atualizarBarraPadrao(p);
+    this.notify(p, aviso + ' Volta ao começo da área em ' + CONFIG.respawnDelay + ' segundos.');
+  }
+  awardXp(p, amount, deAbate = false) {
+    // No God Mode, o Analyzer continua registrando XP de combate sem alterar o progresso real.
+    if (p.godmode || p.level >= CONFIG.progression.nivelMaximo) {
+      if (deAbate) analisar(p, 'xp', amount);
+      return;
+    }
+    const bonus = bonusXpPremium(p, this.agora());
+    // Acumula os centésimos para que abates que rendem pouco XP respeitem o percentual.
+    const centesimos = amount * bonus + p.bonusPremium.restoXp;
+    const xp = amount + Math.floor(centesimos / 100);
+    p.bonusPremium.restoXp = centesimos % 100;
+    if (deAbate) analisar(p, 'xp', xp);
+    p.xp += xp;
     while (p.level < CONFIG.progression.nivelMaximo && p.xp >= xpForLevel(p.level)) {
       p.xp -= xpForLevel(p.level); p.level++; const old = p.stats; p.stats = statsFor(p.level, p.vocacao, p.equipamentos);
+      atualizarCapacidade(p);
       if(p.level===CONFIG.skills.superKamehameha)atualizarBarraPadrao(p);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
@@ -945,6 +1012,14 @@ export class Game {
     analisar(p,'segundos',dt);
     p.moving = false;
     if (!p.connected) { if (p.charge?.bigBangAttack) p.charge = null; p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
+    const extensor = p.equipamentos.mochila;
+    if (extensor && p.bonusPremium.extensores[extensor] !== undefined) {
+      p.bonusPremium.extensores[extensor] -= dt;
+      if (p.bonusPremium.extensores[extensor] <= 0) {
+        encerrarExtensor(p);
+        this.notify(p, 'O extensor da mochila expirou.');
+      }
+    }
     if (p.godmode) {
       if (p.godmodeOptions?.hpInfinite !== false) p.hp = p.stats.hp;
       if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
@@ -957,22 +1032,21 @@ export class Game {
       if (this.time >= p.respawnAt) { this.levar(p, lugar(p.area || 'terra')); p.hp = p.stats.hp; p.ki = p.stats.ki; }
       return;
     }
+    avancarPocaoXp(p, dt);
     if (p.forma === 'gogeta' && p.formaAte > 0 && this.time >= p.formaAte) {
       p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
     if (!p.autoHunt && p.charge?.automated) p.charge = null;
-    const comida = p.foodUntil > this.time ? efeitoComida(p) : null;
-    if (comida?.hpPorSegundo) {
+    const taxas = taxasRegeneracao(p, this.time);
+    if (taxas.hpComida) {
       const antes = p.hp;
-      p.hp = Math.min(p.stats.hp, p.hp + comida.hpPorSegundo * dt);
+      p.hp = Math.min(p.stats.hp, p.hp + taxas.hpComida * dt);
       analisar(p, 'cura', p.hp - antes);
     }
     if (p.autoHunt && p.autoHeal && p.hp / p.stats.hp < p.healThreshold / 100) this.cast(p, 'heal', true);
-    // Ki tem recuperação lenta apenas fora da caça/ataques; é um valor provisório de teste.
-    if (p.forma === 'base' && !p.autoHunt && !p.charge && this.time - p.shotReady > 1.5 && this.time - p.basicReady > 1.5) p.ki = Math.min(p.stats.ki, p.ki + dt * 4);
-    const kiPorSegundo = (p.stats.kiEquipamento ?? 0) + (comida?.kiPorSegundo ?? 0) - (p.forma !== 'base' && !p.godmode ? CONFIG.transformacao.drenoKi : 0);
-    p.ki = clamp(p.ki + dt * kiPorSegundo, 0, p.stats.ki);
+    if (taxas.kiNatural) p.ki = Math.min(p.stats.ki, p.ki + dt * taxas.kiNatural);
+    p.ki = clamp(p.ki + dt * (taxas.kiEquipamento + taxas.kiComida - taxas.drenoForma), 0, p.stats.ki);
     this.verificarKiDaForma(p);
     if (p.charge?.bigBangAttack) {
       this.atualizarCargaBigBangAttack(p);
@@ -1052,6 +1126,7 @@ export class Game {
       else if (usarKi) this.usePotion(p);
     }
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
     const combo = p.comboAutoHunt;
     const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
     if (p.autoHunt && !conjurandoCombo) this.aplicarBuffDoCombo(p);
@@ -1523,7 +1598,7 @@ export class Game {
     this.projectiles = this.projectiles.filter(s => s.ttl > 0);
     this.loot = this.loot.filter(l => !l.taken && this.time < l.until);
   }
-  snapshot(id) {
+  snapshot(id, saldoPremium = 0) {
     const self = this.players.get(id);
     // Mantém o layout dos espaços da mochila coerente com os totais (loot/uso/compra mudam o estoque por fora).
     if (self) reconciliarSlots(self);
@@ -1543,11 +1618,11 @@ export class Game {
         genkiDirecao: p.genkiDirecao || null,
         bigBangLancado: p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,
-        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, equipamentos: self.equipamentos, slots: self.slots, weight: bagWeight(self.inventory),
+        hotkeysConsumiveis:{...self.hotkeysConsumiveis},barraTecnicas:[...self.barraTecnicas],hp: self.hp, ki: self.ki, zeni: self.zeni, inventory: self.inventory, equipamentos: self.equipamentos, slots: self.slots, weight: bagWeight(self.inventory), extensorRestante: self.bonusPremium.extensores[self.equipamentos.mochila] ?? 0,
         autoAttack: self.autoAttack, autoSkills: self.autoSkills, autoHunt: self.autoHunt, comboAutoHunt: self.comboAutoHunt,
         autoHeal: self.autoHeal, healThreshold: self.healThreshold,
         kiThreshold: self.kiThreshold, energyPotionThreshold: self.energyPotionThreshold, seedThreshold: self.seedThreshold,
@@ -1560,9 +1635,10 @@ export class Game {
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
         ryukenRemaining: Math.max(0, (self.ryukenReady || 0) - this.time),
-        novidades: self.novidades.map(n => ({...n})), mercado:this.mercado.resumo(self),
+        novidades: self.novidades.map(n => ({...n})), mercado:{...this.mercado.resumo(self),saldoPremium,pertoDoMercador:Boolean(mercadorPerto(self)),entregasPremium:{...self.entregasPremium},extensores:{...self.bonusPremium.extensores}},
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
-        godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
+        beneficiosDeTeste:this.beneficiosDeTeste, godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
+        penalidadeMorte: self.hp <= 0 ? self.penalidadeMorte ?? null : null,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
       mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),

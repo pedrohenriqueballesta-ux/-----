@@ -1,3 +1,4 @@
+import { ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
 import { NOVOS_ITENS } from '../sistemas/catalogo-itens.mjs';
 // Dados do mundo e números de balanceamento do protótipo. Todos ajustáveis.
 import { PEGADAS } from '../mundo/pegadas-casas.mjs';
@@ -40,7 +41,8 @@ export const CONFIG = Object.freeze({
     // Mantém literalmente a curva histórica até o nível 100; depois acelera gradualmente.
     curvaXP: Object.freeze({ preservarAteNivel: 100, coeficiente: 30, expoentePreservado: 1.35, expoenteAvancado: 1.5 }),
     // Acima do nível da criatura, a recompensa cai suavemente e nunca zera.
-    penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 })
+    penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 }),
+    perdaXpMorte: Object.freeze({ niveisPorFaixa: 250 })
   }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
   width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2, autoFoodLimiteHp: 0.90,
@@ -52,7 +54,7 @@ export const CONFIG = Object.freeze({
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
-  itemWeights: { ...Object.fromEntries(Object.values(NOVOS_ITENS).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
+  itemWeights: { ...Object.fromEntries(Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
   prices: { food: 12, ki: 18, 'pocao-energia': 50, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),

@@ -1,3 +1,5 @@
+import { ITENS_PREMIUM } from './itens-premium.mjs';
+
 // Catálogo inicial de protótipo: preços e datas são configuráveis, sem pagamentos reais.
 export const MAX_PREMIUM=1000000000;
 export const COLECIONAVEIS=Object.freeze({
@@ -9,7 +11,7 @@ export const COLECIONAVEIS=Object.freeze({
  'aura-vip':{nome:'Aura Dourada VIP',tipo:'cosmético',imagem:'/assets/hud/personagem/zeni.png'},
  'nimbus-dourada':{nome:'Nimbus Dourada',tipo:'montaria',imagem:'/assets/montarias/nimbus/sprites/nimbus_s_01.png'},
  'emblema-campeao':{nome:'Emblema do Campeão',tipo:'cosmético',imagem:'/assets/premium/battle-pass.gif'}
- ,'goku-natalino':{nome:'Skin: Goku Natalino',tipo:'skin',imagem:'/assets/goku/natalino/01_PARADO.png'}
+ ,'goku-natalino':{nome:'Skin: Goku Natalino',tipo:'skin',imagem:'/assets/premium/catalogo/goku-natalino-icone.png'}
 });
 // Configure explicitamente a próxima temporada nesta lista. Sem configuração, o passe encerra.
 export const TEMPORADA=Object.freeze({id:'s1',nome:'Temporada 1 · Ascensão Saiyajin',inicio:'2026-11-01T00:00:00Z',fim:'2026-12-01T00:00:00Z',niveis:50,xpPorNivel:1000,precoPremium:500});
@@ -36,7 +38,10 @@ export const RECOMPENSAS_PASSE=Object.fromEntries(['gratis','premium'].map(trilh
 export function recompensaPasse(nivel,trilha){return RECOMPENSAS_PASSE[trilha]?.[nivel-1];}
 export const PRODUTOS_STORE=Object.freeze([
  ...[[50,249],[100,490],[250,990],[500,1990],[1000,3490],[2500,7990]].map(([moedas,precoCentavos])=>({id:'moedas-'+moedas,categoria:'moedas',nome:moedas.toLocaleString('pt-BR')+' moedas premium',descricao:'Recarga de teste, sem cobrança real.',precoCentavos,moedas,imagem:'/assets/premium/catalogo/moedas_'+moedas+'_limpo.png'})),
- ...[[15,150],[30,250],[90,650]].map(([dias,preco])=>({id:'vip-'+dias,categoria:'vip',nome:'VIP · '+dias+' dias',descricao:'Identificação VIP e acesso à compra de cosméticos exclusivos VIP. Sem bônus de combate. Duração acumulada ao renovar.',preco,dias,imagem:'/assets/premium/catalogo/vip_'+dias+'_dias_limpo.png'})),
+ ...[[15,150],[30,250],[90,650]].map(([dias,preco])=>({id:'vip-'+dias,categoria:'vip',nome:'VIP · '+dias+' dias',descricao:'Garante +30% de XP enquanto estiver ativo e acesso aos cosméticos exclusivos VIP. Soma com a poção de XP.',preco,dias,imagem:'/assets/premium/catalogo/vip_'+dias+'_dias_limpo.png'})),
+ ...Object.values(ITENS_PREMIUM).map(({ id, nome, descricao, preco, icone }) => ({
+  id, nome, descricao, preco, imagem: icone, categoria: 'beneficios', item: id
+ })),
  ...['traje-escarlate','aura-azul','aura-vip','nimbus-dourada'].map((id,i)=>({id,categoria:'itens',nome:COLECIONAVEIS[id].nome,descricao:id==='nimbus-dourada'?'Colecionável da conta. A montaria Nimbus está disponível gratuitamente para todos nesta versão.':'Colecionável da conta. Equipar e efeitos visuais serão disponibilizados em versão futura.',preco:[150,100,120,300][i],colecao:id,requerVip:id==='aura-vip',imagem:COLECIONAVEIS[id].imagem})),
  {id:'passe-'+TEMPORADA.id,categoria:'passe',nome:'Battle Pass Premium · '+TEMPORADA.nome,descricao:'Libera a trilha premium da conta, inclusive níveis já alcançados. Não compra níveis.',preco:TEMPORADA.precoPremium,temporada:TEMPORADA.id,imagem:'/assets/premium/battle-pass.gif'}
 ]);

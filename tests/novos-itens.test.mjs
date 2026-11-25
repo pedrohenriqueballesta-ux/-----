@@ -100,6 +100,39 @@ test('equipar valida nível, combina sets, aplica atributos e restaura Ki durant
   assert.deepEqual(salvo.stats, p.stats);
 });
 
+test('God Mode permite equipar no nível ativo e suspende o bônus ao restaurar o nível real', () => {
+  const g = new Game({ populate: false });
+  const item = NOVOS_ITENS['armadura-vegeta'];
+  const p = g.addPlayer('teste', 'Vegeta', { vocacao: 'vegeta', level: 60,
+    inventory: { [item.id]: 1 }, equipamentos: {} });
+  const equipar = () => g.action(p.id, { type: 'equiparItem', item: item.id, slot: item.slot });
+  const configurarNivel = level => g.action(p.id, {
+    type: 'godmodeConfig', options: { ...p.godmodeOptions, level }
+  });
+
+  assert.equal(equipar().ok, false);
+  assert.ok(configurarNivel(item.nivel - 1).ok);
+  assert.ok(g.action(p.id, { type: 'godmode' }).ok);
+  assert.equal(equipar().ok, false);
+  assert.ok(configurarNivel(item.nivel).ok);
+  assert.ok(equipar().ok);
+  assert.equal(p.stats.defense, statsFor(item.nivel, p.vocacao).defense + item.defesa);
+  assert.equal(p.stats.kiEquipamento, item.kiPorSegundo);
+
+  const volta = g.addPlayer('volta', 'Vegeta', JSON.parse(JSON.stringify(g.exportPlayer(p))));
+  assert.equal(volta.levelReal, 60);
+  assert.equal(volta.stats.kiEquipamento, item.kiPorSegundo);
+  assert.ok(configurarNivel(item.nivel - 1).ok);
+  assert.equal(p.stats.defense, statsFor(p.level, p.vocacao).defense);
+  assert.ok(g.action(p.id, { type: 'godmode' }).ok);
+  assert.equal(p.level, 60);
+  assert.equal(p.equipamentos[item.slot], item.id);
+  assert.equal(p.stats.defense, statsFor(60, p.vocacao).defense);
+  assert.equal(p.stats.kiEquipamento ?? 0, 0);
+  assert.ok(g.action(p.id, { type: 'desequiparItem', item: item.id, slot: item.slot }).ok);
+  assert.equal(p.inventory[item.id], 1);
+});
+
 test('arrasto usa o encaixe correto, consome a pilha escolhida e respeita o destino da mochila', () => {
   const game = new Game({ populate: false });
   const p = game.addPlayer('arrasto', 'Vegeta', { level: 150, inventory: { 'armadura-vegeta': 2, food: 1 },
@@ -299,4 +332,17 @@ test('catálogo combina busca sem acento, categoria e raridade com as ordens dis
   assert.equal(filtrarItensCatalogo(itens, { ordem:'raridade' })[0].raridade, 'lendario');
   assert.ok(filtrarItensCatalogo(itens, { tipo:'calca', busca:'Calcas' }).every(i => i.slot === 'calca'));
   assert.deepEqual(filtrarItensCatalogo(itens, { busca:'armadura inexistente' }), []);
+});
+
+test('faixa permanece em cinto e proteção de Freeza migra sem substituir as calças', () => {
+ const g = new Game({ populate: false });
+ const a = g.addPlayer('luvas', 'Goku', { level: 120, equipamentos: { braco: 'faixa-treino' } });
+ assert.equal(a.equipamentos.cinto, 'faixa-treino');
+ assert.equal(a.equipamentos.braco, undefined);
+ const b = g.addPlayer('calcas', 'Goku', {
+  level: 120, equipamentos: { cinto: 'saia-freeza', calca: SET_INICIAL.calca }
+ });
+ assert.equal(b.equipamentos.calca, SET_INICIAL.calca);
+ assert.equal(b.equipamentos.cinto, undefined);
+ assert.equal(b.inventory['saia-freeza'], 1);
 });
