@@ -244,6 +244,8 @@ export function spawnPoints(random) {
     // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
     ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
     // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
-    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length])
+    ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
+    // Vale da Cachoeira: mobs dos Campos de Lava PROVISÓRIOS (Pedro, 24/11/2026); 8 pelo chão pequeno do vale.
+    ...espalhar(random, 'terra-montanhas', 8, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru', { passo: 120 })
   ];
 }

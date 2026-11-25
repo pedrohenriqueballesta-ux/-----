@@ -6,7 +6,7 @@ import { pesLivres, podeAndar } from '../public/shared/mundo/passagem.mjs';
 
 // Terra Selvagem (Pedro, 22–23/11/2026): hub na clareira e hunt 1, o Descampado do Oeste.
 test('Terra Selvagem: chegadas e portais em chão livre; a nave da Cidade do Oeste leva ao hub', () => {
-  for (const id of ['terra-hub', 'terra-descampado', 'terra-deserto', 'terra-neve']) { const z = areaPorId(id); assert.ok(pesLivres('terra-hunts', z.chegada.x, z.chegada.y, 15, id), id); }
+  for (const id of ['terra-hub', 'terra-descampado', 'terra-deserto', 'terra-neve', 'terra-montanhas']) { const z = areaPorId(id); assert.ok(pesLivres('terra-hunts', z.chegada.x, z.chegada.y, 15, id), id); }
   for (const o of PORTAIS.filter(o => o.planet === 'terra-hunts')) assert.ok(pesLivres('terra-hunts', o.x, o.y, 15, o.area), o.id);
   assert.ok(PORTAIS.find(o => o.id === 'terra-nave').destinos.includes('terra-hub'));
 });
@@ -66,6 +66,23 @@ test('Montanhas Nevadas: campo de neve andável; lago, mar e picos bloqueiam; cl
   let chegou = 0;
   for (let i = 0; i < 20; i++) {
     let alvo; do alvo = { x: z.x + rnd() * z.w, y: z.y + rnd() * z.h }; while (!pesLivres('terra-hunts', alvo.x, alvo.y, 15, 'terra-neve'));
+    g.action(p.id, { type: 'moveTo', x: alvo.x, y: alvo.y });
+    for (let t = 0; t < 2400 && p.moveTo; t++) g.tick(.05);
+    if (Math.hypot(p.x - alvo.x, p.y - alvo.y) < 40) chegou++;
+  }
+  assert.ok(chegou >= 18, 'chegaram ' + chegou + ' de 20');
+});
+
+test('Vale da Cachoeira: o vale é andável; rio, cachoeira e montanha bloqueiam; clique chega sem trava', () => {
+  const k = 8192 / 1536, M = (x, y) => [25643 + x * k, y * k];   // px do mapa da hunt (1536×768) → mundo
+  for (const [x, y] of [[600, 430], [700, 420], [520, 500]]) assert.ok(podeAndar('terra-hunts', ...M(x, y), 'terra-montanhas'), 'vale ' + x + ',' + y);
+  for (const [x, y] of [[450, 230], [400, 560], [820, 300]]) assert.equal(podeAndar('terra-hunts', ...M(x, y), 'terra-montanhas'), false, 'bloqueia ' + x + ',' + y);
+  const z = areaPorId('terra-montanhas'); let s = 13; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p');
+  g.levar(p, { planet: 'terra-hunts', area: 'terra-montanhas', chegada: z.chegada });
+  let chegou = 0;
+  for (let i = 0; i < 20; i++) {
+    let alvo; do alvo = { x: z.x + rnd() * z.w, y: z.y + rnd() * z.h }; while (!pesLivres('terra-hunts', alvo.x, alvo.y, 15, 'terra-montanhas'));
     g.action(p.id, { type: 'moveTo', x: alvo.x, y: alvo.y });
     for (let t = 0; t < 2400 && p.moveTo; t++) g.tick(.05);
     if (Math.hypot(p.x - alvo.x, p.y - alvo.y) < 40) chegou++;
