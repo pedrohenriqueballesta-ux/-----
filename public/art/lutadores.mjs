@@ -30,7 +30,9 @@ export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 148 }, picc
   // Terra Selvagem (Pedro, 25/11/2026), alturas PROVISÓRIAS. Dinossauros do Vale da Cachoeira (do mais fraco ao mais
   // forte: Estegossauro, Triceratops, Espinossauro, T-Rex); robôs do Pilaf no Descampado, com a Máquina Pilaf (chefe raro) a maior.
   estegossauro: { altura: 84 }, triceratops: { altura: 86 }, espinossauro: { altura: 110 }, tiranossauro: { altura: 125 },
-  roboMai: { altura: 82 }, roboShu: { altura: 82 }, roboPilaf: { altura: 86 }, maquinaPilaf: { altura: 150 } };   // Pedro, 06/11: Rei +20%, Broly +35%
+  roboMai: { altura: 82 }, roboShu: { altura: 82 }, roboPilaf: { altura: 86 }, maquinaPilaf: { altura: 150 },
+  // Yamcha com o Puar ao lado (Vale da Cachoeira, Pedro 25/11/2026); a altura é a do Yamcha.
+  yamcha: { altura: 74 } };   // Pedro, 06/11: Rei +20%, Broly +35%
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false, tempo = 0) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];

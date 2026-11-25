@@ -98,6 +98,8 @@ const ATRIBUTOS = {
     estegossauro: { level:2, hp: 62, attack: 9, xp: 14, defesa: 1, speed: 100, corpo: 12, name: 'Estegossauro' },
     triceratops: { level:4, hp: 98, attack: 12, xp: 23, defesa: 2, speed: 110, corpo: 12, name: 'Triceratops' },
     espinossauro: { level:7, hp: 150, attack: 16, xp: 35, defesa: 4, speed: 112, corpo: 16, name: 'Espinossauro' },
+    // Yamcha e Puar (Pedro, 25/11/2026): Punho do Lobo de perto e rajada de ki de longe; PROVISÓRIO, entre o Espinossauro e o T-Rex.
+    yamcha: { level:9, hp: 185, attack: 18, xp: 44, defesa: 5, speed: 118, name: 'Yamcha' },
     tiranossauro: { level:10, hp: 202, attack: 19, xp: 48, defesa: 5, speed: 115, corpo: 20, name: 'Tiranossauro' }
   },
   'terra-descampado': {
@@ -264,7 +266,7 @@ export function spawnPoints(random) {
     // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
     ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
     // Vale da Cachoeira: os dinossauros, primeira hunt do jogo (Pedro, 25/11/2026); mais dos fracos que dos fortes.
-    ...espalhar(random, 'terra-montanhas', 10, i => ['estegossauro', 'triceratops', 'estegossauro', 'espinossauro', 'triceratops', 'tiranossauro'][i % 6], { passo: 110 }),
+    ...espalhar(random, 'terra-montanhas', 10, i => ['estegossauro', 'triceratops', 'estegossauro', 'espinossauro', 'triceratops', 'yamcha', 'tiranossauro'][i % 7], { passo: 110 }),
     // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).
     ...espalhar(random, 'terra-ilha', 12, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
     // Floresta do Sudeste: mobs dos Cânions PROVISÓRIOS (Pedro, 25/11/2026).

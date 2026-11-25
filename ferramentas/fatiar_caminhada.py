@@ -111,6 +111,10 @@ for r, linha in enumerate(quadros):
     # Âncora horizontal no centro do tronco (não dos pés, que ficam abertos no quadro de contato).
     a0 = linha[0][..., 3] > 0
     faixa = a0[int(alt0 * 0.45):int(alt0 * 0.65)]
+    # Companheiro solto ao lado (o Puar do Yamcha, 25/11/2026): a âncora fica só no maior pedaço, o corpo.
+    rf, nf = ndimage.label(faixa)
+    if nf > 1:
+        faixa = rf == np.bincount(rf.ravel())[1:].argmax() + 1
     cols = np.nonzero(faixa.any(0))[0]
     tronco0 = (cols[0] + cols[-1]) / 2
     ref = cabeca(linha[0], alt0)

@@ -22,7 +22,8 @@ const recursos = [
   ["pele-oozaru","Pele de Oozaru",0.31,38,"incomum",{"oozaru":0.19,"oozaruGuerreiro":0.29,"oozaruDourado":0.55}],
   ["carne-porunga","Carne de Porunga",0.24,19,"comum",{"porunga":0.3,"boss":0.66}],
   ["garra-porunga","Garra de Porunga",0.12,30,"incomum",{"porunga":0.15,"boss":0.45}],
-  ["pocao-energia","Poção de Energia",0.10,25,"incomum",{"veterano":0.11,"tsufuruGeneral":0.16,"subboss":0.24,"dodoria":0.12,"zarbon":0.19}],
+  // Yamcha (Vale da Cachoeira, 25/11/2026): drop PROVISÓRIO.
+  ["pocao-energia","Poção de Energia",0.10,25,"incomum",{"yamcha":0.2,"veterano":0.11,"tsufuruGeneral":0.16,"subboss":0.24,"dodoria":0.12,"zarbon":0.19}],
   ["presa-oozaru","Presa de Oozaru",0.2,55,"raro",{"oozaru":0.05,"oozaruGuerreiro":0.08,"oozaruDourado":0.42}],
   ["scouter-danificado","Scouter Saiyajin Danificado",0.08,27,"incomum",{"raditz":0.21,"bardock":0.25,"reiVegeta":0.3,"dodoria":0.13,"zarbon":0.18,"freezaBoss":0.48}],
 ];
