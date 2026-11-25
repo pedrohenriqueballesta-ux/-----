@@ -246,6 +246,8 @@ export function spawnPoints(random) {
     // Montanhas Nevadas: mobs da Floresta Seca PROVISÓRIOS (Pedro, 24/11/2026).
     ...espalhar(random, 'terra-neve', 16, i => FLORESTA[i % FLORESTA.length]),
     // Vale da Cachoeira: mobs dos Campos de Lava PROVISÓRIOS (Pedro, 24/11/2026); 8 pelo chão pequeno do vale.
-    ...espalhar(random, 'terra-montanhas', 8, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru', { passo: 120 })
+    ...espalhar(random, 'terra-montanhas', 8, i => i % 3 === 2 ? 'oozaruGuerreiro' : 'oozaru', { passo: 120 }),
+    // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).
+    ...espalhar(random, 'terra-ilha', 12, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta')
   ];
 }
