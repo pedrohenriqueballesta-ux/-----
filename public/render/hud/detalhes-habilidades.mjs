@@ -4,6 +4,7 @@ import { CONSUMIVEIS_LOOT } from '../../shared/tecnicas/consumiveis-loot.mjs';
 import { aplicarRaridadeItem } from './hud-elementos.mjs';
 import { COLECIONAVEIS } from '../../shared/sistemas/premium-config.mjs';
 import { RARIDADES_ITENS } from '../../shared/sistemas/catalogo-itens.mjs';
+import { ITENS_PREMIUM } from '../../shared/sistemas/itens-premium.mjs';
 import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 import { CURA, curaPorNivel } from '../../shared/tecnicas/cura.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
@@ -25,7 +26,7 @@ export function detalhesHabilidade(chave, estado) {
     if (chave === 'ki') return null;
   }
   if(itemChave)chave=chave.slice(5);
-  if (Object.hasOwn(CONSUMIVEIS_LOOT, chave)) return detalhesItem(chave, estado, 'barra');
+  if (Object.hasOwn(CONSUMIVEIS_LOOT, chave) || Object.hasOwn(ITENS_PREMIUM, chave)) return detalhesItem(chave, estado, 'barra');
   if(chave?.startsWith('form:')&&chave!=='form:auto'){
     const forma=formasDaVocacao(estado.vocacao).find(f=>f.forma===chave.slice(5));if(!forma)return null;
     return {nome:forma.nome,linhas:[['Desbloqueia','Nível '+forma.nivel],['Custo','Sem custo'],['Cooldown','Sem recarga'],['Manutenção','Drena '+CONFIG.transformacao.drenoKi.toLocaleString('pt-BR')+' Ki/s'],...(forma.duracao?[['Duração',segundos(forma.duracao)]]:[]),['Estado',estado.level<forma.nivel?'Bloqueada · requer nível '+forma.nivel:estado.forma===forma.forma?'ATIVO':'Disponível']]};
@@ -112,12 +113,18 @@ const numeroItem = valor => valor.toLocaleString('pt-BR', { maximumFractionDigit
 export function detalhesItem(id, estado, local = 'mochila') {
   if (!Object.hasOwn(ITENS_NEGOCIAVEIS, id)) return null;
   const item = ITENS_NEGOCIAVEIS[id];
+  if (Object.hasOwn(ITENS_PREMIUM, id)) {
+    const linhas = [['Raridade', RARIDADES_ITENS[item.raridade]], ['Efeito', item.descricao], ['Peso', numeroItem(item.peso) + ' kg']];
+    if (local === 'mochila' || local === 'barra') linhas.push(['Estoque', String(estado?.inventory?.[id] ?? 0)]);
+    return { nome: item.nome, linhas };
+  }
   const efeito = item.origem ? null : detalhesHabilidade('item:' + id, estado);
   const linhas = [];
   if (item.raridade) linhas.push(['Raridade', RARIDADES_ITENS[item.raridade]]);
   if (item.slot) {
     linhas.push(['Nível exigido', item.nivel], ['Defesa', '+' + item.defesa], ['Regeneração de Ki', '+' + numeroItem(item.kiPorSegundo) + ' Ki/s']);
     if (item.ataque) linhas.push(['Ataque', '+' + item.ataque]);
+    if (local === 'equipado' && estado?.level < item.nivel) linhas.push(['Estado', 'Bônus inativos no nível atual']);
   }
   linhas.push(['Peso', numeroItem(item.peso) + ' kg'], ['Venda ao NPC', numeroItem(item.precoNpc) + ' Z']);
   if (efeito) linhas.push(...(local === 'previa' ? efeito.linhas.filter(([rotulo]) => ['Efeito', 'Cooldown'].includes(rotulo)) : efeito.linhas));

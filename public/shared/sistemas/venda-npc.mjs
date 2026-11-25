@@ -19,7 +19,7 @@ export function avaliarVendaNpc(inventario, selecao, somenteElegiveis = true) {
   if (!itens.length) return { ok:false, reason:'Nenhum item para vender.' };
   let total = 0, quantidade = 0;
   for (const [id, qtd] of itens) {
-    if (!Object.hasOwn(ITENS_NEGOCIAVEIS, id) || (somenteElegiveis && !itemElegivelVendaNpc(id)) ||
+    if (!Object.hasOwn(ITENS_NEGOCIAVEIS, id) || !Number.isFinite(ITENS_NEGOCIAVEIS[id].precoNpc) || (somenteElegiveis && !itemElegivelVendaNpc(id)) ||
         !Number.isSafeInteger(qtd) || qtd < 1 || qtd > LIMITE_ESTOQUE_LOJA)
       return { ok:false, reason:'O lote contém um item ou quantidade inválida.' };
     if ((inventario[id] || 0) < qtd)

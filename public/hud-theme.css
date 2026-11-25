@@ -180,6 +180,7 @@ body:has(#battlePassDialog[open]) .hud-menus [data-menu="battlepass"] {
 }
 .mochila.hud-tema > .mochila-topo { padding-left: calc(40 * var(--um)); padding-right: calc(8 * var(--um)); }
 .mochila.hud-tema .mochila-grade .slot, .mochila.hud-tema .slot-equip { background: #04172ed9; border-color: #2f78aa; }
+.mochila.hud-tema .slot[data-raridade-item]:not(.slot-destino) { border-color: var(--raridade-item); }
 .mochila.hud-tema .mochila-abas button.ativa { border-color: var(--db-hud-gold); background: var(--db-hud-button); }
 .auto-hunt-panel.hud-tema[open] { overflow: visible; }
 .auto-hunt-panel.hud-tema > .auto-hunt-head { padding-left: 42px; padding-right: 8px; }

@@ -15,7 +15,7 @@ function cena(){const g=new Game({populate:false}),a=g.addPlayer('a','Lider'),b=
 const criar={operacao:'criar',nome:'Guerreiros Z',sigla:'DBZ',descricao:'Caça cooperativa',emblema:'★',requisito:1};
 const contas=(...p)=>p.map(p=>({id:p.mercadoId,nome:p.name,nivel:p.level,kills:p.kills}));
 test('preferências validam campos e persistem sem modificar combate ou automação',()=>{const{g,a}=cena();assert.deepEqual(preferenciasValidas(null),PADRAO_PREFERENCIAS);g.action(a.id,{type:'preferencias',valor:{fps:30,escalaHud:9,numerosDano:false,autoHunt:true,ataque:9000}});assert.equal(a.preferencias.fps,30);assert.equal(a.preferencias.escalaHud,1.2);assert.equal(a.autoHunt,false);assert.equal(a.stats.attack,12);const b=g.addPlayer('restaurado',a.name,g.exportPlayer(a));assert.deepEqual(b.preferencias,a.preferencias);assert.equal(preferenciasValidas({fps:999,particulas:'false'}).fps,60);});
-test('perfil usa atributos reais, bônus atuais e não cria regeneração passiva',()=>{const{g,a}=cena();a.forma='kaioken';let p=g.snapshot(a.id).self.perfil;assert.ok(Math.abs(p.ataqueAtual-12*1.4)<1e-9);assert.equal(p.regeneracao,0);assert.equal(p.base.attack,12);a.foodUntil=g.time+10;p=g.snapshot(a.id).self.perfil;assert.ok(p.regeneracao>0);});
+test('perfil usa atributos reais, bônus atuais e não cria regeneração passiva',()=>{const{g,a}=cena();a.forma='kaioken';let p=g.snapshot(a.id).self.perfil;assert.ok(Math.abs(p.ataqueAtual-12*1.4)<1e-9);assert.equal(p.regeneracao.hp.total,0);assert.equal(p.base.attack,12);a.foodUntil=g.time+10;p=g.snapshot(a.id).self.perfil;assert.ok(p.regeneracao.hp.total>0);});
 test('missões usam mortes confirmadas, coleta e técnicas aceitas; eventos visuais não progridem',()=>{const{g,a}=cena();Object.assign(a,{planet:'namek',area:'inicial',x:1000,y:1000});g.emit('damage',{playerId:a.id});assert.equal(a.missoes.diaria.contagens.kills,0);const m=g.addMob('saibaman',1000,1020,'inicial');g.hit(a,m,1e8);assert.equal(a.missoes.diaria.contagens.kills,1);const antes=a.missoes.diaria.contagens.skills;g.cast(a,'nao-existe');assert.equal(a.missoes.diaria.contagens.skills,antes);a.hp=1;g.cast(a,'heal');assert.equal(a.missoes.diaria.contagens.skills,antes+1);g.cast(a,'heal');assert.equal(a.missoes.diaria.contagens.skills,antes+1);});
 test('resgates de missão são únicos, exigem espaço e preservam estoque quando falham',()=>{const{g,a}=cena();registrarMissao(a,'coleta',10);a.stats.capacity=0;const antes=structuredClone([a.zeni,a.inventory]);assert.equal(g.action(a.id,{type:'resgatarMissao',id:'coletor'}).ok,false);assert.deepEqual([a.zeni,a.inventory],antes);a.stats.capacity=bagWeight(a.inventory)+1;assert.ok(g.action(a.id,{type:'resgatarMissao',id:'coletor'}).ok);assert.equal(g.action(a.id,{type:'resgatarMissao',id:'coletor'}).ok,false);const salvo=g.addPlayer('save','Teste',g.exportPlayer(a));assert.equal(listarMissoes(salvo).find(m=>m.id==='coletor').estado,'resgatada');});
 test('períodos UTC renovam por dia e segunda-feira, mantendo missões permanentes',()=>{const{g,a}=cena(),agora=Date.parse('2026-11-08T23:59:59Z');g.agora=()=>agora;registrarMissao(a,'coleta',10,agora);a.missoes.resgatadas.push('coletor');assert.equal(listarMissoes(a,agora).find(m=>m.id==='coleta-diaria').progresso,5);listarMissoes(a,agora+2000);assert.equal(a.missoes.diaria.contagens.coleta,0);assert.equal(a.missoes.semanal.contagens.coleta,0);assert.ok(a.missoes.resgatadas.includes('coletor'));assert.notEqual(periodos(agora).semanal,periodos(agora+2000).semanal);});
@@ -27,3 +27,28 @@ test('histórico do correio impede novo resgate mesmo se a mensagem antiga sair 
 test('restaurar guilda não promove membro comum após transferência de liderança',()=>{const gs=new Guildas();gs.restaurar({guildas:[{id:'guilda-1',nome:'Teste',sigla:'TS',emblema:'★',requisito:1,membros:[{id:'membro',cargo:'membro'},{id:'lider',cargo:'lider'}],solicitacoes:[],convites:[]}]});assert.equal(gs.doJogador('membro').membros[0].cargo,'membro');assert.equal(gs.doJogador('lider').membros[1].cargo,'lider');});
 test('resgates HTTP simultâneos entregam recompensa uma única vez',async()=>{const app=await createGameServer({port:0,dataDir:null});try{const base='http://127.0.0.1:'+app.port,post=(path,d,token)=>fetch(base+'/api/'+path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(d)}).then(r=>r.json());const s=await criarSessaoTeste(base,'Resgate'),p=app.game.players.get(s.playerId);registrarMissao(p,'coleta',10);const antes=p.zeni;const r=await Promise.all([1,2].map(()=>post('action',{type:'resgatarMissao',id:'coletor'},s.token)));assert.equal(r.filter(v=>v.ok).length,1);assert.equal(p.zeni,antes+25);}finally{await app.close();}});
 test('ranking identifica vocação e preserva o personagem nos saves antigos e novos',()=>{const{g,a}=cena();const lista=contasDoServidor({},new Map([[a.id,a]]));assert.equal(lista[0].vocacao.id,'goku');assert.equal(lista[0].vocacao.nome,'Goku');assert.equal(lista[0].vocacao.sprite,'goku');const r=rankingServidor(lista,a.mercadoId,{},g.guildas);assert.equal(r.linhas[0].vocacao.id,'goku');const salvo=g.exportPlayer(a);assert.equal(salvo.vocacao,'goku');assert.equal(g.addPlayer('volta','Teste',salvo).character,'Goku');assert.equal(g.addPlayer('legado','Antigo',{level:1}).vocacao,'goku');});
+test('perfil discrimina comida, set, repouso e forma com as taxas aplicadas na simulação', () => {
+ const {g, a} = cena();
+ Object.assign(a, { hp: a.stats.hp - 10, ki: a.stats.ki - 10, foodId: 'carne-oozaru', foodUntil: g.time + 10 });
+ a.stats.kiEquipamento = 2;
+ const perfil = () => g.snapshot(a.id).self.perfil.regeneracao;
+ assert.equal(perfil().hp.total, 5);
+ assert.equal(perfil().ki.total, 9);
+ assert.deepEqual(perfil().ki.fontes.map(([, taxa]) => taxa), [4, 2, 3]);
+
+ a.forma = 'ssj';
+ assert.equal(perfil().ki.total, 1.5);
+ assert.deepEqual(perfil().ki.fontes.map(([, taxa]) => taxa), [2, 3, -3.5]);
+ const antes = [a.hp, a.ki];
+ g.updatePlayer(a, 1);
+ assert.equal(a.hp - antes[0], 5);
+ assert.equal(a.ki - antes[1], 1.5);
+
+ a.forma = 'base';
+ a.foodUntil = g.time;
+ a.shotReady = g.time;
+ assert.equal(perfil().hp.total, 0);
+ assert.equal(perfil().ki.total, 2);
+ a.hp = 0;
+ assert.deepEqual(perfil().ki.fontes, []);
+});

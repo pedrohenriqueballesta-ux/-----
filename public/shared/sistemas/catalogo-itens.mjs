@@ -56,7 +56,7 @@ const equipamentos = [
   ["armadura-freeza","Armadura da Força Freeza",6.71,4600,"epico","peito",140,26,2.55,0,{"freezaBoss":0.2}],
   ["botas-freeza","Botas da Força Freeza",2.31,2250,"epico","botas",122,14,1.8,0,{"freezaBoss":0.24}],
   ["capacete-freeza","Capacete da Força Freeza",1.78,2150,"epico","cabeca",121,13,1.72,0,{"freezaBoss":0.25}],
-  ["saia-freeza","Proteção de Cintura da Força Freeza",1.37,1560,"raro","cinto",116,10,1.32,0,{"freezaBoss":0.22,"zarbon":0.0055,"dodoria":0.003}],
+  ["saia-freeza","Proteção de Cintura da Força Freeza",1.37,1560,"raro","calca",116,10,1.32,0,{"freezaBoss":0.22,"zarbon":0.0055,"dodoria":0.003}],
   ["colete-fusao","Colete Metamoru",2.85,14000,"epico","peito",220,21,5.4,0,"@Gogeta ou Gotenks"],
   ["calca-fusao","Calça Metamoru",1.48,14500,"epico","calca",222,19,4.8,0,"@Gogeta ou Gotenks"],
   ["botas-futuro","Botas do Futuro",1.76,1750,"raro","botas",123,11,2.05,0,"@Trunks do Futuro"],
@@ -145,13 +145,13 @@ const semDrops = Object.freeze([]);
 export const dropsEspecificos = mob => porMob.get(mob) ?? semDrops;
 
 const numero = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
-export const RARIDADES_ITENS = Object.freeze({ comum: 'Comum', incomum: 'Incomum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário' });
+export const RARIDADES_ITENS = Object.freeze({ store: 'Store', comum: 'Comum', incomum: 'Incomum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário' });
 export function descricaoItem(item) {
   const dados = [RARIDADES_ITENS[item.raridade] ?? 'Item', 'Peso ' + numero(item.peso) + ' kg'];
   if (item.slot) {
     dados.push('Nível ' + item.nivel, 'Defesa +' + item.defesa, 'Ki/s +' + numero(item.kiPorSegundo));
     if (item.ataque) dados.push('Ataque +' + item.ataque);
   }
-  dados.push('Venda ao NPC ' + numero(item.precoNpc) + ' Z');
+  if (Number.isFinite(item.precoNpc)) dados.push('Venda ao NPC ' + numero(item.precoNpc) + ' Z');
   return dados.join(' · ');
 }

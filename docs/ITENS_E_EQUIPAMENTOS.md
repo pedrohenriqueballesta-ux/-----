@@ -13,13 +13,26 @@ Balanceamento dos itens e da economia das hunts. O catálogo registra 14 materia
 ## Atributos e comércio
 
 - Peças equipadas dão bônus individuais, permitindo combinar peças de famílias diferentes. Por exemplo, a Armadura Celestial de Elite dá 35 de defesa e 6,4 Ki/s, enquanto a Calça de Goku dá mais defesa e Ki/s que a Calça Celestial de Elite. As Botas de Vegeta recuperam mais Ki/s que a armadura de Vegeta. Os valores iniciais usam a escala atual de Ki e o dreno de transformação do jogo.
-- A regeneração das peças funciona durante combate, Auto Hunt e transformação. O servidor soma os bônus, aplica o dreno da forma e limita o saldo de Ki ao máximo do personagem. Os níveis real e efetivo precisam liberar a peça antes que possa ser equipada.
+- A regeneração das peças funciona durante combate, Auto Hunt e transformação. O servidor soma os bônus, aplica o dreno da forma e limita o saldo de Ki ao máximo do personagem. O nível ativo define quais peças podem ser equipadas e quais bônus são aplicados. Se o nível cair ao ajustar ou desligar o God Mode, a peça permanece no encaixe e o bônus fica suspenso até o requisito voltar a ser atendido.
 - A mochila mostra peso, raridade, nível, defesa, Ki/s, ataque quando aplicável e preço pago pelo NPC. Passe o mouse sobre a peça para ver a ficha. Arraste da grade até o encaixe correspondente para equipar. Para desequipar, arraste a peça vestida até um espaço livre da grade ou sobre uma pilha da mesma peça.
 - As peças vestidas ficam nos slots de equipamento. Peso e espaço da mochila são cobrados pelos itens guardados nela. Para vender ao mercador ou anunciar no mercado de jogadores, a peça deve estar na mochila.
 - Fruta de Namek restaura **1 Ki/s por 60 s**. Carne de Porunga restaura **6 HP/s por 60 s**. Carne de Oozaru restaura **5 HP/s e 3 Ki/s por 90 s**. As três compartilham o efeito ativo com o Presunto.
 - Poção de Energia restaura **15% do HP máximo** instantaneamente e compartilha a recarga da Poção de Ki. A opção no Auto Hunt fica desativada por padrão e usa um limite configurável de HP (padrão de 50%). Se as duas poções estiverem habilitadas, tiverem estoque e atingirem os respectivos limites, o Auto Hunt prioriza o recurso com menor porcentagem restante. Em caso de empate, prioriza HP. Os quatro itens podem ser usados pela mochila ou pela barra e continuam negociáveis.
 - O Auto Hunt segue com o Presunto e a Poção de Ki nas automações existentes. Ao usar consumíveis de loot durante a caça, o Hunt Analyzer considera seu valor de venda ao NPC como custo de oportunidade.
 - O [relatório de loot e recompensas](AUDITORIA_LOOT_E_RECOMPENSAS.md) relaciona os mobs ativos, as 35 peças pendentes e propostas para missões e VIP.
+
+## Benefícios da Store
+
+- As poções de XP (+10%, +15% e +20%) custam 80, 120 e 160 moedas premium. O bônus começa ao usar o item e dura 8 horas de hunt, com o personagem vivo e conectado, inclusive em combate manual. O relógio pausa fora das hunts e no God Mode. Só uma poção por vez. O Perfil mostra o estado e o tempo restante.
+- O VIP concede +30% de XP enquanto durar e soma com a poção de XP.
+- Os extensores (+10% e +20%) custam 200 e 350 moedas premium. O extensor é equipado no encaixe de mochila e dura 8 horas enquanto equipado e conectado. O tempo pausa ao retirar. Ao expirar, o limite retém o peso já carregado acima da capacidade normal e só desce conforme o personagem libera peso. Os itens pesam 0,2 kg (poção) ou 0,3 kg (extensor).
+- A Store confirma quantidade e custo total antes de descontar o saldo. Poções e extensores podem ser comprados em lotes de até 99 unidades.
+- Compras entram na mochila e podem ser usadas ou negociadas no Market. Se faltar espaço ou capacidade, ficam em **Entrega pendente** na Store para recolhimento posterior. Itens Store têm borda vermelha e podem ser negociados no Market antes do primeiro uso.
+- Em desenvolvimento, **Limpar efeitos e VIP** no God Mode remove a poção, a comida e o extensor ativos do personagem e encerra o VIP da conta.
+
+## Market
+
+O inventário de anúncio aceita itens da mochila e das entregas pendentes da Store de qualquer lugar. O primeiro espaço oferece Zeni Dourado da carteira da conta em troca de Zeni comum. O saldo anunciado fica reservado, e a compra transfere Zeni Dourado direto à carteira do comprador. Compras, cancelamentos e recebimento do saldo de vendas continuam no mercador.
 
 ## Venda ao NPC
 
