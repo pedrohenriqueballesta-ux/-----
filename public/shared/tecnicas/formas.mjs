@@ -3,6 +3,17 @@
 // A duração de Gogeta é limitada por CONFIG.transformacao.
 import { CONFIG } from '../nucleo/config.mjs';
 
+// Cinco marcos iniciais compartilhados com a progressão do Vegeta.
+export const FORMAS_BOO = Object.freeze([
+  ['evilBoo', 'Evil Boo', 'evil_boo', CONFIG.skills.transform],
+  ['superBoo', 'Super Boo', 'super_boo', CONFIG.skills.majin],
+  ['buutenks', 'Buutenks', 'super_boo_gotenks', CONFIG.skills.ssj4Vegeta],
+  ['buuhan', 'Buuhan', 'buuhan', CONFIG.skills.ssjGod],
+  ['kidBoo', 'Kid Boo', 'kid_boo', CONFIG.skills.ssjBlue]
+].map(([forma, nome, arquivo, nivel]) => Object.freeze({
+  forma, nome, nivel, icone: '/assets/skills/transformacoes/majin-boo/majin_boo_' + arquivo + '.png'
+})));
+
 export const FORMAS = Object.freeze([
   { forma: 'kaioken', nome: 'Kaioken', nivel: CONFIG.skills.kaioken, vocacoes: ['goku'] },
   { forma: 'ssj', nome: 'Super Saiyajin', nivel: CONFIG.skills.transform, vocacoes: ['goku', 'vegeta'], icone: '/assets/skills/transformacoes/ssj1.png', icones: { vegeta: '/assets/skills/transformacoes/vegeta/ssj1.png' } },
@@ -16,14 +27,16 @@ export const FORMAS = Object.freeze([
   { forma: 'gogeta', nome: 'Gogeta', nivel: CONFIG.skills.gogeta, vocacoes: ['goku'], duracao: CONFIG.transformacao.gogetaDuracao, icone: '/assets/skills/transformacoes/gogeta.png' },
   { forma: 'vegito', nome: 'Vegetto', nivel: CONFIG.skills.vegito, vocacoes: ['goku'], icone: '/assets/skills/transformacoes/vegeto.png' }
 ]);
-export const formasDaVocacao = (vocacao = 'goku') => FORMAS
+export const formasDaVocacao = (vocacao = 'goku') => vocacao === 'boo' ? FORMAS_BOO : FORMAS
   .filter(f => !f.vocacoes || f.vocacoes.includes(vocacao))
   .map(f => f.niveis?.[vocacao] === undefined ? f : { ...f, nivel: f.niveis[vocacao] });
 
 // A forma que o botão de transformação ativa neste nível (null antes da primeira).
-export const formaDisponivel = (level, vocacao = 'goku') => formasDaVocacao(vocacao).findLast(f => level >= f.nivel) || null;
-export const nomeDaForma = forma => FORMAS.find(f => f.forma === forma)?.nome || 'Forma base';
-export const iconeDaForma = (forma, vocacao = 'goku') => { const f = FORMAS.find(item => item.forma === forma); return f?.icones?.[vocacao] || f?.icone || null; };
+export const formaDisponivel = (level, vocacao = 'goku') =>
+  formasDaVocacao(vocacao).findLast(f => level >= f.nivel) || null;
+const formaPorId = forma => FORMAS.find(f => f.forma === forma) || FORMAS_BOO.find(f => f.forma === forma);
+export const nomeDaForma = forma => formaPorId(forma)?.nome || 'Forma base';
+export const iconeDaForma = (forma, vocacao = 'goku') => { const f = formaPorId(forma); return f?.icones?.[vocacao] || f?.icone || null; };
 
 // Multiplicador do ataque por golpe e forma. Base, Kaioken (base × 1,4) e SSJ são os valores que já existiam;
 // SSJ2 = SSJ × 1,5 e SSJ3 = SSJ2 × 1,5 (decisões do Pedro, 11–12/11/2026). Bônus não acumulam: uma forma por vez.

@@ -1,8 +1,10 @@
+import { RETRATO_MAJIN_BOO } from '../../art/personagens/majin-boo/folhas.mjs';
 import { vocacaoDoPersonagem } from '../../shared/sistemas/vocacoes.mjs';
 
 const retratos = {
   goku: '/assets/hud/vocacoes/goku.png',
-  vegeta: '/assets/hud/vocacoes/vegeta.png'
+  vegeta: '/assets/hud/vocacoes/vegeta.png',
+  boo: RETRATO_MAJIN_BOO
 };
 
 export function atualizarRetratoVocacao(imagem, valor) {
@@ -21,7 +23,8 @@ export function retratoVocacao(valor) {
 
 const desenhistas = {
   goku: () => import('../../art/personagens/goku/goku.mjs').then(m => m.drawGoku),
-  vegeta: () => import('../../art/personagens/vegeta/vegeta.mjs').then(m => m.drawVegeta)
+  vegeta: () => import('../../art/personagens/vegeta/vegeta.mjs').then(m => m.drawVegeta),
+  boo: () => import('../../art/personagens/majin-boo/boo.mjs').then(m => m.drawBoo)
 };
 
 export function spriteVocacao(valor) {

@@ -1,3 +1,5 @@
+import { TECNICAS_BOO, custoTecnicaBoo } from '../../shared/tecnicas/majin-boo.mjs';
+import { CHOCOLATE_BEAM } from '../../shared/tecnicas/chocolate-beam.mjs';
 import { GALICK } from '../../shared/tecnicas/galick-gun.mjs';
 import { BIG_BANG_ATTACK, formaBigBangAttack } from '../../shared/tecnicas/big-bang-attack.mjs';
 import { FINAL_FLASH, formaFinalFlash } from '../../shared/tecnicas/final-flash.mjs';
@@ -28,7 +30,8 @@ function desenhar(){
  for(let i=0;i<8;i++){
   let b=root.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='tecnica';b.dataset.barraSlot=String(i);root.append(b);}
   const id=slots[i],t=tecnicaPorId(id),f=t?.id==='form:auto'?formaMostrada(estado):null;
-  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=f?.nivel??(t?nivelDaTecnica(t,estado?.vocacao):1),galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||!tecnicaDaVocacao(id,estado?.vocacao))), finalFlash=id==='skill:finalFlash', bigBang=id==='skill:bigBangAttack', semKi=(galick&&estado?.ki<GALICK.custo)||(finalFlash&&estado?.ki<FINAL_FLASH.custo)||(bigBang&&estado?.ki<BIG_BANG_ATTACK.custo);
+  const boo=TECNICAS_BOO[id?.slice(6)];
+  const nome=(id==='skill:galick'&&estado?.galickVersao?'Galick Gun V'+estado.galickVersao:f?.nome)||(estado?.vocacao==='vegeta'?NOMES_TECNICAS_VEGETA[id]||t?.nome:t?.nome)||'Vazio',nivel=f?.nivel??(t?nivelDaTecnica(t,estado?.vocacao):1),galick=id==='skill:galick', bloqueada=Boolean(t&&(estado?.level<nivel||!tecnicaDaVocacao(id,estado?.vocacao))), finalFlash=id==='skill:finalFlash', bigBang=id==='skill:bigBangAttack', semKi=(boo&&estado?.stats&&estado.ki<custoTecnicaBoo(boo,estado.stats.ki))||(id==='skill:chocolateBeam'&&estado?.ki<CHOCOLATE_BEAM.custo)||(galick&&estado?.ki<GALICK.custo)||(finalFlash&&estado?.ki<FINAL_FLASH.custo)||(bigBang&&estado?.ki<BIG_BANG_ATTACK.custo);
   if(b.dataset.tecnica!==(id||'')){b.dataset.tecnica=id||'';delete b.dataset.formIcon;if(id)b.dataset.skill=id;else b.removeAttribute('data-skill');b.replaceChildren();const k=document.createElement('kbd');k.textContent=String(i+1);b.append(k);if(t)b.append(icone(t,estado));else{const vazio=document.createElement('span');vazio.className='tecnica-icone slot-vazio';b.append(vazio);}const strong=document.createElement('strong');strong.textContent=nome;b.append(strong);const small=document.createElement('small');b.append(small);}
   if (id?.startsWith('form:')) {
    const chaveIcone = (estado?.vocacao || 'goku') + ':' + (f?.forma || id);

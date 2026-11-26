@@ -14,9 +14,16 @@ test('a folha única é RGBA em grade 6 × 6 de células 211 × 206', async () =
 });
 
 test('descargas variam por jogador e forma, com cadência estável e os 36 quadros', () => {
-  assert.deepEqual(Object.keys(RAIOS_POR_FORMA), ['vegeta']);
+  assert.deepEqual(Object.keys(RAIOS_POR_FORMA).sort(), ['boo', 'vegeta']);
+  assert.deepEqual(Object.keys(RAIOS_POR_FORMA.boo), ['kidBoo']);
   assert.deepEqual(Object.keys(RAIOS_POR_FORMA.vegeta), ['ssj', 'ssjGod', 'ssjBlue', 'ultraEgo']);
-  for (const [forma, config] of Object.entries(RAIOS_POR_FORMA.vegeta)) {
+  const { cor: rosa, brilho: magenta, ...perfilKid } = RAIOS_POR_FORMA.boo.kidBoo;
+  const { cor: corGod, brilho: brilhoGod, ...perfilGod } = RAIOS_POR_FORMA.vegeta.ssjGod;
+  assert.deepEqual(perfilKid, perfilGod);
+  assert.notDeepEqual(rosa, corGod);
+  assert.notDeepEqual(magenta, brilhoGod);
+  const perfis = { ...RAIOS_POR_FORMA.vegeta, ...RAIOS_POR_FORMA.boo };
+  for (const [forma, config] of Object.entries(perfis)) {
     const semPausa = { ...config, pausa: 0 };
     const quadros = new Set();
     let inicio, quadroAnterior;

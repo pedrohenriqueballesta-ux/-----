@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dragon Ball Idle — Prévia de Majin Boo</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #eef5ff; background: #0b182b; font: 15px system-ui, sans-serif; }
+  main { max-width: 75rem; margin: auto; padding: clamp(1rem, 3vw, 2rem); }
+  header, nav, aside { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+  header { justify-content: space-between; }
+  h1 { color: #ffdc8c; font-size: 1.5rem; }
+  a { color: #92d8ff; }
+  label { display: flex; align-items: center; gap: .4rem; }
+  button, select { padding: .45rem .65rem; border: 1px solid #4a7195; border-radius: .4rem; color: inherit; background: #162e4a; font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, select:focus-visible { outline: 2px solid #ffdc8c; outline-offset: 2px; }
+  .visor { overflow: auto; margin-block: 1rem; border: 1px solid #4a7195; border-radius: .6rem; }
+  canvas { display: block; width: 100%; min-width: 52rem; height: auto; }
+  aside img { display: block; width: 4rem; height: 4rem; object-fit: contain; }
+  output { font-variant-numeric: tabular-nums; }
+</style>
+<main>
+  <header><h1>Majin Boo · Prévia de animações</h1><a href="/animacoes.html">Outras animações</a></header>
+  <nav aria-label="Controles da prévia">
+    <label>Forma <select id="forma"></select></label>
+    <label>Ação <select id="acao"></select></label>
+    <label>Fundo <select id="fundo"><option value="escuro">Escuro</option><option value="claro">Claro</option></select></label>
+    <label>Vapor <select id="vapor"><option value="nenhum">Desligado</option><option value="efeito">Ligado</option><option value="poros">Mostrar poros</option></select></label>
+    <button id="anterior" type="button">Anterior</button>
+    <button id="proximo" type="button">Próximo</button>
+    <button id="reproduzir" type="button" aria-pressed="false">Reproduzir</button>
+    <output id="quadro"></output>
+  </nav>
+  <div class="visor"><canvas width="1056" height="188" aria-label="Animação do Majin Boo nas oito direções"></canvas></div>
+  <p id="status" role="status"></p>
+  <aside id="icones" aria-label="Retrato e ícones de Majin Boo"></aside>
+</main>
+<script type="module" src="/render/previas/majin-boo-previa.mjs"></script>
+</html>

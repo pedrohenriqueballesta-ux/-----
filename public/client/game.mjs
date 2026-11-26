@@ -1,4 +1,9 @@
+import { carregarEfeitosBoo, desenharCargaBoo, desenharEfeitoBoo } from '../render/vfx/majin-boo.mjs';
+import { SUPERNOVA_BOO, CLONES_BOO } from '../shared/tecnicas/majin-boo.mjs';
+import { alturaBoo, carregarBoo, drawBoo, palmaRajadaBoo, pontaAntenaChocolate } from '../art/personagens/majin-boo/boo.mjs';
+import { carregarRaioChocolate, desenharRaioChocolate, desenharChocolateAtordoado } from '../render/vfx/chocolate-beam.mjs';
 import { NOVOS_ITENS } from '../shared/sistemas/catalogo-itens.mjs';
+import { poseCombate, progressoDoSoco } from '../render/pose-personagem.mjs';
 import {apresentarGenkiJogador,POSE_GENKI} from '../render/vfx/genki-personagem.mjs';
 import {acaoDaTecnica,barraValida,tecnicaDisponivel} from '../shared/tecnicas/barra-tecnicas.mjs';
 import {instalarAtalhosInterface} from './atalhos.mjs';
@@ -15,7 +20,6 @@ import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
 import { carregarGalick, desenharGalick, desenharImpactoGalick } from '../render/vfx/galick-gun.mjs';
 import { origemGalick } from '../shared/tecnicas/galick-gun.mjs';
-import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
 import { colunaCargaBigBang, maoBigBang } from '../shared/tecnicas/big-bang-attack.mjs';
 import { avancoOrbeBigBang, carregarBigBangAttack, desenharCargaBigBang, desenharBigBang, posicaoBigBang } from '../render/vfx/big-bang-attack.mjs';
 import { carregarFinalFlash, desenharFinalFlash, desenharImpactoFinalFlash, maoVisualFinalFlash } from '../render/vfx/final-flash.mjs';
@@ -167,11 +171,22 @@ function conectarMundo(data){
         renderPositions.clear(); floating = []; pointerAim = null;
       }
       const anteriorSnapshot=snapshot;
+      if (anteriorSnapshot?.clonesBoo?.length) {
+        const ativos = new Set((proximo.clonesBoo || []).map(c => c.id));
+        for (const c of anteriorSnapshot.clonesBoo) if (!ativos.has(c.id)) renderPositions.delete(c.id);
+      }
       if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
       snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
       carregarGalick(snapshot.self?.galickVersao);
+      if (snapshot.players.some(p => p.vocacao === 'boo')) {
+        const formas = new Set(['base', ...snapshot.players.filter(p => p.vocacao === 'boo').map(p => p.forma),
+          ...(snapshot.clonesBoo || []).map(c => c.forma)]);
+        for (const forma of formas) carregarBoo(forma);
+        carregarRaioChocolate();
+        carregarEfeitosBoo();
+      }
       if (snapshot.players.some(p => p.vocacao === 'vegeta')) {
         carregarFinalFlash();
         carregarBigBangAttack();
@@ -403,18 +418,12 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const image = p.transformed ? (back ? sprites.ssjBack : sprites.ssj) : back ? sprites.gokuBack : sprites.goku;
   const bob = p.moving ? Math.sin(time * 15) * 1.4 : 0;
   // Sem círculo dourado em volta do Super Saiyajin (pedido do Pedro, 11/11/2026), como já foi feito com a Kaioken.
-  const rajada = floating.find(e => e.playerId === p.id && e.type === 'kiShot' && time - e.at >= 0 && time - e.at < .36);
-  const kame = (snapshot.kamehamehas || []).find(k => !k.galick && !k.finalFlash && k.owner === p.id && (!k.impacto || time-k.impacto.started < .25));
-  const galick = p.charge?.galick ? p.charge : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.galick);
-  const finalFlash = p.charge?.finalFlash ? { ...p.charge, carga: true }
-    : (snapshot.kamehamehas || []).find(k => k.owner === p.id && k.finalFlash && (!k.impacto || time - k.impacto.started < FINAL_FLASH.sustentacao));
-  const bigBang = p.charge?.bigBangAttack ? p.charge : p.bigBangLancado;
-  p = { ...p, rajadaStarted:rajada?.at, kameStarted:kame?.started, galick, finalFlash, bigBang };
-  if (bigBang) p.facing = bigBang.direction;
-  const strike = floating.find(e => e.playerId === p.id && e.type === 'punch' && time - e.at >= 0 && time - e.at < 0.36);
-  const strikeProgress = strike ? Math.min(1, (time - strike.at) / 0.36) : null;
+  p = { ...p, ...poseCombate(p, snapshot, time, floating) };
+  if (p.bigBang) p.facing = p.bigBang.direction;
+  const strikeProgress = progressoDoSoco(p.socoStarted, time);
   const hit = floating.some(e => e.targetId === p.id && e.type === 'damage' && time - e.at >= 0 && time - e.at < 0.12);
-  if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; drawGoku(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
+  const desenhar = p.vocacao === 'boo' ? drawBoo : p.vocacao === 'vegeta' ? drawVegeta : drawGoku;
+  if (p.dashing && !somenteCorpo) { ctx.globalAlpha = 0.3; desenhar(ctx, p, { ...pos, x: pos.x - p.facing.x * 23, y: pos.y - p.facing.y * 23 }, time, strikeProgress); ctx.globalAlpha = 1; }
   // Camada de trás dos raios do Super Saiyajin 2 (passam por trás do corpo).
   // Altura do Goku desenhado na forma (com o cabelo): os raios encaixam no corpo do SSJ2 e do SSJ3.
   const moldeRaios = p.vocacao === 'vegeta' ? FOLHAS_VEGETA_SSJ1 : p.forma === 'ssj3' ? FOLHAS_GOKU_SSJ3 : FOLHAS_GOKU_SSJ2;
@@ -422,10 +431,10 @@ function drawPlayer(p, pos, time, somenteCorpo = false) {
   const alturaSsj2 = 70 * moldeRaios.parado[0].referenceHeight / alturaBase;
   if (!somenteCorpo) desenharRaiosSsj2(ctx, p, pos, time, alturaSsj2, 'atras');
   // Atrás da silhueta para manter o rosto legível em qualquer pose.
-  if (!somenteCorpo) desenharRaiosTransformacao(ctx, p, pos, time, 70, RAIOS_POR_FORMA);
+  if (!somenteCorpo) desenharRaiosTransformacao(ctx, p, pos, time, p.vocacao === 'boo' ? alturaBoo(p.forma) : 70, RAIOS_POR_FORMA);
   ctx.save(); if (hit) ctx.filter = 'brightness(1.7) saturate(.6)';
-  const desenhouPersonagem = p.vocacao === 'vegeta' ? drawVegeta(ctx, p, pos, time, strikeProgress) : drawGoku(ctx, p, pos, time, strikeProgress);
-  if (!desenhouPersonagem) ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
+  const desenhouPersonagem = desenhar(ctx, p, pos, time, strikeProgress);
+  if (!desenhouPersonagem && p.vocacao !== 'boo') ctx.drawImage(image, Math.round(pos.x - 21), Math.round(pos.y - 49 + bob), 42, 56);
   ctx.restore();
   if (!somenteCorpo && usaCamadasRena && !p.dead) {
     desenharNimbus(ctx,{...p,renaCamadas:true,renaCamada:'front'},origemMontaria,time,opcoesNimbus);
@@ -464,8 +473,16 @@ function drawMob(m, pos, time) {
       : drawAlien(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled));
   if (!drawn) ctx.drawImage(m.type === 'boss' ? art.freezaBoss : corpoACorpo ? sprites.melee : sprites.ranged, Math.round(pos.x - size / 2), Math.round(pos.y - h + 8 + (m.moving ? Math.sin(time * 14) : 0)), size, h);
   ctx.restore();
-  const topo = voa ? ALTURA_GOKU * VOADORES[m.type].proporcao + ALTURA_DE_VOO : ['guerreiro', 'veterano'].includes(m.type) ? ALTURA_GUERREIRO + 4 : m.type in LUTADORES ? LUTADORES[m.type].altura + 4 : m.type === 'freezaBoss' ? (FREEZA_ALTURA[m.forma] || FREEZA_ALTURA.pe) + 6 : h;
+  const topo = topoDoMob(m);
   placa(pos.x, pos.y - topo - 16, m.name + (m.level ? ' • Nv. ' + m.level : ''), m.hp, m.maxHp, boss ? '#ff7a2a' : '#e2342a', boss ? 76 : 52);
+  desenharChocolateAtordoado(ctx, { x: pos.x, y: pos.y - topo - 39 }, m.chocolate, time);
+}
+function topoDoMob(m) {
+  if (m.type in VOADORES) return ALTURA_GOKU * VOADORES[m.type].proporcao + ALTURA_DE_VOO;
+  if (['guerreiro', 'veterano'].includes(m.type)) return ALTURA_GUERREIRO + 4;
+  if (m.type in LUTADORES) return LUTADORES[m.type].altura + 4;
+  if (m.type === 'freezaBoss') return (FREEZA_ALTURA[m.forma] || FREEZA_ALTURA.pe) + 6;
+  return grande(m) ? 100 : 53;
 }
 // Freeza entrando na nave: aura roxa que cresce em volta dele (o clarão e a onda vêm pelo evento freezaNave).
 function auraFreeza(x, y, p, time) {
@@ -755,7 +772,8 @@ function frame(now) {
   const casas = HOUSES.filter(aquiNoPlaneta), mercadores = MERCADORES.filter(m => aquiNoPlaneta(m) && !m.predio);
   const vulcoesAqui = world.id === 'vegeta' ? VEGETA_OBJETOS.filter(o => o.tipo === 'vulcao') : [];
   const self = snapshot.players.find(p => p.id === playerId);
-  for (const entity of [...snapshot.players, ...snapshot.mobs]) {
+  const clonesBoo = snapshot.clonesBoo || [], efeitosBoo = snapshot.efeitosBoo || [];
+  for (const entity of [...snapshot.players, ...snapshot.mobs, ...clonesBoo]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
       const iv = inputVector(); let px = entity.x, py = entity.y;
       if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * (entity.montaria ? MULT_NIMBUS_DEV : 1) * el, 15, snapshot.self?.area); }
@@ -821,7 +839,16 @@ function frame(now) {
   const posicaoMaoGalick = (p, pos, direcao, ateContato, instante) =>
     origemGalick(posicaoComMontaria(p, pos, direcao, instante), direcao, ateContato);
   const camadaGalick = direcao => direcao.y > .0001 ? .02 : -.02;
-  for (const p of snapshot.players) if (p.charge) {
+  for (const efeito of efeitosBoo) {
+    if (efeito.tipo === SUPERNOVA_BOO.id) desenharEfeitoBoo(ctx, efeito, time);
+    else adicionarEfeito(efeito, () => desenharEfeitoBoo(ctx, efeito, time), .04);
+  }
+  for (const p of snapshot.players) if (p.charge?.booTecnica) {
+    const pos = renderPositions.get(p.id) || p;
+    const local = p.charge.booTecnica === CLONES_BOO.id ? p.charge.origem : pos;
+    adicionarEfeito(local, () => desenharCargaBoo(ctx, p.charge, pos, time), p.charge.booTecnica === CLONES_BOO.id ? 66 : .04);
+  }
+  for (const p of snapshot.players) if (p.charge && !p.charge.booTecnica && !p.charge.chocolateBeam && !p.charge.booKi && !p.charge.booSoco) {
     const pos = renderPositions.get(p.id) || p;
     adicionarEfeito(pos, () => {
       const alvo = snapshot.mobs.find(m => m.id === p.charge.targetId);
@@ -888,6 +915,16 @@ function frame(now) {
     adicionarEfeito(pos, () => { desenharAuraRyuken(ctx, j, pos, time); desenharLancamentoRyuken(ctx, j, pos, time); });
   }
   for (const s of snapshot.projectiles) {
+    if (s.kind === 'chocolateBeam') {
+      const dono = snapshot.players.find(p => p.id === s.owner), alvo = snapshot.mobs.find(m => m.id === s.targetId);
+      if (!dono || dono.dead || !alvo) continue;
+      const centro = renderPositions.get(alvo.id) || alvo;
+      const pose = posicaoComMontaria(dono, s.origem, s.direction, s.started);
+      const origem = pontaAntenaChocolate(pose, s.direction, s.forma, time - s.started);
+      const destino = {x:centro.x,y:centro.y - topoDoMob(alvo) * .52,pes:centro,raio:alvo.raioContato ?? 19};
+      adicionarEfeito(centro, () => desenharRaioChocolate(ctx, { ...s, snapshotEm: snapshot.time }, time, origem, destino));
+      continue;
+    }
     if (s.kind === 'bigBangAttack') {
       const pos = posicaoBigBang(s, (now - receivedAt) / 1000);
       const profundidade = s.impactoEm === undefined ? s : s.pesAlvo;
@@ -900,9 +937,28 @@ function frame(now) {
     const avanco = Math.min(s.speed * Math.min(.07, (now - receivedAt) / 1000), distancia);
     const pos = s.kind === 'mobKiTarget' ? { x: s.x + s.dx * avanco, y: s.y + s.dy * avanco } : { x: px, y: py };
     adicionarEfeito(pos, () => {
-      if ((s.kind === 'ki' || s.kind === 'mobKiTarget') && desenharProjetilMob(ctx, s, pos, time, camera.scale)) return;
-      if (s.visual === 'kameCell') { const dx = s.dx || 0, dy = s.dy || 0; ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.restore(); return; }
-      if (s.kind === 'kameCell') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.restore(); return; }
+      if (s.visual === 'kameCell' || s.kind === 'kameCell') {
+        const dx = s.dx || 0, dy = s.dy || 0, x = pos.x, y = pos.y - 34;
+        ctx.save();
+        ctx.lineCap = 'round';
+        for (const [cor, largura] of [['#4fb8ffbb', 22], ['#eafaff', 8]]) {
+          ctx.strokeStyle = cor; ctx.lineWidth = largura;
+          ctx.beginPath(); ctx.moveTo(x - dx * 110, y - dy * 110); ctx.lineTo(x, y); ctx.stroke();
+        }
+        ctx.restore();
+        return;
+      }
+      let posVfx = pos;
+      if (s.emissorBoo && time - s.started < .20) {
+        const d = { x: s.dx, y: s.dy };
+        const dono = snapshot.players.find(p => p.id === s.owner);
+        const origem = posicaoComMontaria(dono, s.emissorBoo, d, s.started);
+        const palma = palmaRajadaBoo(origem, d, s.emissorBoo.forma);
+        const fase = 1 - Math.max(0, time - s.started) / .20;
+        if (palma) posVfx = { x: pos.x + (palma.x - s.emissorBoo.x) * fase,
+          y: pos.y + (palma.y + 28 - s.emissorBoo.y) * fase };
+      }
+      if ((s.kind === 'ki' || s.kind === 'mobKiTarget') && desenharProjetilMob(ctx, s, posVfx, time, camera.scale)) return;
       if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, pos);
       else if (s.kind === 'ryuken') desenharVooRyuken(ctx, s, time, pos);
@@ -939,6 +995,17 @@ function frame(now) {
     ...prediosTerra.map(p => ({ y: p.y, draw: () => { desenharPredioTerra(ctx, p, renderPositions.get(self?.id)); for (const e of p.estaticos || []) desenharNpcEstatico(ctx, e); if (p.npcPos) desenharNpcTerra(ctx, p, time, renderPositions.get(self?.id)); } })),
     ...snapshot.players.map(p => ({ y: profundidade(renderPositions.get(p.id), casas, world.escala, vulcoesAqui), draw: () => drawPlayer(p, renderPositions.get(p.id), time) })),
     ...snapshot.mobs.map(m => ({ y: profundidade(renderPositions.get(m.id), casas, world.escala, vulcoesAqui), draw: () => drawMob(m, renderPositions.get(m.id), time) })),
+    ...clonesBoo.filter(c => time > c.revealAt).map(c => {
+      const pos = renderPositions.get(c.id) || c;
+      return { y: profundidade(pos, casas, world.escala, vulcoesAqui), draw: () => {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (time - c.revealAt) / (c.activeAt - c.revealAt));
+        const decorrido = time - (c.strikeStarted ?? -Infinity);
+        drawBoo(ctx, c, pos, time, decorrido >= 0 && decorrido < .36 ? decorrido / .36 : null);
+        if (time >= c.activeAt) placa(pos.x, pos.y - 83, 'Clone do Boo', c.hp, c.maxHp, '#bb95ff');
+        ctx.restore();
+      } };
+    }),
     ...efeitosHabilidades
   ].sort((a, b) => a.y - b.y);
   for (const d of drawables) if (d.y > camera.y - 150 && d.y < camera.y + height / camera.scale + 350) d.draw();

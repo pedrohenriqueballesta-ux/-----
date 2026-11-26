@@ -1,5 +1,6 @@
 import { CANAL_STATUS_POPUP } from './stats-popout.mjs';
-import { desenharGokuPopout } from '../render/hud/goku-popout.mjs';
+import { carregarVaporBoo } from '../render/vfx/boo-vapor.mjs';
+import { desenharPersonagemPopout } from '../render/hud/personagem-popout.mjs';
 
 const $ = id => document.getElementById(id);
 const inteiro = valor => Math.round(Number(valor) || 0).toLocaleString('pt-BR');
@@ -9,6 +10,8 @@ const spriteCanvas = $('sprite'), spriteCtx = spriteCanvas?.getContext('2d');
 let recebeuStatus = false, atualizadoEm = 0, statusAtual = null, spriteRecebidaEm = 0, ultimoFrame = 0, distanciaAnimada = 0;
 
 function render(status) {
+  if (status?.sprite?.id !== statusAtual?.sprite?.id) distanciaAnimada = 0;
+  if (status?.sprite?.vocacao === 'boo') carregarVaporBoo();
   recebeuStatus = Boolean(status); atualizadoEm = performance.now(); statusAtual = status; spriteRecebidaEm = atualizadoEm;
   if (!status) {
     $('nome').textContent = 'Sem personagem conectado';
@@ -42,9 +45,9 @@ function animarSprite(agora) {
   const delta = ultimoFrame ? Math.min(.1, (agora - ultimoFrame) / 1000) : 0;
   ultimoFrame = agora;
   const sprite = statusAtual?.sprite;
-  if (sprite?.moving) distanciaAnimada += Math.max(0, sprite.movementSpeed || 0) * delta;
-  const tempo = sprite ? sprite.serverTime + Math.max(0, agora - spriteRecebidaEm) / 1000 : 0;
-  if (spriteCtx) desenharGokuPopout(spriteCtx, sprite, tempo, distanciaAnimada);
+  if (sprite?.moving && agora - spriteRecebidaEm <= 6000) distanciaAnimada += Math.max(0, sprite.movementSpeed || 0) * delta;
+  const tempo = sprite ? sprite.serverTime + Math.min(.2, Math.max(0, agora - spriteRecebidaEm) / 1000) : 0;
+  if (spriteCtx) desenharPersonagemPopout(spriteCtx, sprite, tempo, distanciaAnimada);
   requestAnimationFrame(animarSprite);
 }
 requestAnimationFrame(animarSprite);
