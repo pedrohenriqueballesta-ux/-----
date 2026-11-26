@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { lugar } from '../public/shared/nucleo/config.mjs';
 import {Game} from '../public/shared/nucleo/game.mjs';
 import {fatorCombateAleatorio,variarExperiencia,VARIACAO_COMBATE} from '../public/shared/tecnicas/variacao-combate.mjs';
 
@@ -16,7 +17,7 @@ test('fator variável fica limitado a ±10% e mantém o valor-base no centro',()
 
 test('cura, dano causado, dano recebido e XP do mob usam sorteios independentes do mundo',()=>{
  const cena=sorteio=>{
-  const g=new Game({now:1000,populate:false,random:()=>.5,randomCombat:()=>sorteio}),p=g.addPlayer('p');
+  const g=new Game({now:1000,populate:false,random:()=>.5,randomCombat:()=>sorteio}),p=g.addPlayer('p','Teste',{level:lugar('inicial').nivel[0]});
   Object.assign(p,{planet:'namek',area:'inicial',x:1500,y:1500,seguroAte:0,autoFood:false,autoHeal:false});
   return {g,p};
  };
@@ -30,6 +31,6 @@ test('cura, dano causado, dano recebido e XP do mob usam sorteios independentes 
  for(const {g,p} of [baixo,alto]){const m=g.addMob('melee',p.x+60,p.y,'inicial');m.attack=40;g.hit(m,p,40);recebido.push(g.events.findLast(e=>e.type==='damage'&&e.targetId===p.id).amount);}
  assert.ok(recebido[1]>recebido[0]);
  const xp=[];
- for(const {g,p} of [baixo,alto]){const m=g.addMob('saibaman',p.x+60,p.y,'inicial');m.hp=1;g.hit(p,m,1e6);xp.push(p.xp);}
+ for(const {g,p} of [baixo,alto]){const m=g.addMob('inseto',p.x+60,p.y,'inicial');m.hp=1;g.hit(p,m,1e6);xp.push(p.xp);}
  assert.ok(xp[1]>xp[0]);
 });

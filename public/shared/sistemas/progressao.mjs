@@ -31,6 +31,17 @@ export function fatorXPPorDiferencaNivel(nivelJogador, nivelMob) {
   return Math.max(regra.minimo, Math.pow(1 + diferenca / regra.escalaDiferenca, -regra.expoente));
 }
 
+// Compara com a entrada da hunt, para que todos os inimigos da faixa usem a mesma regra.
+function proporcaoNivelNaHunt(nivelJogador, nivelMinimo) {
+  return nivelMinimo > 0 ? Math.min(1, Math.max(1, nivelJogador) / nivelMinimo) : 1;
+}
+
+export function fatorDanoDaHunt(nivelJogador, nivelMinimo) {
+  const { danoPorDeficit, danoPorDeficitQuadratico, danoMaximo } = CONFIG.progression.riscoHunt;
+  const deficit = 1 - proporcaoNivelNaHunt(nivelJogador, nivelMinimo);
+  return Math.min(danoMaximo, 1 + deficit * (danoPorDeficit + deficit * danoPorDeficitQuadratico));
+}
+
 export function xpAjustadoPorNivel(xpBase, nivelJogador, nivelMob) {
   const xp = Number(xpBase);
   if (!Number.isFinite(xp) || xp <= 0) return 0;

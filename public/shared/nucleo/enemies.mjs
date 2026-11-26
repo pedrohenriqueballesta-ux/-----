@@ -15,6 +15,7 @@ import { podeAndar, pesLivres, pontoAlcancavelDesde } from '../mundo/passagem.mj
 // recomendada dela, a proporção das Planícies no nível 1 (golpes para derrubar, dano recebido e
 // mortes por nível). Arte também provisória: básico = Saibaman, sentinela = alienígena,
 // subchefe = sentinela grande (provisório); chefe da hunt difícil = Porunga BOSS (folhas definitivas).
+// Níveis e atributos históricos servem de referência para as diferenças entre espécies.
 const ATRIBUTOS = {
   // Cratera de Nail: atributos PROVISÓRIOS, calibrados por duelos 30/35/40 e caça.
   norte: {
@@ -112,7 +113,7 @@ const ATRIBUTOS = {
     cellSemiperfeito: { level:62, nivelBase:36, hp: 26000, attack: 125, xp: 9000, defesa: 40, speed: 98, corpo: 14, name: 'Cell Semiperfeito' },
     cellPerfeito: { level:62, nivelBase:36, hp: 45000, attack: 150, xp: 20000, defesa: 48, speed: 104, corpo: 10, name: 'Cell Perfeito' }
   },
-  // Ilha da Arena: a área da última task da Saga do Cell, no nível do Deserto (trancada até vencer o Semiperfeito).
+  // Ilha da Arena: área da última task da Saga do Cell, liberada após vencer o Semiperfeito do Deserto.
   'terra-ilha': {
     androide18Pos: { level:56, nivelBase:34, hp: 3200, attack: 86, xp: 560, defesa: 30, speed: 112, name: 'C18' },
     androide17Pos: { level:58, nivelBase:35, hp: 3500, attack: 92, xp: 640, defesa: 32, speed: 114, name: 'C17' },
@@ -133,12 +134,6 @@ const ATRIBUTOS = {
     maquinaPilaf: { level:18, hp: 3600, attack: 42, xp: 700, defesa: 9, speed: 90, corpo: 28, name: 'Máquina Pilaf' }
   }
 };
-// Mobs de uma hunt pela curva de Namek, no nível dado: { tipo: velocidade } → { [area]: { tipo: atributos } }.
-function mobsDaFaixa(area, nivel, tipos) {
-  const n = nivel - 1, nomes = { passaro: 'Pássaro de Namek', inseto: 'Inseto de Namek', guerreiro: 'Guerreiro de Namek', veterano: 'Veterano de Namek', porunga: 'Porunga' };
-  return { [area]: Object.fromEntries(Object.entries(tipos).map(([tipo, speed]) => [tipo,
-    { hp: Math.round(45 + 17.5 * n), attack: Math.round(8 + 1.25 * n), xp: Math.round(10 + 4.2 * n), defesa: Math.round(1 + 0.47 * n), speed, name: nomes[tipo] }])) };
-}
 // Tipo que não existe na área (testes, mob avulso) usa a versão da hunt inicial ou da primeira que o tem.
 // Aggro (pedido do Pedro, 05/11/2026), configurável por mob nos ATRIBUTOS; estes são os padrões:
 // - agressivo: ataca quem chega perto (true) ou só reage quando é atacado (false, mob neutro);
@@ -160,22 +155,44 @@ export const CHEFES_TESTE = Object.freeze([
 // Forma entre parênteses fica no fim: "Freeza (nave)" → "Freeza BOSS (nave)".
 export const nomeDeChefe = nome => /\bBOSS\b/.test(nome) ? nome : nome.replace(/^(.*?)(\s*\([^)]*\))?$/, (_, n, forma = '') => n + ' BOSS' + forma);
 export function mobStats(type, area = 'inicial') {
-  const base = ATRIBUTOS[area]?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
-  const nivelBase = base.nivelBase || base.level;
-  const statsNivel = statsFor(base.level), statsNivelBase = statsFor(nivelBase);
-  // Os valores originais foram calibrados nas faixas antigas. A raiz quadrada acompanha a
-  // progressão de atributos sem tornar os mobs duas vezes mais resistentes/deadly no primeiro nível da faixa nova.
-  const atributosEscalados = base.nivelBase ? {
-    hp: Math.round(base.hp * Math.sqrt(statsNivel.hp / statsNivelBase.hp)),
-    attack: Math.round(base.attack * Math.sqrt(statsNivel.attack / statsNivelBase.attack)),
-    defesa: Math.round(base.defesa * Math.sqrt(statsNivel.defense / statsNivelBase.defense)),
-    xp: Math.round(base.xp * xpForLevel(base.level) / xpForLevel(nivelBase))
-  } : {};
-  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss' || type === 'maquinaPilaf' || type === 'c20' || type === 'cellSemiperfeito' || type === 'cellPerfeito';
+  // A Floresta do Sudeste usa as mesmas espécies dos Cânions, com a faixa da Terra.
+  const especies = ATRIBUTOS[area === 'terra-floresta' ? 'vegeta-canions' : area];
+  const base = especies?.[type] || Object.values(ATRIBUTOS).find(a => a[type])?.[type] || ATRIBUTOS.inicial.melee;
+  const faixa = areaPorId(area)?.nivel;
+  const atributosEscalados = especies?.[type] && faixa ? balancearInimigo(type, especies, base, faixa) : {};
+  const grande = TIPOS_CHEFE.has(type);
   const chefe = TIPOS_CHEFE.has(type) ? { name: nomeDeChefe(base.name), ...(base.nave ? { nave: { ...base.nave, nome: nomeDeChefe(base.nave.nome) } } : {}) } : {};
   const { nivelBase: _nivelBase, ...atributosOriginais } = base;
   const mob = { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...atributosOriginais, ...atributosEscalados, ...chefe };
   return { ...mob, projetil:configurarProjetilMob(type,mob) };
+}
+function balancearInimigo(tipo, especies, base, [inicio, fim]) {
+  const chefe = TIPOS_CHEFE.has(tipo);
+  const referencia = base.nivelBase ?? base.level;
+  const comuns = Object.entries(especies).filter(([id]) => !TIPOS_CHEFE.has(id)).map(([, mob]) => mob.level);
+  const primeiro = Math.min(...comuns), ultimo = Math.max(...comuns);
+  const posicao = primeiro === ultimo ? 0.5 : (base.level - primeiro) / (ultimo - primeiro);
+  const level = tipo === 'cellPerfeito' ? areaPorId('terra-ilha').nivel[1]
+    : chefe ? fim : inicio === 1 ? base.level : Math.round(inicio + (fim - inicio) * (0.25 + 0.75 * posicao));
+  const jogador = statsFor(level);
+  const original = statsFor(referencia);
+  // Defesa inimiga cresce mais devagar que a do jogador. HP considera essa mitigação
+  // para evitar multiplicar o tempo de combate em duas frentes nos níveis altos.
+  const defesa = inicio === 1 ? base.defesa : Math.round(2 + 1.9 * Math.sqrt(level) + (chefe ? 7 : posicao * 4));
+  const mitigacao = 1 + defesa * 0.03;
+  const resistencia = chefe ? Math.max(12, base.hp / (original.attack * (1 + base.defesa * 0.03)) * 0.65) : 4.5 + 2.5 * posicao;
+  const hp = inicio === 1 ? Math.round(base.hp * 0.7) : Math.round(jogador.attack * resistencia * mitigacao);
+  const proporcaoDano = chefe ? Math.min(0.085, (base.attack / original.hp) * 0.8) : 0.028 + 0.009 * posicao;
+  const attack = inicio === 1 ? Math.round(base.attack * 0.35) : Math.round(jogador.hp * (1 + jogador.defense * 0.03) * proporcaoDano);
+  // A curva de XP do personagem fica intacta. A recompensa é uma fração menor da
+  // barra nos níveis mais altos mesmo quando a criatura está no nível do jogador.
+  const abatesPorNivel = 4 + 10 * level ** 0.48;
+  const bonusXP = tipo === 'subboss' ? 4 : chefe ? Math.min(20, Math.max(8, resistencia / 3)) : 1;
+  const xp = Math.max(1, Math.round(xpForLevel(level) / abatesPorNivel * bonusXP));
+  // A primeira hunt apresenta os dinossauros sem puxar vários grupos enquanto o
+  // jogador ainda depende do ataque básico e dos consumíveis iniciais.
+  const aggro = inicio === 1 ? { aggro: 210 } : {};
+  return { level, hp, attack, defesa, xp, ...aggro };
 }
 // Segundos até o mob voltar depois de derrotado.
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
@@ -184,8 +201,19 @@ export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, maquinaPilaf: CHEFE_RARO, c20: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
   oozaruDourado: { minimo: 6 * 3600, maximo: 12 * 3600 },
   freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
-export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
-  ? TEMPO_CHEFE_RARO[type].minimo + random() * (TEMPO_CHEFE_RARO[type].maximo - TEMPO_CHEFE_RARO[type].minimo) : type === 'subboss' ? 60 : 12;
+export function janelaRenascimento(tipo, area) {
+  if (TEMPO_CHEFE_RARO[tipo]) return TEMPO_CHEFE_RARO[tipo];
+  if (tipo === 'subboss') return { minimo: 60, maximo: 60 };
+  const nivel = areaPorId(area)?.nivel?.[0];
+  if (nivel == null) return { minimo: 12, maximo: 12 };
+  if (nivel < 100) return { minimo: 40, maximo: 55 };
+  if (nivel < 380) return { minimo: 50, maximo: 70 };
+  return { minimo: 65, maximo: 85 };
+}
+export function renasceEm(tipo, random = Math.random, area) {
+  const { minimo, maximo } = janelaRenascimento(tipo, area);
+  return minimo === maximo ? minimo : minimo + random() * (maximo - minimo);
+}
 // Onde o chefe raro de cada hunt nasce: num ponto sorteado de um círculo (px da imagem → mundo).
 // `aviso`: o que aparece para quem está na hunt quando ele surge.
 export const CHEFES_RAROS = {

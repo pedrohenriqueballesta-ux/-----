@@ -7,7 +7,7 @@ import {emTerra,pesLivres,deslocar,caminhoPorTerra} from '../public/shared/mundo
 import {spawnPoints,CHEFES_RAROS,TEMPO_CHEFE_RARO,pontoNoCirculo,mobStats} from '../public/shared/nucleo/enemies.mjs';
 import {PROJETEIS_POR_MOB} from '../public/shared/mundo/projetil-mob.mjs';
 import {criarBestiario} from '../public/shared/sistemas/bestiario.mjs';
-import {RECOMPENSAS_MOBS} from '../public/shared/sistemas/recompensas-mobs.mjs';
+import {faixaZeniMob} from '../public/shared/sistemas/recompensas-mobs.mjs';
 import {FOLHAS_NAMEK_NORTE} from '../public/art/cenario/namek-norte.mjs';
 import {duelo,caca} from '../ferramentas/simular_namek_norte.mjs';
 globalThis.Image=class {complete=true;naturalWidth=1024;};
@@ -17,8 +17,8 @@ const {DIRECTIONS}=await import('../public/render/mapa/camera.mjs');
 const passar=(g,s)=>{for(let i=0;i<Math.round(s/.05);i++)g.tick(.05);};
 function cena(){const g=new Game({now:1000,populate:false,random:()=>.5}),p=g.addPlayer('p','Teste',{level:35});g.levar(p,lugar('norte'));p.x=naEscala(2730);p.y=naEscala(400);p.seguroAte=0;p.autoFood=p.autoHeal=false;return{g,p};}
 
-test('Cratera de Nail usa a ilha norte com ID, cor e faixa provisória; outras caixas permanecem iguais',()=>{
-  const z=areaPorId('norte');assert.equal(z.name,'Cratera de Nail');assert.deepEqual(z.nivel,[30,40]);assert.equal(z.cor,'#a35cff');
+test('Cratera de Nail usa a ilha norte com ID, cor e faixa recomendada; outras caixas permanecem iguais',()=>{
+  const z=areaPorId('norte');assert.equal(z.name,'Cratera de Nail');assert.deepEqual(z.nivel,[570,690]);assert.equal(z.cor,'#a35cff');
   assert.deepEqual([z.x,z.y,z.w,z.h].map(n=>Math.round(n/1.8)),[2058,72,1322,568]);assert.equal(z.planet,'namek');
   assert.deepEqual(PLANETS.namek.hunts,['inicial','media','dificil','norte']);
   for(const [id,caixa] of [['inicial',[1150,640,2230,1160]],['media',[1150,1800,3150,1272]],['dificil',[3380,500,1228,1300]]]) {
@@ -81,8 +81,8 @@ test('nada vaza para Planícies ou Vegeta: dano, alvo, projétil e snapshot',()=
 });
 test('bestiário registra as três fichas, magia de Neva, recompensas padrão e retratos',()=>{
   const g=new Game({random:()=>.5}),fichas=criarBestiario(g.mobs.values()).filter(m=>m.area==='norte');assert.equal(fichas.length,3);
-  const n=fichas.find(m=>m.tipo==='neva');assert.equal(n.raro,true);assert.match(n.ataques,/Magia da mão/);assert.deepEqual(n.zeni,[RECOMPENSAS_MOBS.zeniChefe,RECOMPENSAS_MOBS.zeniChefe]);
-  for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[30,40]);assert.ok(f.xp>0);assert.deepEqual(f.drops.slice(0,3).map(d=>d.item),['scrap','cristal-azul','seed15']);assert.ok(f.drops.length>3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
+  const n=fichas.find(m=>m.tipo==='neva');assert.equal(n.raro,true);assert.match(n.ataques,/Magia da mão/);assert.deepEqual(n.zeni,faixaZeniMob(n.nivel,true));
+  for(const f of fichas){assert.equal(f.nomePlaneta,'Namekusei');assert.deepEqual(f.recomendado,[570,690]);assert.ok(f.xp>0);assert.deepEqual(f.drops.slice(0,3).map(d=>d.item),['scrap','cristal-azul','seed15']);assert.ok(f.drops.length>3);assert.ok(FOLHAS_NAMEK_NORTE[f.tipo]);}
 });
 test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três inimigos com 1,25× Goku',async()=>{
   for(const [tipo,estados]of Object.entries(FOLHAS_NAMEK_NORTE)) {
@@ -94,12 +94,13 @@ test('nove folhas 5×4 com âncoras nos pés, PNGs completos e todos os três in
     }
   }
 });
-test('equilíbrio provisório: Nail cai no 30; Piccolo exige perto do 40; Neva não cai solo sem equipamento',()=>{
-  assert.equal(duelo('nail','norte',30).resultado,'vence');
-  assert.equal(duelo('piccoloDaimaoh','norte',30).resultado,'perde');
-  assert.equal(duelo('piccoloDaimaoh','norte',35).resultado,'perde');
-  assert.equal(duelo('piccoloDaimaoh','norte',40).resultado,'vence');
-  assert.equal(duelo('neva','norte',40).resultado,'perde');
+test('Cratera de Nail: no início da faixa, Nail cai antes de Piccolo; Neva resiste ao duelo',()=>{
+  const nivel=lugar('norte').nivel[0];
+  const nail=duelo('nail','norte',nivel), piccolo=duelo('piccoloDaimaoh','norte',nivel);
+  assert.equal(nail.resultado,'vence');
+  assert.equal(piccolo.resultado,'vence');
+  assert.ok(nail.segundos<piccolo.segundos);
+  assert.notEqual(duelo('neva','norte',lugar('norte').nivel[1]).resultado,'vence');
 });
 test('desenhista escolhe as nove folhas e mantém escala única entre andar, ataque e rajada nas oito direções',()=>{
   for(const [tipo,estados]of Object.entries(FOLHAS_NAMEK_NORTE))for(const acao of ['andar','ataque','rajada'])for(const direcao of DIRECTIONS) {
@@ -109,9 +110,9 @@ test('desenhista escolhe as nove folhas e mantém escala única entre andar, ata
     assert.ok(Math.abs(d[7]/d[3]-LUTADORES[tipo].altura/estados.andar[0].referenceHeight)<1e-9);
   }
 });
-test('Auto Hunt roda cinco minutos no norte, retoma após mortes e não enfrenta Neva automaticamente',()=>{
-  const r=caca('norte',30);assert.ok(r.abates>0);assert.ok(r.mortes>0);
-  const {g,p}=cena(),n=g.addMob('neva',p.x+80,p.y,'norte');p.autoHunt=true;g.tick(.05);assert.notEqual(p.targetId,n.id);assert.equal(n.hp,n.maxHp);
+test('Auto Hunt roda cinco minutos na faixa recomendada e seleciona Neva quando aparece',()=>{
+  const r=caca('norte',lugar('norte').nivel[0]);assert.ok(r.abates>0);assert.equal(r.mortes,0);
+  const {g,p}=cena(),n=g.addMob('neva',p.x+80,p.y,'norte');p.autoHunt=true;g.tick(.05);assert.equal(p.targetId,n.id);
 });
 
 test('passada própria (sem patinar) e folha PARADO com respiração em loop',async()=>{

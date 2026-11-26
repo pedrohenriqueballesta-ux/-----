@@ -104,7 +104,7 @@ test('Cell Semiperfeito: carrega a bola na cauda, lança no alvo e explode onde 
 });
 
 test('Cell Perfeito: Kamehameha de longe e auto-regeneração uma vez abaixo de 30%', () => {
-  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: 62 }); p.connected = true;
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: lugar('terra-ilha').nivel[1] }); p.connected = true;
   g.levar(p, lugar('terra-deserto'));
   const c = g.addMob('cellPerfeito', p.x + 400, p.y + 300, 'terra-deserto'); c.attackReady = 0;
   p.x = c.x + 300; p.y = c.y; p.seguroAte = 0;

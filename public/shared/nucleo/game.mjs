@@ -40,12 +40,12 @@ import { RYUKEN, usaRyuken, danoRyuken } from '../tecnicas/ryuken.mjs';
 import { fatorCombateAleatorio, variarExperiencia } from '../tecnicas/variacao-combate.mjs';
 import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
 import { avancarPocaoXp, bonusXpPremium, DURACAO_POCAO_XP } from '../sistemas/bonus-premium.mjs';
-import { progressoAposMorte, xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
+import { fatorDanoDaHunt, progressoAposMorte, xpAjustadoPorNivel } from '../sistemas/progressao.mjs';
 import { taxasRegeneracao } from '../sistemas/regeneracao.mjs';
 
 // Mobs que socam de perto e disparam ki de longe (têm folha de soco e de ki).
 export const SOCA_E_ATIRA = new Set(TIPOS_SOCA_E_ATIRA);
-// Chefes (subchefe e chefes raros): golpe maior e mais lento, e a caça automática não os enfrenta sozinha.
+// Chefes (subchefes e chefes raros) têm golpes maiores e mais lentos.
 export const CHEFES = TIPOS_CHEFE;
 // Oozaru Dourado: pancada com os dois punhos (área em volta dele) e bola de energia negra pela boca, mirando o alvo
 // (Pedro, 06/11: no lugar do laser; metade do tamanho da Supernova). A bola carrega na boca, voa até o alvo e explode.
@@ -90,7 +90,7 @@ export class Game {
     for (const s of spawnPoints(this.random)) {
       const m = this.addMob(s.type, s.x, s.y, s.area);
       // O chefe raro não está no mapa quando o servidor liga: aparece depois do primeiro sorteio.
-      if (s.raro) { m.raro = true; m.hp = 0; m.deadUntil = this.time + (this.chefeJa ? 10 : renasceEm(m.type, this.random)); }
+      if (s.raro) { m.raro = true; m.hp = 0; m.deadUntil = this.time + (this.chefeJa ? 10 : renasceEm(m.type, this.random, m.area)); }
     }
   }
   // Mesmo lugar = mesmo planeta e mesma área fechada. Nada atravessa de um lugar para outro:
@@ -121,7 +121,7 @@ export class Game {
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
-    p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.chocolateLancado = null; p.booLancado = null; p.rota = null; p.input = { x: 0, y: 0 };
+    p.abatesRecentes = []; p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.chocolateLancado = null; p.booLancado = null; p.rota = null; p.input = { x: 0, y: 0 };
     p.seguroAte = this.time + CONFIG.chegadaSegura;
   }
   usePortal(p, destinoId) {
@@ -130,7 +130,7 @@ export class Game {
     if (!portal || !destino) return this.reject(p, 'Chegue perto de um portal para viajar.');
     if (destino.area === AREA_ILHA && !ilhaLiberada(p)) return this.reject(p, 'A Ilha da Arena abre durante a Saga do Cell: vença o Cell Semiperfeito no Deserto das Mesas.');
     this.levar(p, destino, {preservarForma:true});
-    const aviso = destino.nivel && p.level < destino.nivel[0] ? ' Recomendado a partir do nível ' + destino.nivel[0] + ': cuidado!' : '';
+    const aviso = destino.nivel && p.level < destino.nivel[0] ? ' Recomendado a partir do nível ' + destino.nivel[0] + '. Abaixo do recomendado, você recebe mais dano dos inimigos.' : '';
     this.notify(p, 'Portal: ' + destino.name + '.' + aviso); return { ok: true };
   }
   setInput(id, data) {
@@ -164,22 +164,35 @@ export class Game {
     }
     return best;
   }
-  // Prioriza alvos próximos, mas só considera inimigos alcançáveis pelo caminho de colisão.
+  // Chefes alcançáveis vêm antes dos comuns. Entre chefes, reage primeiro a quem mira o jogador ou seus clones.
   alvoMaisProximo(p, raio = CONFIG.autoHuntRaio) {
-    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !CHEFES.has(m.type) && !naZonaSegura(m) && this.mesmoLugar(p, m)
-      && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time)
-      .sort((a, b) => distance(p, a) - distance(p, b));
+    const vivos = [...this.mobs.values()].filter(m => m.hp > 0 && !naZonaSegura(m) && this.mesmoLugar(p, m)
+      && this.podeEnfrentarMob(p, m) && distance(p, m) < raio && (p.ignorar?.[m.id] || 0) <= this.time);
     const alcançavel = m => distance(p, m) < 49 || caminhoPorTerra(p.planet, p, m, p.area, 40, true);
-    const opcoes = vivos.filter(alcançavel);
     const atual = this.mobs.get(p.targetId);
-    if (atual && vivos.includes(atual) && alcançavel(atual)) {
-      const maisPerto = vivos.find(m => m !== atual && distance(p, m) + 35 < distance(p, atual) && alcançavel(m));
+    const ehChefe = m => m.raro || CHEFES.has(m.type);
+    const miraJogador = id => id === p.id || this.combateBoo.clones.get(id)?.ownerId === p.id;
+    const ameaca = m => Number(miraJogador(m.alvoId) || miraJogador(m.telegraph?.alvoId));
+    const chefes = vivos.filter(ehChefe).sort((a, b) =>
+      ameaca(b) - ameaca(a) || Number(b === atual) - Number(a === atual) || distance(p, a) - distance(p, b));
+    const chefe = chefes.find(alcançavel);
+    if (chefe) return chefe;
+
+    const comuns = vivos.filter(m => !ehChefe(m)).sort((a, b) => distance(p, a) - distance(p, b));
+    const abatidos = p.abatesRecentes ?? [];
+    if (atual && comuns.includes(atual) && alcançavel(atual)) {
+      const maisPerto = comuns.find(m => m !== atual && distance(p, m) + 35 < distance(p, atual) && !abatidos.includes(m.id) && alcançavel(m));
       if (maisPerto) {
         p.alvosRecentes = [...(p.alvosRecentes || []), maisPerto.id].slice(-3);
         return maisPerto;
       }
       return atual;
     }
+    // Prefere um novo spawn ao já abatido, dentro do raio de caça e com caminho livre.
+    // Só busca outras rotas enquanto escolhe um alvo. Se não houver alternativa, repete.
+    const alcancaveis = comuns.filter(alcançavel);
+    const aindaNaoAbatidos = alcancaveis.filter(m => !abatidos.includes(m.id));
+    const opcoes = aindaNaoAbatidos.length ? aindaNaoAbatidos : alcancaveis;
     if (!opcoes.length) return null;
     const recentes = p.alvosRecentes || [];
     // O primeiro alvo continua sendo o mais próximo. Depois de cada abate, varia entre
@@ -364,7 +377,7 @@ export class Game {
     if (kind === 'hunt') {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
-      p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.alvosRecentes = []; p.rota = null;
+      p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.alvosRecentes = []; p.abatesRecentes = []; p.rota = null;
       if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
       return { ok: true };
     }
@@ -925,7 +938,10 @@ export class Game {
     }
     const defense = playerTarget ? target.stats.defense : target.defesa ?? 1;
     const guardedRaw = playerTarget && this.time < target.barrierUntil ? raw * 0.28 : raw;
-    const damage = Math.max(1, Math.round(guardedRaw * fatorCombateAleatorio(this.randomCombat) * 100 / (100 + defense * 3)));
+    const nivelDefensor = playerTarget ? target.level : cloneTarget ? this.players.get(target.ownerId).level : null;
+    const riscoHunt = nivelDefensor != null && attacker && this.mobs.has(attacker.id)
+      ? fatorDanoDaHunt(nivelDefensor, areaPorId(target.area)?.nivel?.[0]) : 1;
+    const damage = Math.max(1, Math.round(guardedRaw * riscoHunt * fatorCombateAleatorio(this.randomCombat) * 100 / (100 + defense * 3)));
     const hpAntes=target.hp;
     if(playerTarget) analisar(target,'danoRecebido',Math.min(hpAntes,damage));
     if(credito && this.players.has(credito.id)) analisar(credito,'danoCausado',Math.min(hpAntes,damage));
@@ -941,9 +957,13 @@ export class Game {
       if (playerTarget) this.derrotarJogador(target);
       else {
         target.chocolate = null;
-        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
+        target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random, target.area)); target.telegraph = null; target.ameaca = null; target.voltando = false;
         if (credito && this.players.has(credito.id)) {
           const attacker = credito;
+          if (attacker.autoHunt && !CHEFES.has(target.type)) {
+            const anteriores = (attacker.abatesRecentes ?? []).filter(id => id !== target.id);
+            attacker.abatesRecentes = [...anteriores, target.id].slice(-4);
+          }
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
           this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
@@ -952,7 +972,7 @@ export class Game {
           attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
-          if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
+          if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +' + (attacker.zeni - zeniAntes).toLocaleString('pt-BR') + ' Zeni e experiência.'); }
           const avisoSaga = registrarAbateSaga(attacker, target); if (avisoSaga) this.notify(attacker, avisoSaga);
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
@@ -1212,8 +1232,7 @@ export class Game {
     }
     else if (p.autoHunt) {
       p.saidaSegura = null;
-      // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
-      // quando outro se aproxima durante a perseguição atual.
+      // Reavalia a cada passo para reagir ao aparecimento de chefes e a inimigos mais próximos.
       const alcanceKame = p.vocacao === 'goku' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
       const raioCaca = p.autoSkills && alcanceKame
         ? Math.max(CONFIG.autoHuntRaio, alcanceKame + velocidade * KAME.carga) : CONFIG.autoHuntRaio;
@@ -1618,7 +1637,7 @@ export class Game {
       if (this.time >= m.transicao.until) this.formaFreeza(m, 'nave');
       return true;
     }
-    if (m.forma === 'pe' && m.hp <= m.maxHp * mobStats('freezaBoss', m.area).nave.aPartirDe) {
+    if (m.forma === 'pe' && m.hp <= m.maxHp * m.nave.aPartirDe) {
       m.transicao = { started: this.time, until: this.time + 1.2 }; m.telegraph = null; m.strike = null;
       this.emit('freezaNave', { x: m.x, y: m.y, planet: m.planet, area: m.area, mobId: m.id });
       for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, 'O Freeza entrou na nave: ele ficou mais forte!');

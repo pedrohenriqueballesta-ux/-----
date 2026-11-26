@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { dropsEspecificos } from '../public/shared/sistemas/catalogo-itens.mjs';
 import { criarBestiario } from '../public/shared/sistemas/bestiario.mjs';
-import { mobStats, TEMPO_CHEFE_RARO } from '../public/shared/nucleo/enemies.mjs';
-import { areaPorId } from '../public/shared/nucleo/config.mjs';
+import { mobStats, janelaRenascimento } from '../public/shared/nucleo/enemies.mjs';
+import { areaPorId, lugar } from '../public/shared/nucleo/config.mjs';
 import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from '../public/shared/sistemas/recompensas-mobs.mjs';
 import { createGameServer } from '../server.mjs';
 
@@ -19,7 +19,8 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
     const stats=mobStats(m.tipo,m.area);assert.equal(m.hp,stats.hp);assert.equal(m.ataque,stats.attack);assert.equal(m.defesa,stats.defesa);assert.equal(m.xp,stats.xp);
     assert.equal(m.nivel,stats.level,'nível-base usado pela redução de XP');
     assert.deepEqual(m.recomendado,areaPorId(m.area).nivel);
-    if(m.raro)assert.deepEqual(m.renascimento,[TEMPO_CHEFE_RARO[m.tipo].minimo,TEMPO_CHEFE_RARO[m.tipo].maximo]);
+    const respawn = janelaRenascimento(m.tipo, m.area);
+    assert.deepEqual(m.renascimento,[respawn.minimo,respawn.maximo]);
   }
   const freeza=catalogo.find(m=>m.tipo==='freezaBoss');assert.ok(freeza.raro);assert.match(freeza.observacoes.join(' '),/40%/);
   for(const m of g.mobs.values())m.hp=1;
@@ -27,10 +28,10 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
 });
 
 test('drops e Zeni do catálogo mostram recompensas e chances do servidor', () => {
-  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:5,zeniVariacao:5,zeniChefe:100,fracaoCristal:.16,chanceSemente15:.008});
+  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:5,zeniVariacao:5,fracaoCristal:.16,chanceSemente15:.008});
   assert.deepEqual(faixaZeniMob(25),[5,9]);
-  assert.deepEqual(faixaZeniMob(100),[54,58]);
-  assert.deepEqual(faixaZeniMob(150,true),[100,100]);
+  assert.deepEqual(faixaZeniMob(100),[37,41]);
+  assert.deepEqual(faixaZeniMob(150,true),[750,750]);
   const g=new Game(),catalogo=criarBestiario(g.mobs.values());
   for(const m of catalogo){
     assert.deepEqual(m.zeni,faixaZeniMob(m.nivel,m.raro));
@@ -40,6 +41,32 @@ test('drops e Zeni do catálogo mostram recompensas e chances do servidor', () =
     assert.equal(m.drops[1].fracaoLoot,fracaoCristalAzul(m.tipo));
     assert.equal(m.drops.filter(d => d.item === 'cristal-azul').length,1);
     assert.equal(m.drops[2].chance,.008);
+  }
+});
+
+test('Porunga BOSS e Oozaru Dourado pagam a recompensa exibida e garantem materiais mesmo com sorteio alto', () => {
+  for (const [tipo, area, materiais] of [
+    ['boss', 'dificil', ['cristal-esmeralda', 'garra-porunga']],
+    ['oozaruDourado', 'vegeta-lava', ['cristal-vermelho', 'pele-oozaru', 'presa-oozaru']],
+  ]) {
+    const game = new Game({ now: 1000, populate: false, random: () => .999 });
+    const p = game.addPlayer('teste', 'Teste');
+    game.levar(p, lugar(area));
+    p.x += 180;
+    const chefe = game.addMob(tipo, p.x + 50, p.y, area);
+    chefe.raro = true;
+    const [ficha] = criarBestiario([chefe]);
+    assert.ok(ficha.zeni[0] > faixaZeniMob(chefe.level)[1]);
+    assert.ok(ficha.drops.some(d => d.chance < 1 && d.chance > .1 &&
+      ['capa-piccolo','armadura-vegeta'].includes(d.item)));
+    const saldo = p.zeni;
+    assert.equal(game.hit(p, chefe, 1e7), true);
+    assert.equal(p.zeni - saldo, ficha.zeni[0]);
+    assert.ok(game.events.some(e => e.type === 'message' && e.text.includes(ficha.zeni[0].toLocaleString('pt-BR') + ' Zeni')));
+    for (const item of materiais) {
+      assert.equal(ficha.drops.find(d => d.item === item).chance, 1);
+      assert.equal(game.loot.filter(d => d.owner === p.id && d.item === item).length, 1);
+    }
   }
 });
 
