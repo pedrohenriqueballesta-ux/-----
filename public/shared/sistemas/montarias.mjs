@@ -1,4 +1,4 @@
-﻿// Montaria cosmética: nenhuma configuração deste módulo altera colisão, velocidade ou combate.
+﻿// Renderização da Nimbus e velocidades de deslocamento.
 export const DIRECOES_NIMBUS=Object.freeze(['n','ne','e','se','s','sw','w','nw']);
 export const NIMBUS=Object.freeze({quadros:5,frameMs:130,tamanho:256,escala:.65,ancoraX:128,ancoraY:110,altura:12,amplitude:2,frequencia:1.6});
 // Ponto de quadril do personagem sentado, relativo ao ponto de apoio da montaria.
@@ -20,7 +20,14 @@ export const APOIOS_NIMBUS=Object.freeze({
  nw:[[129,100],[126,100],[122,96],[117,97],[113,98]]
 });
 export const AJUSTES_NIMBUS=Object.freeze({goku:{x:0,y:-6},'goku:ssj':{x:0,y:-6}});
-export const montariaValida=v=>v==='nimbus'?v:null;
+export const VELOCIDADES_MONTARIA = Object.freeze({ free: 440, vip: 550, teste: 620 });
+export function velocidadeMovimento(p, agora) {
+ if (p.godmode && p.godmodeOptions?.velocidadeMaxima) return VELOCIDADES_MONTARIA.teste;
+ if (p.montaria) return p.montaria === 'nimbus-vip' && vipMontariaAtiva(p, agora) ? VELOCIDADES_MONTARIA.vip : VELOCIDADES_MONTARIA.free;
+ return p.stats.mobility;
+}
+export const vipMontariaAtiva = (p, agora) => p.vipAte > agora;
+export const montariaValida = v => ['nimbus','nimbus-vip'].includes(v) ? v : null;
 export function direcaoNimbus(f={x:0,y:1}){
  const x=Number.isFinite(f.x)?f.x:0,y=Number.isFinite(f.y)?f.y:1;
  if(!x&&!y)return 's';return DIRECOES_NIMBUS[((Math.round(Math.atan2(y,x)/(Math.PI/4))+2)%8+8)%8];

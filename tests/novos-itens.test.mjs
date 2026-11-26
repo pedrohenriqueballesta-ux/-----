@@ -9,16 +9,20 @@ import { CONFIG, MERCHANT, lugar } from '../public/shared/nucleo/config.mjs';
 import { bagWeight, statsFor } from '../public/shared/nucleo/characters.mjs';
 import { Game } from '../public/shared/nucleo/game.mjs';
 
-test('catálogo integra os 99 ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
+test('catálogo integra os ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
   const itens = Object.values(NOVOS_ITENS);
-  assert.equal(itens.length, 99);   // + Carne de Dinossauro e Bilhete de Ouro do Dr. Gero (Terra Selvagem, 25/11/2026)
+  assert.equal(itens.length, 105);
   assert.equal(itens.filter(i => i.tipo === 'material').length, 16);
   assert.equal(itens.filter(i => i.tipo === 'consumivel').length, 4);
-  assert.equal(itens.filter(i => i.tipo === 'equipamento').length, 79);
+  assert.equal(itens.filter(i => i.tipo === 'equipamento').length, 85);
   for (const item of itens) {
     assert.ok(existsSync(new URL('../public' + item.icone, import.meta.url)), item.id);
     assert.equal(item, ITENS_NEGOCIAVEIS[item.id]);
-    assert.ok(item.precoReferencia > item.precoNpc && item.precoNpc > 0);
+    assert.ok(item.precoReferencia > 0);
+    if (['epico', 'lendario'].includes(item.raridade)) {
+      assert.equal(item.precoNpc, null);
+      assert.doesNotMatch(descricaoItem(item), /Venda ao NPC/);
+    } else assert.ok(item.precoReferencia > item.precoNpc && item.precoNpc > 0);
     assert.equal(CONFIG.itemWeights[item.id], item.peso);
     assert.match(descricaoItem(item), / kg/);
     if (item.slot) {
@@ -156,7 +160,9 @@ test('venda e market tratam somente as cópias na mochila e usam pesos e preços
   const b = game.addPlayer('b', 'Vegeta', { level: 150, zeni: 5000, inventory: {} });
   Object.assign(a, MERCHANT); Object.assign(b, MERCHANT);
   assert.ok(game.action(a.id, { type: 'equiparItem', item: 'armadura-vegeta' }).ok);
-  assert.equal(game.venderItem(a, 'armadura-vegeta', 2).ok, false);
+  assert.equal(game.venderItem(a, 'armadura-vegeta', 1).ok, false);
+  assert.equal(game.venderLoteNpc(a, { 'armadura-vegeta': 1 }).ok, false);
+  assert.equal(a.inventory['armadura-vegeta'], 1);
   assert.equal(game.venderItem(a, 'fruta-namek', 2).total, 2 * NOVOS_ITENS['fruta-namek'].precoNpc);
   const anuncio = game.mercado.anunciar(a, { item: 'armadura-vegeta', quantidade: 1, preco: 999 }, 1);
   assert.ok(anuncio.ok);
@@ -245,12 +251,14 @@ test('lucro da caça considera custo dos consumíveis e mostra equipamentos à p
   const g = new Game({ populate: false, now: 1000 });
   const p = g.addPlayer('caca', 'Goku', { level: 35 });
   p.huntAnalyzer = {
-    segundos: 60, xp: 0, zeni: 60, loot: { 'manto-rasgado': 2, 'capa-piccolo': 1 }, supplies: { food: 1, ki: 2 }
+    segundos: 60, xp: 0, zeni: 60, loot: { 'manto-rasgado': 2, 'capa-piccolo': 1, 'armadura-vegeta': 1 }, supplies: { food: 1, ki: 2 }
   };
   const r = g.snapshot(p.id).self.huntAnalyzer;
   const valorMantos = 2 * ITENS_NEGOCIAVEIS['manto-rasgado'].precoNpc;
   assert.equal(r.valorMateriais, valorMantos);
-  assert.equal(r.valorEquipamentos, ITENS_NEGOCIAVEIS['capa-piccolo'].precoNpc);
+  const precoCapa=ITENS_NEGOCIAVEIS['capa-piccolo'].precoNpc;
+  assert.equal(r.valorEquipamentos, precoCapa+ITENS_NEGOCIAVEIS['armadura-vegeta'].precoReferencia);
+  assert.equal(r.valorVendaNpc, valorMantos+precoCapa);
   assert.equal(r.saldoSemEquipamentos, 60 + valorMantos - CONFIG.prices.food - CONFIG.prices.ki * 2);
   assert.equal(r.saldo, r.saldoSemEquipamentos + r.valorEquipamentos);
 });

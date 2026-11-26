@@ -19,7 +19,7 @@ import {atualizarRetratoVocacao} from '../render/hud/vocacao-retrato.mjs';
 // janela do portal e mapa). O resto do cliente (mapa, rede, teclado, joystick) fica em game.mjs.
 // A HUD está em troca (ramo hud-nova): qualquer elemento pode sumir da página sem derrubar o jogo.
 // `$` devolve um elemento vazio que aceita tudo e não faz nada, e avisa no console uma vez por id.
-import { CONFIG, PLANETS, PLANETAS_DE_HUNT, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
+import { CONFIG, PLANETS, PORTAIS, ZONES, zonasDe, areaPorId, lugar } from '../shared/index.mjs';
 import { instalarLoja } from '../render/hud/loja.mjs';
 import { instalarBestiario } from '../render/hud/bestiario.mjs';
 import { instalarNovidadesHud } from '../render/hud/novidades-hud.mjs';
@@ -268,7 +268,7 @@ export function abrirPortal(portal) {
 function abrirMapa() {
   if($('mapaDialog').open){$('mapaDialog').close();return;}
   const snapshot = ctx?.snapshot(), aqui = snapshot?.self?.area, tela = $('mapaTela');
-  const mundo = PLANETS[snapshot?.planet]?.hunts ? PLANETS[snapshot.planet] : PLANETAS_DE_HUNT[0], zonas = zonasDe(mundo.id);
+  const mundo = PLANETS[snapshot?.planet]?.hunts ? PLANETS[snapshot.planet] : PLANETS['terra-hunts'], zonas = zonasDe(mundo.id);
   $('mapaTitulo').textContent = 'MAPA — ' + mundo.name.toUpperCase();
   $('mapaOnde').textContent = 'Você está em: ' + (areaPorId(aqui)?.name ? PLANETS[areaPorId(aqui).planet].name + ' — ' + areaPorId(aqui).name : 'Terra (lobby)');
   $('mapaLista').replaceChildren(...zonas.map(z => {
@@ -290,7 +290,22 @@ function abrirMapa() {
       c.font = (z.id === aqui ? 'bold 15px' : 'bold 13px') + ' system-ui, sans-serif'; c.textAlign = 'center'; c.lineJoin = 'round';
       c.lineWidth = 4; c.strokeStyle = '#000d'; c.strokeText(z.name, x, y); c.fillStyle = COR_DESTINO[z.id]; c.fillText(z.name, x, y);
     }
-    for (const o of PORTAIS) if (o.planet === mundo.id) { c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida; c.beginPath(); c.arc(o.x * kx, o.y * ky, 4, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke(); }
+    const marcarPortal = (o, x, y, r = 4) => {
+      c.fillStyle = o.destinos.length === 1 ? COR_DESTINO[o.destinos[0]] : COR_DESTINO.saida;
+      c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.strokeStyle='#fff'; c.lineWidth=1.5; c.stroke();
+    };
+    const portais = PORTAIS.filter(o => o.planet === mundo.id);
+    for (const o of portais) if (o.area !== 'terra-hub') marcarPortal(o,o.x*kx,o.y*ky);
+    if (mundo.id === 'terra-hunts') {
+      const hub = areaPorId('terra-hub').chegada, centro = {x:88,y:77};
+      c.fillStyle='#071a30f5';c.strokeStyle='#b27f28';c.lineWidth=1;
+      c.beginPath();c.roundRect(18,13,140,107,8);c.fill();c.stroke();
+      c.font='bold 11px system-ui';c.fillStyle='#ffe199';c.textAlign='center';
+      c.fillText('Portais da Clareira',centro.x,28);
+      for (const portal of portais.filter(o=>o.area==='terra-hub')) {
+        marcarPortal(portal,centro.x+(portal.x-hub.x)*.17,centro.y+(portal.y-hub.y)*.17,5);
+      }
+    }
     const eu = snapshot?.players.find(v => v.id === snapshot.selfId);
     if (eu && snapshot.planet === mundo.id) { c.fillStyle = '#ff2bd6'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(eu.x * kx, eu.y * ky, 6, 0, Math.PI * 2); c.fill(); c.stroke(); }
   };

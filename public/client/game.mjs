@@ -15,7 +15,7 @@ import {instalarTrilhaSonora} from './audio.mjs';
 import {PADRAO_PREFERENCIAS} from '../shared/sistemas/preferencias.mjs';
 import { OBSTACLES, MERCADORES, PLANETS, HOUSES, PORTAIS, RAIO_PORTAL, DECORACAO, DECORACAO_ESCALA, areaPorId, lugar } from '../shared/index.mjs';
 import { deslocar } from '../shared/mundo/passagem.mjs';
-import { frenteDaCasa, zonaSeguraDaHunt, MULT_NIMBUS_DEV } from '../shared/nucleo/config.mjs';
+import { frenteDaCasa, zonaSeguraDaHunt } from '../shared/nucleo/config.mjs';
 import { desenharRachaduras } from '../render/vfx/safe-zone.mjs';
 import { carregarKame, carregarImpactoKame, desenharKameComProfundidade } from '../render/vfx/kamehameha.mjs';
 import { carregarGalick, desenharGalick, desenharImpactoGalick } from '../render/vfx/galick-gun.mjs';
@@ -136,7 +136,9 @@ const transicaoTeleport = criarTransicaoTeleport({
 async function api(path, data = {}) {
   const res = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials:'same-origin',body: JSON.stringify(data) });
   if(!res.ok){if([401,403].includes(res.status))entrada?.sessaoExpirada();throw new Error(entrada?.t([401,403].includes(res.status)?'sessaoExpirada':'requisicaoInvalida')||'Falha de conexão.');}
-  return res.json();
+  const resultado = await res.json();
+  if (path === 'action' && resultado.ok) tutorial?.acao(data);
+  return resultado;
 }
 function action(data) {
   if (!session || !snapshot || transicaoTeleport.ativa) return;
@@ -176,7 +178,7 @@ function conectarMundo(data){
         for (const c of anteriorSnapshot.clonesBoo) if (!ativos.has(c.id)) renderPositions.delete(c.id);
       }
       if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
-      snapshot = proximo; receivedAt = performance.now();statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
+      snapshot = proximo; receivedAt = performance.now();tutorial?.atualizar(snapshot);statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
       // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
       carregarKame(snapshot.self?.level || 1);
       carregarGalick(snapshot.self?.galickVersao);
@@ -575,9 +577,22 @@ function telegraphs(time) {
 }
 function effects(time) {
   floating = floating.filter(e => time - e.at < (e.type === 'pancada' ? 2.3 : 1.5));
+  const gritos = new Map(floating.filter(e => e.type === 'skillShout' && e.at <= time).map(e => [e.playerId, e.id]));
   for (const e of floating) {
     const age = time - e.at; if (age < 0) continue;
     const pref=snapshot?.self?.preferencias||PADRAO_PREFERENCIAS;
+    if (e.type === 'skillShout') {
+      if (!pref.gritosTecnicas || gritos.get(e.playerId) !== e.id || e.planet !== snapshot.planet || e.area !== snapshot.area) continue;
+      const pos = renderPositions.get(e.playerId) || e;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1.5 - age) * 2.5);
+      ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffab43'; ctx.strokeStyle = '#2b1508'; ctx.lineWidth = 4;
+      const y = pos.y - 112 - age * 12;
+      ctx.strokeText(e.text, pos.x, y); ctx.fillText(e.text, pos.x, y);
+      ctx.restore();
+      continue;
+    }
     if(e.type==='damage'&&!pref.numerosDano)continue;
     if(!['damage','heal','level'].includes(e.type)&&(!pref.particulas||pref.reduzirAnimacoes))continue;
     if (e.type === 'freezaNave' && age < 1.4) {   // clarão roxo e onda de energia pelo chão
@@ -710,7 +725,10 @@ function textoDoPortal(o) {
   if (o.planet === 'terra') return 'Planetas';
   if (o.destinos.length > 1) return 'Saída';
   const d = lugar(o.destinos[0]);
-  return (d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name) + (d.nivel ? ' · Nv. ' + d.nivel[0] + '–' + d.nivel[1] : '');
+  const nome = d.planet !== snapshot.planet ? PLANETS[d.planet].name : d.name;
+  if (!d.nivel) return nome;
+  const separador = o.area === 'terra-hub' ? '\n' : ' · ';
+  return nome + separador + 'Nv. ' + d.nivel[0] + '–' + d.nivel[1];
 }
 function destinosDoPortal(o) {
   return o.destinos.map(id => {
@@ -776,7 +794,7 @@ function frame(now) {
   for (const entity of [...snapshot.players, ...snapshot.mobs, ...clonesBoo]) {
     if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
       const iv = inputVector(); let px = entity.x, py = entity.y;
-      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.stats.mobility || 175) * (entity.montaria ? MULT_NIMBUS_DEV : 1) * el, 15, snapshot.self?.area); }
+      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.velocidadeMovimento || 175) * el, 15, snapshot.self?.area); }
       screenPosition({ ...entity, x: px, y: py }, dt);
     } else screenPosition(entity, dt);
   }
@@ -905,7 +923,7 @@ function frame(now) {
     const referencia = renderPositions.get(g.owner) || g;
     adicionarEfeito(referencia, () => {
       let pos = referencia;
-      if (dono?.montaria === 'nimbus' && !dono.dead && nimbusCarregada())
+      if (dono?.montaria?.startsWith('nimbus') && !dono.dead && nimbusCarregada())
         pos = geometriaNimbus({ ...dono, facing: g.direction }, pos, time, { flutuar: !snapshot.self?.preferencias?.reduzirAnimacoes }).personagem;
       desenharGenki(ctx, 'carga', g, time, { ...pos, alturaCanalizacao: dono && !dono.transformed ? POSE_GENKI.alturaCanalizacao : 62 });
     });
@@ -1013,7 +1031,16 @@ function frame(now) {
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'supernova') bolaSupernova(m, m.telegraph, time);
   for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra') bolaNegra(m, m.telegraph, time);
   effects(time);
-  ctx.restore(); if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
+  const guia = tutorial?.alvoMapa();
+  ctx.restore();
+  if (guia) {
+    const x = (guia.x - camera.x) * camera.scale, y = (guia.y - camera.y) * camera.scale;
+    const sx = Math.max(27, Math.min(width - 27, x)), sy = Math.max(90, Math.min(height - 135, y - 48));
+    ctx.save();ctx.translate(sx,sy);ctx.rotate(x===sx&&y-48===sy ? Math.PI/2 : Math.atan2(y-sy,x-sx));
+    ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#ffd064';ctx.strokeStyle='#251704';ctx.lineWidth=5;
+    ctx.strokeText(guia.texto,0,0);ctx.fillText(guia.texto,0,0);ctx.restore();
+  } if (++miniTick % 4 === 0) drawMinimap(world, area); requestAnimationFrame(frame);
 }
 carregarProjetilMob();
 resize(); requestAnimationFrame(frame);

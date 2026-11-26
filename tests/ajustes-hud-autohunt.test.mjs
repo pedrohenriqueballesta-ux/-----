@@ -1,7 +1,8 @@
+import { VELOCIDADES_MONTARIA } from '../public/shared/sistemas/montarias.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
-import { CONFIG, MULT_NIMBUS_DEV, lugar } from '../public/shared/nucleo/config.mjs';
+import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
 import { GALICK } from '../public/shared/tecnicas/galick-gun.mjs';
 import { acaoDaTecnica } from '../public/shared/tecnicas/barra-tecnicas.mjs';
 import { linhaGalick } from '../public/render/vfx/galick-gun.mjs';
@@ -88,5 +89,5 @@ test('Nuvem aplica o mesmo multiplicador na perseguição e na patrulha do Auto 
       jogo.updatePlayer(p, 0.05);
     }
   }
-  assert.deepEqual(velocidades, [p.stats.mobility, p.stats.mobility * MULT_NIMBUS_DEV, p.stats.mobility, p.stats.mobility * MULT_NIMBUS_DEV]);
+  assert.deepEqual(velocidades, [p.stats.mobility, VELOCIDADES_MONTARIA.free, p.stats.mobility, VELOCIDADES_MONTARIA.free]);
 });

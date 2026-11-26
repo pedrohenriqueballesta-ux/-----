@@ -108,13 +108,19 @@ const equipamentos = [
   ["calca-inicial","Calça de Iniciante",0.61,4,"comum","calca",1,1,0.1,0,"#inicial"],
   ["botas-iniciais","Botas de Iniciante",0.7,4,"comum","botas",1,0,0.1,0,"#inicial"],
   ["camisa-inicial","Camisa de Iniciante",0.48,5,"comum","peito",1,1,0.14,0,"#inicial"],
+  ["manoplas-fronteira","Manoplas da Fronteira",1.05,5500,"epico","braco",295,21,3.4,15,"#task-vegeta-floresta","luvas-hatchiyack"],
+  ["botas-batedor","Botas do Batedor",2.2,6800,"epico","botas",380,28,4.3,0,"#task-terra-floresta","botas-vegeta"],
+  ["couraca-vulcanica","Couraça Vulcânica",6.8,9600,"epico","peito",470,42,5.2,0,"#task-vegeta-lava","armadura-freeza"],
+  ["calca-guardiao-cratera","Calça do Guardião da Cratera",1.94,13000,"epico","calca",570,32,5.9,0,"#task-norte","calca-shin-elite"],
+  ["botas-montanhista","Botas do Montanhista",2.6,16500,"lendario","botas",690,37,6.6,0,"#task-terra-neve","botas-brancas"],
+  ["lamina-grande-cratera","Lâmina da Grande Cratera",7.8,26000,"lendario","arma",830,24,6.4,80,"#task-vegeta-cratera","espada-z"],
   ["botas-missao","Botas de Patrulha",0.85,38,"comum","botas",5,1,0.24,0,"#patrulha-inicial"],
   ["armadura-missao","Armadura de Patrulha Saiyajin",2.4,85,"incomum","peito",5,4,0.32,0,"#patrulha-inicial"],
 ];
 
 const chanceFutura = { comum: 0.045, incomum: 0.026, raro: 0.012, epico: 0.006, lendario: 0.0025 };
 function registrar([id, nome, peso, precoBase, raridade, ...resto], tipo) {
-  const [slot, nivel, defesa, kiPorSegundo, ataque, fonte] = tipo === 'equipamento'
+  const [slot, nivel, defesa, kiPorSegundo, ataque, fonte, arte = id] = tipo === 'equipamento'
     ? resto : [null, 1, 0, 0, 0, resto[0]];
   const origem = typeof fonte !== 'string' ? { drops: Object.freeze(fonte) }
     : fonte.startsWith('@') ? { futura: fonte.slice(1), chanceProposta: chanceFutura[raridade] }
@@ -123,10 +129,10 @@ function registrar([id, nome, peso, precoBase, raridade, ...resto], tipo) {
   return Object.freeze({
     // Equipamento é uma recompensa de progressão. O NPC paga a liquidação, e o market parte da referência.
     id, nome, peso,
-    precoNpc: slot && !origem.recompensa ? Math.max(1, Math.round(precoBase / 4)) : precoBase,
+    precoNpc: ['epico', 'lendario'].includes(raridade) ? null : slot && !origem.recompensa ? Math.max(1, Math.round(precoBase / 4)) : precoBase,
     precoReferencia: precoBase * (slot ? 3 : 2),
     raridade, tipo: consumo ? 'consumivel' : tipo, consumo, slot, nivel, defesa, kiPorSegundo, ataque, origem: Object.freeze(origem),
-    icone: '/assets/inventario/novos/' + id + '.png', negociavel: true
+    icone: '/assets/inventario/novos/' + arte + '.png', negociavel: true
   });
 }
 

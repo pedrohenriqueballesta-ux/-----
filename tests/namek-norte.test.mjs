@@ -30,6 +30,7 @@ test('chegada e safe zone inteiras em chão caminhável; saída −60/−60 e po
   for(let y=q.y;y<=q.y+q.h;y+=10)for(let x=q.x;x<=q.x+q.w;x+=10)assert.ok(pesLivres('namek',x,y,15,z.id));
   assert.equal(saida.x,z.chegada.x-60);assert.equal(saida.y,z.chegada.y-60);assert.ok(naZonaSegura(saida));
   assert.ok(Math.hypot(saida.x-z.chegada.x,saida.y-z.chegada.y)>RAIO_PORTAL+15);
+  assert.ok(pesLivres('namek',entrada.x,entrada.y,20,'vila'));
   assert.ok(caminhoPorTerra('namek',areaPorId('vila').chegada,entrada,'vila'));
   for(const tp of PORTAIS.filter(p=>p.area==='vila'&&p!==entrada))assert.ok(Math.hypot(tp.x-entrada.x,tp.y-entrada.y)>230);
   for(const d of DECORACAO)assert.ok(Math.hypot(d.x-entrada.x,d.y-entrada.y)>=260);

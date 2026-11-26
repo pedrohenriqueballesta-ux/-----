@@ -1,6 +1,7 @@
 import { KAME } from './kamehameha.mjs';
 import { CLONES_BOO as CLONES, SUPERNOVA_BOO as NOVA, ANGRY_BOO as ANGRY, TECNICAS_BOO, custoTecnicaBoo, estagioTecnicasBoo } from './majin-boo.mjs';
-import { MULT_NIMBUS_DEV, naZonaSegura } from '../nucleo/config.mjs';
+import { naZonaSegura } from '../nucleo/config.mjs';
+import { velocidadeMovimento } from '../sistemas/montarias.mjs';
 import { distance, norm } from '../nucleo/math.mjs';
 import { caminhoPorTerra, pesLivres } from '../mundo/passagem.mjs';
 import { TIPOS_CHEFE } from '../nucleo/enemies.mjs';
@@ -176,7 +177,7 @@ export class CombateBoo {
       const semRota = c.semRota?.id === marcado?.id && c.semRota?.until > g.time;
       const alvo = pertoDoBoo && this.mobValido(c, marcado) && !marcado.voltando
         && distance(p, marcado) <= CLONES.distanciaMaxima && !semRota ? marcado : null;
-      const velocidade = p.stats.mobility * (p.montaria ? MULT_NIMBUS_DEV : 1) * 1.2;
+      const velocidade = velocidadeMovimento(p,g.agora()) * 1.2;
       if (!alvo) {
         const angulo = Math.atan2(p.facing.y, p.facing.x) + Math.PI + (c.ordem - (c.quantidade - 1) / 2) * .72;
         const ponto = { x: p.x + 48 * Math.cos(angulo), y: p.y + 48 * Math.sin(angulo) };

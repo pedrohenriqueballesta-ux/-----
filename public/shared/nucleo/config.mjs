@@ -12,11 +12,6 @@ import { TAMANHO_TERRA, PRACA_TERRA, MERCADORES_TERRA } from '../mundo/terra.mjs
 // Seguro no navegador: process nao existe la, entao fica false (nao afeta o jogo real nem os testes).
 export const GODMODE = typeof process !== 'undefined' && !!process.env && process.env.DBI_GODMODE === '1';
 
-// DEV/provisório (pedido do Pedro): enquanto o mapa está grande, a Nimbus montada anda bem mais rápido para
-// facilitar a locomoção durante o desenvolvimento. Serve o servidor (Game.move) e a predição do cliente para
-// não tremer. AJUSTAR para a velocidade final de jogo quando o mapa/balanceamento estiver pronto (1 = sem bônus).
-export const MULT_NIMBUS_DEV = 3;
-
 // Escala do mundo de Namekusei: quantas unidades do jogo vale 1 px da imagem do solo
 // (as posições são medidas no solo de 4608x3072; o assets/namek/solo.webp hoje tem 8192x5461, o mapa de
 // 36 partes, e é esticado para o mesmo mundo). Ela amplia o terreno e tudo que está posto nele:
@@ -248,11 +243,11 @@ const acimaDaChegada = id => ({ x: areaPorId(id).chegada.x, y: areaPorId(id).che
 // Portais de um planeta de hunt: portal interplanetário acima da chegada da Vila, um portal da Vila para
 // cada hunt (`entradas`: posição em px da imagem do solo, por id de hunt) e a saída de cada hunt, com a
 // Vila e as outras hunts do mesmo planeta. Saídas ficam dentro do quadrado seguro da chegada.
-function portaisDoPlaneta(planet, entradas) {
+function portaisDoPlaneta(planet, entradas, interplanetario = acimaDaChegada(PLANETS[planet].vila)) {
   const { vila, hunts, escala } = PLANETS[planet];
   const destinosInterplanetarios = ['terra', ...PLANETAS_DE_HUNT.filter(p => p.id !== planet).map(p => p.vila)];
   return [
-    { id: vila + '-terra', planet, area: vila, ...acimaDaChegada(vila), destinos: destinosInterplanetarios },
+    { id: vila + '-terra', planet, area: vila, ...interplanetario, destinos: destinosInterplanetarios },
     ...hunts.map(id => ({ id: vila + '-' + id, planet, area: vila, x: entradas[id].x * escala, y: entradas[id].y * escala, destinos: [id] })),
     // Canto superior esquerdo: chegada fora do gatilho de 55, sem reabrir o menu ao viajar.
     ...hunts.map(id => ({ id: 'saida-' + id, planet, area: id, x: areaPorId(id).chegada.x - 60, y: areaPorId(id).chegada.y - 60,
@@ -261,13 +256,20 @@ function portaisDoPlaneta(planet, entradas) {
 }
 export const PORTAIS = [
   { id: 'terra-nave', planet: 'terra', area: null, ...PRACA_TERRA.portal, destinos: PLANETAS_DE_HUNT.map(p => p.vila) },
-  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 600, y: 1050 } }),
+  ...portaisDoPlaneta('namek', { inicial: { x: 900, y: 1198 }, media: { x: 510, y: 1675 }, dificil: { x: 438, y: 910 }, norte: { x: 807, y: 1388 } }),
   // Vegeta (Pedro, 04/11: "organizar tp para ficar em cima dos caminhos"): na cidade, um portal no meio de cada
   // estrada, perto da praça. Saídas das hunts agora ficam dentro da safe zone (pedido de 07/11/2026).
   ...portaisDoPlaneta('vegeta', { 'vegeta-planicies': { x: 1960, y: 1360 }, 'vegeta-canions': { x: 2040, y: 1140 },
     'vegeta-floresta': { x: 2560, y: 1197 }, 'vegeta-lava': { x: 2675, y: 1480 }, 'vegeta-cratera': { x: 2275, y: 1600 } }),
   // Terra das hunts: no hub, o portal de cada hunt na beira da clareira, do lado onde a hunt fica no mapa-múndi.
-  ...portaisDoPlaneta('terra-hunts', { 'terra-descampado': { x: 1204, y: 518 }, 'terra-deserto': { x: 1280, y: 640 }, 'terra-neve': { x: 1440, y: 322 }, 'terra-montanhas': { x: 1723, y: 470 }, 'terra-ilha': { x: 1665, y: 631 }, 'terra-floresta': { x: 1344, y: 464 } })
+  ...portaisDoPlaneta('terra-hunts', {
+    'terra-neve': { x: 1260, y: 407 },
+    'terra-montanhas': { x: 1690, y: 420 },
+    'terra-descampado': { x: 1188, y: 540 },
+    'terra-floresta': { x: 1740, y: 585 },
+    'terra-deserto': { x: 1304, y: 686 },
+    'terra-ilha': { x: 1600, y: 693 }
+  }, { x: 1461, y: 348 })
 ];
 
 // Decoração de Namekusei (árvores, arbustos e pedras; decisão do Pedro, 03/11/2026). Posições geradas por

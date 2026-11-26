@@ -60,9 +60,10 @@ export function instalarLoja({janela,obterEstado,comprar,avisar}) {
   };
   const vendas=instalarVendas({janela,obterEstado,acao:comprar,avisar});
   for(const aba of janela.querySelectorAll('[data-shop-aba]'))aba.onclick=()=>{
-    for(const b of janela.querySelectorAll('[data-shop-aba]')){b.classList.toggle('ativa',b===aba);b.setAttribute('aria-selected',String(b===aba));}
+    for(const b of janela.querySelectorAll('[data-shop-aba]')){b.classList.toggle('ativa',b===aba);b.setAttribute('aria-pressed',String(b===aba));}
     janela.querySelector('#shopComprar').hidden=aba.dataset.shopAba!=='comprar';
-    janela.querySelector('#shopVender').hidden=aba.dataset.shopAba!=='vender';
+    janela.querySelector('#shopVender').hidden=aba.dataset.shopAba==='comprar';
+    vendas.modo(aba.dataset.shopAba);
     atualizar();
   };
   const atualizar=()=>{

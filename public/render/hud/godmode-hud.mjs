@@ -16,7 +16,7 @@ const criar = (tag, classe, texto = null) => {
 export function instalarGodmodeHud(acao) {
   const janela = $('godmodeDialog'), grade = $('godmodeItems');
   if (!janela || !grade) return { atualizar() {} };
-  const opcoes = ['hpInfinite', 'kiInfinite', 'zeniInfinite', 'capacityInfinite', 'cooldownNormal'];
+  const opcoes = ['hpInfinite', 'kiInfinite', 'zeniInfinite', 'capacityInfinite', 'cooldownNormal', 'velocidadeMaxima'];
   const botaoAplicar = $('godmodeApply'), botaoLimpar = $('godmodeLimparEfeitos');
   let limpando = false;
   botaoLimpar?.addEventListener('click', async () => {
