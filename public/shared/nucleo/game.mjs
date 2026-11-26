@@ -5,7 +5,7 @@ import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncont
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao} from '../sistemas/missoes.mjs';
-import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA} from '../sistemas/saga-cell.mjs';
+import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA,CELL_PERFEITO} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
@@ -1573,7 +1573,7 @@ export class Game {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
         if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
-        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
+        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack * (t.dano || 1), ttl: t.beam ? 0.75 : 2, kind: t.kame ? 'kameCell' : t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * (t.dano || 1.4));
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
@@ -1605,6 +1605,25 @@ export class Game {
     if (!target) {
       if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
       return;
+    }
+    // Cell Perfeito (Pedro, 26/11/2026): uma vez, abaixo de 30% da vida, para e se regenera (recupera parte da vida, como
+    // no anime); de tempos em tempos dispara o Kamehameha, um raio forte na direção do alvo com aviso antes (como o
+    // Death Beam do Freeza). Rajada Dourada é o tiro comum; soco de perto. Números PROVISÓRIOS em CELL_PERFEITO.
+    if (m.type === 'cellPerfeito') {
+      const C = CELL_PERFEITO;
+      if (m.regenerando) { if (this.time >= m.regenerando) { m.regenerando = 0; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * C.regeneraFracao); this.emit('heal', { x: m.x, y: m.y - 40, amount: Math.round(m.maxHp * C.regeneraFracao), targetId: m.id }); } return; }
+      if (!m.regenerou && m.hp <= m.maxHp * C.regeneraAbaixo) {
+        m.regenerou = true; m.regenerando = this.time + C.regeneraTempo; m.telegraph = null;
+        m.strike = { started: this.time, release: m.regenerando, until: m.regenerando + 0.3, direction: m.facing, kind: 'regeneracao' };
+        for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, 'O Cell Perfeito está se regenerando!');
+        return;
+      }
+      if (closest > 120 && closest <= C.kameAlcance && this.time >= m.attackReady && this.time >= (m.kameReady || 0)) {
+        m.facing = norm(target.x - m.x, target.y - m.y); m.kameReady = this.time + C.kameRecarga;
+        m.telegraph = { kind: 'shot', beam: true, kame: true, dano: C.kameDano, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + C.kameAviso, started: this.time, radius: 30 };
+        m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.4, direction: m.facing, kind: 'kameCell' };
+        return;
+      }
     }
     // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
     // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.

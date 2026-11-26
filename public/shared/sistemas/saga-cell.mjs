@@ -15,6 +15,9 @@ export const BILHETE_LABORATORIO = 'bilhete-laboratorio';   // "Bilhete de Ouro 
 export const ABSORCAO_C20 = Object.freeze({ alcance: 110, aviso: 0.9, recarga: 8, dano: 0.9, ki: 0.15, cura: 2 });
 // Bola de energia da cauda do Cell Semiperfeito: alcance, carga antes de lançar, tempo de voo, raio da explosão,
 // recarga e multiplicador do ataque. PROVISÓRIO.
+// Cell Perfeito: Kamehameha (alcance, aviso, recarga, multiplicador) e auto-regeneração (uma vez, abaixo de 30%, recupera
+// 35% da vida em 1,6 s parado). PROVISÓRIO.
+export const CELL_PERFEITO = Object.freeze({ kameAlcance: 560, kameAviso: 0.8, kameRecarga: 9, kameDano: 2.2, regeneraAbaixo: 0.3, regeneraFracao: 0.35, regeneraTempo: 1.6 });
 export const BOLA_CAUDA = Object.freeze({ alcance: 560, carga: 1.0, voo: 0.5, raio: 70, recarga: 7, dano: 1.6 });
 export const AREA_DESERTO = 'terra-deserto', AREA_ILHA = 'terra-ilha';
 export const METAS_SAGA_CELL = Object.freeze({

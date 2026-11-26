@@ -102,3 +102,18 @@ test('Cell Semiperfeito: carrega a bola na cauda, lança no alvo e explode onde 
   g.time = semi.telegraph.until + .01; g.updateMob(semi, .05);
   assert.ok(p.hp < hp, 'a bola acertou o alvo');
 });
+
+test('Cell Perfeito: Kamehameha de longe e auto-regeneração uma vez abaixo de 30%', () => {
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: 62 }); p.connected = true;
+  g.levar(p, lugar('terra-deserto'));
+  const c = g.addMob('cellPerfeito', p.x + 400, p.y + 300, 'terra-deserto'); c.attackReady = 0;
+  p.x = c.x + 300; p.y = c.y; p.seguroAte = 0;
+  g.updateMob(c, .05);
+  assert.equal(c.strike?.kind, 'kameCell'); assert.ok(c.telegraph?.kame && c.telegraph.beam);
+  g.time = c.telegraph.until + .01; g.updateMob(c, .05);
+  assert.ok(g.projectiles.some(s => s.kind === 'kameCell' && s.owner === c.id), 'o Kamehameha saiu');
+  c.telegraph = null; c.hp = c.maxHp * .2; const antes = c.hp;
+  g.updateMob(c, .05); assert.equal(c.strike.kind, 'regeneracao'); assert.ok(c.regenerou);
+  g.time = c.regenerando + .01; g.updateMob(c, .05); assert.ok(c.hp > antes, 'regenerou');
+  c.hp = c.maxHp * .1; g.updateMob(c, .05); assert.notEqual(c.strike?.kind === 'regeneracao' && c.regenerando > 0, true, 'só uma vez');
+});
