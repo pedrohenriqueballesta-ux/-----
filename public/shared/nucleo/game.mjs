@@ -1607,7 +1607,7 @@ export class Game {
     }
     // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
     // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.
-    if (m.type === 'cellSemiperfeito' && closest > 90 && closest <= BOLA_CAUDA.alcance && this.time >= m.attackReady && this.time >= (m.caudaReady || 0)) {
+    if (m.type === 'cellSemiperfeito' && closest <= BOLA_CAUDA.alcance && this.time >= m.attackReady && this.time >= (m.caudaReady || 0)) {
       m.facing = norm(target.x - m.x, target.y - m.y); m.caudaReady = this.time + BOLA_CAUDA.recarga;
       m.telegraph = { kind: 'bolaNegra', alvoId: target.id, x: m.x, y: m.y, tx: target.x, ty: target.y, radius: BOLA_CAUDA.raio,
         started: this.time, lanca: this.time + BOLA_CAUDA.carga, until: this.time + BOLA_CAUDA.carga + BOLA_CAUDA.voo, dano: BOLA_CAUDA.dano };
