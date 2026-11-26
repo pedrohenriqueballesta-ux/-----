@@ -115,14 +115,14 @@ export function instalarGodmodeHud(acao) {
 
   const bossSelect = $('godmodeBossSelect'), bossButton = $('godmodeSpawnBoss'), bossStatus = $('godmodeBossStatus');
   for (const boss of CHEFES_TESTE) {
-    const option = criar('option', null, mobStats(boss.type, boss.area).name + ' · ' + areaPorId(boss.area).name);
-    option.value = boss.type; bossSelect.append(option);
+    const option = criar('option', null, mobStats(boss.type, boss.area).name + ' · ' + areaPorId(boss.area).name + (boss.pessoal ? ' · só para você' : ''));
+    option.value = boss.id; bossSelect.append(option);
   }
   bossButton.addEventListener('click', async () => {
     bossButton.disabled = true;
     try {
       const result = await acao({ type:'godmodeSpawnBoss', boss:bossSelect.value });
-      bossStatus.textContent = result?.ok ? 'Chefe invocado no local habitual.' : result?.reason || 'Não foi possível invocar o chefe.';
+      bossStatus.textContent = result?.ok ? 'Chefe invocado no local habitual. Vá até a hunt dele.' : result?.reason || 'Não foi possível invocar o chefe.';
     } catch (erro) { bossStatus.textContent = erro.message || 'Não foi possível invocar o chefe.'; }
     finally { bossButton.disabled = false; }
   });
