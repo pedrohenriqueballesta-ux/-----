@@ -24,9 +24,10 @@ export const METAS_SAGA_CELL = Object.freeze({
 const NOMES = { cellJr: 'Cell Jr.', cellImperfeito: 'Cell Imperfeito', androide17Pos: 'C17', androide18Pos: 'C18' };
 // Distância da chegada da hunt onde cada chefe pessoal nasce (o ponto exato é procurado em chão livre pelo Game).
 export const CHEFES_DA_SAGA = Object.freeze({
-  semiDeserto: Object.freeze({ type: 'cellSemiperfeito', area: AREA_DESERTO, distancia: 420 }),
-  semiIlha: Object.freeze({ type: 'cellSemiperfeito', area: AREA_ILHA, distancia: 380 }),
-  perfeito: Object.freeze({ type: 'cellPerfeito', area: AREA_DESERTO, distancia: 900 })
+  // Perto da chegada (logo fora da safe zone), para aparecer na tela mesmo em janela pequena (Pedro não achou a 420).
+  semiDeserto: Object.freeze({ type: 'cellSemiperfeito', area: AREA_DESERTO, distancia: 220 }),
+  semiIlha: Object.freeze({ type: 'cellSemiperfeito', area: AREA_ILHA, distancia: 220 }),
+  perfeito: Object.freeze({ type: 'cellPerfeito', area: AREA_DESERTO, distancia: 240 })
 });
 const ETAPAS = [
   { id: 'saga-cell-1', nome: 'Saga do Cell · O bilhete do C20',

@@ -1538,7 +1538,8 @@ export class Game {
       if (!c || p.area !== c.area || pessoais.some(m => m.dono === p.id && this.mobs.has(m.id))) continue;
       const pt = this.pontoDoChefeDaSaga(c);
       const m = this.addMob(c.type, pt.x, pt.y, c.area); m.dono = p.id; m.homeX = m.x; m.homeY = m.y;
-      this.notify(p, m.name + (c.type === 'cellPerfeito' ? ' espera por você na arena do laboratório!' : ' apareceu! Só você pode enfrentá-lo.'));
+      const lado = Math.abs(m.x - p.x) > Math.abs(m.y - p.y) ? (m.x > p.x ? 'à direita' : 'à esquerda') : (m.y > p.y ? 'abaixo' : 'acima');
+      this.notify(p, m.name + (c.type === 'cellPerfeito' ? ' espera por você na arena do laboratório, ' : ' apareceu, ') + lado + ' de você! Só você pode enfrentá-lo.');
     }
   }
   // Ponto do chefe pessoal: chão livre e alcançável a `distancia` da chegada (o primeiro achado numa volta em espiral).
