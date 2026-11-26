@@ -5,7 +5,7 @@ import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncont
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao} from '../sistemas/missoes.mjs';
-import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20} from '../sistemas/saga-cell.mjs';
+import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
@@ -1574,7 +1574,7 @@ export class Game {
         if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
         else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
-          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
+          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * (t.dano || 1.4));
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
         } else if (t.kind === 'pancada') {
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
@@ -1595,7 +1595,7 @@ export class Game {
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'cellSemiperfeito' && t.kind === 'bolaNegra' ? 1.2 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }
@@ -1603,6 +1603,15 @@ export class Game {
     if (m.type === 'oozaruDourado' && this.turnoOozaruDourado(m, target, closest, dt)) return;
     if (!target) {
       if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
+      return;
+    }
+    // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
+    // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.
+    if (m.type === 'cellSemiperfeito' && closest > 90 && closest <= BOLA_CAUDA.alcance && this.time >= m.attackReady && this.time >= (m.caudaReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.caudaReady = this.time + BOLA_CAUDA.recarga;
+      m.telegraph = { kind: 'bolaNegra', alvoId: target.id, x: m.x, y: m.y, tx: target.x, ty: target.y, radius: BOLA_CAUDA.raio,
+        started: this.time, lanca: this.time + BOLA_CAUDA.carga, until: this.time + BOLA_CAUDA.carga + BOLA_CAUDA.voo, dano: BOLA_CAUDA.dano };
+      m.strike = { started: this.time, release: m.telegraph.lanca, until: m.telegraph.lanca + 0.4, direction: m.facing, kind: 'cauda' };
       return;
     }
     // C20 (Saga do Cell): de tempos em tempos agarra quem está perto e suga a energia (folha de absorção, Pedro 25/11/2026).

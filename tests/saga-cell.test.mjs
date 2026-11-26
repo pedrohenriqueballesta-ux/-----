@@ -91,3 +91,14 @@ test('C20: a absorção de energia suga vida e Ki de quem está perto e cura o C
   assert.ok(p.hp < hp, 'tirou vida'); assert.ok(p.ki < ki, 'tirou Ki'); assert.ok(c20.hp > hpC20, 'o C20 se curou');
   assert.ok(c20.absorcaoReady > g.time, 'tem recarga');
 });
+
+test('Cell Semiperfeito: carrega a bola na cauda, lança no alvo e explode onde ele está', () => {
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: 62 }); p.connected = true;
+  g.levar(p, lugar('terra-deserto'));
+  const semi = g.addMob('cellSemiperfeito', p.x + 400, p.y + 300, 'terra-deserto'); semi.attackReady = 0;
+  p.x = semi.x + 300; p.y = semi.y; p.seguroAte = 0; p.hp = p.stats.hp; const hp = p.hp;
+  g.updateMob(semi, .05);
+  assert.equal(semi.telegraph?.kind, 'bolaNegra'); assert.equal(semi.strike.kind, 'cauda'); assert.ok(semi.caudaReady > g.time, 'tem recarga');
+  g.time = semi.telegraph.until + .01; g.updateMob(semi, .05);
+  assert.ok(p.hp < hp, 'a bola acertou o alvo');
+});

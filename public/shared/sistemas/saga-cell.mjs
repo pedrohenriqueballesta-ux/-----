@@ -13,6 +13,9 @@ export const BILHETE_LABORATORIO = 'bilhete-laboratorio';   // "Bilhete de Ouro 
 // Absorção de energia do C20: alcance da mão, aviso antes de sugar, recarga, fração do ataque como dano, fração do Ki
 // máximo do jogador sugada e quanto do dano vira cura. PROVISÓRIO.
 export const ABSORCAO_C20 = Object.freeze({ alcance: 110, aviso: 0.9, recarga: 8, dano: 0.9, ki: 0.15, cura: 2 });
+// Bola de energia da cauda do Cell Semiperfeito: alcance, carga antes de lançar, tempo de voo, raio da explosão,
+// recarga e multiplicador do ataque. PROVISÓRIO.
+export const BOLA_CAUDA = Object.freeze({ alcance: 560, carga: 1.0, voo: 0.5, raio: 70, recarga: 7, dano: 1.6 });
 export const AREA_DESERTO = 'terra-deserto', AREA_ILHA = 'terra-ilha';
 export const METAS_SAGA_CELL = Object.freeze({
   filhos: Object.freeze({ cellJr: 20, cellImperfeito: 10 }),
