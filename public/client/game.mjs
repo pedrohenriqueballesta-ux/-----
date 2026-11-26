@@ -456,7 +456,7 @@ function drawMob(m, pos, time) {
   const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress))
     || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
     || (m.type === 'freezaBoss' && drawFreezaBoss(ctx, m.forma || 'pe', pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
-    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time))
+    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot' || (m.strike?.kind === 'absorcao' && 'Absorcao') || (m.strike?.kind === 'cauda' && 'Cauda') || (m.strike?.kind === 'kameCell' && 'Kame') || (m.strike?.kind === 'regeneracao' && 'Regeneracao'), time))
     || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time)) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : corpoACorpo
@@ -485,7 +485,9 @@ function bocaOozaru(m) {
 const CENTRO_DO_ALVO = 35;   // altura do meio do corpo do personagem acima dos pés (Goku = 70)
 function bolaNegra(m, t, time) {
   if (time < t.lanca) return;
-  const p = Math.min(1, (time - t.lanca) / (t.until - t.lanca)), b = bocaOozaru(m), d = NOVA.final / 2;
+  // Cell Semiperfeito: a bola sai da ponta da cauda, acima da cabeça, e é um pouco menor.
+  const cauda = m.type === 'cellSemiperfeito', pm = renderPositions.get(m.id) || m;
+  const p = Math.min(1, (time - t.lanca) / (t.until - t.lanca)), b = cauda ? { x: pm.x, y: pm.y - 110 } : bocaOozaru(m), d = NOVA.final / (cauda ? 2.6 : 2);
   const x = b.x + (t.tx - b.x) * p, y = b.y + (t.ty - CENTRO_DO_ALVO - b.y) * p, r = d / 2 * (0.7 + 0.3 * Math.min(1, p * 4)) * (1 + Math.sin(time * 26) * 0.05);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 1.9); g.addColorStop(0, '#ff3aa0aa'); g.addColorStop(0.5, '#9a1a8a55'); g.addColorStop(1, '#3a003a00');
@@ -779,7 +781,7 @@ function frame(now) {
     telegraphs(time);
     // Carga da bola negra: só um brilho ATRÁS do Oozaru (a bola negra já está na boca no desenho da folha) — a cabeça fica
     // à mostra durante toda a carga (Pedro, 06/11).
-    for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra') cargaLaser(m, m.telegraph, time);
+    for (const m of snapshot.mobs) if (m.telegraph?.kind === 'bolaNegra' && m.type !== 'cellSemiperfeito') cargaLaser(m, m.telegraph, time);
     // Rachadura da pancada no chão (imagem do Pedro), por baixo de todo mundo, sumindo aos poucos.
     for (const e of floating) if (e.type === 'pancada' && time >= e.at) rachadura(e, time - e.at);
     for (const l of snapshot.loot) {
@@ -899,6 +901,8 @@ function frame(now) {
     const pos = s.kind === 'mobKiTarget' ? { x: s.x + s.dx * avanco, y: s.y + s.dy * avanco } : { x: px, y: py };
     adicionarEfeito(pos, () => {
       if ((s.kind === 'ki' || s.kind === 'mobKiTarget') && desenharProjetilMob(ctx, s, pos, time, camera.scale)) return;
+      if (s.visual === 'kameCell') { const dx = s.dx || 0, dy = s.dy || 0; ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.restore(); return; }
+      if (s.kind === 'kameCell') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, pos);
       else if (s.kind === 'ryuken') desenharVooRyuken(ctx, s, time, pos);

@@ -32,6 +32,13 @@ import { YAMCHA_PARADO } from './personagens/yamcha/yamcha-parado.mjs';
 import { ANDROIDE_18_PARADO } from './personagens/androides/androide-18-parado.mjs';
 import { ANDROIDE_17_PARADO } from './personagens/androides/androide-17-parado.mjs';
 import { ANDROIDE_16_PARADO } from './personagens/androides/androide-16-parado.mjs';
+import { CELL_JR_PARADO } from './personagens/cell/cell-jr-parado.mjs';
+import { CELL_IMPERFEITO_PARADO } from './personagens/cell/cell-imperfeito-parado.mjs';
+import { C20_PARADO } from './personagens/cell/c20-parado.mjs';
+import { CELL_SEMIPERFEITO_PARADO } from './personagens/cell/cell-semiperfeito-parado.mjs';
+import { CELL_PERFEITO_PARADO } from './personagens/cell/cell-perfeito-parado.mjs';
+import { ANDROIDE_17_POS_PARADO } from './personagens/androides/androide-17-pos-parado.mjs';
+import { ANDROIDE_18_POS_PARADO } from './personagens/androides/androide-18-pos-parado.mjs';
 
 export const PARADO = {
   guerreiro: [GUERREIRO_PARADO, 'guerreiroParado'],
@@ -63,5 +70,12 @@ export const PARADO = {
   androide18: [ANDROIDE_18_PARADO, 'androide18Parado'],
   androide17: [ANDROIDE_17_PARADO, 'androide17Parado'],
   androide16: [ANDROIDE_16_PARADO, 'androide16Parado'],
+  cellJr: [CELL_JR_PARADO, 'cellJrParado'],
+  cellImperfeito: [CELL_IMPERFEITO_PARADO, 'cellImperfeitoParado'],
+  c20: [C20_PARADO, 'c20Parado'],
+  cellSemiperfeito: [CELL_SEMIPERFEITO_PARADO, 'cellSemiperfeitoParado'],
+  cellPerfeito: [CELL_PERFEITO_PARADO, 'cellPerfeitoParado'],
+  androide17Pos: [ANDROIDE_17_POS_PARADO, 'androide17PosParado'],
+  androide18Pos: [ANDROIDE_18_POS_PARADO, 'androide18PosParado'],
   ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).filter(([, f]) => f.parado).map(([tipo, f]) => [tipo, f.parado]))
 };
