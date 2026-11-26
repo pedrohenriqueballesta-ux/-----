@@ -109,9 +109,11 @@ test('Cell Perfeito: Kamehameha de longe e auto-regeneração uma vez abaixo de 
   const c = g.addMob('cellPerfeito', p.x + 400, p.y + 300, 'terra-deserto'); c.attackReady = 0;
   p.x = c.x + 300; p.y = c.y; p.seguroAte = 0;
   g.updateMob(c, .05);
-  assert.equal(c.strike?.kind, 'kameCell'); assert.ok(c.telegraph?.kame && c.telegraph.beam);
+  assert.equal(c.strike?.kind, 'kameCell'); assert.ok(c.telegraph?.kame && c.telegraph.alvoId === p.id, 'Kamehameha mira o alvo (target)');
   g.time = c.telegraph.until + .01; g.updateMob(c, .05);
-  assert.ok(g.projectiles.some(s => s.kind === 'kameCell' && s.owner === c.id), 'o Kamehameha saiu');
+  const kame = g.projectiles.find(s => s.visual === 'kameCell' && s.owner === c.id); assert.ok(kame, 'o Kamehameha saiu');
+  assert.equal(kame.kind, 'mobKiTarget', 'persegue o alvo'); assert.equal(kame.alvoId, p.id);
+  const hp = p.hp; for (let i = 0; i < 60 && kame.ttl !== 0; i++) { p.x += 5; g.tick(.05); } assert.ok(p.hp < hp, 'acertou mesmo com o alvo andando');
   c.telegraph = null; c.hp = c.maxHp * .2; const antes = c.hp;
   g.updateMob(c, .05); assert.equal(c.strike.kind, 'regeneracao'); assert.ok(c.regenerou);
   g.time = c.regenerando + .01; g.updateMob(c, .05); assert.ok(c.hp > antes, 'regenerou');

@@ -549,7 +549,6 @@ function telegraphs(time) {
       ctx.strokeStyle = '#e07aff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(t.tx, t.ty, t.radius, t.radius * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       continue;
     }
-    if (t.kind === 'shot' && t.beam && t.kame) { ctx.strokeStyle = '#4fb8ff90'; ctx.lineWidth = 5; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(t.x, t.y - 34); ctx.lineTo(t.x + t.dx * 560, t.y - 34 + t.dy * 560); ctx.stroke(); ctx.setLineDash([]); continue; }
     if (t.kind === 'shot' && t.beam) { ctx.strokeStyle = '#e06cff90'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(t.x, t.y - 30); ctx.lineTo(t.x + t.dx * 520, t.y - 30 + t.dy * 520); ctx.stroke(); ctx.setLineDash([]); continue; }
     const progress = Math.min(1, Math.max(0, (time - t.started) / (t.until - t.started)));
     // Projéteis TARGET não exibem linha de mira, pois não são desviáveis.
@@ -902,6 +901,7 @@ function frame(now) {
     const pos = s.kind === 'mobKiTarget' ? { x: s.x + s.dx * avanco, y: s.y + s.dy * avanco } : { x: px, y: py };
     adicionarEfeito(pos, () => {
       if ((s.kind === 'ki' || s.kind === 'mobKiTarget') && desenharProjetilMob(ctx, s, pos, time, camera.scale)) return;
+      if (s.visual === 'kameCell') { const dx = s.dx || 0, dy = s.dy || 0; ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(pos.x - dx * 110, pos.y - 34 - dy * 110); ctx.lineTo(pos.x, pos.y - 34); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'kameCell') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#4fb8ffbb'; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.strokeStyle = '#eafaff'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(px - s.dx * 110, py - 34 - s.dy * 110); ctx.lineTo(px, py - 34); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'deathbeam') { ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#d65cffaa'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.strokeStyle = '#fff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - s.dx * 70, py - 30 - s.dy * 70); ctx.lineTo(px, py - 30); ctx.stroke(); ctx.restore(); return; }
       if (s.kind === 'genki') desenharGenki(ctx, 'voo', s, time, pos);

@@ -1515,12 +1515,12 @@ export class Game {
     }
     return true;
   }
-  dispararProjetilMob(m, alvoId) {
+  dispararProjetilMob(m, alvoId, extra = null) {
     const alvo=this.players.get(alvoId),config=m.projetil;
     if(!config || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(m,alvo) || this.protegido(alvo))return false;
     if(!(config.velocidade>0) || !Number.isFinite(config.velocidade))return false;
     this.projectiles.push({id:this.uid('s'),kind:'mobKiTarget',owner:m.id,ownerType:'mob',alvoId:alvo.id,
-      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,config,this.time)});
+      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,extra?.speed?{...config,velocidade:extra.speed}:config,this.time),...(extra?{visual:extra.visual,damage:extra.damage}:{})});
     return true;
   }
   // Saga do Cell: cada personagem que está na etapa de um chefe e entra na área dele encontra o próprio chefe
@@ -1572,7 +1572,8 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
+        if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
+        else if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
         else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack * (t.dano || 1), ttl: t.beam ? 0.75 : 2, kind: t.kame ? 'kameCell' : t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * (t.dano || 1.4));
@@ -1620,7 +1621,8 @@ export class Game {
       }
       if (closest > 120 && closest <= C.kameAlcance && this.time >= m.attackReady && this.time >= (m.kameReady || 0)) {
         m.facing = norm(target.x - m.x, target.y - m.y); m.kameReady = this.time + C.kameRecarga;
-        m.telegraph = { kind: 'shot', beam: true, kame: true, dano: C.kameDano, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + C.kameAviso, started: this.time, radius: 30 };
+        // Skill TARGET (Pedro, 26/11): o Kamehameha persegue o alvo e acerta, como a rajada de ki dos mobs.
+        m.telegraph = { kind: 'shot', kame: true, alvoId: target.id, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + C.kameAviso, started: this.time, radius: 30 };
         m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.4, direction: m.facing, kind: 'kameCell' };
         return;
       }
