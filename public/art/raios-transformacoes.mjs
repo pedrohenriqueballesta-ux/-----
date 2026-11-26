@@ -1,6 +1,12 @@
 // Paletas amostradas no cabelo e na energia das artes do Vegeta.
 // As paletas de Blue e Ultra Ego foram escolhidas a partir dos ícones.
+const PERFIL_GOD = {
+  intensidade: .74, opacidade: 1, variacaoOpacidade: .08, ganhoAlpha: 3.5,
+  escala: 1.14, ancoraY: .87, intervaloMs: [101, 155], pausa: .19
+};
+
 export const RAIOS_POR_FORMA = {
+  boo: { kidBoo: { ...PERFIL_GOD, cor: [252, 129, 164], brilho: [214, 61, 118] } },
   vegeta: {
     ssj: {
       cor: [241, 162, 17], brilho: [210, 126, 2], intensidade: .64,
@@ -8,9 +14,7 @@ export const RAIOS_POR_FORMA = {
       escala: 1.17, ancoraY: .88, intervaloMs: [110, 160], pausa: .24
     },
     ssjGod: {
-      cor: [252, 50, 121], brilho: [242, 24, 77], intensidade: .74,
-      opacidade: 1, variacaoOpacidade: .08, ganhoAlpha: 3.5,
-      escala: 1.14, ancoraY: .87, intervaloMs: [101, 155], pausa: .19
+      ...PERFIL_GOD, cor: [252, 50, 121], brilho: [242, 24, 77]
     },
     ssjBlue: {
       cor: [79, 229, 254], brilho: [2, 253, 254], intensidade: .96,

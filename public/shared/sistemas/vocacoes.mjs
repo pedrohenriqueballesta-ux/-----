@@ -12,9 +12,18 @@ const atributosVegeta = level => {
     capacity: 20 + n * 1.3, lootChance: Math.min(0.8, 0.33 + n * 0.008), mobility: 175 + Math.min(60, n * 2) };
 };
 
+// Valores iniciais de teste para a vocação voltada à sobrevivência.
+const atributosBoo = level => {
+  const n = Math.max(0, level - 1);
+  return { hp: 135 + n * 25, ki: 85 + n * 10, attack: 11 + n * 2.65,
+    defense: 3 + n * 0.7, healing: 1.1 + n * 0.085, capacity: 20 + n * 1.3,
+    lootChance: Math.min(0.8, 0.34 + n * 0.008), mobility: 170 + Math.min(60, n * 2) };
+};
+
 export const VOCACOES = Object.freeze({
   goku: Object.freeze({ id: 'goku', nome: 'Goku', personagem: 'Goku', sprite: 'goku', atributos: atributosGoku }),
-  vegeta: Object.freeze({ id: 'vegeta', nome: 'Vegeta', personagem: 'Vegeta', sprite: 'vegeta', atributos: atributosVegeta })
+  vegeta: Object.freeze({ id: 'vegeta', nome: 'Vegeta', personagem: 'Vegeta', sprite: 'vegeta', atributos: atributosVegeta }),
+  boo: Object.freeze({ id: 'boo', nome: 'Majin Boo', personagem: 'Majin Boo', sprite: 'boo', atributos: atributosBoo })
 });
 
 export function vocacaoDoPersonagem(valor) {

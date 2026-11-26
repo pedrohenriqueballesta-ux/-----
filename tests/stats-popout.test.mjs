@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CANAL_STATUS_POPUP, resumirStatusPopout, instalarStatusPopout } from '../public/client/stats-popout.mjs';
-import { poseGokuPopout } from '../public/render/hud/goku-popout.mjs';
+import { personagemParado } from '../public/render/pose-personagem.mjs';
 
 function snapshot({ hp = 60, autoHunt = true, moving = false } = {}) {
   return {
@@ -15,9 +15,11 @@ test('resumo pop-out expõe vida, Ki, XP/h e status de caça', () => {
   assert.deepEqual(resumirStatusPopout(snapshot()), {
     nome: 'Goku', vocacao: 'Goku', nivel: 20, estado: 'cacando', hp: 60, hpMax: 100, hpPercentual: 60,
     ki: 40, kiMax: 80, kiPercentual: 50, xpHora: 1234.6,
-    sprite: { id: 'p1', moving: false, facing: { x: 1, y: 0 }, dead: false, transformed: false, forma: 'base', charge: null,
-      dashing: false, genkiLancado: null, genkiCarga: null, rajadaStarted: undefined, kameStarted: undefined, socoStarted: undefined,
-      movementSpeed: 110, serverTime: 1000 }
+    sprite: { id: 'p1', vocacao: 'goku', skin: 'base', moving: false, facing: { x: 1, y: 0 }, montaria: null,
+      reduzirAnimacoes: false, dead: false, transformed: false, forma: 'base', charge: null,
+      dashing: false, genkiLancado: null, genkiCarga: null, ryuken: null, ryukenLancado: undefined, ryukenVoando: undefined,
+      chocolateLancado: null, booLancado: null, galick: null, finalFlash: null, bigBang: null,
+      rajadaStarted: undefined, kameStarted: undefined, socoStarted: undefined, movementSpeed: 110, serverTime: 1000 }
   });
 });
 
@@ -42,14 +44,41 @@ test('resumo da sprite acompanha direção, movimento, forma e animação de ata
   assert.equal(sprite.movementSpeed, 110);
 });
 
-test('sprite escolhe a folha correta para repouso, caminhada, golpe, rajada, Kame e SSJ', () => {
-  const parado = { moving: false, forma: 'base' };
-  assert.match(poseGokuPopout(parado, 1)[0].file, /base\/parado\.png$/);
-  assert.match(poseGokuPopout({ ...parado, moving: true }, 2, 80)[0].file, /base\/andar\.png$/);
-  assert.match(poseGokuPopout({ ...parado, socoStarted: 9.8 }, 10)[0].file, /base\/soco\.png$/);
-  assert.match(poseGokuPopout({ ...parado, rajadaStarted: 9.8 }, 10)[0].file, /base\/rajada-ki\.png$/);
-  assert.match(poseGokuPopout({ ...parado, charge: { until: 10.65 } }, 10)[0].file, /base\/kamehameha\.png$/);
-  assert.match(poseGokuPopout({ moving: false, forma: 'ssj', transformed: true }, 1)[0].file, /ssj\/parado\.png$/);
+test('resumo preserva as poses exclusivas e a skin das três vocações', () => {
+  const estado = snapshot();
+  const jogador = estado.players[0];
+  jogador.skin = 'natalino';
+  jogador.ryuken = { started: 999.8, until: 1000.3, direction: { x: -1, y: 0 } };
+  estado.kamehamehas = [{ owner: jogador.id, started: 999, galick: true }, { owner: jogador.id, started: 999.8 }];
+  let sprite = resumirStatusPopout(estado).sprite;
+  assert.equal(sprite.skin, 'natalino');
+  assert.equal(sprite.kameStarted, 999.8);
+  assert.equal(sprite.ryuken.started, 999.8);
+
+  jogador.vocacao = 'vegeta';
+  jogador.bigBangLancado = { started: 999.8, direction: { x: -1, y: 0 } };
+  sprite = resumirStatusPopout(estado).sprite;
+  assert.equal(sprite.vocacao, 'vegeta');
+  assert.equal(sprite.galick.started, 999);
+  assert.deepEqual(sprite.bigBang.direction, { x: -1, y: 0 });
+
+  jogador.vocacao = 'boo';
+  jogador.forma = 'kidBoo';
+  jogador.charge = { booTecnica: 'supernova', started: 999.6, until: 1000.8, origem: { x: 50, y: 100 }, dano: 999 };
+  sprite = resumirStatusPopout(estado).sprite;
+  assert.equal(sprite.vocacao, 'boo');
+  assert.equal(sprite.forma, 'kidBoo');
+  assert.equal(sprite.charge.booTecnica, 'supernova');
+  assert.equal(sprite.charge.origem, true);
+  assert.equal(sprite.charge.dano, undefined);
+});
+
+test('pose estática do perfil conserva apenas vocação, forma, skin e montaria', () => {
+  assert.deepEqual(personagemParado({
+    vocacao: 'boo', forma: 'kidBoo', montaria: 'nimbus', transformed: true,
+    facing: { x: 1, y: 0 }, dead: true, moving: true, charge: {}, booLancado: {}
+  }), { vocacao: 'boo', forma: 'kidBoo', skin: 'base', montaria: 'nimbus', transformed: true,
+    facing: { x: 0, y: 1 }, dead: false, moving: false });
 });
 
 test('botão abre uma janela compacta e o canal transmite só o resumo de status', () => {

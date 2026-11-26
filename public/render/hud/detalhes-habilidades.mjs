@@ -1,4 +1,6 @@
-﻿import { CONFIG } from '../../shared/nucleo/config.mjs';
+﻿import { TECNICAS_BOO, custoTecnicaBoo, estagioTecnicasBoo } from '../../shared/tecnicas/majin-boo.mjs';
+import { CHOCOLATE_BEAM } from '../../shared/tecnicas/chocolate-beam.mjs';
+import { CONFIG } from '../../shared/nucleo/config.mjs';
 import { recargaConsumivel } from './recargas-hud.mjs';
 import { CONSUMIVEIS_LOOT } from '../../shared/tecnicas/consumiveis-loot.mjs';
 import { aplicarRaridadeItem } from './hud-elementos.mjs';
@@ -9,7 +11,7 @@ import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 import { CURA, curaPorNivel } from '../../shared/tecnicas/cura.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, nomeDaForma } from '../../shared/tecnicas/formas.mjs';
 import { RYUKEN, danoRyuken } from '../../shared/tecnicas/ryuken.mjs';
-import { SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
+import { KAME, SUPER_KAME } from '../../shared/tecnicas/kamehameha.mjs';
 import { ESTAGIOS_GALICK, estagioGalick } from '../../shared/tecnicas/galick-gun.mjs';
 import { BIG_BANG_ATTACK, formaBigBangAttack } from '../../shared/tecnicas/big-bang-attack.mjs';
 import { FINAL_FLASH, formaFinalFlash } from '../../shared/tecnicas/final-flash.mjs';
@@ -33,6 +35,31 @@ export function detalhesHabilidade(chave, estado) {
   }
   const automatica = chave === 'form:auto';
   if(automatica)chave='transform';
+  if (Object.hasOwn(TECNICAS_BOO, chave)) {
+    const t = TECNICAS_BOO[chave], restante = estado[chave+'Remaining'] || 0;
+    const e = estagioTecnicasBoo(estado.forma), formatar = n => n.toLocaleString('pt-BR');
+    const atributos = {
+      cloneSummoning: [['Quantidade', formatar(e.clones)]],
+      supernova: [['Raio', formatar(e.raioNova / KAME.tile) + ' tiles'], ['Atração', formatar(e.atracao / KAME.tile) + ' tiles/s'],
+        ['Dano por pulso', formatar(e.danoNova * 100) + '% do ataque']],
+      angryExplosion: [['Raio', formatar(e.raioAngry / KAME.tile) + ' tiles'], ['Dano', formatar(e.danoAngry * 100) + '% do ataque']]
+    };
+    const situacao = estado.level < t.nivel ? 'Bloqueada · requer nível '+t.nivel
+      : restante > 0 ? 'Em recarga · '+segundos(restante)
+      : estado.ki < custoTecnicaBoo(t, estado.stats.ki) ? 'Ki insuficiente' : 'Disponível';
+    return {nome:t.nome, linhas:[['Desbloqueia','Nível '+t.nivel],['Custo',t.ki+'% do Ki máximo'],
+      ['Cooldown',segundos(t.recarga)],['Conjuração',segundos(t.carga)],['Efeito',t.descricao],...atributos[chave],['Estado',situacao]]};
+  }
+  if (chave === 'chocolateBeam') {
+    const {nivel,custo,recarga,carga,alcance,nome} = CHOCOLATE_BEAM;
+    const restante = estado.chocolateBeamRemaining || 0;
+    const { stun, danoChocolate } = estagioTecnicasBoo(estado.forma);
+    const situacao = estado.vocacao !== 'boo' ? 'Exclusiva do Majin Boo' : estado.level < nivel ? 'Bloqueada · requer nível ' + nivel
+      : restante > 0 ? 'Em recarga · ' + segundos(restante) : estado.ki < custo ? 'Ki insuficiente' : 'Disponível';
+    return {nome, linhas:[['Desbloqueia','Nível ' + nivel],['Custo',custo + ' Ki'],['Cooldown',segundos(recarga)],
+      ['Conjuração',segundos(carga)],['Alcance',alcance + ' unidades'],['Dano no impacto', (danoChocolate * 100).toLocaleString('pt-BR') + '% do ataque'],
+      ['Atordoamento', segundos(stun)],['Estado',situacao]]};
+  }
   if (chave === 'finalFlash' || chave === 'bigBangAttack') {
     const bigBang = chave === 'bigBangAttack';
     const { nivel, custo, recarga, alcance, carga, dano } = bigBang ? BIG_BANG_ATTACK : FINAL_FLASH;
@@ -70,6 +97,7 @@ export function detalhesHabilidade(chave, estado) {
       // Um botão só (Pedro, 11/11/2026): a forma mais forte liberada; a próxima da escada aparece como "Próxima".
       const disponivel = formaDisponivel(estado.level,estado.vocacao||'goku');
       const formas = formasDaVocacao(estado.vocacao), primeira = formas[0];
+      if (!primeira) return null;
       const mostrada = !automatica && estado.forma && estado.forma !== 'base' ? estado.forma : disponivel?.forma || primeira.forma;
       const ativa = estado.forma === mostrada, proxima = formas.find(f => estado.level < f.nivel);
       return { nome: nomeDaForma(mostrada), linhas: [

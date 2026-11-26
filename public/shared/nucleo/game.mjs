@@ -19,6 +19,9 @@ import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
 import { KAME, ESTAGIOS_KAME, SUPER_KAME, usaSuperKame, estagioKame, geometriaKame, origemKame, atingidoPeloKame, IMPACTO_KAME, distanciaContatoKame, atingidoPeloImpactoKame } from '../tecnicas/kamehameha.mjs';
+import { TECNICAS_BOO, estagioTecnicasBoo } from '../tecnicas/majin-boo.mjs';
+import { CombateBoo } from '../tecnicas/combate-boo.mjs';
+import { CHOCOLATE_BEAM } from '../tecnicas/chocolate-beam.mjs';
 import { GALICK, estagioGalick, origemGalick } from '../tecnicas/galick-gun.mjs';
 import { FINAL_FLASH, formaFinalFlash, origemFinalFlash, contatoFinalFlash } from '../tecnicas/final-flash.mjs';
 import { BIG_BANG_ATTACK, formaBigBangAttack, maoBigBang } from '../tecnicas/big-bang-attack.mjs';
@@ -55,6 +58,7 @@ export class Game {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
     this.beneficiosDeTeste = beneficiosDeTeste;
+    this.combateBoo = new CombateBoo(this);
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
     if (populate) this.populate();
@@ -107,7 +111,7 @@ export class Game {
     this.projectiles = this.projectiles.filter(s => s.kind !== 'genki' || s.owner !== p.id);
     this.kamehamehas = this.kamehamehas.filter(k => k.owner !== p.id);
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
-    p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.rota = null; p.input = { x: 0, y: 0 };
+    p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.chocolateLancado = null; p.booLancado = null; p.rota = null; p.input = { x: 0, y: 0 };
     p.seguroAte = this.time + CONFIG.chegadaSegura;
   }
   usePortal(p, destinoId) {
@@ -229,6 +233,7 @@ export class Game {
       if (p.vocacao !== 'vegeta' && validada.includes('skill:galick')) return this.reject(p, 'O Galick Gun é exclusivo do Vegeta.');
       if (p.vocacao !== 'vegeta' && validada.includes('skill:finalFlash')) return this.reject(p, 'O Final Flash é exclusivo do Vegeta.');
       if (p.vocacao !== 'vegeta' && validada.includes('skill:bigBangAttack')) return this.reject(p, 'O Big Bang Attack é exclusivo do Vegeta.');
+      if (validada.some(id => id?.startsWith('skill:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Técnica indisponível para esta vocação.');
       if (validada.some(id => id?.startsWith('form:') && !tecnicaDaVocacao(id, p.vocacao))) return this.reject(p, 'Transformação indisponível para esta vocação.');
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
@@ -236,7 +241,7 @@ export class Game {
     if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};if(data.valor!==null)p.montariaPreferida=data.valor;p.montaria=data.valor;return{ok:true};}
     if(kind==='skin'){
       const skin=String(data.skin||'');
-      if (p.vocacao === 'vegeta' && skin !== 'base') return this.reject(p, 'Skin indisponível para o Vegeta.');
+      if (p.vocacao !== 'goku' && skin !== 'base') return this.reject(p, 'Skin indisponível para esta vocação.');
       const forma=skin==='base'?{nivel:1}:FORMAS.find(f=>f.forma===skin&&(!f.vocacoes||f.vocacoes.includes(p.vocacao)));
       if(skin!=='natalino'&&!forma)return this.reject(p,'Skin inválida.');
       p.skin=skin;return{ok:true};
@@ -541,6 +546,11 @@ export class Game {
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
+    if (Object.hasOwn(TECNICAS_BOO, skill)) return this.combateBoo.iniciar(p, TECNICAS_BOO[skill], automated);
+    if (skill === CHOCOLATE_BEAM.id) return this.iniciarRaioChocolate(p, automated);
+    if (p.vocacao === 'boo' && !['heal','basic','ki','transform','kaioken'].includes(skill))
+      return automated ? {ok:false} : this.reject(p, 'Técnica indisponível para o Majin Boo.');
+    if (p.vocacao === 'boo' && p.charge && skill !== 'heal') return {ok:false};
     if (p.vocacao === 'vegeta' && !['heal','basic','ki','galick','finalFlash','bigBangAttack'].includes(skill) && !skill.startsWith('item:') && !['kaioken','transform'].includes(skill)) return automated ? { ok: false } : this.reject(p, 'Esta técnica ainda não foi implementada para o Vegeta.');
     if (skill === 'kaioken' || skill === 'transform') return this.alternarForma(p, skill, automated, formaSolicitada);
     if (skill === 'heal') return this.curarVida(p, automated);
@@ -557,6 +567,11 @@ export class Game {
       p.basicReady = this.time + 0.45;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('punch', { x: p.x, y: p.y, dx: dir.x, dy: dir.y, playerId: p.id });
+      if (p.vocacao === 'boo') {
+        p.facing = dir;
+        p.charge = { booSoco: true, direction: dir, targetId: target?.id, automated, until: this.time + .18 };
+        return {ok:true};
+      }
       if (target && this.distanciaAoCorpo(p, target) <= 70) this.hit(p, target, p.stats.attack * multiplicadorDaForma(p.forma, 'soco'));
       return { ok: true };
     }
@@ -568,15 +583,17 @@ export class Game {
     }
     if (skill === 'ki') {
       // A Rajada de Ki é o ataque à distância básico de todas as vocações.
-      const nivelRajada = p.vocacao === 'vegeta' ? 1 : CONFIG.skills.ki;
+      const nivelRajada = p.vocacao !== 'goku' ? 1 : CONFIG.skills.ki;
       if (p.level < nivelRajada) return automated ? { ok: false } : this.reject(p, 'Rajada de Ki libera no nível ' + nivelRajada + '.');
       if (this.time < p.shotReady || p.ki < CONFIG.skillCosts.ki || p.charge) return { ok: false };
       p.ki -= CONFIG.skillCosts.ki; p.shotReady = this.time + CONFIG.skillCooldowns.ki;
       const dir = this.aimDirection(p, target); if (p.autoHunt) p.facing = dir;
       this.emit('kiShot', {x:p.x,y:p.y,playerId:p.id});
-      this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
-        owner: p.id, ownerType: 'player', damage: p.stats.attack * multiplicadorDaForma(p.forma, 'rajada'),
-        ttl: 0.95, kind: 'ki', started: this.time, cor: 285, corHex: p.vocacao === 'vegeta' ? '#B52CFF' : '#0072FB', tamanho: 48, fps: 12 });
+      if (p.vocacao === 'boo') {
+        p.facing = dir;
+        const norte = dir.y < 0 && Math.abs(dir.x) < -dir.y * (Math.SQRT2 - 1);
+        p.charge = { booKi: true, direction: dir, automated, until: this.time + (norte ? 0.27 : 0.18) };
+      } else this.dispararRajada(p, dir);
       return { ok: true };
     }
     // Ryuken (Pedro, 16/11/2026): técnica própria do Super Saiyajin 3 e 4; o Kamehameha continua disponível.
@@ -645,6 +662,80 @@ export class Game {
   }
   // Um botão só (decisão do Pedro, 11/11/2026): transformado → volta à base; na base → ativa a forma mais forte
   // que o nível liberou (shared/formas.mjs). 'kaioken' e 'transform' são o mesmo comando, por compatibilidade.
+  dispararRajada(p, dir) {
+    const cores = { goku: '#0072FB', vegeta: '#B52CFF', boo: '#FF62BA' };
+    this.projectiles.push({ id: this.uid('s'), x: p.x, y: p.y, planet: p.planet, area: p.area, dx: dir.x, dy: dir.y, speed: 470,
+      owner: p.id, ownerType: 'player', damage: p.stats.attack * multiplicadorDaForma(p.forma, 'rajada'),
+      ttl: 0.95, kind: 'ki', started: this.time,
+      ...(p.vocacao === 'boo' ? { emissorBoo: { forma: p.forma, x: p.x, y: p.y } } : {}), cor: 285, corHex: cores[p.vocacao], tamanho: 48, fps: 12 });
+  }
+
+  alvoValidoChocolate(p, alvo) {
+    return p?.connected && p.hp > 0 && alvo?.hp > 0 && this.mesmoLugar(p, alvo) &&
+      !naZonaSegura(p) && !naZonaSegura(alvo) && !(alvo.chocolate?.until > this.time);
+  }
+
+  iniciarRaioChocolate(p, automated) {
+    const falha = motivo => automated ? {ok:false} : this.reject(p, motivo);
+    const skill = CHOCOLATE_BEAM;
+    if (p.vocacao !== 'boo') return falha('Raio de Chocolate é exclusivo do Majin Boo.');
+    if (p.level < skill.nivel) return falha('Raio de Chocolate libera no nível ' + skill.nivel + '.');
+    if (p.charge || p.ki < skill.custo || p.chocolateBeamReady > this.time) return falha('Raio de Chocolate em recarga ou Ki insuficiente.');
+    const alvo = this.mobs.get(p.targetId);
+    if (!this.alvoValidoChocolate(p, alvo) || this.distanciaAoCorpo(p, alvo) > skill.alcance)
+      return falha('Selecione um inimigo disponível no alcance e fora da zona segura.');
+    p.ki -= skill.custo;
+    p.chocolateBeamReady = this.time + this.recarga(p, skill.recarga);
+    p.facing = norm(alvo.x - p.x, alvo.y - p.y);
+    p.charge = { chocolateBeam: true, targetId: alvo.id, automated, direction: p.facing, forma: p.forma,
+      started: this.time, until: this.time + skill.carga };
+    return {ok:true};
+  }
+
+  atualizarCargaChocolate(p) {
+    const carga = p.charge;
+    const alvo = this.mobs.get(carga.targetId);
+    if (!this.alvoValidoChocolate(p, alvo) || this.distanciaAoCorpo(p, alvo) > CHOCOLATE_BEAM.alcance) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = norm(alvo.x - p.x, alvo.y - p.y);
+    if (this.time + 1e-9 < carga.until) return;
+    p.charge = null;
+    p.chocolateLancado = { started: this.time, direction: carga.direction };
+    this.projectiles.push({id:this.uid('s'),kind:'chocolateBeam',owner:p.id,targetId:alvo.id,
+      damage: p.stats.attack * estagioTecnicasBoo(carga.forma).danoChocolate,
+      planet:p.planet,area:p.area,x:p.x,y:p.y,origem:{x:p.x,y:p.y},direction:carga.direction,
+      forma:carga.forma,started:this.time,ttl:CHOCOLATE_BEAM.alcance/CHOCOLATE_BEAM.velocidade+.1,percorrido:0});
+  }
+
+  atualizarRaioChocolate(s, dt) {
+    const p = this.players.get(s.owner), alvo = this.mobs.get(s.targetId);
+    if (!this.alvoValidoChocolate(p, alvo) || !this.mesmoLugar(s, p) || !this.mesmoLugar(s, alvo)) {
+      s.ttl = 0;
+      return;
+    }
+    const raio = Math.max(19, this.raioMob(alvo));
+    const falta = Math.max(0, distance(s, alvo) - raio);
+    const avancar = Math.min(CHOCOLATE_BEAM.velocidade * dt, CHOCOLATE_BEAM.alcance - s.percorrido);
+    if (falta <= avancar) {
+      s.ttl = 0;
+      if (!this.hit(p, alvo, s.damage) || alvo.hp <= 0) return;
+      const until = this.time + estagioTecnicasBoo(s.forma).stun;
+      alvo.chocolate = { started: this.time, until };
+      alvo.telegraph = null;
+      alvo.strike = null;
+      alvo.moving = false;
+      alvo.attackReady = Math.max(alvo.attackReady, until);
+      return;
+    }
+    const direcao = norm(alvo.x - s.x, alvo.y - s.y);
+    s.x += direcao.x * avancar;
+    s.y += direcao.y * avancar;
+    s.percorrido += avancar;
+    s.ttl = s.percorrido >= CHOCOLATE_BEAM.alcance ? 0 : s.ttl - dt;
+  }
+
   alternarForma(p, tecnica, automatica = false, formaSolicitada = null) {
     const disponivel = formaSolicitada===null?formaDisponivel(p.level,p.vocacao):formasDaVocacao(p.vocacao).find(f=>f.forma===formaSolicitada);
     if (formaSolicitada !== null && (!disponivel || p.level < disponivel.nivel))
@@ -662,7 +753,8 @@ export class Game {
     return { ok: true };
   }
   revalidarFormaAposGodmode(p) {
-    if (p.forma === 'base' || formasDaVocacao(p.vocacao).some(f => f.forma === p.forma && p.level >= f.nivel)) return;
+    const forma = formasDaVocacao(p.vocacao).find(f => f.forma === p.forma);
+    if (p.forma === 'base' || (forma && p.level >= forma.nivel)) return;
     this.alternarForma(p, 'transform');
     if (p.charge?.superKame) p.charge = null;
     if (p.autoHunt) this.aplicarBuffDoCombo(p);
@@ -808,10 +900,12 @@ export class Game {
       amount: p.hp - antes, text: '+' + (p.hp - antes).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' HP' });
     return { ok: true };
   }
-  hit(attacker, target, raw, { ignorarEsquiva = false } = {}) {
+  hit(attacker, target, raw, { ignorarEsquiva = false, credito = attacker } = {}) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
     if (attacker && this.players.has(attacker.id) && naZonaSegura(attacker)) return false;
     const playerTarget = this.players.has(target.id);
+    const cloneTarget = this.combateBoo.clones.has(target.id);
+    if (cloneTarget && (!this.combateBoo.cloneAtivo(target) || !attacker || attacker.hp <= 0 || !this.mobs.has(attacker.id))) return false;
     if (playerTarget) {
       if (attacker && this.players.has(attacker.id) && !this.canPvp(attacker, target)) return false;
       if ((!ignorarEsquiva && this.time < target.dashUntil) || this.protegido(target)) return false;
@@ -821,20 +915,22 @@ export class Game {
     const damage = Math.max(1, Math.round(guardedRaw * fatorCombateAleatorio(this.randomCombat) * 100 / (100 + defense * 3)));
     const hpAntes=target.hp;
     if(playerTarget) analisar(target,'danoRecebido',Math.min(hpAntes,damage));
-    if(attacker && this.players.has(attacker.id)) analisar(attacker,'danoCausado',Math.min(hpAntes,damage));
+    if(credito && this.players.has(credito.id)) analisar(credito,'danoCausado',Math.min(hpAntes,damage));
     if(damage>=hpAntes){
       if(playerTarget) registrarEncontro(target,'mortes',attacker,Boolean(attacker && (attacker.raro||CHEFES.has(attacker.type))));
-      else if(attacker && this.players.has(attacker.id)) registrarEncontro(attacker,'abates',target,Boolean(target.raro||CHEFES.has(target.type)));
+      else if(!cloneTarget && credito && this.players.has(credito.id)) registrarEncontro(credito,'abates',target,Boolean(target.raro||CHEFES.has(target.type)));
     }
     target.hp = Math.max(0, target.hp - damage);
     // Ameaça: quem bate num mob vira (ou reforça) o alvo dele, mesmo de longe e mesmo sendo mob neutro.
-    if (!playerTarget && attacker && this.players.has(attacker.id)) this.somarAmeaca(target, attacker, damage);
+    if (!playerTarget && !cloneTarget && attacker && (this.players.has(attacker.id) || this.combateBoo.clones.has(attacker.id))) this.somarAmeaca(target, attacker, damage);
     this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
-    if (target.hp <= 0) {
+    if (target.hp <= 0 && !cloneTarget) {
       if (playerTarget) this.derrotarJogador(target);
       else {
+        target.chocolate = null;
         target.deadUntil = this.time + (target.raro && this.chefeJa ? 60 : renasceEm(target.type, this.random)); target.telegraph = null; target.ameaca = null; target.voltando = false;
-        if (attacker && this.players.has(attacker.id)) {
+        if (credito && this.players.has(credito.id)) {
+          const attacker = credito;
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
           this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
@@ -915,7 +1011,8 @@ export class Game {
         ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken'], ['superKamehameha', 'Super Kamehameha']
       ].filter(([key]) => CONFIG.skills[key] === p.level).map(([, name]) => name);
       const formsUnlock = formasDaVocacao(p.vocacao).filter(forma => forma.nivel === p.level).map(forma => forma.nome);
-      const desbloqueios = [...skillsUnlock, ...formsUnlock];
+      const booUnlock = p.vocacao === 'boo' ? [CHOCOLATE_BEAM, ...Object.values(TECNICAS_BOO)].filter(t => t.nivel === p.level).map(t => t.nome) : [];
+      const desbloqueios = [...skillsUnlock, ...formsUnlock, ...booUnlock];
       const unlock = desbloqueios.length ? ' Desbloqueado: ' + desbloqueios.join(' e ') + '!' : '';
       this.notify(p, 'Nível ' + p.level + '! Todos os atributos aumentaram.' + unlock);
     }
@@ -924,19 +1021,26 @@ export class Game {
     // Só mobs bloqueiam outros mobs. Jogadores atravessam seus corpos para sair de cercos.
     if (this.mobs.get(entity.id) === entity) {
       const antes = { x: entity.x, y: entity.y };
-      this.moverMob(entity, dx * speed * dt, dy * speed * dt, true);
+      const fator = this.combateBoo.fatorMovimento(entity);
+      this.moverMob(entity, dx * speed * dt * fator, dy * speed * dt * fator, true);
       entity.moving = distance(antes, entity) > 0.01;
       return;
     }
-    [entity.x, entity.y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area, Boolean(entity.autoHunt && !naZonaSegura(entity)));
+    const [x, y] = deslocar(entity.planet, entity.x, entity.y, dx, dy, speed * dt, radius, entity.area, Boolean(entity.autoHunt && !naZonaSegura(entity)));
+    if (this.combateBoo.clones.has(entity.id) && !this.combateBoo.passoLivre(entity, { x, y })) {
+      entity.moving = false;
+      return;
+    }
+    entity.x = x; entity.y = y;
     entity.moving = Math.hypot(dx, dy) > 0.05;
   }
   // Raio no chão, incluindo a largura extra dos gigantes (pedido do Pedro, 07/11).
   raioMob(m) { return 22 + (m.corpo || 0); }
-  moverMob(m, dx, dy, colidir = false) {
+  moverMob(m, dx, dy, colidir = false, evitarZonaSegura = false) {
     const raio = this.raioMob(m), passos = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 4));
     const mundo = PLANETS[m.planet];
     const livre = (x, y) => x >= raio && y >= raio && x <= mundo.w - raio && y <= mundo.h - raio
+      && (!evitarZonaSegura || !naZonaSegura({ planet: m.planet, area: m.area, x, y }))
       && pesLivres(m.planet, x, y, raio / 0.6, m.area)
       && (!colidir || ![...this.mobs.values()].some(outro => outro !== m && outro.hp > 0 && this.mesmoLugar(m, outro)
         && Math.hypot(x - outro.x, y - outro.y) < raio + this.raioMob(outro) - 0.001));
@@ -960,10 +1064,13 @@ export class Game {
         const angulo = (i + j) * 2.399963229728653;
         const nx = d > 0.001 ? (b.x - a.x) / d : Math.cos(angulo);
         const ny = d > 0.001 ? (b.y - a.y) / d : Math.sin(angulo);
+        const aAtordoado = a.chocolate?.until > this.time, bAtordoado = b.chocolate?.until > this.time;
+        if (aAtordoado && bAtordoado) continue;
         const antes = { x: a.x, y: a.y };
-        this.moverMob(a, -nx * falta / 2, -ny * falta / 2);
+        const deslocamento = falta * (bAtordoado ? 1 : 0.5);
+        if (!aAtordoado) this.moverMob(a, -nx * deslocamento, -ny * deslocamento);
         const afastou = Math.max(0, (antes.x - a.x) * nx + (antes.y - a.y) * ny);
-        this.moverMob(b, nx * (falta - afastou), ny * (falta - afastou));
+        if (!bAtordoado) this.moverMob(b, nx * (falta - afastou), ny * (falta - afastou));
       }
       if (!sobrepostos) break;
     }
@@ -1011,7 +1118,7 @@ export class Game {
   updatePlayer(p, dt) {
     analisar(p,'segundos',dt);
     p.moving = false;
-    if (!p.connected) { if (p.charge?.bigBangAttack) p.charge = null; p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
+    if (!p.connected) { if (p.charge?.booTecnica || p.charge?.bigBangAttack || p.charge?.chocolateBeam || p.charge?.booKi || p.charge?.booSoco) p.charge = null; p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); return; }
     const extensor = p.equipamentos.mochila;
     if (extensor && p.bonusPremium.extensores[extensor] !== undefined) {
       p.bonusPremium.extensores[extensor] -= dt;
@@ -1025,7 +1132,7 @@ export class Game {
       if (p.godmodeOptions?.kiInfinite !== false) p.ki = p.stats.ki;
     }
     if (p.hp <= 0) {
-      if (p.charge?.bigBangAttack) p.charge = null;
+      if (p.charge?.bigBangAttack || p.charge?.booTecnica) p.charge = null;
       p.forma = 'base'; p.formaAte = 0;
       atualizarBarraPadrao(p);
       // Renasce no começo da mesma área (decisão do Pedro; pode mudar), protegido por alguns segundos.
@@ -1037,7 +1144,7 @@ export class Game {
       p.forma = 'base'; p.formaAte = 0; atualizarBarraPadrao(p); this.notify(p, 'A fusão de Gogeta terminou. Forma base.');
     }
     // O botão principal pausa toda a automação, sem apagar as preferências.
-    if (!p.autoHunt && p.charge?.automated) p.charge = null;
+    if (!p.autoHunt && p.charge?.automated && !p.charge.liberada) p.charge = null;
     const taxas = taxasRegeneracao(p, this.time);
     if (taxas.hpComida) {
       const antes = p.hp;
@@ -1048,6 +1155,25 @@ export class Game {
     if (taxas.kiNatural) p.ki = Math.min(p.stats.ki, p.ki + dt * taxas.kiNatural);
     p.ki = clamp(p.ki + dt * (taxas.kiEquipamento + taxas.kiComida - taxas.drenoForma), 0, p.stats.ki);
     this.verificarKiDaForma(p);
+    if (p.charge?.booTecnica) { this.combateBoo.atualizarCarga(p); return; }
+    if (p.charge?.chocolateBeam) {
+      this.atualizarCargaChocolate(p);
+      return;
+    }
+    if (p.charge?.booKi || p.charge?.booSoco) {
+      if (naZonaSegura(p)) p.charge = null;
+      else if (this.time + 1e-9 >= p.charge.until) {
+        const ataque = p.charge;
+        p.charge = null;
+        if (ataque.booKi) this.dispararRajada(p, ataque.direction);
+        else {
+          const alvo = this.mobs.get(ataque.targetId) || this.players.get(ataque.targetId);
+          if (alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo) && this.distanciaAoCorpo(p, alvo) <= 70)
+            this.hit(p, alvo, p.stats.attack);
+        }
+      }
+      return;
+    }
     if (p.charge?.bigBangAttack) {
       this.atualizarCargaBigBangAttack(p);
       if (p.charge?.bigBangAttack) return;
@@ -1073,7 +1199,7 @@ export class Game {
       p.saidaSegura = null;
       // Reavalia a cada passo: sempre persegue o inimigo mais próximo, inclusive
       // quando outro se aproxima durante a perseguição atual.
-      const alcanceKame = p.vocacao !== 'vegeta' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
+      const alcanceKame = p.vocacao === 'goku' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
       const raioCaca = p.autoSkills && alcanceKame
         ? Math.max(CONFIG.autoHuntRaio, alcanceKame + velocidade * KAME.carga) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
@@ -1133,7 +1259,7 @@ export class Game {
     let target = this.targetOf(p) || (p.autoHunt ? this.alvoMaisProximo(p, CONFIG.autoHuntRaio) : this.nearestMob(p, 320));
     // O caminho pode apontar para um desvio: na hora de lutar, o corpo olha para o inimigo.
     if (p.autoHunt && target) p.facing = this.aimDirection(p, target);
-    if (p.autoHunt && p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
+    if (p.vocacao !== 'boo' && p.autoHunt && p.autoAttack && target && this.distanciaAoCorpo(p, target) < 70) this.cast(p, 'basic', true);
     // O golpe pode ter derrotado o alvo neste mesmo passo; nunca calcule uma skill
     // usando o HP antigo nem gaste Ki em um cadáver.
     if (target && target.hp <= 0 && p.autoHunt) {
@@ -1149,7 +1275,7 @@ export class Game {
       const morreriaNoBasico = p.autoAttack && pertoParaBasico && basicoPronto && target.hp <= danoBasico;
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const vegeta = p.vocacao === 'vegeta';
-      const podeKame = !vegeta && p.level >= 3
+      const podeKame = p.vocacao === 'goku' && p.level >= 3
         && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? velocidade * KAME.carga : 0);
       const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
       const tentar = skill => this.cast(p, skill, true).ok;
@@ -1157,6 +1283,8 @@ export class Game {
       if (p.autoSkills && combo) {
         // Uma técnica indisponível deixa a próxima prioridade disputar o mesmo turno.
         usouTecnica = combo.ordem.some(({ id, ki }) => kiPermiteCombo(p, id, ki) && tentar(id));
+      } else if (p.autoSkills && p.vocacao === 'boo' && !morreriaNoBasico) {
+        usouTecnica = [...Object.keys(TECNICAS_BOO).reverse(), CHOCOLATE_BEAM.id].some(tentar);
       } else if (p.autoSkills && vegeta) {
         usouTecnica = (!morreriaNoBasico && !prefereBasico && (tentar('finalFlash') || tentar('bigBangAttack'))) || tentar('galick');
       } else if (p.autoSkills && !morreriaNoBasico && !prefereBasico && podeKame && p.ki > p.stats.ki * 0.35 && target.hp > danoKi) {
@@ -1165,8 +1293,10 @@ export class Game {
       }
       if (!usouTecnica && podeRajada && (!combo || kiPermiteCombo(p, 'ki'))) tentar('ki');
     }
+    if (p.vocacao === 'boo' && p.autoHunt && p.autoAttack && !p.charge && target && this.distanciaAoCorpo(p, target) < 70)
+      this.cast(p, 'basic', true);
     if (p.charge?.galick) this.atualizarCargaGalick(p);
-    if (p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
+    if (p.charge && p.vocacao !== 'boo' && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
       let alvo = this.mobs.get(p.charge.targetId);
       if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
         alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
@@ -1176,7 +1306,7 @@ export class Game {
       else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
     }
     // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const cargaKame = p.charge && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack ? p.charge : null;
+    const cargaKame = p.charge && p.vocacao !== 'boo' && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack ? p.charge : null;
     const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
     const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
     if (cargaNoAlcance && this.time >= cargaKame.until) {
@@ -1420,22 +1550,31 @@ export class Game {
     const a = m.ameaca.get(p.id) || { valor: 0, em: this.time };
     a.valor += valor; a.em = this.time; m.ameaca.set(p.id, a);
   }
+  alvoDoCombate(id) {
+    const clone = this.combateBoo.clones.get(id);
+    return this.players.get(id) || (this.combateBoo.cloneAtivo(clone) ? clone : null);
+  }
+  *alvosDosMobs() {
+    yield* this.players.values();
+    for (const c of this.combateBoo.clones.values()) if (this.combateBoo.cloneAtivo(c)) yield c;
+  }
   alvoDoMob(m) {
     const valido = p => p && p.connected && p.hp > 0 && this.mesmoLugar(p, m) && !this.protegido(p);
     // Esquece quem não vale mais, ou quem está longe sem bater há 6 s.
     if (m.ameaca) for (const [id, a] of m.ameaca) {
-      const p = this.players.get(id);
+      const p = this.alvoDoCombate(id);
       if (!valido(p) || (distance(p, m) > m.aggro * 2 && this.time - a.em > 6)) m.ameaca.delete(id);
     }
     // Agressivo: quem entra no raio ganha ameaça mínima (proximidade), para o mob notar e perseguir.
-    if (m.agressivo) for (const p of this.players.values()) {
+    if (m.agressivo) for (const p of this.alvosDosMobs()) {
       if (valido(p) && distance(p, m) < m.aggro && !m.ameaca?.has(p.id)) this.somarAmeaca(m, p, 1);
     }
     if (!m.ameaca?.size) return null;
     let melhor = null, maior = -1;
-    for (const [id, a] of m.ameaca) if (a.valor > maior) { maior = a.valor; melhor = this.players.get(id); }
-    const atual = this.players.get(m.alvoId), aAtual = m.ameaca.get(m.alvoId);
+    for (const [id, a] of m.ameaca) if (a.valor > maior) { maior = a.valor; melhor = this.alvoDoCombate(id); }
+    const atual = this.alvoDoCombate(m.alvoId), aAtual = m.ameaca.get(m.alvoId);
     if (atual && aAtual && melhor !== atual && maior < aAtual.valor * 1.2) melhor = atual;
+    if (this.combateBoo.clones.size) melhor = this.combateBoo.preferirClone(m, melhor);
     m.alvoId = melhor.id; return melhor;
   }
   // Freeza: troca de forma. Em pé usa os atributos base; na nave, ataque e defesa maiores (`nave` em enemies.mjs).
@@ -1494,7 +1633,7 @@ export class Game {
     return true;
   }
   dispararProjetilMob(m, alvoId) {
-    const alvo=this.players.get(alvoId),config=m.projetil;
+    const alvo=this.alvoDoCombate(alvoId),config=m.projetil;
     if(!config || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(m,alvo) || this.protegido(alvo))return false;
     if(!(config.velocidade>0) || !Number.isFinite(config.velocidade))return false;
     this.projectiles.push({id:this.uid('s'),kind:'mobKiTarget',owner:m.id,ownerType:'mob',alvoId:alvo.id,
@@ -1504,6 +1643,8 @@ export class Game {
   updateMob(m, dt) {
     m.moving = false;
     if (m.hp <= 0) { if (this.time >= m.deadUntil) { m.hp = m.maxHp; if (m.raro) { const pt = pontoNoCirculo(this.random, m.area); m.homeX = pt.x; m.homeY = pt.y; this.anunciarChefe(m); } const nascimento = pontoDeSpawnForaDaSafeZone(m.area, { x: m.homeX, y: m.homeY }); m.homeX = nascimento.x; m.homeY = nascimento.y; m.x = m.homeX; m.y = m.homeY; m.attackReady = this.time + 1; if (m.type === 'freezaBoss') this.formaFreeza(m, 'pe'); m.strike = null; } return; }
+    if (m.chocolate?.until > this.time) return;
+    if (m.chocolate) m.chocolate = null;
     // Chefe e subchefe: golpe de área maior, aviso mais longo e alcance maior.
     const grande = CHEFES.has(m.type);
     const casa = { x: m.homeX, y: m.homeY }, longeDeCasa = distance(m, casa);
@@ -1513,25 +1654,25 @@ export class Game {
     const target = m.voltando ? null : this.alvoDoMob(m), closest = target ? distance(target, m) : Infinity;
     // Freeza: a Supernova segue o alvo durante a carga e o voo (o turno dele roda depois do telegrafo).
     // Oozaru Dourado: a bola acompanha o alvo na carga e no voo (mira o personagem); na carga ele gira junto.
-    if (m.type === 'oozaruDourado' && m.telegraph?.kind === 'bolaNegra') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.tx = a.x; m.telegraph.ty = a.y; m.facing = norm(a.x - m.x, a.y - m.y); if (m.strike) m.strike.direction = m.facing; } }
-    if (m.type === 'freezaBoss' && m.telegraph?.kind === 'supernova') { const a = this.players.get(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.x = a.x; m.telegraph.y = a.y; } }
+    if (m.type === 'oozaruDourado' && m.telegraph?.kind === 'bolaNegra') { const a = this.alvoDoCombate(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.tx = a.x; m.telegraph.ty = a.y; m.facing = norm(a.x - m.x, a.y - m.y); if (m.strike) m.strike.direction = m.facing; } }
+    if (m.type === 'freezaBoss' && m.telegraph?.kind === 'supernova') { const a = this.alvoDoCombate(m.telegraph.alvoId); if (a && a.hp > 0 && a.connected && this.mesmoLugar(a, m)) { m.telegraph.x = a.x; m.telegraph.y = a.y; } }
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
         if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
         else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
-          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
+          for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
         } else if (t.kind === 'pancada') {
-          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
+          for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
           this.emit('pancada', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else if (t.kind === 'supernova') {
-          for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.6);
+          for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.6);
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
-        else for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
+        else for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
         m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
@@ -1564,15 +1705,18 @@ export class Game {
     this.events = this.events.filter(e => this.time - e.at < 2);
     for (const p of this.players.values()) this.updatePlayer(p, dt);
     this.atualizarKamehamehas();
+    this.combateBoo.atualizarEfeitos(dt);
+    this.combateBoo.atualizarClones(dt);
     for (const m of this.mobs.values()) this.updateMob(m, dt);
     this.separarMobs();
     this.atualizarGenkis(dt);
     this.atualizarRyukens(dt);
     for (const s of this.projectiles) {
       if (s.kind === 'genki' || s.kind === 'ryuken') continue;
+      if (s.kind === 'chocolateBeam') { this.atualizarRaioChocolate(s, dt); continue; }
       if (s.kind === 'bigBangAttack') { this.atualizarBigBangAttack(s, dt); continue; }
       if (s.kind === 'mobKiTarget') {
-        const alvo=this.players.get(s.alvoId),dono=this.mobs.get(s.owner);
+        const alvo=this.alvoDoCombate(s.alvoId),dono=this.mobs.get(s.owner);
         if(!dono || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(s,alvo) || !this.mesmoLugar(dono,alvo) || this.protegido(alvo)) {s.ttl=0;continue;}
         if(avancarVooTarget(s,alvo,this.time)) {
           s.ttl=0;
@@ -1584,9 +1728,10 @@ export class Game {
       if (s.ttl <= 0) continue;
       const owner = s.ownerType === 'player' ? this.players.get(s.owner) : this.mobs.get(s.owner);
       if (!owner) { s.ttl = 0; continue; }
-      const targets = [...(s.ownerType === 'player' ? this.mobs.values() : []), ...this.players.values()]
+      const targets = s.ownerType === 'player' ? [...this.mobs.values(), ...this.players.values()] : [...this.alvosDosMobs()];
+      const locais = targets
         .filter(t => t.id !== owner.id && this.mesmoLugar(s, t) && (!this.players.has(t.id) || t.connected));
-      for (const t of targets) {
+      for (const t of locais) {
         const hitRadius = 19;
         if (t.hp > 0 && segmentDistance(t.x, t.y, oldX, oldY, s.x, s.y) < hitRadius) {
           if (this.hit(owner, t, s.damage)) {
@@ -1605,6 +1750,7 @@ export class Game {
     // Cada jogador só recebe o lugar onde está (planeta + área): os outros lugares não existem para ele.
     const here = self || { planet: 'terra', area: null }, aqui = e => this.mesmoLugar(here, e);
     return { time: this.time, selfId: id, planet: here.planet, area: here.area || null,
+      ...this.combateBoo.snapshot(here),
       players: [...this.players.values()].filter(p => p.connected && aqui(p)).map(p => ({
         id: p.id, name: p.name, character: p.character, vocacao: p.vocacao, x: p.x, y: p.y, hp: p.hp, maxHp: p.stats.hp, ki: p.ki, maxKi: p.stats.ki,
         montaria:p.montaria,montariaPreferida:p.montariaPreferida,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
@@ -1617,6 +1763,8 @@ export class Game {
         ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
         bigBangLancado: p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
+        chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
+        booLancado: p.hp > 0 && p.booLancado && this.time - p.booLancado.started < .32 ? p.booLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
@@ -1630,6 +1778,8 @@ export class Game {
         autoFood: self.autoFood, autoKi: self.autoKi, autoEnergyPotion: self.autoEnergyPotion, autoSeed: self.autoSeed, targetId: self.targetId,
         foodId: self.foodId, foodRemaining: Math.max(0, self.foodUntil - this.time), seedRemaining: Math.max(0, self.seedReady - this.time),
         kiRemaining: Math.max(0, self.kiReady - this.time), shotRemaining: Math.max(0, self.shotReady - this.time), basicRemaining: Math.max(0, self.basicReady - this.time), seedSelected: self.seedSelected,
+        ...Object.fromEntries(Object.keys(TECNICAS_BOO).map(id => [id + 'Remaining', Math.max(0, (self[id + 'Ready'] || 0) - this.time)])),
+        chocolateBeamRemaining: Math.max(0, self.chocolateBeamReady - this.time),
         kameRemaining: Math.max(0, self.kameReady - this.time), galickRemaining: Math.max(0, (self.galickReady || 0) - this.time), finalFlashRemaining: Math.max(0, self.finalFlashReady - this.time), bigBangAttackRemaining: Math.max(0, self.bigBangAttackReady - this.time), galickVersao: self.vocacao === 'vegeta' ? estagioGalick(self.level)?.versao ?? null : null, superKameRemaining: Math.max(0, (self.superKameReady || 0) - this.time), dashRemaining: Math.max(0, self.dashReady - this.time),
         kaiokenRemaining: 0, kaiokenActive: self.forma === 'kaioken', forma: self.forma,
         barrierRemaining: Math.max(0, self.barrierReady - this.time), barrierActive: this.time < self.barrierUntil,
@@ -1640,7 +1790,7 @@ export class Game {
         beneficiosDeTeste:this.beneficiosDeTeste, godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
         penalidadeMorte: self.hp <= 0 ? self.penalidadeMorte ?? null : null,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
-      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao })),
+      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao, chocolate: m.chocolate?.until > this.time ? m.chocolate : null, raioContato: Math.max(19, this.raioMob(m)) })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
       genkiCharges: this.genkiCharges.filter(aqui).map(({ damage, ...g }) => g),
       genkiExplosions: this.genkiExplosions.filter(aqui),

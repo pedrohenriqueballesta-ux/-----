@@ -1,14 +1,17 @@
 import { CONFIG } from '../nucleo/config.mjs';
 import { formasDaVocacao } from './formas.mjs';
+import { TECNICAS_BOO, custoTecnicaBoo } from './majin-boo.mjs';
+import { CHOCOLATE_BEAM } from './chocolate-beam.mjs';
 import { GALICK } from './galick-gun.mjs';
 import { RYUKEN } from './ryuken.mjs';
 import { SUPER_KAME } from './kamehameha.mjs';
 
 const ofensivas = {
+  boo: ['chocolateBeam', ...Object.keys(TECNICAS_BOO)],
   vegeta: ['galick', 'finalFlash', 'bigBangAttack'],
   goku: ['kame', 'superKamehameha', 'ryuken', 'genki']
 };
-const custos = { ...CONFIG.skillCosts, galick: GALICK.custo, ryuken: RYUKEN.custo, superKamehameha: SUPER_KAME.custo };
+const custos = { ...CONFIG.skillCosts, galick: GALICK.custo, chocolateBeam:CHOCOLATE_BEAM.custo, ryuken: RYUKEN.custo, superKamehameha: SUPER_KAME.custo };
 
 export const tecnicasDoCombo = vocacao => ofensivas[vocacao] || [];
 
@@ -32,6 +35,6 @@ export function validarCombo(valor, vocacao) {
 }
 
 export function kiPermiteCombo(p, id, minimo = 0) {
-  const custo = custos[id];
+  const custo = Object.hasOwn(TECNICAS_BOO, id) ? custoTecnicaBoo(TECNICAS_BOO[id], p.stats.ki) : custos[id];
   return p.ki >= p.stats.ki * minimo / 100 && p.ki - custo >= p.stats.ki * p.comboAutoHunt.reserva / 100;
 }

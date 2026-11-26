@@ -1,16 +1,22 @@
+import { poseCombate } from '../render/pose-personagem.mjs';
+import { apresentarGenkiJogador } from '../render/vfx/genki-personagem.mjs';
+
+function dadosPose(pose) {
+  if (!pose) return null;
+  const { started, until, direction, chocolateBeam, booTecnica, bigBangAttack, castStarted, carga, impacto, origem } = pose;
+  return { started, until, direction, chocolateBeam, booTecnica, bigBangAttack, castStarted, carga,
+    impacto: impacto ? { started: impacto.started } : null, origem: Boolean(origem) };
+}
+
 export const CANAL_STATUS_POPUP = 'dragon-ball-idle-status-popup-v1';
 
 export function resumirStatusPopout(snapshot) {
   const self = snapshot?.self;
   if (!self) return null;
-  const jogador = snapshot.players?.find(p => p.id === snapshot.selfId);
+  const local = snapshot.players?.find(p => p.id === snapshot.selfId);
   const time = Number(snapshot.time) || 0;
-  const eventoRecente = tipo => (snapshot.events || [])
-    .filter(e => e.playerId === snapshot.selfId && e.type === tipo && time >= e.at && time - e.at < 0.36)
-    .sort((a, b) => b.at - a.at)[0] || null;
-  const soco = eventoRecente('punch'), rajada = eventoRecente('kiShot');
-  const kame = (snapshot.kamehamehas || []).find(k => k.owner === snapshot.selfId && (!k.impacto || time - k.impacto.started < 0.25));
-  const genkiCarga = (snapshot.genkiCharges || []).find(g => g.owner === snapshot.selfId);
+  const jogador = local && apresentarGenkiJogador(local, snapshot.genkiCharges || [], time);
+  const combate = jogador && poseCombate(jogador, snapshot, time);
   const hpMax = Math.max(1, Number(self.stats?.hp) || 1);
   const kiMax = Math.max(1, Number(self.stats?.ki) || 1);
   const hp = Math.max(0, Number(self.hp) || 0);
@@ -23,11 +29,17 @@ export function resumirStatusPopout(snapshot) {
     ki, kiMax, kiPercentual: Math.min(100, ki / kiMax * 100),
     xpHora: Math.max(0, Number(self.huntAnalyzer?.xpHora) || 0),
     sprite: jogador ? {
-      id: jogador.id, moving: Boolean(jogador.moving && !jogador.montaria), facing: genkiCarga?.direction || jogador.genkiDirecao || jogador.facing || { x: 0, y: 1 },
+      id: jogador.id, vocacao: jogador.vocacao || self.vocacao || 'goku', skin: jogador.skin || 'base',
+      moving: Boolean(jogador.moving), facing: jogador.facing || { x: 0, y: 1 },
+      montaria: jogador.montaria || null, reduzirAnimacoes: Boolean(self.preferencias?.reduzirAnimacoes),
       dead: Boolean(jogador.dead || hp <= 0), transformed: Boolean(jogador.transformed), forma: jogador.forma || self.forma || 'base',
-      charge: jogador.charge ? { until: jogador.charge.until } : null, dashing: Boolean(jogador.dashing),
-      genkiLancado: jogador.genkiLancado, genkiCarga: genkiCarga ? { started: genkiCarga.started } : null,
-      rajadaStarted: rajada?.at, kameStarted: kame?.started, socoStarted: soco?.at,
+      charge: dadosPose(jogador.charge), dashing: Boolean(jogador.dashing),
+      genkiLancado: jogador.genkiLancado, genkiCarga: dadosPose(jogador.genkiCarga),
+      ryuken: dadosPose(jogador.ryuken), ryukenLancado: jogador.ryukenLancado, ryukenVoando: jogador.ryukenVoando,
+      chocolateLancado: dadosPose(jogador.chocolateLancado), booLancado: jogador.booLancado ? {
+        tipo: jogador.booLancado.tipo, started: jogador.booLancado.started, direction: jogador.booLancado.direction
+      } : null,
+      ...combate, galick: dadosPose(combate.galick), finalFlash: dadosPose(combate.finalFlash), bigBang: dadosPose(combate.bigBang),
       movementSpeed: Number(self.stats?.mobility) || 0, serverTime: time
     } : null
   };

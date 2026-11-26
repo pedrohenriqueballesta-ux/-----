@@ -1,3 +1,4 @@
+import { FORMAS_BOO } from '../tecnicas/formas.mjs';
 import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
 import { restaurarBonusPremium } from '../sistemas/bonus-premium.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
@@ -288,7 +289,11 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   const padrao = barraPadrao(hotkeys, saved?.seedSelected, level, 'base', vocacao.id);
   const possuiBarra = Array.isArray(saved?.barraTecnicas) && saved.barraTecnicas.length === 8;
   const barraSalva = possuiBarra ? barraValida(saved.barraTecnicas) : [...padrao];
-  if (possuiBarra && saved.barraPersonalizada !== true) {
+  if (possuiBarra && vocacao.id === 'boo' && saved.barraPersonalizada !== true) {
+    const anterior = ['skill:heal', 'skill:chocolateBeam', null, null, null, null, 'item:food', 'item:ki'];
+    if (barraSalva.every((id, i) => id === anterior[i])) barraSalva.splice(0, 8, ...padrao);
+  }
+  if (possuiBarra && vocacao.id !== 'boo' && saved.barraPersonalizada !== true) {
     // Migra a ordem anterior apenas quando ela corresponde à barra padrão da vocação.
     const vegeta = vocacao.id === 'vegeta';
     const anterior = vegeta
@@ -310,6 +315,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
   }
   for (let i = 0; i < barraSalva.length; i++) {
     const id = barraSalva[i];
+    if (id && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
     if ((id?.startsWith('form:') || ['skill:finalFlash', 'skill:bigBangAttack'].includes(id)) && !tecnicaDaVocacao(id, vocacao.id)) barraSalva[i] = null;
   }
   if (vocacao.id === 'vegeta' && barraSalva[2] === null && !barraSalva.some(id => id?.startsWith('form:'))) {
@@ -335,7 +341,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
     moving: false, moveTo: null, seedSelected: CONFIG.seedPotencies.includes(saved?.seedSelected) ? saved.seedSelected : 15, foodUntil: Number(saved?.foodUntil) || 0, foodId: CONSUMIVEIS_LOOT[saved?.foodId]?.tipo === 'comida' ? saved.foodId : 'food',
     seedReady: Number(saved?.seedReady) || 0, kiReady: Number(saved?.kiReady) || 0,
-    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, finalFlashReady: 0, bigBangAttackReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
+    basicReady: 0, shotReady: 0, kameReady: 0, galickReady: 0, chocolateBeamReady: 0, finalFlashReady: 0, bigBangAttackReady: 0, superKameReady: 0, ryukenReady: 0, dashReady: 0, dashUntil: 0, charge: null,
     healReady: Number.isFinite(saved?.healReady) ? Math.max(0, saved.healReady) : 0,
     autoHeal: saved?.autoHeal !== false,
     healThreshold: Number.isInteger(saved?.healThreshold) && saved.healThreshold >= 1 && saved.healThreshold <= 100 ? saved.healThreshold : CURA.limitePadrao,
@@ -344,7 +350,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     seedThreshold: Number.isInteger(saved?.seedThreshold) && saved.seedThreshold >= 1 && saved.seedThreshold <= 100 ? saved.seedThreshold : 30,
     barrierReady: 0, barrierUntil: 0, genkiReady: 0,
     // Forma transitória única; o alias mantém os consumidores antigos de SSJ compatíveis.
-    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'majin', 'ssj4', 'ssjGod', 'ssjBlue', 'ultraEgo', 'gogeta', 'vegito'].includes(this.forma); },
+    forma: 'base', formaAte: 0, get transformed() { return ['ssj', 'ssj2', 'ssj3', 'majin', 'ssj4', 'ssjGod', 'ssjBlue', 'ultraEgo', 'gogeta', 'vegito'].includes(this.forma) || (this.vocacao === 'boo' && FORMAS_BOO.some(f => f.forma === this.forma)); },
     set transformed(ativa) { this.forma = ativa ? 'ssj' : 'base'; },
     respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoEnergyPotion: saved?.autoEnergyPotion === true, autoSeed: saved?.autoSeed === true,
     // TODO (dev): jogador NOVO (sem preferências salvas) começa com a música DESLIGADA, só pra facilitar o teste.
@@ -358,7 +364,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     : slotsPadrao(inventory);
   reconciliarSlots(p);
   atualizarCapacidade(p);
-  p.skin = vocacao.id !== 'vegeta' && saved?.skin === 'natalino' ? 'natalino' : 'base';
+  p.skin = vocacao.id === 'goku' && saved?.skin === 'natalino' ? 'natalino' : 'base';
   if (saved?.godmode != null ? !!saved.godmode : GODMODE) aplicarGodmode(p, true);
   atualizarBarraPadrao(p);
   return p;
