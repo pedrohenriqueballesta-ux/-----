@@ -5,7 +5,7 @@ import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncont
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao,aceitarMissao} from '../sistemas/missoes.mjs';
-import {registrarAbateAndroides,chefeInfernalPendente,superC17Liberado,tempoAteSuperC17,SUPER_C17} from '../sistemas/saga-androides.mjs';
+import {registrarAbateAndroides,chefeInfernalPendente,superC17Liberado,tempoAteSuperC17,SUPER_C17,ESPECIAIS_ANDROIDES} from '../sistemas/saga-androides.mjs';
 import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA,CELL_PERFEITO} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
@@ -1761,7 +1761,8 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
+        if (t.kind === 'shot' && t.especial) { const E = ESPECIAIS_ANDROIDES[m.type]; if (E) this.dispararProjetilMob(m, t.alvoId, { visual: E.visual, damage: m.attack * E.dano, speed: E.velocidade }); }
+        else if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
         else if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
         else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack * (t.dano || 1), ttl: t.beam ? 0.75 : 2, kind: t.kame ? 'kameCell' : t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
@@ -1815,6 +1816,16 @@ export class Game {
         m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.4, direction: m.facing, kind: 'kameCell' };
         return;
       }
+    }
+    // Saga dos Androides: C17 Infernal (rajadas brancas) e Super C17 (Shocking Death Ball). Os dois são TARGET: aviso curto
+    // com a animação do golpe e, ao soltar, o projétil persegue o alvo e acerta. Sem distância mínima (lição da cauda do
+    // Semiperfeito: o mob que persegue chega perto antes). Números PROVISÓRIOS em ESPECIAIS_ANDROIDES.
+    const especial = ESPECIAIS_ANDROIDES[m.type];
+    if (especial && target && closest <= especial.alcance && this.time >= m.attackReady && this.time >= (m.especialReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.especialReady = this.time + especial.recarga;
+      m.telegraph = { kind: 'shot', especial: especial.golpe, alvoId: target.id, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + especial.aviso, started: this.time, radius: 30 };
+      m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.35, direction: m.facing, kind: especial.golpe };
+      return;
     }
     // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
     // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.

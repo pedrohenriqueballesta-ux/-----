@@ -81,3 +81,20 @@ test('Super C17: com o modo de teste (DBI_CHEFE_JA) aparece em 10 s', () => {
   g.levar(p, lugar('terra-neve')); p.sagaAndroides.venceuInfernal = true;
   sincronizar(g); g.time += 11; sincronizar(g); assert.ok(pessoal(g, p, 'superC17'));
 });
+
+test('C17 Infernal e Super C17: golpe especial TARGET (rajadas brancas e Shocking Death Ball) persegue o alvo e acerta', () => {
+  for (const [tipo, golpe, visual] of [['c17Infernal', 'rajadasBrancas', 'rajadaBranca'], ['superC17', 'deathBall', 'deathBall']]) {
+    const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: 700 }); p.connected = true;
+    g.levar(p, lugar('terra-neve'));
+    const m = g.addMob(tipo, p.x + 300, p.y + 250, 'terra-neve'); m.attackReady = 0;
+    p.x = m.x + 60; p.y = m.y; p.seguroAte = 0;   // de perto também (sem distância mínima)
+    g.updateMob(m, .05);
+    assert.equal(m.strike?.kind, golpe, tipo + ' usa o golpe especial'); assert.equal(m.telegraph?.alvoId, p.id);
+    assert.ok(m.especialReady > g.time, 'tem recarga');
+    g.time = m.telegraph.until + .01; g.updateMob(m, .05);
+    const s = g.projectiles.find(s => s.visual === visual && s.owner === m.id);
+    assert.ok(s, 'o projétil saiu'); assert.equal(s.kind, 'mobKiTarget', 'persegue o alvo');
+    const hp = p.hp; for (let i = 0; i < 80 && s.ttl !== 0; i++) { p.x += 4; g.tick(.05); }
+    assert.ok(p.hp < hp, tipo + ': acertou mesmo com o alvo andando');
+  }
+});

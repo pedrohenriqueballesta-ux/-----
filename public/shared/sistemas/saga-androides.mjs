@@ -79,3 +79,10 @@ export function entregarTaskAndroides(p) {
 // Segundos até o próximo Super C17 deste personagem.
 export const tempoAteSuperC17 = (random, teste) => teste ? SUPER_C17.tempoTeste
   : SUPER_C17.tempo.minimo + random() * (SUPER_C17.tempo.maximo - SUPER_C17.tempo.minimo);
+// Golpes especiais (Pedro, 26/11/2026, folhas enviadas): os dois são TARGET (perseguem o alvo e acertam), o padrão do jogo.
+// C17 Infernal: rajadas brancas das mãos. Super C17: Shocking Death Ball, a bola vermelha carregada na mão.
+// Alcance, aviso antes de soltar, recarga, multiplicador do ataque e velocidade do projétil. PROVISÓRIOS.
+export const ESPECIAIS_ANDROIDES = Object.freeze({
+  c17Infernal: Object.freeze({ golpe: 'rajadasBrancas', visual: 'rajadaBranca', alcance: 520, aviso: 0.6, recarga: 7, dano: 1.6, velocidade: 480 }),
+  superC17: Object.freeze({ golpe: 'deathBall', visual: 'deathBall', alcance: 560, aviso: 1.0, recarga: 9, dano: 2.4, velocidade: 380 })
+});

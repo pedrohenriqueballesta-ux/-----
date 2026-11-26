@@ -120,6 +120,14 @@ import { C20_PASSO } from './personagens/cell/c20-andar.mjs';
 import { C20_SOCO } from './personagens/cell/c20-soco.mjs';
 import { C20_KI } from './personagens/cell/c20-ki.mjs';
 import { C20_ABSORCAO } from './personagens/cell/c20-absorcao.mjs';
+import { C17_INFERNAL_PASSO } from './personagens/androides/c17-infernal-andar.mjs';
+import { C17_INFERNAL_SOCO } from './personagens/androides/c17-infernal-soco.mjs';
+import { C17_INFERNAL_KI } from './personagens/androides/c17-infernal-ki.mjs';
+import { C17_INFERNAL_RAJADAS } from './personagens/androides/c17-infernal-rajadas.mjs';
+import { SUPER_C17_PASSO } from './personagens/androides/super-c17-andar.mjs';
+import { SUPER_C17_SOCO } from './personagens/androides/super-c17-soco.mjs';
+import { SUPER_C17_KI } from './personagens/androides/super-c17-ki.mjs';
+import { SUPER_C17_DEATHBALL } from './personagens/androides/super-c17-deathball.mjs';
 import { CELL_SEMIPERFEITO_PASSO } from './personagens/cell/cell-semiperfeito-andar.mjs';
 import { CELL_SEMIPERFEITO_SOCO } from './personagens/cell/cell-semiperfeito-soco.mjs';
 import { CELL_SEMIPERFEITO_KI } from './personagens/cell/cell-semiperfeito-ki.mjs';
@@ -185,7 +193,7 @@ export function drawSheet(ctx, sheet, image, pos, height, facing, column, bob = 
 // Goku base andando: quadros desenhados de verdade, em vez de pernas entortadas a partir de um desenho parado.
 // Personagens com caminhada desenhada (Goku, SSJ, Saibaman, Sentinela = 'alien'); o walk-rig fica de reserva.
 const PASSO = { kaioken: FOLHAS_GOKU_KAIOKEN.andar, gokuSsj: FOLHAS_GOKU_SSJ.andar, gokuSsj2: FOLHAS_GOKU_SSJ2.andar, gokuSsj3: FOLHAS_GOKU_SSJ3.andar, gokuSsj4: FOLHAS_GOKU_SSJ4.andar, ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).map(([tipo,f])=>[tipo,f.andar])), goku: [GOKU_PASSO, 'gokuPasso'], ssj: [SSJ_PASSO, 'ssjPasso'], saibaman: [SAIBAMAN_PASSO, 'saibamanPasso'], alien: [SENTINELA_PASSO, 'sentinelaPasso'], guerreiro: [GUERREIRO_PASSO, 'guerreiroPasso'], veterano: [VETERANO_PASSO, 'veteranoPasso'], tsufuruGuerreiro: [TSUFURU_GUERREIRO_PASSO, 'tsufuruGuerreiroPasso'], tsufuruGeneral: [TSUFURU_GENERAL_PASSO, 'tsufuruGeneralPasso'], hatchiyack: [HATCHIYACK_PASSO, 'hatchiyackPasso'], nappa: [NAPPA_PASSO, 'nappaPasso'], raditz: [RADITZ_PASSO, 'raditzPasso'], bardock: [BARDOCK_PASSO, 'bardockPasso'], oozaru: [OOZARU_PASSO, 'oozaruPasso'], oozaruGuerreiro: [OOZARU_GUERREIRO_PASSO, 'oozaruGuerreiroPasso'], oozaruSuper: [OOZARU_SUPER_PASSO, 'oozaruSuperPasso'],
-  freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'], tiranossauro: [TIRANOSSAURO_PASSO, 'tiranossauroPasso'], triceratops: [TRICERATOPS_PASSO, 'triceratopsPasso'], estegossauro: [ESTEGOSSAURO_PASSO, 'estegossauroPasso'], espinossauro: [ESPINOSSAURO_PASSO, 'espinossauroPasso'], roboPilaf: [ROBO_PILAF_PASSO, 'roboPilafPasso'], roboShu: [ROBO_SHU_PASSO, 'roboShuPasso'], roboMai: [ROBO_MAI_PASSO, 'roboMaiPasso'], maquinaPilaf: [MAQUINA_PILAF_PASSO, 'maquinaPilafPasso'], yamcha: [YAMCHA_PASSO, 'yamchaPasso'], androide18: [ANDROIDE_18_PASSO, 'androide18Passo'], androide17: [ANDROIDE_17_PASSO, 'androide17Passo'], androide16: [ANDROIDE_16_PASSO, 'androide16Passo'], cellJr: [CELL_JR_PASSO, 'cellJrPasso'], cellImperfeito: [CELL_IMPERFEITO_PASSO, 'cellImperfeitoPasso'], c20: [C20_PASSO, 'c20Passo'], cellSemiperfeito: [CELL_SEMIPERFEITO_PASSO, 'cellSemiperfeitoPasso'], androide17Pos: [ANDROIDE_17_POS_PASSO, 'androide17PosPasso'], androide18Pos: [ANDROIDE_18_POS_PASSO, 'androide18PosPasso'], cellPerfeito: [CELL_PERFEITO_PASSO, 'cellPerfeitoPasso'] };
+  freezaPe: [FREEZA_PE_PASSO, 'freezaPePasso'], freezaNave: [FREEZA_NAVE_PASSO, 'freezaNavePasso'], reiVegeta: [REI_VEGETA_PASSO, 'reiVegetaPasso'], broly: [BROLY_PASSO, 'brolyPasso'], oozaruDourado: [OOZARU_DOURADO_PASSO, 'oozaruDouradoPasso'], zarbon: [ZARBON_PASSO, 'zarbonPasso'], dodoria: [DODORIA_PASSO, 'dodoriaPasso'], tiranossauro: [TIRANOSSAURO_PASSO, 'tiranossauroPasso'], triceratops: [TRICERATOPS_PASSO, 'triceratopsPasso'], estegossauro: [ESTEGOSSAURO_PASSO, 'estegossauroPasso'], espinossauro: [ESPINOSSAURO_PASSO, 'espinossauroPasso'], roboPilaf: [ROBO_PILAF_PASSO, 'roboPilafPasso'], roboShu: [ROBO_SHU_PASSO, 'roboShuPasso'], roboMai: [ROBO_MAI_PASSO, 'roboMaiPasso'], maquinaPilaf: [MAQUINA_PILAF_PASSO, 'maquinaPilafPasso'], yamcha: [YAMCHA_PASSO, 'yamchaPasso'], androide18: [ANDROIDE_18_PASSO, 'androide18Passo'], androide17: [ANDROIDE_17_PASSO, 'androide17Passo'], androide16: [ANDROIDE_16_PASSO, 'androide16Passo'], cellJr: [CELL_JR_PASSO, 'cellJrPasso'], cellImperfeito: [CELL_IMPERFEITO_PASSO, 'cellImperfeitoPasso'], c20: [C20_PASSO, 'c20Passo'], cellSemiperfeito: [CELL_SEMIPERFEITO_PASSO, 'cellSemiperfeitoPasso'], androide17Pos: [ANDROIDE_17_POS_PASSO, 'androide17PosPasso'], androide18Pos: [ANDROIDE_18_POS_PASSO, 'androide18PosPasso'], cellPerfeito: [CELL_PERFEITO_PASSO, 'cellPerfeitoPasso'], c17Infernal: [C17_INFERNAL_PASSO, 'c17InfernalPasso'], superC17: [SUPER_C17_PASSO, 'superC17Passo'] };
 export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).flatMap(([tipo,f])=>[[tipo,f.ataque],[tipo+'Ki',f.rajada]])), goku: [GOKU_GOLPE, 'gokuGolpe'], ssj: [SSJ_GOLPE, 'ssjGolpe'], saibaman: [SAIBAMAN_GOLPE, 'saibamanGolpe'], guerreiro: [GUERREIRO_GOLPE, 'guerreiroGolpe'], veterano: [VETERANO_SOCO, 'veteranoSoco'],
   veteranoKi: [VETERANO_KI, 'veteranoKi'],
   tsufuruGuerreiro: [TSUFURU_GUERREIRO_SOCO, 'tsufuruGuerreiroSoco'], tsufuruGuerreiroKi: [TSUFURU_GUERREIRO_KI, 'tsufuruGuerreiroKi'],
@@ -219,6 +227,8 @@ export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).
   cellImperfeito: [CELL_IMPERFEITO_SOCO, 'cellImperfeitoGolpe'], cellImperfeitoKi: [CELL_IMPERFEITO_KI, 'cellImperfeitoKi'],
   // C20 (Dr. Gero): soco, rajada de duas mãos e a absorção de energia (golpe especial que suga vida e Ki).
   c20: [C20_SOCO, 'c20Golpe'], c20Ki: [C20_KI, 'c20Ki'], c20Absorcao: [C20_ABSORCAO, 'c20Absorcao'],
+  c17Infernal: [C17_INFERNAL_SOCO, 'c17InfernalGolpe'], c17InfernalKi: [C17_INFERNAL_KI, 'c17InfernalKi'], c17InfernalRajadas: [C17_INFERNAL_RAJADAS, 'c17InfernalRajadas'],
+  superC17: [SUPER_C17_SOCO, 'superC17Golpe'], superC17Ki: [SUPER_C17_KI, 'superC17Ki'], superC17Deathball: [SUPER_C17_DEATHBALL, 'superC17Deathball'],
   // Cell Semiperfeito: soco, ki e a bola de energia que ele carrega na ponta da cauda e lança no alvo (folha 5).
   cellSemiperfeito: [CELL_SEMIPERFEITO_SOCO, 'cellSemiperfeitoGolpe'], cellSemiperfeitoKi: [CELL_SEMIPERFEITO_KI, 'cellSemiperfeitoKi'], cellSemiperfeitoCauda: [CELL_SEMIPERFEITO_CAUDA, 'cellSemiperfeitoCauda'],
   androide17Pos: [ANDROIDE_17_POS_SOCO, 'androide17PosGolpe'], androide17PosKi: [ANDROIDE_17_POS_KI, 'androide17PosKi'],
@@ -227,8 +237,7 @@ export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).
   cellPerfeito: [CELL_PERFEITO_SOCO, 'cellPerfeitoGolpe'], cellPerfeitoKi: [CELL_PERFEITO_KI, 'cellPerfeitoKi'], cellPerfeitoKame: [CELL_PERFEITO_KAME, 'cellPerfeitoKame'], cellPerfeitoRegeneracao: [CELL_PERFEITO_REGENERACAO, 'cellPerfeitoRegeneracao'] };
 // Saga do Cell (Pedro, 25/11/2026): chefes e mobs ainda SEM folha própria desenham com a folha de outro mob, em todas
 // as tabelas (andar, parado, golpe, ki), para o jogo, o minimapa e o Bestiário. PROVISÓRIO: sai quando a folha chegar.
-// Saga dos Androides (26/11/2026): C17 Infernal e Super C17 usam o C17 até as folhas do Pedro chegarem.
-export const ARTE_PROVISORIA = { c17Infernal: 'androide17', superC17: 'androide17' };
+export const ARTE_PROVISORIA = {};
 for (const [tipo, arte] of Object.entries(ARTE_PROVISORIA)) {
   PASSO[tipo] = PASSO[arte]; GOLPE[tipo] = GOLPE[arte]; GOLPE[tipo + 'Ki'] = GOLPE[arte + 'Ki'];
   if (PARADO[arte]) PARADO[tipo] = PARADO[arte];

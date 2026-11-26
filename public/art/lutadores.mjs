@@ -34,7 +34,7 @@ export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 148 }, picc
   // Yamcha com o Puar ao lado (Vale da Cachoeira, Pedro 25/11/2026); a altura é a do Yamcha.
   yamcha: { altura: 74 },
   // Androides nas Montanhas Nevadas (Pedro, 25/11/2026): o 16 é bem maior (o GPT desenhou os três quase da mesma altura).
-  androide18: { altura: 72 }, androide17: { altura: 74 }, c17Infernal: { altura: 80 }, superC17: { altura: 92 }, androide16: { altura: 96 },
+  androide18: { altura: 72 }, androide17: { altura: 74 }, c17Infernal: { altura: 76 }, superC17: { altura: 84 }, androide16: { altura: 96 },
   // Saga do Cell (Pedro, 25/11/2026): Cell Jr. e Cell Imperfeito no Deserto e na Ilha. Os demais ainda SEM sprite própria
   // usam a arte de outro mob (ARTE_PROVISORIA em atlas.mjs) até as folhas chegarem.
   cellJr: { altura: 60 }, cellImperfeito: { altura: 84 },
