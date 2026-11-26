@@ -4,7 +4,8 @@ import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.m
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
-import {registrarMissao,listarMissoes,resgatarMissao} from '../sistemas/missoes.mjs';
+import {registrarMissao,listarMissoes,resgatarMissao,aceitarMissao} from '../sistemas/missoes.mjs';
+import {registrarAbateAndroides,chefeInfernalPendente,superC17Liberado,tempoAteSuperC17,SUPER_C17,ESPECIAIS_ANDROIDES} from '../sistemas/saga-androides.mjs';
 import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA,CELL_PERFEITO} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
@@ -309,6 +310,7 @@ export class Game {
     }
     if(kind==='preferencias'){p.preferencias=preferenciasValidas(data.valor);return{ok:true};}
     if(kind==='resgatarMissao')return resgatarMissao(this,p,data.id);
+    if(kind==='aceitarMissao')return aceitarMissao(this,p,data.id);
     if(kind==='acompanharMissao'){if(data.id!==null&&!listarMissoes(p,this.agora()).some(m=>m.id===data.id))return{ok:false};p.missoes.acompanhada=data.id;return{ok:true};}
     if(kind==='correio')return acaoCorreio(p,data);
     if (kind === 'lerNovidades') {
@@ -974,6 +976,8 @@ export class Game {
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +' + (attacker.zeni - zeniAntes).toLocaleString('pt-BR') + ' Zeni e experiência.'); }
           const avisoSaga = registrarAbateSaga(attacker, target); if (avisoSaga) this.notify(attacker, avisoSaga);
+          const avisoAndroides = registrarAbateAndroides(attacker, target); if (avisoAndroides) this.notify(attacker, avisoAndroides);
+          if (target.type === SUPER_C17.type && target.dono === attacker.id) attacker.proximoSuperC17 = this.time + tempoAteSuperC17(this.random, this.chefeJa);
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
             const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
@@ -1690,17 +1694,40 @@ export class Game {
     if (this.time < (this.proximaSincroniaSaga || 0)) return; this.proximaSincroniaSaga = this.time + 1;
     const pessoais = [...this.mobs.values()].filter(m => m.dono);
     for (const m of pessoais) {
-      const p = this.players.get(m.dono), c = p && p.connected ? chefePendente(p) : null;
-      if (!c || c.type !== m.type || c.area !== m.area) this.mobs.delete(m.id);
+      const p = this.players.get(m.dono), cs = p && p.connected ? this.chefesPendentes(p) : [];
+      if (!cs.some(c => c.type === m.type && c.area === m.area)) this.mobs.delete(m.id);
     }
     for (const p of this.players.values()) {
-      const c = p.connected && p.hp > 0 ? chefePendente(p) : null;
-      if (!c || p.area !== c.area || pessoais.some(m => m.dono === p.id && this.mobs.has(m.id))) continue;
-      const pt = this.pontoDoChefeDaSaga(c);
-      const m = this.addMob(c.type, pt.x, pt.y, c.area); m.dono = p.id; m.homeX = m.x; m.homeY = m.y;
-      const lado = Math.abs(m.x - p.x) > Math.abs(m.y - p.y) ? (m.x > p.x ? 'à direita' : 'à esquerda') : (m.y > p.y ? 'abaixo' : 'acima');
-      this.notify(p, m.name + (c.type === 'cellPerfeito' ? ' espera por você na arena do laboratório, ' : ' apareceu, ') + lado + ' de você! Só você pode enfrentá-lo.');
+      if (!p.connected || p.hp <= 0) continue;
+      for (const c of this.chefesPendentes(p)) {
+        if (p.area !== c.area || pessoais.some(m => m.dono === p.id && m.type === c.type && this.mobs.has(m.id))) continue;
+        const pt = c.ponto || this.pontoDoChefeDaSaga(c);
+        const m = this.addMob(c.type, pt.x, pt.y, c.area); m.dono = p.id; m.homeX = m.x; m.homeY = m.y;
+        const lado = Math.abs(m.x - p.x) > Math.abs(m.y - p.y) ? (m.x > p.x ? 'à direita' : 'à esquerda') : (m.y > p.y ? 'abaixo' : 'acima');
+        this.notify(p, m.name + (c.type === 'cellPerfeito' ? ' espera por você na arena do laboratório, ' : c.raro ? ' apareceu nas Montanhas Nevadas, ' : ' apareceu, ') + lado + ' de você! Só você pode enfrentá-lo.');
+      }
     }
+  }
+  // Chefes pessoais que o personagem deve encontrar agora: os da Saga do Cell e os da Saga dos Androides.
+  // Super C17 (raro pessoal): só para quem venceu o C17 Infernal; o relógio começa ao entrar no jogo e recomeça a
+  // cada vitória; quando vence, ele espera num ponto sorteado da hunt até ser derrotado.
+  chefesPendentes(p) {
+    const lista = [chefePendente(p), chefeInfernalPendente(p)].filter(Boolean);
+    if (superC17Liberado(p)) {
+      p.proximoSuperC17 ??= this.time + tempoAteSuperC17(this.random, this.chefeJa);
+      if (this.time >= p.proximoSuperC17) {
+        if (!p.pontoSuperC17 || p.pontoSuperC17.ate !== p.proximoSuperC17) {
+          const z = areaPorId(SUPER_C17.area); let pt = null;
+          for (let i = 0; i < 80 && !pt; i++) {
+            const c = { x: z.x + 80 + this.random() * (z.w - 160), y: z.y + 80 + this.random() * (z.h - 160) };
+            if (pesLivres(z.planet, c.x, c.y, 40, SUPER_C17.area) && !naZonaSegura({ planet: z.planet, area: SUPER_C17.area, ...c }) && caminhoPorTerra(z.planet, z.chegada, c, SUPER_C17.area)) pt = c;
+          }
+          p.pontoSuperC17 = { ...(pt || pontoDeSpawnForaDaSafeZone(SUPER_C17.area, z.chegada)), ate: p.proximoSuperC17 };
+        }
+        lista.push({ ...SUPER_C17, raro: true, ponto: p.pontoSuperC17 });
+      }
+    }
+    return lista;
   }
   // Ponto do chefe pessoal: chão livre e alcançável a `distancia` da chegada (o primeiro achado numa volta em espiral).
   pontoDoChefeDaSaga(c) {
@@ -1734,7 +1761,8 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
+        if (t.kind === 'shot' && t.especial) { const E = ESPECIAIS_ANDROIDES[m.type]; if (E) this.dispararProjetilMob(m, t.alvoId, { visual: E.visual, damage: m.attack * E.dano, speed: E.velocidade }); }
+        else if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
         else if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
         else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack * (t.dano || 1), ttl: t.beam ? 0.75 : 2, kind: t.kame ? 'kameCell' : t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
@@ -1788,6 +1816,16 @@ export class Game {
         m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.4, direction: m.facing, kind: 'kameCell' };
         return;
       }
+    }
+    // Saga dos Androides: C17 Infernal (rajadas brancas) e Super C17 (Shocking Death Ball). Os dois são TARGET: aviso curto
+    // com a animação do golpe e, ao soltar, o projétil persegue o alvo e acerta. Sem distância mínima (lição da cauda do
+    // Semiperfeito: o mob que persegue chega perto antes). Números PROVISÓRIOS em ESPECIAIS_ANDROIDES.
+    const especial = ESPECIAIS_ANDROIDES[m.type];
+    if (especial && target && closest <= especial.alcance && this.time >= m.attackReady && this.time >= (m.especialReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.especialReady = this.time + especial.recarga;
+      m.telegraph = { kind: 'shot', especial: especial.golpe, alvoId: target.id, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + especial.aviso, started: this.time, radius: 30 };
+      m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.35, direction: m.facing, kind: especial.golpe };
+      return;
     }
     // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
     // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.

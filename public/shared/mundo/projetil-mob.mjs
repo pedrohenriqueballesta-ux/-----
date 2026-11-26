@@ -1,5 +1,5 @@
 ﻿// Mesmos inimigos que já combinavam soco e rajada; chefes especiais ficam fora.
-export const TIPOS_SOCA_E_ATIRA = Object.freeze(['nail','piccoloDaimaoh','neva','veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria','roboPilaf','roboShu','roboMai','yamcha','androide18','androide17','androide16','cellJr','cellImperfeito','c20','cellSemiperfeito','cellPerfeito','androide17Pos','androide18Pos']);
+export const TIPOS_SOCA_E_ATIRA = Object.freeze(['nail','piccoloDaimaoh','neva','veterano','tsufuruGuerreiro','tsufuruGeneral','hatchiyack','nappa','raditz','bardock','oozaru','oozaruGuerreiro','oozaruSuper','reiVegeta','broly','zarbon','dodoria','roboPilaf','roboShu','roboMai','yamcha','androide18','androide17','androide16','cellJr','cellImperfeito','c20','cellSemiperfeito','cellPerfeito','androide17Pos','androide18Pos','c17Infernal','superC17']);
 export const ARTE_PROJETIL_MOB = Object.freeze({ arquivo:'/assets/mobs/projetil-ki/spritesheet.png',quadros:8,largura:288,altura:256,fps:12,tonalidadeOriginal:270,ancoraX:224,ancoraY:128 });
 // Tonalidades extraídas das cores saturadas das artes atuais (graus no círculo de cor).
 // Cada espécie pode sobrescrever qualquer campo; a ficha individual também aceita `projetil`.
@@ -14,7 +14,7 @@ export const PROJETEIS_POR_MOB = Object.freeze({
   // Androides: ki amarelo-claro (18), verde (17) e Hell's Flash amarelo (16).
   androide18:{cor:55},androide17:{cor:110},androide16:{cor:45,tamanho:60},
   // Saga do Cell: ki verde (Cell Jr.), amarelo (Imperfeito e chefes), androides pós-batalha como os normais.
-  cellJr:{cor:110},cellImperfeito:{cor:55},c20:{cor:45},cellSemiperfeito:{cor:55,tamanho:60,cooldown:1.2},cellPerfeito:{cor:200,tamanho:66,cooldown:1.2},androide17Pos:{cor:110},androide18Pos:{cor:55}
+  cellJr:{cor:110},cellImperfeito:{cor:55},c20:{cor:45},cellSemiperfeito:{cor:55,tamanho:60,cooldown:1.2},cellPerfeito:{cor:200,tamanho:66,cooldown:1.2},androide17Pos:{cor:110},c17Infernal:{cor:45},superC17:{cor:45,tamanho:58,cooldown:1.1},androide18Pos:{cor:55}
 });
 export function configurarProjetilMob(tipo, atributos) {
   const perfil=PROJETEIS_POR_MOB[tipo];if(!perfil)return null;
