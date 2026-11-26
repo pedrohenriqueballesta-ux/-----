@@ -358,8 +358,17 @@ export class Game {
     }
     if (kind === 'godmodeSpawnBoss') {
       if (!p.godmode) return { ok:false, reason:'Ative o God Mode para invocar chefes de teste.' };
-      const escolha = CHEFES_TESTE.find(b => b.type === data.boss);
+      const escolha = CHEFES_TESTE.find(b => b.id === data.boss);
       if (!escolha) return { ok:false, reason:'Chefe inválido.' };
+      if (escolha.pessoal) {
+        // Chefe de saga: nasce só para quem invocou (teste), no ponto de sempre; não conta para a saga.
+        const vivo = [...this.mobs.values()].find(m => m.dono === p.id && m.type === escolha.type && m.area === escolha.area);
+        if (vivo) return { ok:false, reason:vivo.name + ' já está vivo em ' + areaPorId(escolha.area).name + '.' };
+        const pt = this.pontoDoChefeDaSaga(escolha);
+        const m = this.addMob(escolha.type, pt.x, pt.y, escolha.area); m.dono = p.id; m.teste = true; m.homeX = m.x; m.homeY = m.y;
+        this.notify(p, m.name + ' invocado em ' + areaPorId(escolha.area).name + ', só para você (teste, não conta para a saga).');
+        return { ok:true };
+      }
       const chefe = [...this.mobs.values()].find(m => m.type === escolha.type && m.area === escolha.area);
       if (!chefe) return { ok:false, reason:'Este chefe não está disponível neste mundo.' };
       if (chefe.hp > 0) return { ok:false, reason:chefe.name + ' já está vivo em ' + areaPorId(chefe.area).name + '.' };
@@ -975,9 +984,10 @@ export class Game {
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +' + (attacker.zeni - zeniAntes).toLocaleString('pt-BR') + ' Zeni e experiência.'); }
-          const avisoSaga = registrarAbateSaga(attacker, target); if (avisoSaga) this.notify(attacker, avisoSaga);
-          const avisoAndroides = registrarAbateAndroides(attacker, target); if (avisoAndroides) this.notify(attacker, avisoAndroides);
-          if (target.type === SUPER_C17.type && target.dono === attacker.id) attacker.proximoSuperC17 = this.time + tempoAteSuperC17(this.random, this.chefeJa);
+          // Chefe invocado pelo God Mode (teste) não conta para as sagas.
+          const avisoSaga = !target.teste && registrarAbateSaga(attacker, target); if (avisoSaga) this.notify(attacker, avisoSaga);
+          const avisoAndroides = !target.teste && registrarAbateAndroides(attacker, target); if (avisoAndroides) this.notify(attacker, avisoAndroides);
+          if (!target.teste && target.type === SUPER_C17.type && target.dono === attacker.id) attacker.proximoSuperC17 = this.time + tempoAteSuperC17(this.random, this.chefeJa);
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
             const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
@@ -1695,7 +1705,7 @@ export class Game {
     const pessoais = [...this.mobs.values()].filter(m => m.dono);
     for (const m of pessoais) {
       const p = this.players.get(m.dono), cs = p && p.connected ? this.chefesPendentes(p) : [];
-      if (!cs.some(c => c.type === m.type && c.area === m.area)) this.mobs.delete(m.id);
+      if (m.teste ? !(p && p.connected) : !cs.some(c => c.type === m.type && c.area === m.area)) this.mobs.delete(m.id);
     }
     for (const p of this.players.values()) {
       if (!p.connected || p.hp <= 0) continue;

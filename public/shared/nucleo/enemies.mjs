@@ -148,14 +148,24 @@ export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 // Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
 // diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
 export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito', 'c17Infernal', 'superC17']);
-// Apenas chefes que têm um spawn real no mundo; compartilhado pelo God Mode e pela validação no servidor.
+// Chefes que o God Mode invoca; compartilhado pelo painel e pela validação no servidor.
+// Do mundo: o chefe que já existe na hunt renasce no local habitual. `pessoal`: chefe das sagas (só nasce na etapa
+// certa); no teste nasce só para quem invocou, no ponto de sempre (`distancia` da chegada), sem mexer no progresso da
+// saga. `id` distingue o mesmo chefe em duas hunts (Cell Semiperfeito no Deserto e na Ilha).
 export const CHEFES_TESTE = Object.freeze([
+  { type:'maquinaPilaf', area:'terra-descampado' },
   { type:'subboss', area:'media' },
-  { type:'neva', area:'norte' },
+  { type:'c20', area:'terra-deserto' },
   { type:'boss', area:'dificil' },
   { type:'oozaruDourado', area:'vegeta-lava' },
-  { type:'freezaBoss', area:'vegeta-cratera' }
-]);
+  { type:'neva', area:'norte' },
+  { type:'freezaBoss', area:'vegeta-cratera' },
+  { type:'cellSemiperfeito', area:'terra-deserto', id:'cellSemiperfeito:terra-deserto', pessoal:true, distancia:220 },
+  { type:'cellSemiperfeito', area:'terra-ilha', id:'cellSemiperfeito:terra-ilha', pessoal:true, distancia:220 },
+  { type:'cellPerfeito', area:'terra-deserto', pessoal:true, distancia:240 },
+  { type:'c17Infernal', area:'terra-neve', pessoal:true, distancia:240 },
+  { type:'superC17', area:'terra-neve', pessoal:true, distancia:300 }
+].map(b => Object.freeze({ id:b.type, ...b })));
 // Forma entre parênteses fica no fim: "Freeza (nave)" → "Freeza BOSS (nave)".
 export const nomeDeChefe = nome => /\bBOSS\b/.test(nome) ? nome : nome.replace(/^(.*?)(\s*\([^)]*\))?$/, (_, n, forma = '') => n + ' BOSS' + forma);
 export function mobStats(type, area = 'inicial') {
