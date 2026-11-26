@@ -433,3 +433,44 @@ test('clones trocam para o alvo marcado e seguem o Boo quando perde a marca', ()
   ticks(g,1.25);
   assert.ok(clones.every((c,i)=>dist(c)<antes[i]-40));
 });
+
+test('Kamehameha do Cell Perfeito persegue o clone marcado e preserva dano e efeito próprios', () => {
+  const {g,p,mob}=cenaBoo(700);
+  const cell=mob(150,0,'cellPerfeito');
+  assert.ok(g.cast(p,'cloneSummoning').ok);
+  ticks(g,1.2);
+  const [clone]=g.combateBoo.clones.values();
+  const hp=clone.hp, hpDono=p.hp;
+  assert.ok(g.dispararProjetilMob(cell,clone.id,{ visual:'kameCell', damage:100, speed:540 }));
+  const [projetil]=g.projectiles;
+  assert.equal(projetil.visual,'kameCell');
+  assert.equal(projetil.alvoId,clone.id);
+  assert.equal(projetil.damage,100);
+  assert.equal(projetil.speed,540);
+  ticks(g,1.2);
+  assert.ok(clone.hp<hp);
+  assert.equal(p.hp,hpDono);
+});
+
+test('habilidades em área e clones respeitam o dono do chefe pessoal da Saga do Cell', () => {
+  const {g,p,mob}=cenaBoo(700);
+  const jogador=g.addPlayer('dono','Dono do chefe',{level:700});
+  Object.assign(jogador,{planet:p.planet,area:p.area,x:p.x+200,y:p.y});
+  const cell=mob(100,0,'cellSemiperfeito');
+  cell.dono=jogador.id;
+  g.proximaSincroniaSaga=g.time+30;
+  const hp=cell.hp;
+  assert.ok(!g.snapshot(p.id).mobs.some(m=>m.id===cell.id));
+  p.targetId=cell.id;
+  assert.equal(g.cast(p,'chocolateBeam').ok,false);
+  assert.equal(g.cast(p,'supernova').ok,false);
+  assert.ok(g.cast(p,'cloneSummoning').ok);
+  ticks(g,1.2);
+  const [clone]=g.combateBoo.clones.values();
+  assert.equal(g.hit(clone,cell,100,{credito:p}),false);
+  assert.equal(g.hit(cell,clone,100),false);
+  assert.ok(g.cast(p,'angryExplosion').ok);
+  ticks(g,1);
+  assert.ok(g.mobs.has(cell.id));
+  assert.equal(cell.hp,hp);
+});

@@ -11,6 +11,7 @@ import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../
 import {vocacaoDoPersonagem} from '../sistemas/vocacoes.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {restaurarMissoes} from '../sistemas/missoes.mjs';
+import {restaurarSagaCell} from '../sistemas/saga-cell.mjs';
 // Personagem jogável (Goku) e sua progressão. Novos personagens jogáveis
 // podem ser descritos aqui no futuro, sem mexer na lógica de combate.
 import { clamp } from './math.mjs';
@@ -355,7 +356,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     respawnAt: 0, connected: true, autoFood: saved?.autoFood !== false, autoKi: saved?.autoKi === true, autoEnergyPotion: saved?.autoEnergyPotion === true, autoSeed: saved?.autoSeed === true,
     // TODO (dev): jogador NOVO (sem preferências salvas) começa com a música DESLIGADA, só pra facilitar o teste.
     // Depois, restringir isso ao ambiente de desenvolvimento (voltar ao padrão com música ligada em produção). Ver memória "onde paramos".
-    correioResgatadas:(Array.isArray(saved?.correioResgatadas)?saved.correioResgatadas:[]).filter(id=>typeof id==='string'&&id.length<=120),preferencias:preferenciasValidas(saved?.preferencias??{musicaAtiva:false}),missoes:restaurarMissoes(saved?.missoes),
+    correioResgatadas:(Array.isArray(saved?.correioResgatadas)?saved.correioResgatadas:[]).filter(id=>typeof id==='string'&&id.length<=120),preferencias:preferenciasValidas(saved?.preferencias??{musicaAtiva:false}),sagaCell:restaurarSagaCell(saved?.sagaCell),missoes:restaurarMissoes(saved?.missoes),
     novidades: restaurarNovidades(saved?.novidades),
     lastBagNotice: 0, bossKills: Number(saved?.bossKills) || 0 };
   // Layout dos espaços da mochila: restaura o do save (sanitizado em reconciliarSlots) ou gera o padrão.
@@ -375,7 +376,7 @@ export function exportPlayer(p) {
   return { skin:p.skin, montaria:montariaValida(p.montaria), montariaPreferida:montariaValida(p.montariaPreferida)||'nimbus', battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.godmode && p.xpReal != null ? p.xpReal : p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
-    correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),
+    correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),sagaCell:structuredClone(p.sagaCell),
     novidades: restaurarNovidades(p.novidades),
     bonusPremium: restaurarBonusPremium(p.bonusPremium), entregasPremium: { ...p.entregasPremium },
     hotkeysConsumiveis:hotkeysConsumiveisValidas(p.hotkeysConsumiveis,p.seedSelected),barraPersonalizada:!!p.barraPersonalizada,barraKameManual:!!p.barraKameManual,barraTecnicas:barraValida(p.barraTecnicas),inventory: p.inventory, equipamentos: { ...p.equipamentos }, setInicialProcessado: true, slots: p.slots, kills: p.kills, bossKills: p.bossKills,

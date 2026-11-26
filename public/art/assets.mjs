@@ -102,6 +102,62 @@ export const art = {
   dodoriaPasso: loadImage('/assets/mobs/dodoria-andar.png'),
   dodoriaSoco: loadImage('/assets/mobs/dodoria-soco.png'),
   dodoriaKi: loadImage('/assets/mobs/dodoria-ki.png'),
+  tiranossauroPasso: loadImage('/assets/mobs/tiranossauro-andar.png'),
+  tiranossauroGolpe: loadImage('/assets/mobs/tiranossauro-ataque.png'),
+  triceratopsPasso: loadImage('/assets/mobs/triceratops-andar.png'),
+  triceratopsGolpe: loadImage('/assets/mobs/triceratops-ataque.png'),
+  estegossauroPasso: loadImage('/assets/mobs/estegossauro-andar.png'),
+  estegossauroGolpe: loadImage('/assets/mobs/estegossauro-ataque.png'),
+  espinossauroPasso: loadImage('/assets/mobs/espinossauro-andar.png'),
+  espinossauroGolpe: loadImage('/assets/mobs/espinossauro-ataque.png'),
+  roboPilafPasso: loadImage('/assets/mobs/robo-pilaf-andar.png'),
+  roboPilafGolpe: loadImage('/assets/mobs/robo-pilaf-soco.png'),
+  roboPilafCanhao: loadImage('/assets/mobs/robo-pilaf-canhao.png'),
+  roboShuPasso: loadImage('/assets/mobs/robo-shu-andar.png'),
+  roboShuGolpe: loadImage('/assets/mobs/robo-shu-soco.png'),
+  roboShuCanhao: loadImage('/assets/mobs/robo-shu-canhao.png'),
+  roboMaiPasso: loadImage('/assets/mobs/robo-mai-andar.png'),
+  roboMaiGolpe: loadImage('/assets/mobs/robo-mai-soco.png'),
+  roboMaiCanhao: loadImage('/assets/mobs/robo-mai-canhao.png'),
+  maquinaPilafPasso: loadImage('/assets/mobs/maquina-pilaf-andar.png'),
+  maquinaPilafGolpe: loadImage('/assets/mobs/maquina-pilaf-soco.png'),
+  yamchaPasso: loadImage('/assets/mobs/yamcha-andar.png'),
+  yamchaGolpe: loadImage('/assets/mobs/yamcha-soco.png'),
+  yamchaKi: loadImage('/assets/mobs/yamcha-ki.png'),
+  androide18Passo: loadImage('/assets/mobs/androide-18-andar.png'),
+  androide18Golpe: loadImage('/assets/mobs/androide-18-soco.png'),
+  androide18Ki: loadImage('/assets/mobs/androide-18-ki.png'),
+  androide17Passo: loadImage('/assets/mobs/androide-17-andar.png'),
+  androide17Golpe: loadImage('/assets/mobs/androide-17-soco.png'),
+  androide17Ki: loadImage('/assets/mobs/androide-17-ki.png'),
+  androide16Passo: loadImage('/assets/mobs/androide-16-andar.png'),
+  androide16Golpe: loadImage('/assets/mobs/androide-16-soco.png'),
+  androide16Ki: loadImage('/assets/mobs/androide-16-ki.png'),
+  cellJrPasso: loadImage('/assets/mobs/cell-jr-andar.png'),
+  cellJrGolpe: loadImage('/assets/mobs/cell-jr-soco.png'),
+  cellJrKi: loadImage('/assets/mobs/cell-jr-ki.png'),
+  cellImperfeitoPasso: loadImage('/assets/mobs/cell-imperfeito-andar.png'),
+  cellImperfeitoGolpe: loadImage('/assets/mobs/cell-imperfeito-soco.png'),
+  cellImperfeitoKi: loadImage('/assets/mobs/cell-imperfeito-ki.png'),
+  c20Passo: loadImage('/assets/mobs/c20-andar.png'),
+  c20Golpe: loadImage('/assets/mobs/c20-soco.png'),
+  c20Ki: loadImage('/assets/mobs/c20-ki.png'),
+  c20Absorcao: loadImage('/assets/mobs/c20-absorcao.png'),
+  cellSemiperfeitoPasso: loadImage('/assets/mobs/cell-semiperfeito-andar.png'),
+  cellSemiperfeitoGolpe: loadImage('/assets/mobs/cell-semiperfeito-soco.png'),
+  cellSemiperfeitoKi: loadImage('/assets/mobs/cell-semiperfeito-ki.png'),
+  cellSemiperfeitoCauda: loadImage('/assets/mobs/cell-semiperfeito-cauda.png'),
+  cellPerfeitoPasso: loadImage('/assets/mobs/cell-perfeito-andar.png'),
+  cellPerfeitoGolpe: loadImage('/assets/mobs/cell-perfeito-soco.png'),
+  cellPerfeitoKi: loadImage('/assets/mobs/cell-perfeito-ki.png'),
+  cellPerfeitoKame: loadImage('/assets/mobs/cell-perfeito-kame.png'),
+  cellPerfeitoRegeneracao: loadImage('/assets/mobs/cell-perfeito-regeneracao.png'),
+  androide17PosPasso: loadImage('/assets/mobs/androide-17-pos-andar.png'),
+  androide17PosGolpe: loadImage('/assets/mobs/androide-17-pos-soco.png'),
+  androide17PosKi: loadImage('/assets/mobs/androide-17-pos-ki.png'),
+  androide18PosPasso: loadImage('/assets/mobs/androide-18-pos-andar.png'),
+  androide18PosGolpe: loadImage('/assets/mobs/androide-18-pos-soco.png'),
+  androide18PosKi: loadImage('/assets/mobs/androide-18-pos-ki.png'),
   gokuGolpe: loadImage(GOKU_GOLPE.file),
   ssjGolpe: loadImage(SSJ_GOLPE.file),
   passaro: loadImage('/assets/mobs/passaro.png'),
@@ -126,7 +182,17 @@ export const objetoVegeta = id => loadImage('/assets/vegeta/objetos/' + id + '.w
 
 // Chão de um planeta (ficha em PLANETS): o de Namekusei carrega com o jogo; o dos outros planetas só quando
 // alguém precisa dele (ao chegar lá, ou no menu Mapa), para não baixar ~16 MB a mais na entrada.
-export const soloDe = mundo => art[mundo.solo] || loadImage(mundo.soloUrl);
+export const soloDe = (mundo, area = null) => {
+  // Planeta com um chão por área (Terra Selvagem, Pedro 23/11/2026): só a imagem da área onde se está fica em memória.
+  // Juntas num atlas, hub + Descampado + Deserto ocupariam ~290 MB decodificadas; separadas, no máximo ~180 MB (o Deserto).
+  const s = area && mundo.soloPorArea?.[area];
+  if (!s) return art[mundo.solo] || loadImage(mundo.soloUrl);
+  const anterior = soloDaArea.get(mundo.id);
+  if (anterior && anterior !== s.url) { const img = imageCache.get(anterior); if (img) img.src = ''; imageCache.delete(anterior); }
+  soloDaArea.set(mundo.id, s.url);
+  const img = loadImage(s.url); img.rect = s; return img;
+};
+const soloDaArea = new Map();
 
 // Verdadeiro quando a imagem já carregou e pode ser desenhada.
 // Alguns mobs só têm as folhas novas: enquanto carregam, o atlas de reserva pode não existir.

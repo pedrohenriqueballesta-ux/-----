@@ -21,7 +21,7 @@ export class CombateBoo {
   }
 
   mobValido(local, mob) {
-    return mob?.hp > 0 && this.game.mesmoLugar(local, mob) && !naZonaSegura(mob);
+    return mob?.hp > 0 && this.game.mesmoLugar(local, mob) && this.game.podeEnfrentarMob(local, mob) && !naZonaSegura(mob);
   }
 
   mobsNaArea(local, raio) {
@@ -72,7 +72,7 @@ export class CombateBoo {
       return falha('Já existe uma Supernova ativa.');
     const estagio = estagioTecnicasBoo(p.forma);
     const raio = tecnica === NOVA ? estagio.raioNova : tecnica === ANGRY ? estagio.raioAngry : 0;
-    if (automated && tecnica.minimoCombo && this.mobsNaArea(alvo || p, raio).length < tecnica.minimoCombo) return { ok: false };
+    if (automated && tecnica.minimoCombo && this.mobsNaArea(alvo ? { ...lugarDe(alvo), ownerId: p.id } : p, raio).length < tecnica.minimoCombo) return { ok: false };
     const direction = alvo ? g.aimDirection(p, alvo) : p.facing;
     if (tecnica === CLONES) {
       if (automated && p.tentarClonesEm > g.time) return { ok: false };
@@ -95,7 +95,7 @@ export class CombateBoo {
     if (!carga.liberada && g.time + EPSILON >= compromisso) {
       const falha = motivo => { p.charge = null; if (!carga.automated) g.notify(p, motivo); };
       const alvo = tecnica === NOVA ? this.alvoSupernova(p, carga.targetId) : null;
-      const pontos = tecnica === CLONES ? this.pontosDosClones(carga.origem, carga.direction, estagio.clones) : null;
+      const pontos = tecnica === CLONES ? this.pontosDosClones({ ...carga.origem, id: p.id }, carga.direction, estagio.clones) : null;
       const custo = custoTecnicaBoo(tecnica, p.stats.ki);
       if (p.ki < custo) return falha('Ki insuficiente ao concluir a conjuração.');
       if (tecnica === NOVA && !alvo) return falha('O alvo saiu do alcance da Supernova.');

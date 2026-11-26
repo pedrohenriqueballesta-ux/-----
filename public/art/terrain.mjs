@@ -78,10 +78,13 @@ export function drawTerrain(ctx, config, zones, merchant, camera, width, height)
 // Desenha só o trecho visível na câmera.
 export function drawGroundImage(ctx, image, world, camera, width, height) {
   if (!loaded(image)) return false;
-  const kx = image.naturalWidth / world.w, ky = image.naturalHeight / world.h;
-  const x = Math.max(0, camera.x - 4), y = Math.max(0, camera.y - 4);
-  const w = Math.min(world.w - x, width / camera.scale + 8), h = Math.min(world.h - y, height / camera.scale + 8);
-  ctx.drawImage(image, x * kx, y * ky, w * kx, h * ky, x, y, w, h);
+  // `rect`: retângulo do mundo coberto pela imagem (chão por área); sem ele, a imagem cobre o planeta inteiro.
+  const r = image.rect || { x: 0, y: 0, w: world.w, h: world.h };
+  const kx = image.naturalWidth / r.w, ky = image.naturalHeight / r.h;
+  const x = Math.max(r.x, camera.x - 4), y = Math.max(r.y, camera.y - 4);
+  const w = Math.min(r.x + r.w - x, width / camera.scale + 8), h = Math.min(r.y + r.h - y, height / camera.scale + 8);
+  if (w <= 0 || h <= 0) return true;
+  ctx.drawImage(image, (x - r.x) * kx, (y - r.y) * ky, w * kx, h * ky, x, y, w, h);
   return true;
 }
 

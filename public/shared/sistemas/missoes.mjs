@@ -2,6 +2,7 @@ import {registrarAtividadePasse} from './battle-pass.mjs';
 import {mochilaComporta} from '../nucleo/characters.mjs';
 import {RECOMPENSA_PATRULHA} from './catalogo-itens.mjs';
 import {creditarZeni,saldoReal,MAX_ZENI_NORMAL} from './itens-negociaveis.mjs';
+import {listarSagaCell,entregarEtapaSaga} from './saga-cell.mjs';
 export const MISSOES=Object.freeze([
  {id:'primeiros-passos',nome:'Primeiros passos',categoria:'principal',descricao:'Alcance o nível 40 para dominar o Kamehameha.',evento:'nivel',meta:40,recompensa:{zeni:30,xp:10}},
  {id:'dominio-ki',nome:'Domínio do Ki',categoria:'principal',descricao:'Alcance o nível 100 para liberar o Super Saiyajin.',evento:'nivel',meta:100,requer:'primeiros-passos',recompensa:{zeni:60,xp:20}},
@@ -19,7 +20,7 @@ const contagens=v=>Object.fromEntries(['coleta','skills','kills','bosses'].map(k
 const ids=v=>(Array.isArray(v)?v:[]).filter(id=>MISSOES.some(m=>m.id===id));
 export function periodos(agora=Date.now()){const dia=Math.floor(agora/86400000);return{diaria:dia,semanal:Math.floor((dia+3)/7)};}
 export function restaurarMissoes(v,agora=Date.now()){
- const chaves=periodos(agora),s={total:contagens(v?.total),resgatadas:ids(v?.resgatadas),acompanhada:MISSOES.some(m=>m.id===v?.acompanhada)?v.acompanhada:null};
+ const chaves=periodos(agora),s={total:contagens(v?.total),resgatadas:ids(v?.resgatadas),acompanhada:MISSOES.some(m=>m.id===v?.acompanhada)||/^saga-cell-[1-5]$/.test(v?.acompanhada)?v.acompanhada:null};
  for(const c of ['diaria','semanal'])s[c]=v?.[c]?.chave===chaves[c]?{chave:chaves[c],contagens:contagens(v[c].contagens),resgatadas:ids(v[c].resgatadas)}:{chave:chaves[c],contagens:contagens(),resgatadas:[]};
  return s;
 }
@@ -33,17 +34,18 @@ export function registrarMissao(p,evento,valor=1,agora=Date.now()){
 }
 export function listarMissoes(p,agora=Date.now()){
  renovarMissoes(p,agora);
- return MISSOES.map(m=>{const periodo=p.missoes[m.categoria],resgatadas=periodo?.resgatadas||p.missoes.resgatadas;
+ return [...listarSagaCell(p),...MISSOES.map(m=>{const periodo=p.missoes[m.categoria],resgatadas=periodo?.resgatadas||p.missoes.resgatadas;
  const progresso=Math.min(m.meta,m.evento==='nivel'?(p.levelReal??p.level):periodo?periodo.contagens[m.evento]:m.evento==='kills'?p.kills:p.missoes.total[m.evento]);
  const bloqueada=m.requer&&!p.missoes.resgatadas.includes(m.requer),resgatada=resgatadas.includes(m.id);
- return{...m,progresso,estado:resgatada?'resgatada':bloqueada?'bloqueada':progresso>=m.meta?'concluida':progresso?'andamento':'disponivel',acompanhada:p.missoes.acompanhada===m.id};});
+ return{...m,progresso,estado:resgatada?'resgatada':bloqueada?'bloqueada':progresso>=m.meta?'concluida':progresso?'andamento':'disponivel',acompanhada:p.missoes.acompanhada===m.id};})].map(m=>m.categoria==='saga'?{...m,acompanhada:p.missoes.acompanhada===m.id}:m);
 }
 export function resgatarMissao(g,p,id){
  const m=listarMissoes(p,g.agora()).find(m=>m.id===id);if(!m||m.estado!=='concluida')return{ok:false,reason:'Missão indisponível para resgate.'};
  if(p.godmode)return{ok:false,reason:'Desative o God Mode para resgatar recompensas.'};
  const r=m.recompensa,itens=r.itens||{};
  if(saldoReal(p)+(r.zeni||0)>MAX_ZENI_NORMAL||(Object.keys(itens).length && !mochilaComporta(p,itens)))return{ok:false,reason:'Libere espaço na mochila ou na carteira para receber a recompensa.'};
- (p.missoes[m.categoria]?.resgatadas||p.missoes.resgatadas).push(id);
+ if(m.categoria==='saga'){const r=entregarEtapaSaga(p,id);if(!r.ok)return r;if(r.aviso)g.notify(p,r.aviso);}
+ else (p.missoes[m.categoria]?.resgatadas||p.missoes.resgatadas).push(id);
  if(r.zeni)creditarZeni(p,r.zeni);for(const[k,q]of Object.entries(itens))p.inventory[k]=(p.inventory[k]||0)+q;
  registrarAtividadePasse(p,'missoes',1,g.agora());
  if(r.xp)g.awardXp(p,r.xp);g.notify(p,'Recompensa recebida: '+m.nome+'.');return{ok:true};

@@ -5,6 +5,7 @@ import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncont
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao} from '../sistemas/missoes.mjs';
+import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20,BOLA_CAUDA,CELL_PERFEITO} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
@@ -94,7 +95,16 @@ export class Game {
   }
   // Mesmo lugar = mesmo planeta e mesma área fechada. Nada atravessa de um lugar para outro:
   // dano, alvo, aggro, projéteis, loot e o que cada jogador recebe no snapshot.
-  mesmoLugar(a, b) { return Boolean(a && b) && a.planet === b.planet && (a.area || null) === (b.area || null); }
+  mesmoLugar(a, b) {
+    if (!(a && b) || a.planet !== b.planet || (a.area || null) !== (b.area || null)) return false;
+    // Chefe pessoal da Saga do Cell (`dono`): só existe para o dono — o que ele vê, ataca e o que o atinge.
+    const privado = x => x.dono || (x.owner && this.mobs.get(x.owner)?.dono) || null;
+    const pessoa = x => this.players.has(x.id) ? x.id : x.owner && this.players.has(x.owner) ? x.owner : null;
+    const pa = privado(a), pb = privado(b);
+    if (pa && pessoa(b) && pa !== pessoa(b)) return false;
+    if (pb && pessoa(a) && pb !== pessoa(a)) return false;
+    return true;
+  }
   // Proteção permanente na Terra, Vila e quadrado da hunt, além da proteção breve de chegada.
   protegido(p) { return !p.area || Boolean(areaPorId(p.area)?.segura) || naZonaSegura(p) || this.time < p.seguroAte; }
   // Avisa quem está na hunt que o chefe raro apareceu.
@@ -118,6 +128,7 @@ export class Game {
     const portal = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destinoId) && distance(p, o) <= RAIO_PORTAL + 45);
     const destino = lugar(destinoId);
     if (!portal || !destino) return this.reject(p, 'Chegue perto de um portal para viajar.');
+    if (destino.area === AREA_ILHA && !ilhaLiberada(p)) return this.reject(p, 'A Ilha da Arena abre durante a Saga do Cell: vença o Cell Semiperfeito no Deserto das Mesas.');
     this.levar(p, destino, {preservarForma:true});
     const aviso = destino.nivel && p.level < destino.nivel[0] ? ' Recomendado a partir do nível ' + destino.nivel[0] + ': cuidado!' : '';
     this.notify(p, 'Portal: ' + destino.name + '.' + aviso); return { ok: true };
@@ -130,9 +141,10 @@ export class Game {
     if (x || y) { p.autoHunt = false; p.moveTo = null; p.facing = norm(x, y); }
     if (Number.isFinite(data.aimX) && Number.isFinite(data.aimY)) { const w = PLANETS[p.planet] || PLANETS.namek; p.aim = { x: clamp(data.aimX, 0, w.w), y: clamp(data.aimY, 0, w.h) }; }
   }
+  podeEnfrentarMob(p, mob) { return !mob?.dono || mob.dono === (p?.ownerId ?? p?.id); }
   targetOf(p) {
     const mob = this.mobs.get(p.targetId);
-    if (mob && mob.hp > 0 && this.mesmoLugar(p, mob)) return mob;
+    if (mob && mob.hp > 0 && this.mesmoLugar(p, mob) && this.podeEnfrentarMob(p, mob)) return mob;
     const player = this.players.get(p.targetId);
     if (player && this.canPvp(p, player)) return player;
     return null;
@@ -147,7 +159,7 @@ export class Game {
   nearestMob(p, radius = 350, aceita = null) {
     let best = null, d = radius;
     for (const m of this.mobs.values()) {
-      if (m.hp <= 0 || !this.mesmoLugar(p, m) || (aceita && !aceita(m))) continue;
+      if (m.hp <= 0 || !this.mesmoLugar(p, m) || !this.podeEnfrentarMob(p, m) || (aceita && !aceita(m))) continue;
       const dd = this.distanciaAoCorpo(p, m); if (dd < d) { d = dd; best = m; }
     }
     return best;
@@ -269,7 +281,7 @@ export class Game {
     if(kind === 'huntAnalyzerReset'){p.huntAnalyzer=novaSessao();return {ok:true};}
     if (kind === 'target') {
       const candidate = this.mobs.get(data.id) || this.players.get(data.id);
-      if (candidate && candidate.id !== p.id) p.targetId = candidate.id;
+      if (candidate && candidate.id !== p.id && this.podeEnfrentarMob(p, candidate)) p.targetId = candidate.id;
       return { ok: true };
     }
     if (kind === 'chat') {
@@ -671,7 +683,7 @@ export class Game {
   }
 
   alvoValidoChocolate(p, alvo) {
-    return p?.connected && p.hp > 0 && alvo?.hp > 0 && this.mesmoLugar(p, alvo) &&
+    return p?.connected && p.hp > 0 && alvo?.hp > 0 && this.mesmoLugar(p, alvo) && this.podeEnfrentarMob(p, alvo) &&
       !naZonaSegura(p) && !naZonaSegura(alvo) && !(alvo.chocolate?.until > this.time);
   }
 
@@ -902,6 +914,7 @@ export class Game {
   }
   hit(attacker, target, raw, { ignorarEsquiva = false, credito = attacker } = {}) {
     if (target.hp <= 0 || (attacker && !this.mesmoLugar(attacker, target))) return false;
+    if (!this.podeEnfrentarMob(credito, target) || !this.podeEnfrentarMob(target, attacker)) return false;
     if (attacker && this.players.has(attacker.id) && naZonaSegura(attacker)) return false;
     const playerTarget = this.players.has(target.id);
     const cloneTarget = this.combateBoo.clones.has(target.id);
@@ -940,6 +953,7 @@ export class Game {
           analisar(attacker,'zeni',attacker.zeni-zeniAntes);
           if(!target.raro&&CHEFES.has(target.type))registrarAtividadePasse(attacker,'bosses',1,this.agora());
           if (target.raro) { attacker.bossKills++;registrarMissao(attacker,'bosses',1,this.agora()); this.notify(attacker, target.name + ' derrotado! +100 Zeni e experiência.'); }
+          const avisoSaga = registrarAbateSaga(attacker, target); if (avisoSaga) this.notify(attacker, avisoSaga);
           const onde = { planet: target.planet, area: target.area };
           if (this.random() < attacker.stats.lootChance) {
             const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
@@ -958,6 +972,7 @@ export class Game {
             analisar(attacker,'drops',1,item);
           }
         }
+        if (target.dono) this.mobs.delete(target.id);   // chefe pessoal da saga: não renasce
       }
     }
     return true;
@@ -1233,12 +1248,21 @@ export class Game {
       if (distance(p, destino) < (destino.pontos ? 2 : 16)) { p.moveTo = null; p.rota = null; }
       else {
         if (destino.pontos) {
-          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 1) destino.pontos.shift();
+          // Ponto intermediário vale como alcançado a 6 unidades: colado em árvore/pedra o corpo não encosta no ponto
+          // exato e ficava escorregando de um lado para o outro (tremor ao andar na grama, relato do Pedro, 23/11/2026).
+          while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 6) destino.pontos.shift();
           const alvo = destino.pontos[0], d = distance(p, alvo), dir = norm(alvo.x - p.x, alvo.y - p.y);
           this.move(p, dir.x, dir.y, Math.min(dt, d / p.stats.mobility), p.stats.mobility); p.facing = dir;
         } else this.steer(p, destino, dt, p.stats.mobility);
-        if (!destino.progresso || distance(p, destino.progresso) > 4) destino.progresso = { x: p.x, y: p.y, em: this.time };
-        else if (this.time - destino.progresso.em > 1) { p.moveTo = null; p.rota = null; p.moving = false; }
+        // Progresso medido em janelas de 1 s: quanto o corpo saiu do lugar desde o começo da janela. Antes a janela
+        // recomeçava sempre que o corpo se afastava 4 unidades do ponto guardado, e o vaivém de ~7 unidades perto de
+        // árvore/pedra contava como progresso: o tremor não acabava nunca (relato do Pedro, 23/11/2026). Um desvio de
+        // verdade anda mais de 100 unidades por segundo (até no nível 1); o vaivém, menos de 30.
+        if (!destino.progresso) destino.progresso = { x: p.x, y: p.y, em: this.time };
+        else if (this.time - destino.progresso.em >= 1) {
+          if (distance(p, destino.progresso) < 30) { p.moveTo = null; p.rota = null; p.moving = false; }
+          else destino.progresso = { x: p.x, y: p.y, em: this.time };
+        }
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
@@ -1559,7 +1583,7 @@ export class Game {
     for (const c of this.combateBoo.clones.values()) if (this.combateBoo.cloneAtivo(c)) yield c;
   }
   alvoDoMob(m) {
-    const valido = p => p && p.connected && p.hp > 0 && this.mesmoLugar(p, m) && !this.protegido(p);
+    const valido = p => p && p.connected && p.hp > 0 && this.mesmoLugar(p, m) && this.podeEnfrentarMob(p, m) && !this.protegido(p);
     // Esquece quem não vale mais, ou quem está longe sem bater há 6 s.
     if (m.ameaca) for (const [id, a] of m.ameaca) {
       const p = this.alvoDoCombate(id);
@@ -1632,13 +1656,45 @@ export class Game {
     }
     return true;
   }
-  dispararProjetilMob(m, alvoId) {
+  dispararProjetilMob(m, alvoId, extra = null) {
     const alvo=this.alvoDoCombate(alvoId),config=m.projetil;
     if(!config || !alvo?.connected || alvo.hp<=0 || !this.mesmoLugar(m,alvo) || this.protegido(alvo))return false;
     if(!(config.velocidade>0) || !Number.isFinite(config.velocidade))return false;
     this.projectiles.push({id:this.uid('s'),kind:'mobKiTarget',owner:m.id,ownerType:'mob',alvoId:alvo.id,
-      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,config,this.time)});
+      planet:m.planet,area:m.area,...iniciarVooTarget(m,alvo,extra?.speed?{...config,velocidade:extra.speed}:config,this.time),...(extra?{visual:extra.visual,damage:extra.damage}:{})});
     return true;
+  }
+  // Saga do Cell: cada personagem que está na etapa de um chefe e entra na área dele encontra o próprio chefe
+  // (Cell Semiperfeito / Cell Perfeito), num ponto livre a uma distância fixa da chegada. Chefe pessoal de quem saiu,
+  // desconectou ou mudou de etapa some. Roda uma vez por segundo.
+  sincronizarChefesPessoais() {
+    if (this.time < (this.proximaSincroniaSaga || 0)) return; this.proximaSincroniaSaga = this.time + 1;
+    const pessoais = [...this.mobs.values()].filter(m => m.dono);
+    for (const m of pessoais) {
+      const p = this.players.get(m.dono), c = p && p.connected ? chefePendente(p) : null;
+      if (!c || c.type !== m.type || c.area !== m.area) this.mobs.delete(m.id);
+    }
+    for (const p of this.players.values()) {
+      const c = p.connected && p.hp > 0 ? chefePendente(p) : null;
+      if (!c || p.area !== c.area || pessoais.some(m => m.dono === p.id && this.mobs.has(m.id))) continue;
+      const pt = this.pontoDoChefeDaSaga(c);
+      const m = this.addMob(c.type, pt.x, pt.y, c.area); m.dono = p.id; m.homeX = m.x; m.homeY = m.y;
+      const lado = Math.abs(m.x - p.x) > Math.abs(m.y - p.y) ? (m.x > p.x ? 'à direita' : 'à esquerda') : (m.y > p.y ? 'abaixo' : 'acima');
+      this.notify(p, m.name + (c.type === 'cellPerfeito' ? ' espera por você na arena do laboratório, ' : ' apareceu, ') + lado + ' de você! Só você pode enfrentá-lo.');
+    }
+  }
+  // Ponto do chefe pessoal: chão livre e alcançável a `distancia` da chegada (o primeiro achado numa volta em espiral).
+  pontoDoChefeDaSaga(c) {
+    this.pontosSaga ||= new Map(); const chave = c.type + ':' + c.area;
+    if (this.pontosSaga.has(chave)) return this.pontosSaga.get(chave);
+    const z = areaPorId(c.area); let pt = null;
+    for (let r = c.distancia; r <= c.distancia + 1200 && !pt; r += 60) for (let i = 0; i < 36 && !pt; i++) {
+      const a = i * Math.PI / 18, x = z.chegada.x + Math.cos(a) * r, y = z.chegada.y + Math.sin(a) * r;
+      if (pesLivres(z.planet, x, y, 40, c.area) && !naZonaSegura({ planet: z.planet, area: c.area, x, y })) {
+        const caminho = caminhoPorTerra(z.planet, z.chegada, { x, y }, c.area); if (caminho) pt = { x, y };
+      }
+    }
+    pt ||= pontoDeSpawnForaDaSafeZone(c.area, z.chegada); this.pontosSaga.set(chave, pt); return pt;
   }
   updateMob(m, dt) {
     m.moving = false;
@@ -1659,21 +1715,32 @@ export class Game {
     if (m.telegraph) {
       if (this.time >= m.telegraph.until) {
         const t = m.telegraph;
-        if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
-        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack, ttl: t.beam ? 0.75 : 2, kind: t.beam ? 'deathbeam' : undefined });
+        if (t.kind === 'shot' && t.kame) this.dispararProjetilMob(m, t.alvoId, { visual: 'kameCell', damage: m.attack * CELL_PERFEITO.kameDano, speed: CELL_PERFEITO.kameVelocidade });
+        else if (t.kind === 'shot' && !t.beam) this.dispararProjetilMob(m,t.alvoId);
+        else if (t.kind === 'shot') this.projectiles.push({ id: this.uid('s'), x: m.x, y: m.y, planet: m.planet, area: m.area, dx: t.dx, dy: t.dy, speed: t.beam ? FREEZA.beamVelocidade : 250, owner: m.id, ownerType: 'mob', damage: m.attack * (t.dano || 1), ttl: t.beam ? 0.75 : 2, kind: t.kame ? 'kameCell' : t.beam ? 'deathbeam' : undefined });
         else if (t.kind === 'bolaNegra') {   // a bola chega no alvo e explode em área pequena
-          for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * 1.4);
+          for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.tx, p.y - t.ty) < t.radius) this.hit(m, p, m.attack * (t.dano || 1.4));
           this.emit('bolaNegra', { x: t.tx, y: t.ty, radius: t.radius, planet: m.planet, area: m.area });
         } else if (t.kind === 'pancada') {
           for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
           this.emit('pancada', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
+        }
+        else if (t.kind === 'absorcao') {   // C20: suga vida e Ki de quem ainda está ao alcance da mão e se cura com isso
+          const a = this.players.get(t.alvoId);
+          if (a && a.connected && a.hp > 0 && this.mesmoLugar(a, m) && distance(a, m) <= t.radius + (m.corpo || 0)) {
+            const antes = a.hp; this.hit(m, a, m.attack * ABSORCAO_C20.dano);
+            const ki = Math.min(a.ki, a.stats.ki * ABSORCAO_C20.ki); a.ki -= ki;
+            const cura = Math.round((antes - a.hp) * ABSORCAO_C20.cura + ki);
+            if (cura > 0) { m.hp = Math.min(m.maxHp, m.hp + cura); this.emit('heal', { x: m.x, y: m.y - 40, amount: cura, targetId: m.id }); }
+            this.notify(a, 'O C20 absorveu sua energia!');
+          }
         }
         else if (t.kind === 'supernova') {
           for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.6);
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
         else for (const p of this.alvosDosMobs()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack);
-        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
+        m.telegraph = null; m.attackReady = this.time + (t.kind === 'shot' && !t.beam ? m.projetil?.cooldown ?? 0.95 : m.type === 'cellSemiperfeito' && t.kind === 'bolaNegra' ? 1.2 : m.type === 'oozaruDourado' ? OOZARU_DOURADO.bolaRecarga : m.type === 'freezaBoss' ? (m.forma === 'nave' ? FREEZA.novaRecarga : 1.6) : grande ? 1.5 : 0.95);
       }
       return;
     }
@@ -1681,6 +1748,42 @@ export class Game {
     if (m.type === 'oozaruDourado' && this.turnoOozaruDourado(m, target, closest, dt)) return;
     if (!target) {
       if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
+      return;
+    }
+    // Cell Perfeito (Pedro, 26/11/2026): uma vez, abaixo de 30% da vida, para e se regenera (recupera parte da vida, como
+    // no anime); de tempos em tempos dispara o Kamehameha, um raio forte na direção do alvo com aviso antes (como o
+    // Death Beam do Freeza). Rajada Dourada é o tiro comum; soco de perto. Números PROVISÓRIOS em CELL_PERFEITO.
+    if (m.type === 'cellPerfeito') {
+      const C = CELL_PERFEITO;
+      if (m.regenerando) { if (this.time >= m.regenerando) { m.regenerando = 0; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * C.regeneraFracao); this.emit('heal', { x: m.x, y: m.y - 40, amount: Math.round(m.maxHp * C.regeneraFracao), targetId: m.id }); } return; }
+      if (!m.regenerou && m.hp <= m.maxHp * C.regeneraAbaixo) {
+        m.regenerou = true; m.regenerando = this.time + C.regeneraTempo; m.telegraph = null;
+        m.strike = { started: this.time, release: m.regenerando, until: m.regenerando + 0.3, direction: m.facing, kind: 'regeneracao' };
+        for (const p of this.players.values()) if (p.connected && this.mesmoLugar(p, m)) this.notify(p, 'O Cell Perfeito está se regenerando!');
+        return;
+      }
+      if (closest > 120 && closest <= C.kameAlcance && this.time >= m.attackReady && this.time >= (m.kameReady || 0)) {
+        m.facing = norm(target.x - m.x, target.y - m.y); m.kameReady = this.time + C.kameRecarga;
+        // Skill TARGET (Pedro, 26/11): o Kamehameha persegue o alvo e acerta, como a rajada de ki dos mobs.
+        m.telegraph = { kind: 'shot', kame: true, alvoId: target.id, x: m.x, y: m.y, dx: m.facing.x, dy: m.facing.y, until: this.time + C.kameAviso, started: this.time, radius: 30 };
+        m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.4, direction: m.facing, kind: 'kameCell' };
+        return;
+      }
+    }
+    // Cell Semiperfeito (Pedro, 26/11/2026): carrega uma bola de energia na ponta da cauda e lança no alvo; ela voa até
+    // onde ele está (a mira o acompanha) e explode numa área pequena. Mesmo mecanismo da bola negra do Oozaru Dourado.
+    if (m.type === 'cellSemiperfeito' && closest <= BOLA_CAUDA.alcance && this.time >= m.attackReady && this.time >= (m.caudaReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.caudaReady = this.time + BOLA_CAUDA.recarga;
+      m.telegraph = { kind: 'bolaNegra', alvoId: target.id, x: m.x, y: m.y, tx: target.x, ty: target.y, radius: BOLA_CAUDA.raio,
+        started: this.time, lanca: this.time + BOLA_CAUDA.carga, until: this.time + BOLA_CAUDA.carga + BOLA_CAUDA.voo, dano: BOLA_CAUDA.dano };
+      m.strike = { started: this.time, release: m.telegraph.lanca, until: m.telegraph.lanca + 0.4, direction: m.facing, kind: 'cauda' };
+      return;
+    }
+    // C20 (Saga do Cell): de tempos em tempos agarra quem está perto e suga a energia (folha de absorção, Pedro 25/11/2026).
+    if (m.type === 'c20' && target && this.players.has(target.id) && closest <= ABSORCAO_C20.alcance + (m.corpo || 0) && this.time >= m.attackReady && this.time >= (m.absorcaoReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.absorcaoReady = this.time + ABSORCAO_C20.recarga;
+      m.telegraph = { kind: 'absorcao', alvoId: target.id, x: m.x, y: m.y, radius: ABSORCAO_C20.alcance, started: this.time, until: this.time + ABSORCAO_C20.aviso };
+      m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: 'absorcao' };
       return;
     }
     // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.
@@ -1705,6 +1808,7 @@ export class Game {
     this.events = this.events.filter(e => this.time - e.at < 2);
     for (const p of this.players.values()) this.updatePlayer(p, dt);
     this.atualizarKamehamehas();
+    this.sincronizarChefesPessoais();
     this.combateBoo.atualizarEfeitos(dt);
     this.combateBoo.atualizarClones(dt);
     for (const m of this.mobs.values()) this.updateMob(m, dt);
@@ -1790,7 +1894,7 @@ export class Game {
         beneficiosDeTeste:this.beneficiosDeTeste, godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
         penalidadeMorte: self.hp <= 0 ? self.penalidadeMorte ?? null : null,
         respawnRemaining: Math.max(0, self.respawnAt - this.time) } : null,
-      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao, chocolate: m.chocolate?.until > this.time ? m.chocolate : null, raioContato: Math.max(19, this.raioMob(m)) })),
+      mobs: [...this.mobs.values()].filter(m => m.hp > 0 && aqui(m) && this.podeEnfrentarMob(self, m)).map(m => ({ id: m.id, type: m.type, area: m.area, name: m.name, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, moving: m.moving, facing: m.facing, telegraph: m.telegraph, strike: m.strike && this.time < m.strike.until ? m.strike : null, forma: m.forma, transicao: m.transicao, chocolate: m.chocolate?.until > this.time ? m.chocolate : null, raioContato: Math.max(19, this.raioMob(m)) })),
       kamehamehas: this.kamehamehas.filter(aqui).map(({ atingidos, damage, ...k }) => k),
       genkiCharges: this.genkiCharges.filter(aqui).map(({ damage, ...g }) => g),
       genkiExplosions: this.genkiExplosions.filter(aqui),
