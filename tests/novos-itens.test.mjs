@@ -11,7 +11,7 @@ import { Game } from '../public/shared/nucleo/game.mjs';
 
 test('catálogo integra os 99 ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
   const itens = Object.values(NOVOS_ITENS);
-  assert.equal(itens.length, 99);   // + Carne de Dinossauro e Bilhete do Laboratório (Terra Selvagem, 25/11/2026)
+  assert.equal(itens.length, 99);   // + Carne de Dinossauro e Bilhete de Ouro do Dr. Gero (Terra Selvagem, 25/11/2026)
   assert.equal(itens.filter(i => i.tipo === 'material').length, 16);
   assert.equal(itens.filter(i => i.tipo === 'consumivel').length, 4);
   assert.equal(itens.filter(i => i.tipo === 'equipamento').length, 79);

@@ -103,12 +103,12 @@ const ATRIBUTOS = {
     tiranossauro: { level:10, hp: 202, attack: 19, xp: 48, defesa: 5, speed: 115, corpo: 20, name: 'Tiranossauro' }
   },
   // Saga do Cell (Pedro, 25/11/2026): o Deserto das Mesas é a hunt do Cell (Cell Jr., Cell Imperfeito e o C20 como chefe
-  // raro, que derruba o Bilhete do Laboratório). Semiperfeito e Perfeito são chefes PESSOAIS da cadeia (saga-cell.mjs).
+  // raro, que derruba o Bilhete de Ouro do Dr. Gero). Semiperfeito e Perfeito são chefes PESSOAIS da cadeia (saga-cell.mjs).
   // Números PROVISÓRIOS, na faixa atual do Deserto; balanceamento em aberto.
   'terra-deserto': {
     cellJr: { level:40, nivelBase:30, hp: 2000, attack: 64, xp: 220, defesa: 24, speed: 118, name: 'Cell Jr.' },
     cellImperfeito: { level:56, nivelBase:34, hp: 3400, attack: 88, xp: 600, defesa: 31, speed: 106, name: 'Cell Imperfeito' },
-    c20: { level:62, nivelBase:36, hp: 16000, attack: 110, xp: 6000, defesa: 36, speed: 92, corpo: 6, name: 'C20' },
+    c20: { level:62, nivelBase:36, hp: 16000, attack: 110, xp: 6000, defesa: 36, speed: 92, corpo: 6, name: 'C20 (Dr. Gero)' },
     cellSemiperfeito: { level:62, nivelBase:36, hp: 26000, attack: 125, xp: 9000, defesa: 40, speed: 98, corpo: 14, name: 'Cell Semiperfeito' },
     cellPerfeito: { level:62, nivelBase:36, hp: 45000, attack: 150, xp: 20000, defesa: 48, speed: 104, corpo: 10, name: 'Cell Perfeito' }
   },
@@ -199,7 +199,7 @@ export const CHEFES_RAROS = {
   // Máquina Pilaf: num ponto sorteado do Descampado do Oeste (Pedro, 25/11/2026).
   'terra-descampado': { todaHunt: true, aviso: 'invadiu o Descampado do Oeste!' },
   // C20: num ponto sorteado do Deserto das Mesas (Saga do Cell, 25/11/2026).
-  'terra-deserto': { todaHunt: true, aviso: 'apareceu no Deserto das Mesas! Ele guarda o Bilhete do Laboratório.' }
+  'terra-deserto': { todaHunt: true, aviso: 'apareceu no Deserto das Mesas! Ele guarda o Bilhete de Ouro do Dr. Gero.' }
 };
 export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
 export function pontoNoCirculo(random, area = 'dificil') {

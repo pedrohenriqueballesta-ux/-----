@@ -42,7 +42,8 @@ export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 148 }, picc
    // Pedro, 06/11: Rei +20%, Broly +35%
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false, tempo = 0) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
-  const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];
+  // `tiro`: true = ataque de longe (folha Ki); texto = golpe especial com folha própria (ex.: 'Absorcao' do C20).
+  const [sheet, key] = GOLPE[tipo + (tiro === true ? 'Ki' : tiro || '')] || GOLPE[tipo];
   // Oozaru Dourado: a folha do ataque de longe foi feita para um raio; com a bola (Pedro, 06/11) o quadro do disparo
   // (que tem um pedaço de raio na boca) é trocado pelo da boca aberta com a energia.
   let coluna = attackProgress !== null ? strikeColumn(attackProgress) : 0;

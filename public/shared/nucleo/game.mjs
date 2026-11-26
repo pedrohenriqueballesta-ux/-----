@@ -5,7 +5,7 @@ import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncont
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
 import {registrarMissao,listarMissoes,resgatarMissao} from '../sistemas/missoes.mjs';
-import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA} from '../sistemas/saga-cell.mjs';
+import {registrarAbateSaga,chefePendente,ilhaLiberada,AREA_ILHA,ABSORCAO_C20} from '../sistemas/saga-cell.mjs';
 import {acaoCorreio} from '../sistemas/correio.mjs';
 import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
@@ -1580,6 +1580,16 @@ export class Game {
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.3);
           this.emit('pancada', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
         }
+        else if (t.kind === 'absorcao') {   // C20: suga vida e Ki de quem ainda está ao alcance da mão e se cura com isso
+          const a = this.players.get(t.alvoId);
+          if (a && a.connected && a.hp > 0 && this.mesmoLugar(a, m) && distance(a, m) <= t.radius + (m.corpo || 0)) {
+            const antes = a.hp; this.hit(m, a, m.attack * ABSORCAO_C20.dano);
+            const ki = Math.min(a.ki, a.stats.ki * ABSORCAO_C20.ki); a.ki -= ki;
+            const cura = Math.round((antes - a.hp) * ABSORCAO_C20.cura + ki);
+            if (cura > 0) { m.hp = Math.min(m.maxHp, m.hp + cura); this.emit('heal', { x: m.x, y: m.y - 40, amount: cura, targetId: m.id }); }
+            this.notify(a, 'O C20 absorveu sua energia!');
+          }
+        }
         else if (t.kind === 'supernova') {
           for (const p of this.players.values()) if (p.connected && p.hp > 0 && this.mesmoLugar(p, m) && Math.hypot(p.x - t.x, p.y - t.y) < t.radius) this.hit(m, p, m.attack * 1.6);
           this.emit('supernova', { x: t.x, y: t.y, radius: t.radius, planet: m.planet, area: m.area });
@@ -1593,6 +1603,13 @@ export class Game {
     if (m.type === 'oozaruDourado' && this.turnoOozaruDourado(m, target, closest, dt)) return;
     if (!target) {
       if (longeDeCasa > 10) this.steer(m, casa, dt, m.voltando ? m.speed * 1.25 : m.speed);
+      return;
+    }
+    // C20 (Saga do Cell): de tempos em tempos agarra quem está perto e suga a energia (folha de absorção, Pedro 25/11/2026).
+    if (m.type === 'c20' && closest <= ABSORCAO_C20.alcance + (m.corpo || 0) && this.time >= m.attackReady && this.time >= (m.absorcaoReady || 0)) {
+      m.facing = norm(target.x - m.x, target.y - m.y); m.absorcaoReady = this.time + ABSORCAO_C20.recarga;
+      m.telegraph = { kind: 'absorcao', alvoId: target.id, x: m.x, y: m.y, radius: ABSORCAO_C20.alcance, started: this.time, until: this.time + ABSORCAO_C20.aviso };
+      m.strike = { started: this.time, release: m.telegraph.until, until: m.telegraph.until + 0.32, direction: m.facing, kind: 'absorcao' };
       return;
     }
     // Quem soca e atira (Veterano de Namek; Tsufurujins e Hatchiyack no Vegeta) dispara de longe e soca de perto.

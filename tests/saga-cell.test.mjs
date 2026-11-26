@@ -23,7 +23,7 @@ function viajar(g, p, destino) {
   p.x = portal.x; p.y = portal.y; return g.usePortal(p, destino);
 }
 
-test('Saga do Cell: o C20 é o chefe raro do Deserto e derruba o Bilhete do Laboratório (50%)', () => {
+test('Saga do Cell: o C20 é o chefe raro do Deserto e derruba o Bilhete de Ouro do Dr. Gero (50%)', () => {
   const g = new Game({ now: 1000 });
   assert.ok([...g.mobs.values()].some(m => m.type === 'c20' && m.area === 'terra-deserto' && m.raro));
   assert.deepEqual(dropsEspecificos('c20').find(d => d.item === BILHETE_LABORATORIO)?.chance, .5);
@@ -78,4 +78,16 @@ test('Saga do Cell: o chefe pessoal some se o dono desconecta ou sai da etapa', 
   p.sagaCell.etapa = 2; g.levar(p, lugar('terra-deserto'));
   const semi = chefePessoal(g, p); assert.ok(semi);
   p.connected = false; assert.equal(chefePessoal(g, p), undefined); assert.ok(!g.mobs.has(semi.id));
+});
+
+test('C20: a absorção de energia suga vida e Ki de quem está perto e cura o C20', () => {
+  const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Goku', { level: 62 }); p.connected = true;
+  g.levar(p, lugar('terra-deserto'));
+  const c20 = g.addMob('c20', p.x + 300, p.y + 300, 'terra-deserto'); c20.hp = c20.maxHp * .5; c20.attackReady = 0;
+  p.x = c20.x + 60; p.y = c20.y; p.seguroAte = 0; p.hp = p.stats.hp; p.ki = p.stats.ki;
+  const hpC20 = c20.hp, ki = p.ki, hp = p.hp;
+  g.updateMob(c20, .05); assert.equal(c20.telegraph?.kind, 'absorcao'); assert.equal(c20.strike.kind, 'absorcao');
+  g.time = c20.telegraph.until + .01; g.updateMob(c20, .05);
+  assert.ok(p.hp < hp, 'tirou vida'); assert.ok(p.ki < ki, 'tirou Ki'); assert.ok(c20.hp > hpC20, 'o C20 se curou');
+  assert.ok(c20.absorcaoReady > g.time, 'tem recarga');
 });

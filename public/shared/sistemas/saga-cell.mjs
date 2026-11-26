@@ -1,5 +1,5 @@
 // Saga do Cell (história e progressão do Pedro, 25/11/2026). Cadeia de tasks por personagem, na Terra Selvagem:
-//   0. O bilhete: o C20 (chefe raro do Deserto das Mesas) derruba o Bilhete do Laboratório (50%). Com ele na mochila,
+//   0. O bilhete: o C20 (chefe raro do Deserto das Mesas) derruba o Bilhete de Ouro do Dr. Gero (50%). Com ele na mochila,
 //      a task é entregue (o bilhete é consumido) e a cadeia começa.
 //   1. Os filhos do Cell: derrotar Cell Jr. e Cell Imperfeito no Deserto.
 //   2. O Cell Semiperfeito aparece no Deserto, só para este personagem; vencê-lo libera a Ilha da Arena.
@@ -9,7 +9,10 @@
 // Os chefes da cadeia são pessoais: só o dono vê, ataca e é atacado por eles (Game.mesmoLugar, campo `dono`).
 // Por ora as tasks ficam no painel de Missões; depois passam para o Mestre Kame, na Kame House.
 // QUANTIDADES, RECOMPENSAS E PONTOS SÃO PROVISÓRIOS (Pedro: "as quantidades ficam em aberto para o balanceamento").
-export const BILHETE_LABORATORIO = 'bilhete-laboratorio';
+export const BILHETE_LABORATORIO = 'bilhete-laboratorio';   // "Bilhete de Ouro do Dr. Gero" (nome no catálogo de itens)
+// Absorção de energia do C20: alcance da mão, aviso antes de sugar, recarga, fração do ataque como dano, fração do Ki
+// máximo do jogador sugada e quanto do dano vira cura. PROVISÓRIO.
+export const ABSORCAO_C20 = Object.freeze({ alcance: 110, aviso: 0.9, recarga: 8, dano: 0.9, ki: 0.15, cura: 2 });
 export const AREA_DESERTO = 'terra-deserto', AREA_ILHA = 'terra-ilha';
 export const METAS_SAGA_CELL = Object.freeze({
   filhos: Object.freeze({ cellJr: 20, cellImperfeito: 10 }),
@@ -24,7 +27,7 @@ export const CHEFES_DA_SAGA = Object.freeze({
 });
 const ETAPAS = [
   { id: 'saga-cell-1', nome: 'Saga do Cell · O bilhete do C20',
-    descricao: 'O C20 aparece de vez em quando no Deserto das Mesas. Derrote-o e traga o Bilhete do Laboratório.', recompensa: {} },
+    descricao: 'O C20 aparece de vez em quando no Deserto das Mesas. Derrote-o e traga o Bilhete de Ouro do Dr. Gero.', recompensa: {} },
   { id: 'saga-cell-2', nome: 'Saga do Cell · Os filhos do Cell', descricao: 'Derrote os Cell Jr. e os Cell Imperfeitos do Deserto das Mesas.',
     recompensa: { zeni: 300, xp: 200 } },
   { id: 'saga-cell-3', nome: 'Saga do Cell · O Cell Semiperfeito',
@@ -71,7 +74,7 @@ export function registrarAbateSaga(p, mob) {
   return null;
 }
 function progresso(s, etapa, p) {
-  if (etapa === 0) return { atual: Math.min(1, p.inventory?.[BILHETE_LABORATORIO] || 0), meta: 1, texto: 'Bilhete do Laboratório: ' + Math.min(1, p.inventory?.[BILHETE_LABORATORIO] || 0) + '/1' };
+  if (etapa === 0) return { atual: Math.min(1, p.inventory?.[BILHETE_LABORATORIO] || 0), meta: 1, texto: 'Bilhete de Ouro: ' + Math.min(1, p.inventory?.[BILHETE_LABORATORIO] || 0) + '/1' };
   const metas = metasDa(etapa);
   if (metas) {
     const partes = Object.entries(metas).map(([k, q]) => NOMES[k] + ' ' + Math.min(q, s.contagens[k]) + '/' + q);
