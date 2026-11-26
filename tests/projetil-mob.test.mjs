@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {inflateSync} from 'node:zlib';
 import {Game,SOCA_E_ATIRA} from '../public/shared/nucleo/game.mjs';
 import {CONFIG,lugar} from '../public/shared/nucleo/config.mjs';
+import {fatorDanoDaHunt} from '../public/shared/sistemas/progressao.mjs';
 import {mobStats} from '../public/shared/nucleo/enemies.mjs';
 import {ARTE_PROJETIL_MOB,configurarProjetilMob,iniciarVooTarget,avancarVooTarget,quadroProjetilMob} from '../public/shared/mundo/projetil-mob.mjs';
 function cena(){
@@ -65,7 +66,8 @@ test('projétil disparado continua após morte do mob; falha com dono removido s
 test('esquiva manual não cancela TARGET; defesa e barreira continuam reduzindo o dano',()=>{
  const {g,p,m}=cena();p.dashUntil=g.time+10;p.dashDirection={x:1,y:0};p.barrierUntil=g.time+10;
  assert.equal(g.hit(m,p,m.attack),false,'outros ataques ainda respeitam dash');
- const previsto=Math.max(1,Math.round(m.projetil.dano*.28*100/(100+p.stats.defense*3)));
+ const risco=fatorDanoDaHunt(p.level,lugar(p.area).nivel[0]);
+ const previsto=Math.max(1,Math.round(m.projetil.dano*risco*.28*100/(100+p.stats.defense*3)));
  g.dispararProjetilMob(m,p.id);passar(g,1);assert.equal(10000-p.hp,previsto);
 });
 

@@ -253,7 +253,7 @@ export function abrirPortal(portal) {
     orbe.style.backgroundImage = 'url(' + imagemDoDestino(id) + ')'; orbe.style.borderColor = COR_DESTINO[id];
     const nome = document.createElement('strong'); nome.textContent = d.planet === 'terra' ? 'Terra' : d.planet !== ctx?.snapshot()?.planet ? PLANETS[d.planet].name + ' — ' + d.name : d.name;
     const info = document.createElement('small');
-    info.textContent = d.nivel ? 'Nível ' + d.nivel[0] + '–' + d.nivel[1] + (nivel < d.nivel[0] ? ' · perigoso' : '') : 'Área segura';
+    info.textContent = d.nivel ? 'Nível ' + d.nivel[0] + '–' + d.nivel[1] + (nivel < d.nivel[0] ? ' · mais dano recebido' : '') : 'Área segura';
     if (d.nivel && nivel < d.nivel[0]) info.classList.add('perigo');
     botao.append(orbe, nome, info);
     botao.onclick = () => { $('portalDialog').close(); action({ type: 'portal', destino: id }); };

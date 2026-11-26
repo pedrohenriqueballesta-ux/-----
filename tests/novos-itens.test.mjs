@@ -222,7 +222,7 @@ test('materiais sustentam o loot das espécies ativas e as peças fortes de Free
   for (const tipo of ['dodoria', 'zarbon']) {
     assert.ok(dropsEspecificos(tipo).some(drop => drop.item === 'saia-freeza'));
   }
-  assert.deepEqual(NOVOS_ITENS['manto-rasgado'].origem.drops, { piccoloDaimaoh: .07, nail: .03 });
+  assert.deepEqual(NOVOS_ITENS['manto-rasgado'].origem.drops, { piccoloDaimaoh: .07, nail: .03, neva: .72 });
 });
 
 test('comida automática só consome com HP abaixo do limite e cobra um único uso', () => {
@@ -248,9 +248,10 @@ test('lucro da caça considera custo dos consumíveis e mostra equipamentos à p
     segundos: 60, xp: 0, zeni: 60, loot: { 'manto-rasgado': 2, 'capa-piccolo': 1 }, supplies: { food: 1, ki: 2 }
   };
   const r = g.snapshot(p.id).self.huntAnalyzer;
-  assert.equal(r.valorMateriais, 84);
+  const valorMantos = 2 * ITENS_NEGOCIAVEIS['manto-rasgado'].precoNpc;
+  assert.equal(r.valorMateriais, valorMantos);
   assert.equal(r.valorEquipamentos, ITENS_NEGOCIAVEIS['capa-piccolo'].precoNpc);
-  assert.equal(r.saldoSemEquipamentos, 60 + 84 - CONFIG.prices.food - CONFIG.prices.ki * 2);
+  assert.equal(r.saldoSemEquipamentos, 60 + valorMantos - CONFIG.prices.food - CONFIG.prices.ki * 2);
   assert.equal(r.saldo, r.saldoSemEquipamentos + r.valorEquipamentos);
 });
 

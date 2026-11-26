@@ -2,11 +2,10 @@
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Game} from '../public/shared/nucleo/game.mjs';
-import {statsFor} from '../public/shared/nucleo/characters.mjs';
-import {lugar,CONFIG} from '../public/shared/nucleo/config.mjs';
+import {lugar} from '../public/shared/nucleo/config.mjs';
 const sorteio=()=>{let s=12345;return()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);};
 export function duelo(tipo,area,nivel) {
-  const g=new Game({populate:false,now:1000,random:sorteio()}),p=g.addPlayer('p','Teste',{level:nivel});
+  const g=new Game({populate:false,now:1000,random:sorteio(),randomCombat:sorteio()}),p=g.addPlayer('p','Teste',{level:nivel});
   g.levar(p,lugar(area));p.seguroAte=0;p.x=area==='norte'?2730*1.8:850*1.8;p.y=area==='norte'?400*1.8:1500*1.8;
   p.hp=p.stats.hp;p.ki=p.stats.ki;p.autoHeal=p.autoFood=false;
   const m=g.addMob(tipo,p.x+220,p.y,area);m.attackReady=g.time+1;p.targetId=m.id;
@@ -23,7 +22,7 @@ export function duelo(tipo,area,nivel) {
   return {tipo,nivel,resultado:'limite 180 s',hpJogador:p.hp,hpMob:m.hp};
 }
 export function caca(area,nivel) {
-  const g=new Game({now:1000,random:sorteio()}),p=g.addPlayer('p','Teste',{level:nivel});
+  const g=new Game({now:1000,random:sorteio(),randomCombat:sorteio()}),p=g.addPlayer('p','Teste',{level:nivel});
   for(const [id,m]of g.mobs)if(m.area!==area)g.mobs.delete(id);
   g.levar(p,lugar(area));g.action(p.id,{type:'hunt'});let mortes=0,vivo=true;
   for(let i=0;i<300/.1;i++) {
@@ -33,7 +32,12 @@ export function caca(area,nivel) {
   return {area,nivelInicial:nivel,nivelFinal:p.level,abates:p.kills,mortes};
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-const duelos=[];for(const [area,tipos]of [['norte',['nail','piccoloDaimaoh','neva']],['vegeta-planicies',['tsufuruGuerreiro','tsufuruGeneral','hatchiyack']]])for(const tipo of tipos)for(const n of [30,35,40])duelos.push(duelo(tipo,area,n));
-console.log(JSON.stringify({duelos,cacas:[caca('norte',30),caca('vegeta-planicies',30)]},null,2));
-
+  const grupos = [['norte',['nail','piccoloDaimaoh','neva']],
+    ['vegeta-planicies',['tsufuruGuerreiro','tsufuruGeneral','hatchiyack']]];
+  const duelos = grupos.flatMap(([area, tipos]) => {
+    const [inicial, final] = lugar(area).nivel;
+    return tipos.flatMap(tipo => [inicial, Math.round((inicial + final) / 2), final].map(nivel => duelo(tipo, area, nivel)));
+  });
+  const cacas = grupos.map(([area]) => caca(area, lugar(area).nivel[0]));
+  console.log(JSON.stringify({duelos, cacas}, null, 2));
 }

@@ -1,5 +1,6 @@
 import {CONFIG,areaPorId} from '../nucleo/config.mjs';
 import {ITENS_NEGOCIAVEIS} from './itens-negociaveis.mjs';
+import {itemElegivelVendaNpc} from './venda-npc.mjs';
 // Sessão de execução: não conta tempo offline nem altera o save do personagem.
 export const ativo = p => Boolean(p?.connected && p.autoHunt && p.hp>0 && areaPorId(p.area) && !areaPorId(p.area).segura);
 export const novaSessao = () => ({segundos:0,xp:0,danoCausado:0,danoRecebido:0,cura:0,zeni:0,loot:{},drops:{},supplies:{},abates:{},mortes:{},teste:false});
@@ -15,16 +16,17 @@ export function resumo(p){
  const a=p.huntAnalyzer||novaSessao();
  const itens=campo=>Object.entries(a[campo]||{}).map(([id,quantidade])=>({id,nome:ITENS_NEGOCIAVEIS[id].nome,icone:ITENS_NEGOCIAVEIS[id].icone,raridade:ITENS_NEGOCIAVEIS[id].raridade||'Não definida',quantidade}));
  const loot=itens('loot'),drops=itens('drops'),supplies=itens('supplies');
- let valorMateriais = 0, valorEquipamentos = 0;
+ let valorMateriais = 0, valorEquipamentos = 0, valorVendaNpc = 0;
  for (const { id, quantidade } of loot) {
    const item = ITENS_NEGOCIAVEIS[id], valor = item.precoNpc * quantidade;
+   if (itemElegivelVendaNpc(id)) valorVendaNpc += valor;
    if (item.slot) valorEquipamentos += valor;
    else valorMateriais += valor;
  }
  const valorLoot = valorMateriais + valorEquipamentos;
  const gastos=supplies.reduce((n,i)=>n+i.quantidade*(CONFIG.prices[i.id] ?? ITENS_NEGOCIAVEIS[i.id].precoNpc),0);
  const saldoSemEquipamentos = a.zeni + valorMateriais - gastos;
- return {...a,abates:Object.values(a.abates||{}),mortes:Object.values(a.mortes||{}),totalAbates:Object.values(a.abates||{}).reduce((n,i)=>n+i.quantidade,0),totalMortes:Object.values(a.mortes||{}).reduce((n,i)=>n+i.quantidade,0),loot,drops,supplies,ativo:ativo(p),xpHora:a.segundos>0?a.xp*3600/a.segundos:0,valorLoot,valorMateriais,valorEquipamentos,gastos,receita:a.zeni+valorLoot,saldoSemEquipamentos,saldo:saldoSemEquipamentos+valorEquipamentos};
+ return {...a,abates:Object.values(a.abates||{}),mortes:Object.values(a.mortes||{}),totalAbates:Object.values(a.abates||{}).reduce((n,i)=>n+i.quantidade,0),totalMortes:Object.values(a.mortes||{}).reduce((n,i)=>n+i.quantidade,0),loot,drops,supplies,ativo:ativo(p),xpHora:a.segundos>0?a.xp*3600/a.segundos:0,valorLoot,valorMateriais,valorEquipamentos,valorVendaNpc,saldoNpc:a.zeni+valorVendaNpc-gastos,gastos,receita:a.zeni+valorLoot,saldoSemEquipamentos,saldo:saldoSemEquipamentos+valorEquipamentos};
 }
 
 // Executado antes do golpe fatal reduzir HP ou desligar o Auto Hunt.

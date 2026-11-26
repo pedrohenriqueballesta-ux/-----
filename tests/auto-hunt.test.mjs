@@ -238,3 +238,40 @@ test('raio maior não seleciona mob fora de 700, morto, protegido ou de outra hu
  assert.equal(g.alvoMaisProximo(p),null);
  assert.ok(longe.hp>0&&outro.hp>0);assert.equal(CONFIG.autoHuntRaio,700);
 });
+
+for (const [tipo, raro] of [['subboss', false], ['neva', true]]) {
+  test('Auto Hunt interrompe a perseguição de mob comum para derrotar ' + tipo, () => {
+    const { g, p } = cena({ level: 100 });
+    p.autoAttack = true;
+    p.autoSkills = false;
+    const comum = g.addMob('melee', p.x + 110, p.y, p.area);
+    comum.agressivo = false;
+    g.tick(.05);
+    assert.equal(p.targetId, comum.id);
+
+    const chefe = g.addMob(tipo, p.x + 155, p.y, p.area);
+    chefe.raro = raro;
+    chefe.hp = 1;
+    g.tick(.05);
+    assert.equal(p.targetId, chefe.id);
+    for (let i = 0; i < 30 && chefe.hp > 0; i++) g.tick(.05);
+    assert.equal(chefe.hp, 0, 'o ataque automático derrota o chefe');
+    g.tick(.05);
+    assert.equal(p.targetId, comum.id, 'retoma o alvo comum quando o chefe cai');
+  });
+}
+
+test('Auto Hunt prioriza o chefe que mira o jogador e ignora o chefe pessoal alheio', () => {
+  const { g, p } = cena();
+  const protegido = g.addMob('cellSemiperfeito', p.x + 60, p.y, p.area);
+  protegido.dono = 'outro-jogador';
+  const perto = g.addMob('subboss', p.x + 130, p.y, p.area);
+  const ameaca = g.addMob('neva', p.x + 230, p.y, p.area);
+  p.targetId = perto.id;
+  assert.equal(g.alvoMaisProximo(p), perto);
+  ameaca.alvoId = p.id;
+  assert.equal(g.alvoMaisProximo(p), ameaca);
+  perto.hp = 0;
+  ameaca.hp = 0;
+  assert.equal(g.alvoMaisProximo(p), null);
+});

@@ -135,17 +135,16 @@ test('transformação exige nível e termina quando o Ki acaba', () => {
   high.ki = 0.1; advance(game, 0.1); assert.equal(high.transformed, false);
 });
 
-test('caça automática sustenta uma sessão inicial, derrota mobs e evolui sem entrada manual', () => {
-  // Entra nas Planícies pelo portal e caça a hunt inteira, contornando a água por terra.
+test('caça automática sustenta uma sessão inicial na Terra e avança sem entrada manual', () => {
   const game = new Game({ now: 1000, random: () => 0.5 });
-  const p = game.addPlayer('a'); game.levar(p, lugar('inicial'));
+  const p = game.addPlayer('a');
+  game.levar(p, lugar('terra-montanhas'));
   game.action(p.id, { type: 'hunt' });
-  advance(game, 60);
-  assert.ok(p.kills >= 10);
-  assert.ok(p.level >= 3);
+  advance(game, 180);
+  assert.ok(p.kills >= 10, p.kills + ' abates');
+  assert.ok(p.level >= 2);
   assert.ok(p.hp > 0);
   assert.equal(p.autoHunt, true);
-  assert.equal(p.inventory.food, 4);
 });
 
 test('caça automática troca imediatamente para o mob mais próximo', () => {
@@ -180,6 +179,20 @@ test('Auto Hunt varia o próximo alvo entre mobs quase igualmente próximos e co
   assert.equal(sorteioInicial.escolhido.id, sorteioInicial.segundo.id);
   const sorteioFinal = selecionar(0.99);
   assert.equal(sorteioFinal.escolhido.id, sorteioFinal.abaixo.id);
+});
+
+test('Auto Hunt prefere um spawn mais distante aos últimos abatidos e volta a eles se necessário', () => {
+  const game = world(), p = naArea(game, game.addPlayer('a'));
+  p.seguroAte = 0;
+  const proximo = game.addMob('inseto', p.x + 65, p.y, 'inicial');
+  const longe = game.addMob('inseto', p.x + 145, p.y, 'inicial');
+  assert.equal(game.action(p.id, { type: 'hunt' }).ok, true);
+  assert.equal(game.alvoMaisProximo(p), proximo);
+  assert.equal(game.hit(p, proximo, 100000), true);
+  game.time = proximo.deadUntil + 1; game.updateMob(proximo, .05);
+  assert.equal(game.alvoMaisProximo(p), longe);
+  longe.hp = 0;
+  assert.equal(game.alvoMaisProximo(p), proximo);
 });
 
 test('caça automática mantém o alvo quando as distâncias quase empatam e evita tremedeira', () => {
@@ -264,7 +277,7 @@ test('hunt da média tem Guerreiros de Namek, Veteranos de Namek e o subchefe; n
   const game = new Game({ now: 1000, random: () => 0.5 }), p = game.addPlayer('a');
   porPortal(game, p, 'vila');
   assert.equal(porPortal(game, p, 'media').ok, true, 'nível 1 entra na hunt média (só recomendação)');
-  assert.ok(game.events.some(e => e.type === 'message' && /cuidado/.test(e.text)));
+  assert.ok(game.events.some(e => e.type === 'message' && /recebe mais dano dos inimigos/.test(e.text)));
   const tipos = new Set(game.snapshot(p.id).mobs.map(m => m.type));
   assert.deepEqual([...tipos].sort(), ['guerreiro', 'subboss', 'veterano']);
   const media = [...game.mobs.values()].filter(m => m.area === 'media');

@@ -1,5 +1,5 @@
 import { PLANETS, areaPorId } from '../nucleo/config.mjs';
-import { mobStats, TEMPO_CHEFE_RARO } from '../nucleo/enemies.mjs';
+import { mobStats, janelaRenascimento } from '../nucleo/enemies.mjs';
 import { SOCA_E_ATIRA } from '../nucleo/game.mjs';
 import { NOVOS_ITENS, dropsEspecificos } from './catalogo-itens.mjs';
 import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from './recompensas-mobs.mjs';
@@ -15,14 +15,14 @@ export function criarBestiario(inimigos) {
   }).map(m => {
     const z = areaPorId(m.area), atributos = mobStats(m.type, m.area), raro = Boolean(m.raro);
     const fracaoCristal = fracaoCristalAzul(m.type);
-    const respawn = TEMPO_CHEFE_RARO[m.type];
+    const respawn = janelaRenascimento(m.type, m.area);
     const categoria = raro ? 'Chefe raro' : m.type === 'subboss' ? 'Subchefe' : 'Comum';
     const ataques = m.type === 'neva' ? 'Magia da mão de curto alcance e rajada de Ki TARGET' : m.type === 'freezaBoss' ? 'Death Beam; Supernova na forma de nave' : m.type === 'oozaruDourado' ? 'Pancada em área e bola de energia negra' : m.type === 'subboss' ? 'Golpe em área' : SOCA_E_ATIRA.has(m.type) || m.type === 'veterano' ? 'Corpo a corpo e projéteis de Ki TARGET' : 'Corpo a corpo';
     return { id:m.area + ':' + m.type, tipo:m.type, nome:atributos.name, area:m.area, local:z.name,
       planeta:z.planet, nomePlaneta:PLANETS[z.planet].name, nivel:atributos.level, recomendado:[...z.nivel], categoria, raro,
       hp:atributos.hp, ataque:atributos.attack, defesa:atributos.defesa, xp:atributos.xp, velocidade:atributos.speed,
       agressivo:atributos.agressivo, aggro:atributos.aggro, perseguicao:atributos.perseguicao, ataques,
-      renascimento:respawn ? [respawn.minimo,respawn.maximo] : m.type === 'subboss' ? [60,60] : [12,12],
+      renascimento:[respawn.minimo, respawn.maximo],
       zeni:faixaZeniMob(atributos.level, raro),
       drops:[{item:'scrap',nome:'Sucata',fracaoLoot:1-fracaoCristal},
         {item:'cristal-azul',nome:NOVOS_ITENS['cristal-azul'].nome,fracaoLoot:fracaoCristal},

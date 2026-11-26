@@ -47,6 +47,7 @@ export const CONFIG = Object.freeze({
     curvaXP: Object.freeze({ preservarAteNivel: 100, coeficiente: 30, expoentePreservado: 1.35, expoenteAvancado: 1.5 }),
     // Acima do nível da criatura, a recompensa cai suavemente e nunca zera.
     penalidadeXP: Object.freeze({ escalaDiferenca: 60, expoente: 0.5, minimo: 0.2 }),
+    riscoHunt: Object.freeze({ danoPorDeficit: 7, danoPorDeficitQuadratico: 16, danoMaximo: 4 }),
     perdaXpMorte: Object.freeze({ niveisPorFaixa: 250 })
   }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
@@ -87,45 +88,42 @@ const zonasEmPx = (planet, escala, zonas) => zonas.map(z => ({ planet, pvp: fals
 export const ZONES = [
   ...zonasEmPx('namek', ESCALA_MUNDO, [
     { id: 'vila', name: 'Vila Namekiana', segura: true, cor: '#5fb6ff', x: 0, y: 850, w: 1000, h: 900, chegada: { x: 480, y: 1410 } },
-    { id: 'inicial', name: 'Planícies de Namekusei', nivel: [1, 10], cor: '#46e646', x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
-    { id: 'media', name: 'Campo de Batalha', nivel: [10, 20], cor: '#ffa51e', x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
-    { id: 'dificil', name: 'Planalto do Porunga', nivel: [20, 30], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } },
+    { id: 'inicial', name: 'Planícies de Namekusei', nivel: [10, 25], cor: '#46e646', x: 1150, y: 640, w: 2230, h: 1160, chegada: { x: 1400, y: 1150 } },
+    { id: 'media', name: 'Campo de Batalha', nivel: [70, 100], cor: '#ffa51e', x: 1150, y: 1800, w: 3150, h: 1272, chegada: { x: 1450, y: 2330 } },
+    { id: 'dificil', name: 'Planalto do Porunga', nivel: [230, 300], cor: '#eb2d2d', x: 3380, y: 500, w: 1228, h: 1300, chegada: { x: 3500, y: 1200 } },
     // Contorno medido na máscara de 6 px; cortes 3380/640 preservam as hunts atuais.
-    // Faixa 30–40 provisória, decidida pelo Pedro em 09/11/2026.
-    { id: 'norte', name: 'Cratera de Nail', nivel: [30, 40], cor: '#a35cff', x: 2058, y: 72, w: 1322, h: 568, chegada: { x: 2600, y: 570 } }
+    { id: 'norte', name: 'Cratera de Nail', nivel: [570, 690], cor: '#a35cff', x: 2058, y: 72, w: 1322, h: 568, chegada: { x: 2600, y: 570 } }
   ]),
   // Planeta Vegeta: cidade no centro e 5 hunts, cada uma numa ilha cercada de abismo, com uma estrada até a
   // cidade (nomes e temas propostos, a confirmar pelo Pedro). Caixas = contorno de cada ilha na máscara
   // (vegeta-passagem.mjs, que também diz a que área cada pedaço de chão pertence); chegada onde a estrada
-  // entra. Faixas revisadas até o nível 150 para aproveitar as cinco hunts existentes.
+  // entra. As faixas recomendadas se alternam com Terra e Namekusei.
   ...zonasEmPx('vegeta', ESCALA_VEGETA, [
     { id: 'vegeta-cidade', name: 'Cidade dos Saiyajins', segura: true, cor: '#5fb6ff', x: 1800, y: 936, w: 1026, h: 756, chegada: { x: 2301, y: 1323 } },
-    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [40, 62], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1340, y: 1340 } },
-    { id: 'vegeta-canions', name: 'Cânions', nivel: [62, 72], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1715, y: 755 } },
-    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [72, 106], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
-    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [106, 128], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
-    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [128, 150], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
+    { id: 'vegeta-planicies', name: 'Planícies Vermelhas', nivel: [45, 70], cor: '#46e646', x: 54, y: 780, w: 1590, h: 1584, chegada: { x: 1340, y: 1340 } },
+    { id: 'vegeta-canions', name: 'Cânions', nivel: [140, 180], cor: '#d6e632', x: 636, y: 12, w: 1674, h: 1026, chegada: { x: 1715, y: 755 } },
+    { id: 'vegeta-floresta', name: 'Floresta Seca', nivel: [300, 380], cor: '#ffa51e', x: 2436, y: 30, w: 2118, h: 1176, chegada: { x: 2935, y: 800 } },
+    { id: 'vegeta-lava', name: 'Campos de Lava', nivel: [470, 570], cor: '#eb2d2d', x: 2772, y: 1116, w: 1788, h: 1380, chegada: { x: 3040, y: 1540 } },
+    { id: 'vegeta-cratera', name: 'Grande Cratera', nivel: [830, 1000], cor: '#b44dff', x: 1278, y: 2070, w: 1644, h: 798, chegada: { x: 2205, y: 2260 } }
   ]),
   // Terra das hunts (Pedro, 22/11/2026): planeta à parte da Cidade do Oeste, feito do mapa-múndi da Terra. Cada hunt tem
   // o próprio mapa (tamanhos variados) e o solo é um atlas com o hub e as hunts lado a lado (só se troca por portal).
-  // Por enquanto só o hub (clareira do centro) e a hunt 1 (descampado do oeste, nível 1). Nomes e níveis PROVISÓRIOS.
   // Caixas = contorno do chão na máscara (terra-hunts-passagem.mjs); chegadas em chão livre, longe da borda.
   ...zonasEmPx('terra-hunts', ESCALA_TERRA_HUNTS, [
     { id: 'terra-hub', name: 'Clareira do Centro', segura: true, cor: '#5fb6ff', x: 1110, y: 276, w: 708, h: 516, chegada: { x: 1461, y: 559 } },
-    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [1, 10], cor: '#46e646', x: 3096, y: 942, w: 5028, h: 2340, chegada: { x: 6981, y: 1996 } },
-    // Deserto das mesas (6×6 telas, Pedro 23/11/2026): nível e mobs PROVISÓRIOS (os das Planícies Vermelhas do Vegeta).
-    { id: 'terra-deserto', name: 'Deserto das Mesas', nivel: [40, 62], cor: '#ffa51e', x: 9450, y: 372, w: 7320, h: 3918, chegada: { x: 13397, y: 1386 } },
-    // Montanhas nevadas (6×3 telas, Pedro 24/11/2026): nível e mobs PROVISÓRIOS (os da Floresta Seca do Vegeta).
-    { id: 'terra-neve', name: 'Montanhas Nevadas', nivel: [72, 106], cor: '#9fd8ff', x: 20424, y: 660, w: 4968, h: 2010, chegada: { x: 22987, y: 1600 } },
+    { id: 'terra-descampado', name: 'Descampado do Oeste', nivel: [25, 45], cor: '#46e646', x: 3096, y: 942, w: 5028, h: 2340, chegada: { x: 6981, y: 1996 } },
+    // Deserto das mesas (6×6 telas, Pedro 23/11/2026): área da Saga do Cell.
+    { id: 'terra-deserto', name: 'Deserto das Mesas', nivel: [100, 140], cor: '#ffa51e', x: 9450, y: 372, w: 7320, h: 3918, chegada: { x: 13397, y: 1386 } },
+    // Montanhas nevadas (6×3 telas, Pedro 24/11/2026): área dos Androides.
+    { id: 'terra-neve', name: 'Montanhas Nevadas', nivel: [690, 830], cor: '#9fd8ff', x: 20424, y: 660, w: 4968, h: 2010, chegada: { x: 22987, y: 1600 } },
     // Vale da Cachoeira (6×4 telas de mapa, Pedro 24/11/2026): por ora só o vale central é andável (o resto é mata e
-    // montanha, sem passagem desenhada). Os dinossauros: primeira hunt do jogo (Pedro, 25/11); faixa de nível PROVISÓRIA.
+    // montanha, sem passagem desenhada). Os dinossauros: primeira hunt do jogo (Pedro, 25/11).
     { id: 'terra-montanhas', name: 'Vale da Cachoeira', nivel: [1, 10], cor: '#eb2d2d', x: 27690, y: 1956, w: 2136, h: 1512, chegada: { x: 28843, y: 2293 } },
     // Ilha da Arena (4×4 telas, Pedro 25/11/2026; partes finais feitas pelo amigo dele): platô com a arena de terra.
-    // Nível e mobs PROVISÓRIOS (os da Grande Cratera do Vegeta).
-    { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [40, 62], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },
+    { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [180, 230], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },
     // Floresta do Sudeste (5×5 telas de mapa, Pedro 25/11/2026): trilhas e clareiras do norte; a parte sul (colina) fica
-    // fora até o ajuste de colisão. Nível e mobs PROVISÓRIOS (os dos Cânions do Vegeta).
-    { id: 'terra-floresta', name: 'Floresta do Sudeste', nivel: [62, 72], cor: '#d6e632', x: 40128, y: 18, w: 4686, h: 2400, chegada: { x: 41982, y: 1042 } }
+    // fora até o ajuste de colisão.
+    { id: 'terra-floresta', name: 'Floresta do Sudeste', nivel: [380, 470], cor: '#d6e632', x: 40128, y: 18, w: 4686, h: 2400, chegada: { x: 41982, y: 1042 } }
   ])
 ];
 export const areaPorId = id => ZONES.find(z => z.id === id) || null;

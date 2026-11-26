@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {Game} from '../public/shared/nucleo/game.mjs';
 import {registrar,resumo,agruparLootPorRaridade} from '../public/shared/sistemas/hunt-analyzer.mjs';
 import {CONFIG} from '../public/shared/nucleo/config.mjs';
+import {xpAjustadoPorNivel} from '../public/shared/sistemas/progressao.mjs';
 const indexHtml=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 function cena(){const g=new Game({now:1000,populate:false});const p=g.addPlayer('p');Object.assign(p,{planet:'namek',area:'inicial',x:1500,y:1500,autoHunt:true,autoFood:false,autoHeal:false,autoAttack:false,autoSkills:false,seguroAte:0});return {g,p};}
 test('sessão conta tempo ativo, pausa, não acumula offline e calcula XP/h',()=>{
@@ -17,6 +18,19 @@ test('supplies contam uma vez por uso confirmado e lucro usa os preços do NPC',
  let a=resumo(p);assert.equal(a.supplies[0].quantidade,1);assert.equal(a.gastos,CONFIG.prices.ki);
  registrar(p,'loot',2,'scrap');registrar(p,'zeni',30);a=resumo(p);assert.equal(a.valorLoot,16);assert.equal(a.saldo,46-CONFIG.prices.ki);
  assert.equal(p.inventory.ki,1);assert.equal(a.loot[0].raridade,'Não definida');
+});
+test('saldo estimado no NPC só soma loot elegível recolhido e desconta o custo de reposição',()=>{
+ const {p}=cena();
+ registrar(p,'zeni',50);
+ registrar(p,'loot',2,'scrap');
+ registrar(p,'loot',3,'pocao-energia');
+ registrar(p,'loot',1,'armadura-vegeta');
+ registrar(p,'drops',1,'presa-oozaru');
+ registrar(p,'supplies',1,'pocao-energia');
+ const a=resumo(p);
+ assert.equal(a.valorVendaNpc,16);
+ assert.equal(a.saldoNpc,50 + 16 - CONFIG.prices['pocao-energia']);
+ assert.ok(a.saldo>a.saldoNpc);
 });
 test('Loot Tracker agrupa itens por raridade e sinaliza os itens sem classificação',()=>{
  const grupos=agruparLootPorRaridade([
@@ -54,9 +68,11 @@ test('cura conta só HP recuperado, sem duplicar falhas e desconta a semente cor
  const a=resumo(p);assert.equal(a.cura,1);assert.equal(a.supplies[0].id,'seed15');assert.equal(a.supplies[0].quantidade,1);
 });
 test('dano causado não inclui overkill e snapshot é privado por personagem',()=>{
- const {g,p}=cena();const m=g.addMob('saibaman',p.x,p.y,'inicial');m.hp=3;g.hit(p,m,100000);
- assert.equal(resumo(p).danoCausado,3);assert.equal(resumo(p).xp,m.xp);assert.ok(resumo(p).zeni>0);
- const outro=g.addPlayer('outro');assert.equal(g.snapshot(outro.id).self.huntAnalyzer.xp,0);assert.equal(g.snapshot(p.id).self.huntAnalyzer.xp,m.xp);
+ const {g,p}=cena();const m=g.addMob('saibaman',p.x,p.y,'inicial');m.hp=3;
+ const xp=xpAjustadoPorNivel(m.xp,p.level,m.level);
+ g.hit(p,m,100000);
+ assert.equal(resumo(p).danoCausado,3);assert.equal(resumo(p).xp,xp);assert.ok(resumo(p).zeni>0);
+ const outro=g.addPlayer('outro');assert.equal(g.snapshot(outro.id).self.huntAnalyzer.xp,0);assert.equal(g.snapshot(p.id).self.huntAnalyzer.xp,xp);
 });
 test('reset limpa análise sem mudar estoque, HP ou dinheiro; God Mode fica identificado',()=>{
  const {g,p}=cena();p.godmode=true;registrar(p,'segundos',4);registrar(p,'xp',5);registrar(p,'drops',1,'cristal-azul');assert.equal(resumo(p).teste,true);
