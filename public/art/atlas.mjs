@@ -227,7 +227,8 @@ export const GOLPE = { ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).
   cellPerfeito: [CELL_PERFEITO_SOCO, 'cellPerfeitoGolpe'], cellPerfeitoKi: [CELL_PERFEITO_KI, 'cellPerfeitoKi'], cellPerfeitoKame: [CELL_PERFEITO_KAME, 'cellPerfeitoKame'], cellPerfeitoRegeneracao: [CELL_PERFEITO_REGENERACAO, 'cellPerfeitoRegeneracao'] };
 // Saga do Cell (Pedro, 25/11/2026): chefes e mobs ainda SEM folha própria desenham com a folha de outro mob, em todas
 // as tabelas (andar, parado, golpe, ki), para o jogo, o minimapa e o Bestiário. PROVISÓRIO: sai quando a folha chegar.
-export const ARTE_PROVISORIA = {};
+// Saga dos Androides (26/11/2026): C17 Infernal e Super C17 usam o C17 até as folhas do Pedro chegarem.
+export const ARTE_PROVISORIA = { c17Infernal: 'androide17', superC17: 'androide17' };
 for (const [tipo, arte] of Object.entries(ARTE_PROVISORIA)) {
   PASSO[tipo] = PASSO[arte]; GOLPE[tipo] = GOLPE[arte]; GOLPE[tipo + 'Ki'] = GOLPE[arte + 'Ki'];
   if (PARADO[arte]) PARADO[tipo] = PARADO[arte];
