@@ -38,6 +38,8 @@ import { C20_PARADO } from './personagens/cell/c20-parado.mjs';
 import { CELL_SEMIPERFEITO_PARADO } from './personagens/cell/cell-semiperfeito-parado.mjs';
 import { CELL_PERFEITO_PARADO } from './personagens/cell/cell-perfeito-parado.mjs';
 import { ANDROIDE_17_POS_PARADO } from './personagens/androides/androide-17-pos-parado.mjs';
+import { C17_INFERNAL_PARADO } from './personagens/androides/c17-infernal-parado.mjs';
+import { SUPER_C17_PARADO } from './personagens/androides/super-c17-parado.mjs';
 import { ANDROIDE_18_POS_PARADO } from './personagens/androides/androide-18-pos-parado.mjs';
 
 export const PARADO = {
@@ -76,6 +78,8 @@ export const PARADO = {
   cellSemiperfeito: [CELL_SEMIPERFEITO_PARADO, 'cellSemiperfeitoParado'],
   cellPerfeito: [CELL_PERFEITO_PARADO, 'cellPerfeitoParado'],
   androide17Pos: [ANDROIDE_17_POS_PARADO, 'androide17PosParado'],
+  c17Infernal: [C17_INFERNAL_PARADO, 'c17InfernalParado'],
+  superC17: [SUPER_C17_PARADO, 'superC17Parado'],
   androide18Pos: [ANDROIDE_18_POS_PARADO, 'androide18PosParado'],
   ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).filter(([, f]) => f.parado).map(([tipo, f]) => [tipo, f.parado]))
 };

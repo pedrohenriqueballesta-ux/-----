@@ -2,7 +2,7 @@ import {el,botao,selecionar,barra,recompensa,artigo} from './hud-elementos.mjs';
 import {avaliarResgateLote} from '../../shared/sistemas/resgate-lote.mjs';
 const estados={disponivel:'Disponível',andamento:'Em andamento',concluida:'Concluída',resgatada:'Recompensa resgatada',bloqueada:'Bloqueada'};
 export function montarMissoes(container,{acao,avisar}){
- const filtro=selecionar([['todas','Todas'],['saga','Saga do Cell'],['principal','Principais'],['secundaria','Secundárias'],['diaria','Diárias'],['semanal','Semanais']],'Categoria de missão'),lista=el('div',null,'hud-lista'),resgatarTudo=botao('Resgatar tudo');const abas=el('nav',null,'missoes-abas shop-abas');
+ const filtro=selecionar([['todas','Todas'],['saga','Sagas'],['principal','Principais'],['secundaria','Secundárias'],['diaria','Diárias'],['semanal','Semanais']],'Categoria de missão'),lista=el('div',null,'hud-lista'),resgatarTudo=botao('Resgatar tudo');const abas=el('nav',null,'missoes-abas shop-abas');
  const missoesAba=botao('Missões',()=>selecionarAba(false)),tasksAba=botao('Tasks',()=>selecionarAba(true));
  const filtroTasks=selecionar([['todas','Todas'],...Object.entries(estados)],'Estado das tasks');
  const nota=el('p',null,'hud-nota');
@@ -14,7 +14,7 @@ export function montarMissoes(container,{acao,avisar}){
   tasks=valor;
   missoesAba.setAttribute('aria-pressed',String(!tasks));tasksAba.setAttribute('aria-pressed',String(tasks));
   filtro.hidden=tasks;filtroTasks.hidden=!tasks;
-  nota.textContent=tasks?'Aceite uma task para começar a contar os abates. Cada recompensa pode ser resgatada uma vez por personagem.':'Missões diárias e semanais renovam em UTC. God Mode não conta para missões ou tasks.';
+  nota.textContent=tasks?'Aceite uma task para começar a contar os abates. Cada recompensa pode ser resgatada uma vez por personagem.':'Missões diárias renovam à meia-noite UTC e as semanais na segunda-feira UTC. God Mode não conta para missões ou tasks.';
   assinatura='';render();
  };
  resgatarTudo.onclick=async()=>{
@@ -32,8 +32,9 @@ export function montarMissoes(container,{acao,avisar}){
   if(podeAcompanhar) a.append(barra(m.progresso,m.meta),el('p',m.progresso+' / '+m.meta));
   if(m.bloqueio)a.append(el('p',m.bloqueio));
   a.append(recompensa(m.recompensa));
-  if(tasks&&m.estado==='disponivel'){
-   a.append(botao('Aceitar task',()=>acao({type:'aceitarTask',id:m.id})));
+  const podeAceitar=m.estado==='disponivel'&&(tasks||m.aceitar&&!m.aceita);
+  if(podeAceitar){
+   a.append(botao('Aceitar task',()=>acao({type:tasks?'aceitarTask':'aceitarMissao',id:m.id})));
   }else if(!tasks||m.estado==='concluida'){
    const resgatar=botao('Resgatar recompensa',()=>acao({type:'resgatarMissao',id:m.id}));
    resgatar.disabled=m.estado!=='concluida';

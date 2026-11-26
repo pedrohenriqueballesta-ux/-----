@@ -467,7 +467,7 @@ function drawMob(m, pos, time) {
   const drawn = (voa && drawVoador(ctx, m.type, pos.x, pos.y, time, facing, phase, attackProgress))
     || (m.type === 'guerreiro' && drawGuerreiro(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
     || (m.type === 'freezaBoss' && drawFreezaBoss(ctx, m.forma || 'pe', pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, time))
-    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot' || (m.strike?.kind === 'absorcao' && 'Absorcao') || (m.strike?.kind === 'cauda' && 'Cauda') || (m.strike?.kind === 'kameCell' && 'Kame') || (m.strike?.kind === 'regeneracao' && 'Regeneracao'), time))
+    || (m.type in LUTADORES && drawLutador(ctx, m.type, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot' || (m.strike?.kind === 'absorcao' && 'Absorcao') || (m.strike?.kind === 'cauda' && 'Cauda') || (m.strike?.kind === 'kameCell' && 'Kame') || (m.strike?.kind === 'regeneracao' && 'Regeneracao') || (m.strike?.kind === 'rajadasBrancas' && 'Rajadas') || (m.strike?.kind === 'deathBall' && 'Deathball'), time))
     || (m.type === 'veterano' && drawVeterano(ctx, pos.x, pos.y, m.moving, facing, phase, attackProgress, pos.travelled, m.strike?.kind === 'shot', time)) || (m.type === 'boss'
     ? drawFreeza(ctx, pos.x, pos.y, size + 8, h + 5, time, m.moving, facing, phase, attackProgress, pos.travelled)
     : corpoACorpo
@@ -955,6 +955,16 @@ function frame(now) {
     const avanco = Math.min(s.speed * Math.min(.07, (now - receivedAt) / 1000), distancia);
     const pos = s.kind === 'mobKiTarget' ? { x: s.x + s.dx * avanco, y: s.y + s.dy * avanco } : { x: px, y: py };
     adicionarEfeito(pos, () => {
+      // Saga dos Androides: rajada branca do C17 Infernal e Shocking Death Ball do Super C17 (projéteis target).
+      if (s.visual === 'rajadaBranca' || s.visual === 'deathBall') {
+        const bola = s.visual === 'deathBall', x = pos.x, y = pos.y - (bola ? 40 : 34), r = bola ? 17 : 9, pulso = 1 + .12 * Math.sin(now / 70);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.4 * pulso);
+        g.addColorStop(0, bola ? '#fff2f2' : '#ffffff'); g.addColorStop(.3, bola ? '#ff2a3c' : '#e6f4ff'); g.addColorStop(.65, bola ? '#b0002088' : '#9fd6ff66'); g.addColorStop(1, '#0000');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.4 * pulso, 0, Math.PI * 2); ctx.fill();
+        if (bola) { ctx.strokeStyle = '#ff6a7acc'; ctx.lineWidth = 2; for (let i = 0; i < 3; i++) { const a = now / 160 + i * 2.1; ctx.beginPath(); ctx.arc(x, y, r * (1.1 + .25 * i), a, a + 1.3); ctx.stroke(); } }
+        ctx.restore(); return;
+      }
       if (s.visual === 'kameCell' || s.kind === 'kameCell') {
         const dx = s.dx || 0, dy = s.dy || 0, x = pos.x, y = pos.y - 34;
         ctx.save();

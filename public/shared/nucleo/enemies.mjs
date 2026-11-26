@@ -124,7 +124,11 @@ const ATRIBUTOS = {
   'terra-neve': {
     androide18: { level:84, nivelBase:42, hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 112, name: 'Androide 18' },
     androide17: { level:95, nivelBase:45, hp: 4300, attack: 110, xp: 950, defesa: 40, speed: 114, name: 'Androide 17' },
-    androide16: { level:106, nivelBase:48, hp: 5600, attack: 130, xp: 1900, defesa: 48, speed: 100, corpo: 14, name: 'Androide 16' }
+    androide16: { level:106, nivelBase:48, hp: 5600, attack: 130, xp: 1900, defesa: 48, speed: 100, corpo: 14, name: 'Androide 16' },
+    // Saga dos Androides (Pedro, 26/11/2026): chefes PESSOAIS (saga-androides.mjs). C17 Infernal = chefe da task;
+    // Super C17 = raro pessoal de quem venceu o Infernal. Números PROVISÓRIOS.
+    c17Infernal: { level:106, nivelBase:48, hp: 30000, attack: 140, xp: 12000, defesa: 46, speed: 116, corpo: 10, name: 'C17 Infernal' },
+    superC17: { level:106, nivelBase:48, hp: 52000, attack: 165, xp: 26000, defesa: 52, speed: 112, corpo: 14, name: 'Super C17' }
   },
   'terra-descampado': {
     roboMai: { level:6, hp: 132, attack: 14, xp: 31, defesa: 3, speed: 108, name: 'Robô da Mai' },
@@ -143,7 +147,7 @@ const ATRIBUTOS = {
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 // Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
 // diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
-export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito']);
+export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito', 'c17Infernal', 'superC17']);
 // Apenas chefes que têm um spawn real no mundo; compartilhado pelo God Mode e pela validação no servidor.
 export const CHEFES_TESTE = Object.freeze([
   { type:'subboss', area:'media' },
