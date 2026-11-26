@@ -39,8 +39,8 @@ export function carregarNimbus(){
 }
 export function desenharNimbus(ctx,p,pos,t,opcoes={}){
  if(p.montaria==='rena_natalina'||p.renaTransition)return null;
- if(p.montaria!=='nimbus'||p.dead)return null;
+ if(!p.montaria?.startsWith('nimbus')||p.dead)return null;
  if(!pronta){if(performance.now()<repetirEm)return null;carregarNimbus().catch(()=>{});return null;}
- const g=geometriaNimbus(p,pos,t,opcoes),img=sprites.get(g.direcao+':'+g.quadro);ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,g.nuvem.x,g.nuvem.y,g.nuvem.tamanho,g.nuvem.tamanho);ctx.restore();return g;
+ const g=geometriaNimbus(p,pos,t,opcoes),img=sprites.get(g.direcao+':'+g.quadro);ctx.save();ctx.imageSmoothingEnabled=false;if(p.montaria==='nimbus-vip')ctx.filter='saturate(1.55) brightness(1.12)';ctx.drawImage(img,g.nuvem.x,g.nuvem.y,g.nuvem.tamanho,g.nuvem.tamanho);ctx.restore();return g;
 }
 export const nimbusCarregada=()=>pronta;

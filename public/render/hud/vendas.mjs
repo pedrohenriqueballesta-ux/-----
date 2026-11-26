@@ -11,12 +11,10 @@ const campo=(tipo,nome,min='0',max='99999')=>{const i=criar('input');i.type=tipo
 function figura(item){const d=produtoMarket(item),img=criar('img',null,'venda-icone');img.src=d.icone;img.alt='';return img;}
 export function instalarVendas({janela,obterEstado,acao,avisar}){
  const painel=janela.querySelector('#shopVender'),npc=criar('section'),market=criar('section');market.hidden=true;
- const navegacao=criar('div',null,'venda-modos'),btnNpc=criar('button','Vender ao NPC'),btnMarket=criar('button','Mercado dos jogadores');
- for(const b of [btnNpc,btnMarket])b.type='button';navegacao.append(btnNpc,btnMarket);
- const texto=criar('p','A venda em lote inclui itens comuns, incomuns e raros da mochila. Consumíveis ficam de fora.','venda-nota');
+ const texto=criar('p','A venda em lote inclui itens comuns, incomuns e raros da mochila. Consumíveis são vendidos separadamente. Itens épicos ou superiores podem ser anunciados no Mercado dos jogadores.','venda-nota');
  const status=criar('p','', 'venda-status');status.setAttribute('role','status');
  const avulsa=criar('details'),gradeNpc=criar('div',null,'venda-grade');
- avulsa.append(criar('summary','Venda avulsa de consumíveis e peças especiais'),gradeNpc);
+ avulsa.append(criar('summary','Vender consumíveis'),gradeNpc);
  const venderTudo=janela.querySelector('#sellButton');
  const selecionarItens=criar('button','Selecionar itens');selecionarItens.type='button';
  const acoesNpc=criar('div',null,'venda-acoes-npc'),estimativa=criar('p','','venda-nota');
@@ -34,7 +32,7 @@ export function instalarVendas({janela,obterEstado,acao,avisar}){
  const confirmar=criar('button','Vender apenas selecionados','primary');confirmar.type='button';
  rodape.append(totalSelecao,confirmar,statusSelecao);
  inventario.append(cabecalho,gradeSelecao,rodape);document.body.append(inventario);
- painel.append(navegacao,texto,status,npc,market);
+ painel.append(texto,status,npc,market);
  const linhasNpc=[],cards=new Map(),quantidades=new Map();let ofertas=[],revisao=-1,carregando=false,repetirApos=0,pendenteAnuncio=false,pendenteSaldo=false;
  const executar=async(botao,dados,mensagem=status)=>{
   if(botao.dataset.pendente)return{ok:false};botao.dataset.pendente='true';botao.disabled=true;
@@ -258,7 +256,7 @@ export function instalarVendas({janela,obterEstado,acao,avisar}){
   }
  };
  avulsa.addEventListener('toggle',atualizar);
- const modo=tipo=>{if(inventario.open)inventario.close();if(inventarioMarket.open)inventarioMarket.close();npc.hidden=tipo!=='npc';market.hidden=tipo!=='market';texto.hidden=tipo!=='npc';btnNpc.classList.toggle('ativa',tipo==='npc');btnMarket.classList.toggle('ativa',tipo==='market');atualizar();};
- btnNpc.onclick=()=>modo('npc');btnMarket.onclick=()=>modo('market');modo('npc');
- return{atualizar};
+ const modo=tipo=>{if(inventario.open)inventario.close();if(inventarioMarket.open)inventarioMarket.close();npc.hidden=tipo!=='npc';market.hidden=tipo!=='market';texto.hidden=tipo!=='npc';atualizar();};
+ modo('comprar');
+ return{atualizar,modo};
 }

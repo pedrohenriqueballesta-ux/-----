@@ -80,7 +80,7 @@ test('opções do God Mode são salvas sem persistir o nível de teste como prog
   assert.equal(salvo.godmode, true);
   assert.deepEqual(salvo.godmodeOptions, {
     level: CONFIG.progression.nivelMaximo, hpInfinite: false, kiInfinite: true, zeniInfinite: false, capacityInfinite: true,
-    cooldownNormal: false
+    cooldownNormal: false, velocidadeMaxima: false
   });
   const restaurado = game.addPlayer('godmode-restored', 'Restaurado', salvo);
   assert.equal(restaurado.level, CONFIG.progression.nivelMaximo);

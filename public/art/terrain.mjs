@@ -154,7 +154,14 @@ export function drawPortal(ctx, portal, time, cor, texto, raio) {
       443, 221, x - w / 2, y - h / 2 - 12, w, h);
   }
   ctx.font = 'bold 15px system-ui, -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
-  ctx.lineWidth = 4; ctx.strokeStyle = '#000d'; ctx.strokeText(texto, x, y - raio * 1.5); ctx.fillStyle = '#fff'; ctx.fillText(texto, x, y - raio * 1.5);
+  ctx.lineWidth = 4; ctx.strokeStyle = '#000d'; ctx.fillStyle = '#fff';
+  const linhas = texto.split('\n');
+  const alturaRotulo = raio * (linhas.length > 1 ? .92 : 1.5);
+  linhas.forEach((linha, i) => {
+    const base = y - alturaRotulo - 18 * (linhas.length - 1 - i);
+    ctx.strokeText(linha, x, base);
+    ctx.fillText(linha, x, base);
+  });
   ctx.restore();
 }
 

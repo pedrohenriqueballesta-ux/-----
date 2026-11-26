@@ -18,7 +18,7 @@ test('atributos de Goku seguem a configuração do catálogo sem alterar a curva
   });
   assert.deepEqual(statsFor(100, 'goku'), {
     hp: 2298, ki: 1070, attack: 289.2, defense: 2 + 99 * 0.65, healing: 8.92,
-    capacity: 20 + 99 * 1.3, lootChance: 0.8, mobility: 235
+    capacity: 20 + 99 * 1.3, lootChance: 0.8, mobility: 274
   });
   assert.deepEqual(statsFor(100, 'vegeta'), statsFor(100, 'goku'));
 });

@@ -1,3 +1,4 @@
+import { aceitarTask, registrarAbateTask } from '../sistemas/tasks-hunt.mjs';
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
@@ -12,7 +13,9 @@ import {restaurarNovidades} from '../sistemas/novidades.mjs';
 import {Guildas} from '../sistemas/guildas.mjs';
 // Regras autoritativas do jogo: combate, movimento, inventário e mundo.
 // Rodam no servidor; o navegador apenas apresenta o estado que chega daqui.
-import { CONFIG, MULT_NIMBUS_DEV, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
+import { montariaValida, velocidadeMovimento, vipMontariaAtiva } from '../sistemas/montarias.mjs';
+import { tecnicaPorId } from '../tecnicas/barra-tecnicas.mjs';
+import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mercadorPerto, naZonaSegura, zonaSeguraDaHunt } from './config.mjs';
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, atualizarCapacidade, reterCapacidadeDoExtensor, encerrarExtensor, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
@@ -264,7 +267,13 @@ export class Game {
       if(validada[1]!==p.barraTecnicas[1])p.barraKameManual=true;
       p.barraTecnicas=validada;p.barraPersonalizada=true;return {ok:true};
     }
-    if(kind==='montaria'){if(data.valor!==null&&data.valor!=='nimbus')return{ok:false,reason:'Montaria inválida.'};if(data.valor!==null)p.montariaPreferida=data.valor;p.montaria=data.valor;return{ok:true};}
+    if (kind === 'montaria') {
+      if (data.valor !== null && !montariaValida(data.valor)) return this.reject(p,'Montaria inválida.');
+      if (data.valor === 'nimbus-vip' && !vipMontariaAtiva(p,this.agora())) return this.reject(p,'A Nimbus VIP exige VIP ativo.');
+      if (data.valor !== null) p.montariaPreferida = data.valor;
+      p.montaria = data.valor;
+      return {ok:true};
+    }
     if(kind==='skin'){
       const skin=String(data.skin||'');
       if (p.vocacao !== 'goku' && skin !== 'base') return this.reject(p, 'Skin indisponível para esta vocação.');
@@ -310,8 +319,13 @@ export class Game {
     }
     if(kind==='preferencias'){p.preferencias=preferenciasValidas(data.valor);return{ok:true};}
     if(kind==='resgatarMissao')return resgatarMissao(this,p,data.id);
+    if(kind==='aceitarTask')return aceitarTask(p,data.id);
     if(kind==='aceitarMissao')return aceitarMissao(this,p,data.id);
-    if(kind==='acompanharMissao'){if(data.id!==null&&!listarMissoes(p,this.agora()).some(m=>m.id===data.id))return{ok:false};p.missoes.acompanhada=data.id;return{ok:true};}
+    if(kind==='acompanharMissao'){
+      const m=data.id===null?null:listarMissoes(p,this.agora()).find(m=>m.id===data.id);
+      if(data.id!==null&&(!m||m.categoria==='task'&&!['andamento','concluida'].includes(m.estado)))return{ok:false};
+      p.missoes.acompanhada=data.id;return{ok:true};
+    }
     if(kind==='correio')return acaoCorreio(p,data);
     if (kind === 'lerNovidades') {
       if (!Array.isArray(data.ids) || data.ids.length > 100 || data.ids.some(id => typeof id !== 'string')) return { ok:false };
@@ -339,9 +353,9 @@ export class Game {
       const options = data.options;
       if (!options || !Number.isSafeInteger(options.level) || options.level < 1 || options.level > CONFIG.progression.nivelMaximo ||
         ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean') ||
-        (options.cooldownNormal !== undefined && typeof options.cooldownNormal !== 'boolean'))
+        ['cooldownNormal','velocidadeMaxima'].some(k => options[k] !== undefined && typeof options[k] !== 'boolean'))
         return { ok: false, reason: 'Configuração de God Mode inválida.' };
-      configurarGodmode(p, opcoesGodmodeValidas({ cooldownNormal: p.godmodeOptions?.cooldownNormal, ...options }));
+      configurarGodmode(p, opcoesGodmodeValidas({ ...p.godmodeOptions, ...options }));
       if (p.godmode) this.revalidarFormaAposGodmode(p);
       return { ok: true };
     }
@@ -569,7 +583,13 @@ export class Game {
   cast(p,skill,automated=false,formaSolicitada=null){
     const r=this.executarTecnica(p,skill,automated,formaSolicitada);
     this.verificarKiDaForma(p);
-    if(r.ok&&skill!=='basic'&&skill!=='ki'&&skill!=='heal')registrarMissao(p,'skills',1,this.agora());return r;
+    if (r.ok && skill !== 'basic' && skill !== 'ki') {
+      if (skill !== 'heal') registrarMissao(p,'skills',1,this.agora());
+      const id = ['transform','kaioken'].includes(skill) ? 'form:' + p.forma : 'skill:' + skill;
+      const tecnica = tecnicaPorId(id);
+      if (tecnica) this.emit('skillShout', { playerId:p.id, planet:p.planet, area:p.area, x:p.x, y:p.y, text:tecnica.nome + '!' });
+    }
+    return r;
   }
   executarTecnica(p, skill, automated = false, formaSolicitada = null) {
     if (!p.connected || p.hp <= 0) return { ok: false };
@@ -638,7 +658,7 @@ export class Game {
       if (p.charge || this.time < p.galickReady || p.ki < GALICK.custo)
         return automated ? { ok: false } : this.reject(p, 'Galick Gun em recarga ou Ki insuficiente.');
       const alvo = this.mobs.get(p.targetId);
-      const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * GALICK.carga : 0;
+      const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * GALICK.carga : 0;
       if (!this.alvoValidoGalick(p, alvo) || this.distanciaAoCorpo(p, alvo) > estagio.alcance + GALICK.mao + antecipacao)
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Galick Gun.');
       p.facing = norm(alvo.x - p.x, alvo.y - p.y);
@@ -656,7 +676,7 @@ export class Game {
       if (p.charge || p.ryuken || this.time < pronto || p.ki < custo) return automated ? { ok: false } : this.reject(p, nome + ' em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
       const nivel = superKame ? ESTAGIOS_KAME.at(-1).nivel : estagioKame(p.level).nivel, alcance = estagioKame(nivel).alcance + KAME.mao;
-      const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * KAME.carga : 0;
+      const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * KAME.carga : 0;
       if (!alvoKame || alvoKame.hp <= 0 || !this.mesmoLugar(p, alvoKame) || naZonaSegura(alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance + antecipacao)
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
@@ -804,7 +824,7 @@ export class Game {
       return automated ? { ok: false } : this.reject(p, 'Ryuken em recarga ou Ki insuficiente.');
     const alvo = this.mobs.get(p.targetId);
     const alcance = estagioKame(p.level).alcance + KAME.mao;
-    const antecipacao = automated && p.autoHunt && p.moving ? p.stats.mobility * RYUKEN.lancamento : 0;
+    const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * RYUKEN.lancamento : 0;
     if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
@@ -954,7 +974,8 @@ export class Game {
     target.hp = Math.max(0, target.hp - damage);
     // Ameaça: quem bate num mob vira (ou reforça) o alvo dele, mesmo de longe e mesmo sendo mob neutro.
     if (!playerTarget && !cloneTarget && attacker && (this.players.has(attacker.id) || this.combateBoo.clones.has(attacker.id))) this.somarAmeaca(target, attacker, damage);
-    this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id });
+    this.emit('damage', { x: target.x, y: target.y - 20, amount: damage, targetId: target.id,
+      autorId: credito && this.players.has(credito.id) ? credito.id : undefined });
     if (target.hp <= 0 && !cloneTarget) {
       if (playerTarget) this.derrotarJogador(target);
       else {
@@ -969,6 +990,7 @@ export class Game {
           const xpBase=variarExperiencia(target.xp,this.randomCombat),nivelMob=Number.isInteger(target.level)?target.level:attacker.level;
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
           this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
+          registrarAbateTask(attacker,target);
           const zeniAntes = attacker.zeni;
           const [zeniMin, zeniMax] = faixaZeniMob(target.level, target.raro);
           attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
@@ -1225,7 +1247,12 @@ export class Game {
       p.facing = p.finalFlashAtivo.direction;
       return;
     }
-    const velocidade = p.stats.mobility * (p.montaria ? MULT_NIMBUS_DEV : 1);
+    const agora = this.agora();
+    if (!vipMontariaAtiva(p,agora)) {
+      if (p.montaria === 'nimbus-vip') p.montaria = 'nimbus';
+      if (p.montariaPreferida === 'nimbus-vip') p.montariaPreferida = 'nimbus';
+    }
+    const velocidade = velocidadeMovimento(p, agora);
     if (this.time - p.inputAt > 0.35) p.input = { x: 0, y: 0 };
     if (this.time < p.dashUntil) this.move(p, p.dashDirection.x, p.dashDirection.y, dt, 620);
     else if (p.input.x || p.input.y) this.move(p, p.input.x, p.input.y, dt, velocidade * (p.charge ? 0.35 : 1));
@@ -1275,8 +1302,8 @@ export class Game {
           // exato e ficava escorregando de um lado para o outro (tremor ao andar na grama, relato do Pedro, 23/11/2026).
           while (destino.pontos.length > 1 && distance(p, destino.pontos[0]) < 6) destino.pontos.shift();
           const alvo = destino.pontos[0], d = distance(p, alvo), dir = norm(alvo.x - p.x, alvo.y - p.y);
-          this.move(p, dir.x, dir.y, Math.min(dt, d / p.stats.mobility), p.stats.mobility); p.facing = dir;
-        } else this.steer(p, destino, dt, p.stats.mobility);
+          this.move(p, dir.x, dir.y, Math.min(dt, d / velocidade), velocidade); p.facing = dir;
+        } else this.steer(p, destino, dt, velocidade);
         // Progresso medido em janelas de 1 s: quanto o corpo saiu do lugar desde o começo da janela. Antes a janela
         // recomeçava sempre que o corpo se afastava 4 unidades do ponto guardado, e o vaivém de ~7 unidades perto de
         // árvore/pedra contava como progresso: o tremor não acabava nunca (relato do Pedro, 23/11/2026). Um desvio de
@@ -1927,7 +1954,7 @@ export class Game {
         chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
         booLancado: p.hp > 0 && p.booLancado && this.time - p.booLancado.started < .32 ? p.booLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,velocidadeMovimento:velocidadeMovimento(self,this.agora()),vipMontaria:vipMontariaAtiva(self,this.agora()),huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,

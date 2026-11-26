@@ -21,3 +21,21 @@ body.em-login .jogo{visibility:hidden}.entrada{position:fixed;inset:0;margin:0!i
 @media (max-width: 600px) {
   .entrada-vocacao-sprite { width: 32px; height: 43px; }
 }
+
+/* Enquadra o rodapé da paisagem e mantém a arte de corpo inteiro acima da borda. */
+.entrada-paisagem { top:auto; bottom:0; transform:translateX(-50%); }
+.entrada .entrada-anfitriao { bottom:0; }
+.entrada .entrada-anfitriao > img { margin-bottom:0; }
+
+.tutorial-guia { position:fixed;z-index:18;right:20px;top:clamp(105px,15vh,165px);
+ width:min(315px,calc(100vw - 36px));box-sizing:border-box;padding:14px 16px;
+ background:#08243cf5;border:1px solid #ffd081;border-radius:12px;color:#eff8ff;
+ box-shadow:0 8px 26px #0007;pointer-events:none }
+.tutorial-guia small { color:#e6b456;font-weight:700 }
+.tutorial-guia h2 { margin:5px 0 4px;font-size:17px;color:#fff0c5 }
+.tutorial-guia p { margin:4px 0 10px;line-height:1.45 }
+.tutorial-acoes { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px }
+.tutorial-acoes button:last-child { background:#195481;border-color:#80c7f6;color:#fff }
+.tutorial-guia button { pointer-events:auto;border:1px solid #527d95;border-radius:7px;
+ background:#173c54;color:#e8f8ff;padding:6px 10px;cursor:pointer }
+@media(max-width:650px) { .tutorial-guia { top:auto;bottom:140px;right:12px;width:235px;font-size:12px } }

@@ -21,7 +21,7 @@ export function montarPerfil(container,{acao}={}){
  let montaria=null;
  const montar=botao('Montar montaria',()=>acao?.({type:'montaria',valor:montaria?null:montariaOpcoes[montariaIndice].id}));
  let skinOpcoes = skinsGoku, vocacaoArmario = null, skinPreferida = 'base';
- const montariaOpcoes=[{id:'nimbus',nome:'Nimbus'}];
+ const montariaOpcoes=[{id:'nimbus',nome:'Nimbus'},{id:'nimbus-vip',nome:'Nimbus VIP'}];
  let skinIndice=0,montariaIndice=0;
  const salvarPersonalizacao = (skin, montariaEscolhida) => {
   if (vocacaoArmario === 'goku') skinPreferida = skin;
@@ -48,7 +48,7 @@ export function montarPerfil(container,{acao}={}){
  const silhuetaSkinEsq=el('img',null,'perfil-silhueta'),silhuetaSkinDir=el('img',null,'perfil-silhueta'),silhuetaMontariaEsq=el('img',null,'perfil-silhueta perfil-silhueta-montaria'),silhuetaMontariaDir=el('img',null,'perfil-silhueta perfil-silhueta-montaria');
  const seletorSkin=el('div',null,'perfil-personalizacao-seletor'),seletorMontaria=el('div',null,'perfil-personalizacao-seletor');
  seletorSkin.append(skinAnterior,skinNome,skinProxima);seletorMontaria.append(montariaAnterior,montariaNome,montariaProxima);
- const montarias=el('section',null,'perfil-montaria');montarias.append(el('h3','Montaria'),silhuetaMontariaEsq,montariaCanvas,silhuetaMontariaDir,seletorMontaria,el('p','Montarias cosméticas. A Rena Natalina é a recompensa gratuita do Battle Pass.'),montar);
+ const montarias=el('section',null,'perfil-montaria');montarias.append(el('h3','Montaria'),silhuetaMontariaEsq,montariaCanvas,silhuetaMontariaDir,seletorMontaria,el('p','Nimbus comum: 440. Nimbus VIP: 550 com VIP ativo.'),montar);
  const notaSkin=el('p','Use as setas para visualizar as skins disponíveis.','hud-nota');
  const personalizacao=el('section',null,'perfil-skin');
  personalizacao.append(el('h3','Skin do personagem'),silhuetaSkinEsq,skinCanvas,silhuetaSkinDir,seletorSkin,notaSkin,montarias);
@@ -77,7 +77,7 @@ export function montarPerfil(container,{acao}={}){
   ['Poder de combate', 'Indicador derivado dos atributos do personagem.']
  ]);
  const exploracao = atributos([
-  ['Movimento base'], ['Capacidade da mochila'], ['Chance de drop', 'Chance de gerar o drop principal.'], ['Vitórias']
+  ['Velocidade de movimento'], ['Capacidade da mochila'], ['Chance de drop', 'Chance de gerar o drop principal.'], ['Vitórias']
  ]);
  const recursos = el('div', null, 'perfil-recursos');
  const medidores = [
@@ -170,7 +170,10 @@ export function montarPerfil(container,{acao}={}){
   estado.textContent=(slot>=0?'Na barra: tecla '+(slot+1):liberada?'Disponível':'Libera no nível '+nivel)+requerForma;
   seletor.disabled=!liberada;
  }
- montaria=s.self.montaria;montar.textContent=montaria?'Desmontar '+(montariaOpcoes.find(m=>m.id===montaria)?.nome||'montaria'):'Montar '+(montariaOpcoes[montariaIndice]?.nome||'montaria');nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
+ montaria=s.self.montaria;
+ if(!s.self.vipMontaria)montariaIndice=0;
+ montariaAnterior.disabled=montariaProxima.disabled=!s.self.vipMontaria;
+ montar.textContent=montaria?'Desmontar '+(montariaOpcoes.find(m=>m.id===montaria)?.nome||'montaria'):'Montar '+(montariaOpcoes[montariaIndice]?.nome||'montaria');nome.textContent=p.nome+' · Nv. '+p.nivel;forma.textContent=p.personagem+' · '+p.forma+(p.godmode?' · God Mode':'');xp.max=p.xpNext;xp.value=Math.min(p.xp,p.xpNext);xpTexto.textContent=numero(p.xp)+' / '+numero(p.xpNext)+' XP';
  const vocacao = s.self.vocacao || 'goku';
  if (vocacao !== vocacaoArmario) {
   vocacaoArmario = vocacao;
@@ -179,7 +182,7 @@ export function montarPerfil(container,{acao}={}){
  }
  atualizarPersonalizacao();
  const dadosCombate = [numero(p.ataqueAtual), numero(p.stats.defense), numero(p.poder)];
- const dadosExploracao = [numero(p.stats.mobility), numero(p.stats.capacity) + ' kg',
+ const dadosExploracao = [numero(s.self.velocidadeMovimento ?? p.stats.mobility), numero(p.stats.capacity) + ' kg',
   numero(p.stats.lootChance * 100) + '%', numero(p.kills) + ' mobs · ' + numero(p.bossKills) + ' chefes raros'];
  combate.valores.forEach((campo, i) => { campo.textContent = dadosCombate[i]; });
  exploracao.valores.forEach((campo, i) => { campo.textContent = dadosExploracao[i]; });
@@ -204,7 +207,7 @@ export function montarPerfil(container,{acao}={}){
  }
  const c = canvas.getContext('2d');
  const jogador = personagemParado({ ...s.players.find(v => v.id === s.selfId), vocacao });
- const montado = jogador.montaria === 'nimbus', escala = montado ? 1.8 : 2.2;
+ const montado = jogador.montaria?.startsWith('nimbus'), escala = montado ? 1.8 : 2.2;
  c.clearRect(0, 0, 240, 220);
  c.save(); c.imageSmoothingEnabled = false;
  c.translate(120, montado ? 170 : 186); c.scale(escala, escala);

@@ -40,7 +40,7 @@ export function resumirStatusPopout(snapshot) {
         tipo: jogador.booLancado.tipo, started: jogador.booLancado.started, direction: jogador.booLancado.direction
       } : null,
       ...combate, galick: dadosPose(combate.galick), finalFlash: dadosPose(combate.finalFlash), bigBang: dadosPose(combate.bigBang),
-      movementSpeed: Number(self.stats?.mobility) || 0, serverTime: time
+      movementSpeed: Number(self.velocidadeMovimento ?? self.stats?.mobility) || 0, serverTime: time
     } : null
   };
 }
@@ -88,6 +88,7 @@ export function instalarStatusPopout({ botao, windowRef = globalThis.window, obt
     const janela = windowRef.open('/status-popout.html', 'dragonBallIdleStatus', 'popup=yes,width=350,height=300,resizable=yes,scrollbars=no');
     if (!janela) { avisar('Permita pop-ups deste site para abrir o painel de status.'); return null; }
     janela.focus?.();
+    avisar('Janela compacta aberta. A fixação sobre outros aplicativos depende do Picture-in-Picture do navegador.');
     enviar(ultimoStatus);
     return janela;
   };

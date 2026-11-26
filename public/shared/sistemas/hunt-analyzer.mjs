@@ -18,8 +18,9 @@ export function resumo(p){
  const loot=itens('loot'),drops=itens('drops'),supplies=itens('supplies');
  let valorMateriais = 0, valorEquipamentos = 0, valorVendaNpc = 0;
  for (const { id, quantidade } of loot) {
-   const item = ITENS_NEGOCIAVEIS[id], valor = item.precoNpc * quantidade;
-   if (itemElegivelVendaNpc(id)) valorVendaNpc += valor;
+   const item = ITENS_NEGOCIAVEIS[id];
+   const valor = (item.precoNpc ?? item.precoReferencia ?? 0) * quantidade;
+   if (itemElegivelVendaNpc(id)) valorVendaNpc += item.precoNpc * quantidade;
    if (item.slot) valorEquipamentos += valor;
    else valorMateriais += valor;
  }

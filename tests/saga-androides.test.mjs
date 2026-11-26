@@ -74,6 +74,32 @@ test('Super C17: raro pessoal, só para quem venceu o C17 Infernal, em ponto sor
   assert.equal(p.sagaAndroides.superVencidos, 1);
 });
 
+test('A task de hunt das Montanhas Nevadas e a Saga dos Androides têm aceite e progresso independentes', () => {
+  const g = new Game({ now: 1000 }), p = g.addPlayer('p', 'Goku', { level: 700 });
+  g.levar(p, lugar('terra-neve'));
+  const taskId = 'task-terra-neve';
+  const hunt = jogador => g.snapshot(jogador.id).self.missoes.find(m => m.id === taskId);
+
+  assert.equal(g.action(p.id, { type: 'aceitarTask', id: ID_TASK_ANDROIDES }).ok, false);
+  assert.equal(g.action(p.id, { type: 'aceitarMissao', id: taskId }).ok, false);
+  assert.equal(g.action(p.id, { type: 'aceitarTask', id: taskId }).ok, true);
+  abater(g, p, 'androide17', 1);
+  assert.equal(hunt(p).progresso, 1);
+  assert.equal(missao(g, p).progresso, 0);
+
+  assert.equal(g.action(p.id, { type: 'aceitarMissao', id: ID_TASK_ANDROIDES }).ok, true);
+  abater(g, p, 'androide18', 1);
+  abater(g, p, 'androide17', 1);
+  assert.equal(hunt(p).progresso, 2);
+  assert.equal(missao(g, p).progresso, 2);
+  assert.equal(g.action(p.id, { type: 'acompanharMissao', id: ID_TASK_ANDROIDES }).ok, true);
+
+  const volta = g.addPlayer('volta', 'Goku', exportPlayer(p));
+  assert.equal(hunt(volta).progresso, 2);
+  assert.equal(missao(g, volta).progresso, 2);
+  assert.equal(missao(g, volta).acompanhada, true);
+});
+
 test('Super C17: o tempo é o mesmo do chefe raro', () => assert.deepEqual({ ...SUPER_C17.tempo }, CHEFE_RARO));
 
 test('Super C17: com o modo de teste (DBI_CHEFE_JA) aparece em 10 s', () => {

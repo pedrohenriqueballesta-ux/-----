@@ -75,7 +75,7 @@ export function encerrarExtensor(p) {
 // Valores "praticamente infinitos" usados pelo god mode de teste.
 export const GODMODE_ZENI = 999999999;
 export const GODMODE_CAPACITY = 999999999999;
-export const GODMODE_PADRAO = Object.freeze({ level: CONFIG.progression.nivelMaximo, hpInfinite: true, kiInfinite: true, zeniInfinite: true, capacityInfinite: true, cooldownNormal: false });
+export const GODMODE_PADRAO = Object.freeze({ level: CONFIG.progression.nivelMaximo, hpInfinite: true, kiInfinite: true, zeniInfinite: true, capacityInfinite: true, cooldownNormal: false, velocidadeMaxima: false });
 
 export function opcoesGodmodeValidas(valor = {}) {
   const limite = CONFIG.progression.nivelMaximo;
@@ -86,7 +86,8 @@ export function opcoesGodmodeValidas(valor = {}) {
     kiInfinite: valor.kiInfinite !== false,
     zeniInfinite: valor.zeniInfinite !== false,
     capacityInfinite: valor.capacityInfinite !== false,
-    cooldownNormal: valor.cooldownNormal === true
+    cooldownNormal: valor.cooldownNormal === true,
+    velocidadeMaxima: valor.velocidadeMaxima === true
   };
 }
 

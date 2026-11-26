@@ -154,7 +154,8 @@ export function detalhesItem(id, estado, local = 'mochila') {
     if (item.ataque) linhas.push(['Ataque', '+' + item.ataque]);
     if (local === 'equipado' && estado?.level < item.nivel) linhas.push(['Estado', 'Bônus inativos no nível atual']);
   }
-  linhas.push(['Peso', numeroItem(item.peso) + ' kg'], ['Venda ao NPC', numeroItem(item.precoNpc) + ' Z']);
+  linhas.push(['Peso', numeroItem(item.peso) + ' kg']);
+  if (Number.isFinite(item.precoNpc)) linhas.push(['Venda ao NPC', numeroItem(item.precoNpc) + ' Z']);
   if (efeito) linhas.push(...(local === 'previa' ? efeito.linhas.filter(([rotulo]) => ['Efeito', 'Cooldown'].includes(rotulo)) : efeito.linhas));
   if (item.consumo) {
     const c = item.consumo, comida = c.tipo === 'comida';

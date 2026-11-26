@@ -48,7 +48,7 @@
           <div class="hud-zeni"><i aria-hidden="true"><img src="/assets/hud/personagem/zeni-prateado.png" alt=""></i><span>Zeni</span><b id="hudZeni">0</b></div>
           <button type="button" class="hud-mochila" data-menu="mochila" title="Mochila"><i aria-hidden="true"><img src="/assets/hud/personagem/mochila.png" alt=""></i><span>Mochila<b id="bagLabel">0 / 0 kg</b></span></button>
         </div>
-        <button type="button" id="statsPopoutButton" class="hud-popout-button moldura-azul" aria-label="Ativar janela flutuante de status" title="Ativar janela flutuante de status">↗</button>
+        <button type="button" id="statsPopoutButton" class="hud-popout-button moldura-azul" aria-label="Ativar janela flutuante de status" title="Abrir status da hunt em Picture-in-Picture, quando disponível">↗</button>
       </section>
       <div class="hud-godmode moldura-azul" aria-label="Ferramentas de teste"><button type="button" id="godmodeToggle" class="hud-godmode-toggle" title="Liga ou desliga o God Mode de teste">⚡ GOD MODE: <b>OFF</b></button><button type="button" id="godmodeToolbarSettings" class="hud-godmode-settings" aria-label="Configurar God Mode" title="Configurar God Mode e itens de teste">⚙</button></div>
       <section id="targetHud" class="hud-alvo moldura-azul hidden" aria-label="Alvo"><span id="targetName"></span><div class="barra barra-alvo"><i id="targetBar"></i><b id="targetHp"></b></div></section>
@@ -101,6 +101,7 @@
         <label><input id="kiInfinite" type="checkbox" checked> Ki infinito</label>
         <label><input id="zeniInfinite" type="checkbox" checked> Zeni infinito</label>
         <label><input id="capacityInfinite" type="checkbox" checked> Capacidade infinita</label>
+        <label><input id="velocidadeMaxima" type="checkbox"> Velocidade máxima</label>
         <label><input id="cooldownNormal" type="checkbox"> Manter recarga normal</label>
       </fieldset>
       <button type="button" id="godmodeLimparEfeitos" hidden disabled>Limpar efeitos e VIP</button>
@@ -118,7 +119,7 @@
       <p id="godmodeBossStatus" class="godmode-status" role="status" aria-live="polite">Ative o God Mode para invocar um chefe.</p>
     </section>
   </dialog>
-  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><h2>Mercado de suprimentos</h2><div class="shop-scroll-content"><span class="eyebrow">VILA DO LAGO</span><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-selected="true">Comprar</button><button type="button" data-shop-aba="vender" aria-selected="false">Vender / Market</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button type="button" id="sellButton" class="primary">Vender Tudo</button><small>Todos os preços são provisórios para o protótipo.</small></div></dialog>
+  <dialog id="shopDialog"><button class="close-dialog" data-close="shopDialog" aria-label="Fechar">×</button><h2>Mercado de suprimentos</h2><div class="shop-scroll-content"><span class="eyebrow">VILA DO LAGO</span><p id="shopNotice" aria-live="polite">Chegue perto do mercador para comprar e vender.</p><p id="shopResources" class="shop-resources"></p><nav class="shop-abas" aria-label="Seções da loja"><button type="button" data-shop-aba="comprar" class="ativa" aria-pressed="true">Comprar</button><button type="button" data-shop-aba="npc" aria-pressed="false">Vender ao NPC</button><button type="button" data-shop-aba="market" aria-pressed="false">Mercado dos jogadores</button></nav><section id="shopComprar"><div id="shopItems" class="shop-items"></div></section><section id="shopVender" hidden></section><button type="button" id="sellButton" class="primary">Vender Tudo</button><small>Todos os preços são provisórios para o protótipo.</small></div></dialog>
   <!-- Portal: abre ao encostar num portal do mapa; cada cartão é um destino (client/hud.mjs). -->
   <dialog id="portalDialog" class="worlds-dialog"><div class="worlds-card portal-card"><div class="worlds-head"><span class="worlds-title" id="portalTitulo">PORTAL</span><button type="button" class="worlds-x" data-close="portalDialog" aria-label="Fechar">×</button></div><div class="worlds-body"><div class="worlds-grid portal-destinos" id="portalDestinos"></div></div></div></dialog>
   <!-- Mapa: só consulta (onde estou, as áreas e os portais); viajar é pelos portais. -->

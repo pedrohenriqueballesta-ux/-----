@@ -17,9 +17,29 @@ test('montaria gratuita persiste, propaga aos jogadores e rejeita montaria invá
  assert.deepEqual(p.stats,stats);assert.deepEqual(p.inventory,itens);assert.equal(p.zeni,saldo);assert.equal(createPlayer('novo','QA',exportPlayer(p)).montaria,'nimbus');assert.equal(createPlayer('novo','QA',{montaria:'invalida'}).montaria,null);
  assert.equal(g.action(p.id,{type:'montaria',valor:'voo-ilegal',velocidade:9999}).ok,false);assert.equal(g.action(p.id,{type:'montaria',valor:null}).ok,true);p.hp=0;assert.equal(g.action(p.id,{type:'montaria',valor:'nimbus'}).ok,false);
 });
-test('montar não altera deslocamento, navegação nem dados de colisão',()=>{
- const a=new Game({populate:false,now:1000}),b=new Game({populate:false,now:1000}),p=a.addPlayer('p','A'),q=b.addPlayer('q','B');b.action(q.id,{type:'montaria',valor:'nimbus'});
- for(const dir of [{x:1,y:0},{x:1,y:1},{x:0,y:-1},{x:-1,y:0}])for(let i=0;i<10;i++){a.setInput(p.id,dir);b.setInput(q.id,dir);a.tick(.05);b.tick(.05);assert.equal(p.x,q.x);assert.equal(p.y,q.y);}assert.deepEqual(p.facing,q.facing);assert.equal(p.stats.mobility,q.stats.mobility);
+test('Nimbus comum e VIP têm velocidade fixa e o God Mode máximo é opcional',()=>{
+ const game = new Game({populate:false,now:1000});
+ const p=game.addPlayer('p','Teste',{level:10}), q=game.addPlayer('q','Teste',{level:300});
+ const velocidade = jogador => game.snapshot(jogador.id).self.velocidadeMovimento;
+ const montar = (jogador,valor) => game.action(jogador.id,{type:'montaria',valor});
+ assert.equal(velocidade(p),192);
+ assert.equal(velocidade(q),325);
+ assert.equal(montar(p,'nimbus-vip').ok,false);
+ for (const jogador of [p,q]) assert.equal(montar(jogador,'nimbus').ok,true);
+ assert.equal(velocidade(p),440);
+ assert.equal(velocidade(q),440);
+ q.vipAte=game.agora()+10000;
+ assert.equal(montar(q,'nimbus-vip').ok,true);
+ assert.equal(velocidade(q),550);
+ game.action(q.id,{type:'godmodeConfig',options:{...q.godmodeOptions,velocidadeMaxima:true}});
+ assert.equal(velocidade(q),550);
+ game.action(q.id,{type:'godmode'});
+ assert.equal(velocidade(q),620);
+ game.action(q.id,{type:'godmode'});
+ q.vipAte=game.agora()-1;
+ game.updatePlayer(q,.05);
+ assert.equal(q.montaria,'nimbus');
+ assert.equal(velocidade(q),440);
 });
 test('pacote contém exatamente 40 PNGs de 256×256, sem espelhamento ou sprites faltantes',async()=>{
  const base=new URL('../public/assets/montarias/nimbus/sprites/',import.meta.url),lista=await readdir(base);assert.equal(lista.length,40);
