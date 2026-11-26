@@ -102,6 +102,23 @@ const ATRIBUTOS = {
     yamcha: { level:9, hp: 185, attack: 18, xp: 44, defesa: 5, speed: 118, name: 'Yamcha' },
     tiranossauro: { level:10, hp: 202, attack: 19, xp: 48, defesa: 5, speed: 115, corpo: 20, name: 'Tiranossauro' }
   },
+  // Saga do Cell (Pedro, 25/11/2026): o Deserto das Mesas é a hunt do Cell (Cell Jr., Cell Imperfeito e o C20 como chefe
+  // raro, que derruba o Bilhete do Laboratório). Semiperfeito e Perfeito são chefes PESSOAIS da cadeia (saga-cell.mjs).
+  // Números PROVISÓRIOS, na faixa atual do Deserto; balanceamento em aberto.
+  'terra-deserto': {
+    cellJr: { level:40, nivelBase:30, hp: 2000, attack: 64, xp: 220, defesa: 24, speed: 118, name: 'Cell Jr.' },
+    cellImperfeito: { level:56, nivelBase:34, hp: 3400, attack: 88, xp: 600, defesa: 31, speed: 106, name: 'Cell Imperfeito' },
+    c20: { level:62, nivelBase:36, hp: 16000, attack: 110, xp: 6000, defesa: 36, speed: 92, corpo: 6, name: 'C20' },
+    cellSemiperfeito: { level:62, nivelBase:36, hp: 26000, attack: 125, xp: 9000, defesa: 40, speed: 98, corpo: 14, name: 'Cell Semiperfeito' },
+    cellPerfeito: { level:62, nivelBase:36, hp: 45000, attack: 150, xp: 20000, defesa: 48, speed: 104, corpo: 10, name: 'Cell Perfeito' }
+  },
+  // Ilha da Arena: a área da última task da Saga do Cell, no nível do Deserto (trancada até vencer o Semiperfeito).
+  'terra-ilha': {
+    androide18Pos: { level:56, nivelBase:34, hp: 3200, attack: 86, xp: 560, defesa: 30, speed: 112, name: 'C18' },
+    androide17Pos: { level:58, nivelBase:35, hp: 3500, attack: 92, xp: 640, defesa: 32, speed: 114, name: 'C17' },
+    cellImperfeito: { level:56, nivelBase:34, hp: 3400, attack: 88, xp: 600, defesa: 31, speed: 106, name: 'Cell Imperfeito' },
+    cellSemiperfeito: { level:62, nivelBase:36, hp: 26000, attack: 125, xp: 9000, defesa: 40, speed: 98, corpo: 14, name: 'Cell Semiperfeito' }
+  },
   // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), 18 < 17 < 16. Números PROVISÓRIOS, na faixa atual da hunt.
   'terra-neve': {
     androide18: { level:84, nivelBase:42, hp: 3000, attack: 92, xp: 520, defesa: 34, speed: 112, name: 'Androide 18' },
@@ -131,7 +148,7 @@ function mobsDaFaixa(area, nivel, tipos) {
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
 // Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
 // diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
-export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf']);
+export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito']);
 // Apenas chefes que têm um spawn real no mundo; compartilhado pelo God Mode e pela validação no servidor.
 export const CHEFES_TESTE = Object.freeze([
   { type:'subboss', area:'media' },
@@ -154,7 +171,7 @@ export function mobStats(type, area = 'inicial') {
     defesa: Math.round(base.defesa * Math.sqrt(statsNivel.defense / statsNivelBase.defense)),
     xp: Math.round(base.xp * xpForLevel(base.level) / xpForLevel(nivelBase))
   } : {};
-  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss' || type === 'maquinaPilaf';
+  const grande = type === 'neva' || type === 'boss' || type === 'subboss' || type === 'oozaruSuper' || type === 'oozaruDourado' || type === 'freezaBoss' || type === 'maquinaPilaf' || type === 'c20' || type === 'cellSemiperfeito' || type === 'cellPerfeito';
   const chefe = TIPOS_CHEFE.has(type) ? { name: nomeDeChefe(base.name), ...(base.nave ? { nave: { ...base.nave, nome: nomeDeChefe(base.nave.nome) } } : {}) } : {};
   const { nivelBase: _nivelBase, ...atributosOriginais } = base;
   const mob = { ...AGGRO_PADRAO, aggro: AGGRO_PADRAO.aggro + (grande ? 80 : 0) + 2 * (base.corpo || 0), perseguicao: grande ? 560 : AGGRO_PADRAO.perseguicao, ...atributosOriginais, ...atributosEscalados, ...chefe };
@@ -164,7 +181,7 @@ export function mobStats(type, area = 'inicial') {
 // Chefe raro (decisão do Pedro, 03/11): volta num tempo sorteado entre 45 e 90 minutos.
 export const CHEFE_RARO = { minimo: 45 * 60, maximo: 90 * 60 };
 // Tempo de cada chefe raro, por tipo. Oozaru Super (Pedro, 05/11): entre 6 e 12 horas, "muito forte e raro".
-export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, maquinaPilaf: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
+export const TEMPO_CHEFE_RARO = { neva: CHEFE_RARO, boss: CHEFE_RARO, maquinaPilaf: CHEFE_RARO, c20: CHEFE_RARO, oozaruSuper: { minimo: 6 * 3600, maximo: 12 * 3600 },
   oozaruDourado: { minimo: 6 * 3600, maximo: 12 * 3600 },
   freezaBoss: { minimo: 6 * 3600, maximo: 12 * 3600 } };   // Freeza: provisório, como o Oozaru Super
 export const renasceEm = (type, random = Math.random) => TEMPO_CHEFE_RARO[type]
@@ -180,7 +197,9 @@ export const CHEFES_RAROS = {
   // Oozaru Super: num ponto sorteado em qualquer lugar da hunt (todaHunt), não num círculo.
   'vegeta-lava': { todaHunt: true, aviso: 'surgiu nos Campos de Lava!' },
   // Máquina Pilaf: num ponto sorteado do Descampado do Oeste (Pedro, 25/11/2026).
-  'terra-descampado': { todaHunt: true, aviso: 'invadiu o Descampado do Oeste!' }
+  'terra-descampado': { todaHunt: true, aviso: 'invadiu o Descampado do Oeste!' },
+  // C20: num ponto sorteado do Deserto das Mesas (Saga do Cell, 25/11/2026).
+  'terra-deserto': { todaHunt: true, aviso: 'apareceu no Deserto das Mesas! Ele guarda o Bilhete do Laboratório.' }
 };
 export const CIRCULO_DO_CHEFE = CHEFES_RAROS.dificil;
 export function pontoNoCirculo(random, area = 'dificil') {
@@ -267,14 +286,16 @@ export function spawnPoints(random) {
     // Descampado do Oeste: robôs do Pilaf (Pedro, 25/11/2026), mais Mai e Shu que Pilaf; a Máquina Pilaf é o chefe raro.
     ...espalhar(random, 'terra-descampado', 20, i => ['roboMai', 'roboShu', 'roboMai', 'roboShu', 'roboPilaf'][i % 5]),
     { type: 'maquinaPilaf', ...pontoNoCirculo(random, 'terra-descampado'), area: 'terra-descampado', raro: true },
-    // Deserto das Mesas: mobs das Planícies Vermelhas PROVISÓRIOS (Pedro, 23/11/2026), 20 pela área maior.
-    ...espalhar(random, 'terra-deserto', 20, i => PLANICIES_VERMELHAS[i % PLANICIES_VERMELHAS.length]),
+    // Deserto das Mesas = hunt do Cell (Pedro, 25/11/2026): mais Cell Jr. que Cell Imperfeito, e o C20 como chefe raro.
+    ...espalhar(random, 'terra-deserto', 20, i => i % 3 === 2 ? 'cellImperfeito' : 'cellJr'),
+    { type: 'c20', ...pontoNoCirculo(random, 'terra-deserto'), area: 'terra-deserto', raro: true },
     // Montanhas Nevadas: os Androides (Pedro, 25/11/2026), mais 18 e 17 que 16.
     ...espalhar(random, 'terra-neve', 16, i => ['androide18', 'androide17', 'androide18', 'androide17', 'androide16'][i % 5]),
     // Vale da Cachoeira: os dinossauros, primeira hunt do jogo (Pedro, 25/11/2026); mais dos fracos que dos fortes.
     ...espalhar(random, 'terra-montanhas', 10, i => ['estegossauro', 'triceratops', 'estegossauro', 'espinossauro', 'triceratops', 'yamcha', 'tiranossauro'][i % 7], { passo: 110 }),
     // Ilha da Arena: mobs da Grande Cratera PROVISÓRIOS (Pedro, 25/11/2026).
-    ...espalhar(random, 'terra-ilha', 12, i => i % 5 === 1 || i % 5 === 3 ? 'broly' : 'reiVegeta'),
+    // Ilha da Arena: última task da Saga do Cell — só C17, C18 (pós-batalha) e Cell Imperfeito (Pedro, 25/11/2026).
+    ...espalhar(random, 'terra-ilha', 12, i => ['androide18Pos', 'androide17Pos', 'cellImperfeito'][i % 3]),
     // Floresta do Sudeste: mobs dos Cânions PROVISÓRIOS (Pedro, 25/11/2026).
     ...espalhar(random, 'terra-floresta', 12, i => CANIONS[i % CANIONS.length])
   ];

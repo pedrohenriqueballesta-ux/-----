@@ -2,7 +2,7 @@ import {el,botao,selecionar,barra,recompensa,artigo} from './hud-elementos.mjs';
 import {avaliarResgateLote} from '../../shared/sistemas/resgate-lote.mjs';
 const estados={disponivel:'Disponível',andamento:'Em andamento',concluida:'Concluída',resgatada:'Recompensa resgatada',bloqueada:'Bloqueada'};
 export function montarMissoes(container,{acao,avisar}){
- const filtro=selecionar([['todas','Todas'],['principal','Principais'],['secundaria','Secundárias'],['diaria','Diárias'],['semanal','Semanais']],'Categoria de missão'),lista=el('div',null,'hud-lista'),resgatarTudo=botao('Resgatar tudo');container.append(filtro,resgatarTudo,el('p','Missões diárias renovam à meia-noite UTC; semanais na segunda-feira UTC. Progresso de teste em God Mode não conta.','hud-nota'),lista);let estado,assinatura='';
+ const filtro=selecionar([['todas','Todas'],['saga','Saga do Cell'],['principal','Principais'],['secundaria','Secundárias'],['diaria','Diárias'],['semanal','Semanais']],'Categoria de missão'),lista=el('div',null,'hud-lista'),resgatarTudo=botao('Resgatar tudo');container.append(filtro,resgatarTudo,el('p','Missões diárias renovam à meia-noite UTC; semanais na segunda-feira UTC. Progresso de teste em God Mode não conta.','hud-nota'),lista);let estado,assinatura='';
  resgatarTudo.onclick=async()=>{
   const prontas=(estado?.self.missoes||[]).filter(m=>m.estado==='concluida');if(!prontas.length)return;
   const p=estado.self,capacidade=avaliarResgateLote(prontas.map(m=>m.recompensa),p.weight,p.stats.capacity);

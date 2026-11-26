@@ -34,7 +34,12 @@ export const LUTADORES = { nail: { altura:ALTURA_NAMEK_NORTE, passo: 148 }, picc
   // Yamcha com o Puar ao lado (Vale da Cachoeira, Pedro 25/11/2026); a altura é a do Yamcha.
   yamcha: { altura: 74 },
   // Androides nas Montanhas Nevadas (Pedro, 25/11/2026): o 16 é bem maior (o GPT desenhou os três quase da mesma altura).
-  androide18: { altura: 72 }, androide17: { altura: 74 }, androide16: { altura: 96 } };   // Pedro, 06/11: Rei +20%, Broly +35%
+  androide18: { altura: 72 }, androide17: { altura: 74 }, androide16: { altura: 96 },
+  // Saga do Cell (Pedro, 25/11/2026): Cell Jr. e Cell Imperfeito no Deserto e na Ilha. Os demais ainda SEM sprite própria
+  // usam a arte de outro mob (ARTE_PROVISORIA em atlas.mjs) até as folhas chegarem.
+  cellJr: { altura: 60 }, cellImperfeito: { altura: 84 },
+  c20: { altura: 78 }, cellSemiperfeito: { altura: 100 }, cellPerfeito: { altura: 92 }, androide17Pos: { altura: 74 }, androide18Pos: { altura: 72 } };
+   // Pedro, 06/11: Rei +20%, Broly +35%
 export function drawLutador(ctx, tipo, x, y, moving, facing, phase, attackProgress = null, travelled = 0, tiro = false, tempo = 0) {
   const pos = { x, y, travelled }, altura = LUTADORES[tipo].altura;
   const [sheet, key] = GOLPE[tipo + (tiro ? 'Ki' : '')];

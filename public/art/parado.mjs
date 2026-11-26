@@ -32,6 +32,8 @@ import { YAMCHA_PARADO } from './personagens/yamcha/yamcha-parado.mjs';
 import { ANDROIDE_18_PARADO } from './personagens/androides/androide-18-parado.mjs';
 import { ANDROIDE_17_PARADO } from './personagens/androides/androide-17-parado.mjs';
 import { ANDROIDE_16_PARADO } from './personagens/androides/androide-16-parado.mjs';
+import { CELL_JR_PARADO } from './personagens/cell/cell-jr-parado.mjs';
+import { CELL_IMPERFEITO_PARADO } from './personagens/cell/cell-imperfeito-parado.mjs';
 
 export const PARADO = {
   guerreiro: [GUERREIRO_PARADO, 'guerreiroParado'],
@@ -63,5 +65,7 @@ export const PARADO = {
   androide18: [ANDROIDE_18_PARADO, 'androide18Parado'],
   androide17: [ANDROIDE_17_PARADO, 'androide17Parado'],
   androide16: [ANDROIDE_16_PARADO, 'androide16Parado'],
+  cellJr: [CELL_JR_PARADO, 'cellJrParado'],
+  cellImperfeito: [CELL_IMPERFEITO_PARADO, 'cellImperfeitoParado'],
   ...Object.fromEntries(Object.entries(FOLHAS_NAMEK_NORTE).filter(([, f]) => f.parado).map(([tipo, f]) => [tipo, f.parado]))
 };

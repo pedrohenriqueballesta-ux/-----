@@ -122,7 +122,7 @@ export const ZONES = [
     { id: 'terra-montanhas', name: 'Vale da Cachoeira', nivel: [1, 10], cor: '#eb2d2d', x: 27690, y: 1956, w: 2136, h: 1512, chegada: { x: 28843, y: 2293 } },
     // Ilha da Arena (4×4 telas, Pedro 25/11/2026; partes finais feitas pelo amigo dele): platô com a arena de terra.
     // Nível e mobs PROVISÓRIOS (os da Grande Cratera do Vegeta).
-    { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [128, 150], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },
+    { id: 'terra-ilha', name: 'Ilha da Arena', nivel: [40, 62], cor: '#b44dff', x: 35934, y: 810, w: 2868, h: 2226, chegada: { x: 37419, y: 1880 } },
     // Floresta do Sudeste (5×5 telas de mapa, Pedro 25/11/2026): trilhas e clareiras do norte; a parte sul (colina) fica
     // fora até o ajuste de colisão. Nível e mobs PROVISÓRIOS (os dos Cânions do Vegeta).
     { id: 'terra-floresta', name: 'Floresta do Sudeste', nivel: [62, 72], cor: '#d6e632', x: 40128, y: 18, w: 4686, h: 2400, chegada: { x: 41982, y: 1042 } }
