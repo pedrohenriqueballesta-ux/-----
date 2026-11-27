@@ -2017,7 +2017,7 @@ export class Game {
         genkiDirecao: p.genkiDirecao || null,
         bigBangLancado: p.bigBangLancado && !(p.bigBangLancado.automated && p.moving) && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
         chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && !(p.chocolateLancado.automated && p.moving) && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
-        booLancado: p.hp > 0 && p.booLancado && !(p.booLancado.automated && p.moving && p.booLancado.tipo === 'supernova') && this.time - p.booLancado.started < .32 ? p.booLancado : null,
+        booLancado: p.hp > 0 && p.booLancado && this.time - p.booLancado.started < .32 ? p.booLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,velocidadeMovimento:velocidadeMovimento(self,this.agora()),vipMontaria:vipMontariaAtiva(self,this.agora()),huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,

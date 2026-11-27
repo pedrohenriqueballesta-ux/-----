@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { lugar } from '../public/shared/nucleo/config.mjs';
 import { spawnPoints } from '../public/shared/nucleo/enemies.mjs';
+import { DIRECTIONS } from '../public/render/mapa/camera.mjs';
+import { jatosVaporBoo, quadrosPreviaVaporBoo } from '../public/render/vfx/boo-vapor.mjs';
 import { CHOCOLATE_BEAM } from '../public/shared/tecnicas/chocolate-beam.mjs';
 import { tecnicasDoPerfil } from '../public/shared/tecnicas/barra-tecnicas.mjs';
 import { estagioTecnicasBoo } from '../public/shared/tecnicas/majin-boo.mjs';
@@ -325,6 +327,9 @@ test('Angry Explosion não requer alvo, acerta o limite uma vez e respeita mapa,
   assert.equal(fora.hp,fora.maxHp); assert.equal(outraArea.hp,outraArea.maxHp);
   const [e]=g.combateBoo.efeitos.values();
   assert.equal(e.raio,128); assert.equal(e.x,p.x); assert.equal(e.y,p.y);
+  const disparo = g.snapshot(p.id).players.find(j => j.id === p.id).booLancado;
+  assert.equal(disparo.forma, p.forma);
+  assert.deepEqual(disparo.origem, { planet: p.planet, area: p.area, x: p.x, y: p.y });
   fora.x=p.x-126;
   ticks(g,1.1);
   assert.equal(fora.hp,fora.maxHp);
@@ -506,4 +511,36 @@ test('habilidades em área e clones respeitam o dono do chefe pessoal da Saga do
   ticks(g,1);
   assert.ok(g.mobs.has(cell.id));
   assert.equal(cell.hp,hp);
+});
+
+test('vapor de Supernova e Angry Explosion sai em dois jatos nas oito direções e se dissipa após o grito', async () => {
+  globalThis.Image = class {};
+  const { alturaBoo, folhasBoo } = await import('../public/art/personagens/majin-boo/boo.mjs');
+  delete globalThis.Image;
+  const pos = { x: 100, y: 150 };
+  assert.equal(quadrosPreviaVaporBoo('chocolate'), undefined);
+  for (const acao of ['supernova', 'angry']) {
+    const [repouso, tensao, grito, dissipacao] = quadrosPreviaVaporBoo(acao);
+    for (const forma of ['base', ...FORMAS_BOO.map(f => f.forma)]) {
+      const folha = folhasBoo(forma)[acao], altura = alturaBoo(forma);
+      const jatos = (direcao, coluna, idade) => jatosVaporBoo({ acao, forma, folha, pos, altura, direcao, coluna, idade });
+      for (const direcao of DIRECTIONS) {
+        assert.deepEqual(jatos(direcao, 0, repouso), []);
+        const pequenos = jatos(direcao, 1, tensao);
+        const grandes = jatos(direcao, 2, grito);
+        const dissipando = jatos(direcao, 3, dissipacao);
+        assert.equal(grandes.length, 2);
+        assert.ok(pequenos[0].quadro < grandes[0].quadro && grandes[0].quadro < dissipando[0].quadro);
+        assert.ok(grandes.every(j => j.opacidade === 1 && j.local.y < pos.y - altura * .5));
+        assert.ok(dissipando.every(j => j.opacidade < 1 && j.y < j.local.y));
+        assert.deepEqual(jatos(direcao, 3, 1.6), []);
+      }
+      const [leste, oeste] = ['e', 'w'].map(id => jatos(DIRECTIONS.find(d => d.id === id), 2, grito));
+      for (let i = 0; i < 2; i++) {
+        assert.equal(leste[i].local.x + oeste[i].local.x, 2 * pos.x);
+        assert.equal(leste[i].angulo, -oeste[i].angulo);
+        assert.equal(leste[i].camada, oeste[i].camada);
+      }
+    }
+  }
 });
