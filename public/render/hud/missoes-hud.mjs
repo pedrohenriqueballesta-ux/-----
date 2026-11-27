@@ -1,6 +1,7 @@
 import {el,botao,selecionar,barra,recompensa,artigo} from './hud-elementos.mjs';
 import {avaliarResgateLote} from '../../shared/sistemas/resgate-lote.mjs';
 const estados={disponivel:'Disponível',andamento:'Em andamento',concluida:'Concluída',resgatada:'Recompensa resgatada',bloqueada:'Bloqueada'};
+const pertenceAbaTasks=m=>m.categoria==='task'||(m.categoria==='saga'&&m.aceitar===true);
 export function montarMissoes(container,{acao,avisar}){
  const filtro=selecionar([['todas','Todas'],['saga','Sagas'],['principal','Principais'],['secundaria','Secundárias'],['diaria','Diárias'],['semanal','Semanais']],'Categoria de missão'),lista=el('div',null,'hud-lista'),resgatarTudo=botao('Resgatar tudo');const abas=el('nav',null,'missoes-abas shop-abas');
  const missoesAba=botao('Missões',()=>selecionarAba(false)),tasksAba=botao('Tasks',()=>selecionarAba(true));
@@ -9,7 +10,7 @@ export function montarMissoes(container,{acao,avisar}){
  abas.setAttribute('aria-label','Seções de missões');abas.append(missoesAba,tasksAba);
  container.append(abas,filtro,filtroTasks,resgatarTudo,nota,lista);
  let estado,assinatura='',tasks=false;
- const elegiveis=()=> (estado?.self.missoes||[]).filter(m=>tasks ? m.categoria==='task' : m.categoria!=='task');
+ const elegiveis=()=> (estado?.self.missoes||[]).filter(m=>pertenceAbaTasks(m)===tasks);
  const selecionarAba=valor=>{
   tasks=valor;
   missoesAba.setAttribute('aria-pressed',String(!tasks));tasksAba.setAttribute('aria-pressed',String(tasks));
@@ -27,14 +28,16 @@ export function montarMissoes(container,{acao,avisar}){
  function cartao(m) {
   const a=artigo(m.nome,m.descricao);
   a.dataset.missao=m.id;
-  a.append(el('small',estados[m.estado]+(tasks?' · Nível '+m.nivel:' · '+m.categoria)));
-  const podeAcompanhar=!tasks||['andamento','concluida'].includes(m.estado);
+  const taskDeHunt=m.categoria==='task';
+  const categoria=taskDeHunt?'Nível '+m.nivel:m.categoria==='saga'&&tasks?'Saga':m.categoria;
+  a.append(el('small',estados[m.estado]+' · '+categoria));
+  const podeAcompanhar=!taskDeHunt||['andamento','concluida'].includes(m.estado);
   if(podeAcompanhar) a.append(barra(m.progresso,m.meta),el('p',m.progresso+' / '+m.meta));
   if(m.bloqueio)a.append(el('p',m.bloqueio));
   a.append(recompensa(m.recompensa));
-  const podeAceitar=m.estado==='disponivel'&&(tasks||m.aceitar&&!m.aceita);
+  const podeAceitar=m.estado==='disponivel'&&(taskDeHunt||m.aceitar&&!m.aceita);
   if(podeAceitar){
-   a.append(botao('Aceitar task',()=>acao({type:tasks?'aceitarTask':'aceitarMissao',id:m.id})));
+   a.append(botao('Aceitar task',()=>acao({type:taskDeHunt?'aceitarTask':'aceitarMissao',id:m.id})));
   }else if(!tasks||m.estado==='concluida'){
    const resgatar=botao('Resgatar recompensa',()=>acao({type:'resgatarMissao',id:m.id}));
    resgatar.disabled=m.estado!=='concluida';

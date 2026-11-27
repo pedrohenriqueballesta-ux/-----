@@ -12,8 +12,8 @@ import { Game } from '../public/shared/nucleo/game.mjs';
 test('catálogo integra os ícones, pesos, descrições e preços sem mudar os consumíveis antigos', () => {
   const itens = Object.values(NOVOS_ITENS);
   assert.equal(itens.length, 105);
-  assert.equal(itens.filter(i => i.tipo === 'material').length, 16);
-  assert.equal(itens.filter(i => i.tipo === 'consumivel').length, 4);
+  assert.equal(itens.filter(i => i.tipo === 'material').length, 15);
+  assert.equal(itens.filter(i => i.tipo === 'consumivel').length, 5);
   assert.equal(itens.filter(i => i.tipo === 'equipamento').length, 85);
   for (const item of itens) {
     assert.ok(existsSync(new URL('../public' + item.icone, import.meta.url)), item.id);

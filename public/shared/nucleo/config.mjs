@@ -46,7 +46,7 @@ export const CONFIG = Object.freeze({
     perdaXpMorte: Object.freeze({ niveisPorFaixa: 250 })
   }),
   // Tamanho de Namekusei em unidades do jogo (imagem do solo × ESCALA_MUNDO).
-  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2, autoFoodLimiteHp: 0.90,
+  width: naEscala(SOLO_NAMEK.w), height: naEscala(SOLO_NAMEK.h), foodDuration: 300, foodHealPerSecond: 2, autoFoodLimiteHp: 0.90, autoFoodLimiteKi: 0.70,
   // Espaços da mochila (Pedro, 04/11: 30 no início, ajustável depois). Cada tipo de item ocupa um espaço.
   mochilaSlots: 30,
   // Raio de seleção de mobs pela Auto Hunt (Pedro, 09/11/2026).
