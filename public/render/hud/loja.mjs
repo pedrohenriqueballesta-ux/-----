@@ -4,7 +4,7 @@ import { limiteCompra, avaliarCarrinho } from '../../shared/sistemas/loja.mjs';
 import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 const criar=(tag,texto,classe)=>{const e=document.createElement(tag);if(texto!=null)e.textContent=texto;if(classe)e.className=classe;return e;};
 const numero=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
-export function instalarLoja({janela,obterEstado,comprar,avisar}) {
+export function instalarLoja({janela,obterEstado,comprar,avisar,tele}) {
   const grade=janela.querySelector('#shopItems'),recursos=janela.querySelector('#shopResources'),linhas=[];
   let comprando=false;
   const selecao=()=>Object.fromEntries(linhas.map(l=>[l.item,l.campo.value===''?NaN:Number(l.campo.value)]));
@@ -74,5 +74,5 @@ export function instalarLoja({janela,obterEstado,comprar,avisar}) {
     resumo.textContent=carrinho.ok?'Total: '+numero(carrinho.total)+' Z · '+numero(carrinho.peso)+' kg':carrinho.reason;
     vendas.atualizar();
   };
-  return {atualizar,abrir(){if(janela.open){janela.close();return;}janela.show();atualizar();}};
+  return {atualizar,abrir(){if(janela.open){janela.close();return;}janela.show();atualizar();tele?.('loja_aberta');}};
 }

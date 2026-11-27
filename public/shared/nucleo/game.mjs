@@ -59,10 +59,12 @@ export const OOZARU_DOURADO = { pancadaAviso: 0.95, pancadaRaio: 150, bolaCarga:
 export const FREEZA = { beamAviso: 0.55, beamVelocidade: 720, novaCarga: 1.7, novaVoo: 0.45, novaRaio: 150, novaRecarga: 3.2 };
 
 export class Game {
-  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false, beneficiosDeTeste = false } = {}) {
+  constructor({ now = Date.now() / 1000, random = Math.random, randomCombat = () => 0.5, populate = true, chefeJa = false, beneficiosDeTeste = false, telemetria = null } = {}) {
     this.time = now; this.random = random; this.chefeJa = chefeJa; this.players = new Map(); this.mobs = new Map();
     this.randomCombat = randomCombat;
     this.beneficiosDeTeste = beneficiosDeTeste;
+    // Callback de telemetria (tipo, dados). Só o servidor passa; no cliente fica nulo (no-op).
+    this.telemetria = telemetria;
     this.combateBoo = new CombateBoo(this);
     this.projectiles = []; this.kamehamehas = []; this.loot = []; this.events = []; this.serial = 0;
     this.genkiCharges = []; this.genkiExplosions = []; this.ryukenExplosoes = []; this.mercado = new Mercado();this.guildas=new Guildas();this.agora=()=>Date.now();
@@ -127,6 +129,7 @@ export class Game {
     p.planet = destino.planet; p.area = destino.area; p.x = destino.chegada.x; p.y = destino.chegada.y;
     p.abatesRecentes = []; p.saidaSegura = null; p.autoHunt = false; p.moveTo = null; p.targetId = null; p.charge = null; p.chocolateLancado = null; p.booLancado = null; p.rota = null; p.input = { x: 0, y: 0 };
     p.seguroAte = this.time + CONFIG.chegadaSegura;
+    this.telemetria?.('mapa_entrou', { personagem: p.personagemId ?? p.id, planeta: p.planet, area: p.area ?? null, nivel: p.level });
   }
   usePortal(p, destinoId) {
     const portal = PORTAIS.find(o => o.planet === p.planet && o.area === (p.area || null) && o.destinos.includes(destinoId) && distance(p, o) <= RAIO_PORTAL + 45);
@@ -1070,6 +1073,7 @@ export class Game {
     return true;
   }
   derrotarJogador(p) {
+    this.telemetria?.('morte', { personagem: p.personagemId ?? p.id, nivel: p.level, planeta: p.planet, area: p.area ?? null });
     p.respawnAt = this.time + CONFIG.respawnDelay;
     p.autoHunt = false;
     p.transformed = false;
@@ -1113,6 +1117,7 @@ export class Game {
       if(p.level===CONFIG.skills.superKamehameha)atualizarBarraPadrao(p);
       p.hp = Math.min(p.stats.hp, p.hp + p.stats.hp - old.hp); p.ki = Math.min(p.stats.ki, p.ki + p.stats.ki - old.ki);
       this.emit('level', { playerId: p.id, x: p.x, y: p.y, level: p.level });
+      this.telemetria?.('nivel_up', { personagem: p.personagemId ?? p.id, nivel: p.level, vocacao: p.vocacao });
       const skillsUnlock = [
         ['ki', 'Rajada de Ki'], ['dash', 'Imagem Residual'], ['kame', 'Kamehameha'],
         ['barrier', 'Barreira de Ki'], ['genki', 'Genki Dama'], ['ryuken', 'Ryuken'], ['superKamehameha', 'Super Kamehameha']

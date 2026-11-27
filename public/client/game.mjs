@@ -267,6 +267,12 @@ function inputVector() {
   const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
   return { x, y, ...(pointerAim ? { aimX: pointerAim.x, aimY: pointerAim.y } : {}) };
 }
+// Evento de UI pra telemetria (ex.: abriu a loja). Vai pelo WebSocket; sem socket, só ignora.
+function enviarTele(tipo) {
+  if (usandoWS && socketJogo && socketJogo.readyState === 1) {
+    try { socketJogo.send(JSON.stringify({ t: 'tele', tipo })); } catch {}
+  }
+}
 function sendInput() {
   if (!session || !snapshot) return;
   const payload = inputVector();
@@ -409,7 +415,7 @@ canvas.addEventListener('pointerdown', e => {
   const target = targets.find(t => Math.hypot(t.x - point.x, t.y - point.y) < (grande(t) ? 45 : 30));
   if (target) action({ type: 'target', id: target.id }); else action({ type: 'moveTo', x: point.x, y: point.y });
 });
-ligarHud({action,api,snapshot:()=>snapshot,soltarTeclas:()=>{keys.clear();sendInput();},sairConta:()=>entrada?.sair(),selecionarPersonagem:()=>entrada?.voltar(),reverTutorial:()=>tutorial?.iniciar(true)});
+ligarHud({action,api,snapshot:()=>snapshot,tele:enviarTele,soltarTeclas:()=>{keys.clear();sendInput();},sairConta:()=>entrada?.sair(),selecionarPersonagem:()=>entrada?.voltar(),reverTutorial:()=>tutorial?.iniciar(true)});
 
 let joystickPointer = null;
 const joystick = $('joystick'), knob = $('joystickKnob');

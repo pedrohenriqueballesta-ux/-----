@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto';
 import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 import { ehUpgradeWebSocket, aceitarUpgrade } from './server/ws.mjs';
+import { Telemetria } from './server/telemetria.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
@@ -28,7 +29,9 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   // (aí o atalho volta a aparecer só com `npm run dev`, nunca em produção.)
   const pularLogin = process.env.DBI_SKIP_LOGIN !== '0';
   const economiaPremium=new EconomiaPremium({ambiente});
-  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development' });
+  const telemetria = new Telemetria({ dir: dataDir ? resolve(dataDir, 'telemetria') : null });
+  const TELE_UI = new Set(['loja_aberta']); // eventos de UI que o cliente pode enviar (whitelist)
+  const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development', telemetria: (tipo, dados) => telemetria.registrar(tipo, dados) });
   // streams = conexões SSE (reserva); sockets = conexões WebSocket (canal preferido do jogo).
   const sessions = new Map(), streams = new Map(), sockets = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
@@ -52,7 +55,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   };
   const cookie=(req,token,limpar=false)=>'dbi_session='+token+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+(limpar?0:Math.floor(AUTH_CONFIG.sessaoMs/1000))+((req.socket.encrypted||req.headers['x-forwarded-proto']==='https'||process.env.COOKIE_SECURE==='true')?'; Secure':'');
   const guardar=p=>{const a=autenticacao.contas.get(p.contaId),c=a?.personagens.find(c=>c.id===p.personagemId);if(c)c.save=game.exportPlayer(p);};
-  const congelar=id=>{const p=sessions.get(id);if(p){guardar(p);p.forma='base';p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const conexoes=sockets.get(id);sockets.delete(id);for(const c of conexoes||[])c.fechar();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
+  const congelar=id=>{const p=sessions.get(id);if(p){if(p.sessaoInicio)telemetria.registrar('sessao_fim',{conta:p.contaId,personagem:p.personagemId,nivel:p.level,duracaoS:Math.round((Date.now()-p.sessaoInicio)/1000)});guardar(p);p.forma='base';p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const conexoes=sockets.get(id);sockets.delete(id);for(const c of conexoes||[])c.fechar();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
   const congelarConta=id=>{for(const[h,p]of sessions)if(p.contaId===id)congelar(h);};
   const exigir=req=>{const a=autenticacao.sessao(auth(req));if(!a)throw new FalhaAuth('sessaoExpirada',401);return a;};
   const mundo=req=>{const a=exigir(req),p=sessions.get(a.id);if(!p||!a.ativo||a.ativo!==a.selecionado||p.personagemId!==a.ativo||p.contaId!==a.conta.id)throw new FalhaAuth('selecionePersonagem',403);return{...a,p};};
@@ -91,24 +94,24 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         if(req.method!=='POST')return json(res,405,{error:'metodoInvalido'});
         const d=await body(req);
         if(rota==='cadastro'||rota==='login'){
-          const r=await autenticacao[rota==='cadastro'?'registrar':'login'](d,ip);congelarConta(r.conta.id);const importado=importarLegado(r.conta,d.legacyToken);await save();res.setHeader('Set-Cookie',cookie(req,r.token));return json(res,200,{ok:true,conta:autenticacao.publico(r.conta),legacyImportado:importado,...(r.chaveRecuperacao?{chaveRecuperacao:r.chaveRecuperacao}:{})});
+          const r=await autenticacao[rota==='cadastro'?'registrar':'login'](d,ip);congelarConta(r.conta.id);const importado=importarLegado(r.conta,d.legacyToken);await save();res.setHeader('Set-Cookie',cookie(req,r.token));if(rota==='cadastro')telemetria.registrar('conta_criada',{conta:r.conta.id});return json(res,200,{ok:true,conta:autenticacao.publico(r.conta),legacyImportado:importado,...(r.chaveRecuperacao?{chaveRecuperacao:r.chaveRecuperacao}:{})});
         }
         if(rota==='recuperar'){const r=await autenticacao.recuperar(d,ip);congelarConta(r.conta.id);await save();res.setHeader('Set-Cookie',cookie(req,'',true));return json(res,200,{ok:true,chaveRecuperacao:r.chaveRecuperacao});}
         const a=exigir(req);
         if(rota==='sair'){congelar(a.id);autenticacao.sessoes.delete(a.id);await save();res.setHeader('Set-Cookie',cookie(req,'',true));return json(res,200,{ok:true});}
         if(rota==='voltar'){congelar(a.id);await save();return json(res,200,{ok:true,conta:autenticacao.publico(a.conta)});}
-        if(rota==='criar-personagem'){const c=autenticacao.criarPersonagem(a.conta,d,Object.entries(stored).filter(([k])=>!k.startsWith('__')).map(([,p])=>p?.name));await save();return json(res,200,{ok:true,id:c.id,conta:autenticacao.publico(a.conta)});}
+        if(rota==='criar-personagem'){const c=autenticacao.criarPersonagem(a.conta,d,Object.entries(stored).filter(([k])=>!k.startsWith('__')).map(([,p])=>p?.name));await save();telemetria.registrar('personagem_criado',{conta:a.conta.id,personagem:c.id,vocacao:c.save.vocacao});return json(res,200,{ok:true,id:c.id,conta:autenticacao.publico(a.conta)});}
         if(rota==='selecionar'){autenticacao.dono(a.conta,d.id);congelar(a.id);a.registro.selecionado=d.id;return json(res,200,{ok:true});}
         if(rota==='entrar'){
           const c=autenticacao.dono(a.conta,a.registro.selecionado);congelarConta(a.conta.id);a.registro.selecionado=c.id;a.registro.ativo=c.id;
-          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;vincularPasseConta(a.conta,p);economiaPremium.vincularVip(a.conta,p);if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);await save();return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
+          const p=game.addPlayer('p'+c.id,c.save.name,c.save);p.contaId=a.conta.id;p.personagemId=c.id;vincularPasseConta(a.conta,p);economiaPremium.vincularVip(a.conta,p);if(a.conta.audio)p.preferencias=preferenciasValidas({...p.preferencias,...a.conta.audio});sessions.set(a.id,p);p.sessaoInicio=Date.now();await save();telemetria.registrar('sessao_inicio',{conta:a.conta.id,personagem:c.id,nivel:p.level});return json(res,200,{ok:true,playerId:p.id,conta:autenticacao.publico(a.conta)});
         }
         if(rota==='preferencias'){
           if(d.idioma!==undefined){if(!['pt-BR','en','es'].includes(d.idioma))throw new FalhaAuth('idiomaInvalido');a.conta.idioma=d.idioma;}
           if(d.audio!==undefined){const p=preferenciasValidas(d.audio);a.conta.audio={musicaAtiva:p.musicaAtiva,volumeMusica:p.volumeMusica};const player=sessions.get(a.id);if(player)player.preferencias=preferenciasValidas({...player.preferencias,...a.conta.audio});}
           await save();return json(res,200,{ok:true,conta:autenticacao.publico(a.conta)});
         }
-        if(rota==='tutorial'){const r=autenticacao.tutorial(a.conta,d);await save();return json(res,200,{...r,conta:autenticacao.publico(a.conta)});}
+        if(rota==='tutorial'){const r=autenticacao.tutorial(a.conta,d);await save();if(r.ok&&d.operacao&&d.operacao!=='rever')telemetria.registrar(d.operacao==='etapa'?'tutorial_etapa':d.operacao==='concluir'?'tutorial_concluido':'tutorial_pulado',{conta:a.conta.id,...(d.operacao==='etapa'?{etapa:d.etapa}:{})});return json(res,200,{...r,conta:autenticacao.publico(a.conta)});}
         return json(res,404,{error:'rotaInvalida'});
       }
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, version: '0.6.0', players: online() });
@@ -158,6 +161,12 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         const resultado=game.action(p.id,data,data.type?.startsWith?.('mercado') ? economiaPremium.carteira(acesso.conta) : undefined);
         if(resultado.ok&&data.type==='preferencias')acesso.conta.audio={musicaAtiva:p.preferencias.musicaAtiva,volumeMusica:p.preferencias.volumeMusica};
         if(resultado.ok && (resultado.itemPremium || ['buy','buyAll','sell','venderItem','mercadoAnunciar','mercadoComprar','mercadoCancelar','mercadoReceber','montaria','preferencias','configurarBarra','restaurarBarraPadrao','configurarComboAutoHunt','resgatarMissao','acompanharMissao','correio','lerNovidades','godmode','godmodeConfig','godmodeGrantItem'].includes(data.type)))await save();
+        if(resultado.ok){
+          const base={conta:acesso.conta.id,personagem:p.personagemId,nivel:p.level};
+          if(['buy','buyAll'].includes(data.type))telemetria.registrar('compra',{...base,item:data.item??data.id??null});
+          else if(['sell','venderItem'].includes(data.type))telemetria.registrar('venda',{...base,item:data.item??data.id??null});
+          else if(data.type==='resgatarMissao')telemetria.registrar('missao_resgatada',base);
+        }
         return json(res,200,resultado);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Método não permitido.' });
@@ -167,7 +176,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       const data = await readFile(path);
       res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff','Content-Length':data.length });
       res.end(req.method === 'HEAD' ? undefined : data);
-    } catch (e) { if (!res.headersSent) json(res,e instanceof FalhaAuth?e.status:400,{error:e instanceof FalhaAuth?e.code:'requisicaoInvalida'}); else res.end(); }
+    } catch (e) { if (!(e instanceof FalhaAuth)) telemetria.erro('http', e, { rota: req.url }); if (!res.headersSent) json(res,e instanceof FalhaAuth?e.status:400,{error:e instanceof FalhaAuth?e.code:'requisicaoInvalida'}); else res.end(); }
   });
   server.requestTimeout = 15000;
   // Canal do jogo por WebSocket: o estado desce e o input sobe pelo mesmo socket persistente.
@@ -188,6 +197,8 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
           if (++janela.conta > 120) return; // o cliente manda input a ~15 Hz; 120/s é folga contra flood
           let msg; try { msg = JSON.parse(texto); } catch { return; }
           if (msg && msg.t === 'input') game.setInput(p.id, msg);
+          // Eventos de UI do cliente (só os da lista; o resto é ignorado para não virar lixo/abuso).
+          else if (msg && msg.t === 'tele' && TELE_UI.has(msg.tipo)) telemetria.registrar(msg.tipo, { conta: a.conta.id, personagem: p.personagemId, nivel: p.level });
         },
         aoFechar: () => {
           sockets.get(a.id)?.delete(conexao);
@@ -197,33 +208,48 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       if (!sockets.has(a.id)) sockets.set(a.id, new Set());
       sockets.get(a.id).add(conexao); p.connected = true;
       conexao.enviar(JSON.stringify(game.snapshot(p.id, economiaPremium.carteira(a.conta).saldo)));
-    } catch { try { socket.destroy(); } catch {} }
+    } catch (e) { telemetria.erro('ws-upgrade', e); try { socket.destroy(); } catch {} }
   });
   // Loop auto-corrigido: avança o jogo com o tempo real decorrido (evita a câmera lenta
   // causada pela granularidade do timer do Windows) e transmite o estado a ~20 Hz.
-  let lastTick = Date.now(), lastBroadcast = 0;
+  let lastTick = Date.now(), lastBroadcast = 0, tickSomaMs = 0, tickMaxMs = 0, tickN = 0;
   const tickLoop = () => {
     if (closing) return;
     const now = Date.now();
-    game.tick((now - lastTick) / 1000); lastTick = now;
-    if (now - lastBroadcast >= 50) {
-      lastBroadcast = now;
-      for (const token of new Set([...streams.keys(), ...sockets.keys()])) {
-        const sse = streams.get(token), ws = sockets.get(token);
-        if (!sse?.size && !ws?.size) continue;
-        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}
-        const estado = JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo));
-        if (sse?.size) { const payload = 'data: ' + estado + '\n\n'; for (const response of sse) if (!response.destroyed) response.write(payload); }
-        if (ws?.size) for (const conexao of ws) conexao.enviar(estado);
+    try {
+      const t0 = performance.now();
+      game.tick((now - lastTick) / 1000); lastTick = now;
+      if (now - lastBroadcast >= 50) {
+        lastBroadcast = now;
+        for (const token of new Set([...streams.keys(), ...sockets.keys()])) {
+          const sse = streams.get(token), ws = sockets.get(token);
+          if (!sse?.size && !ws?.size) continue;
+          const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}
+          const estado = JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo));
+          if (sse?.size) { const payload = 'data: ' + estado + '\n\n'; for (const response of sse) if (!response.destroyed) response.write(payload); }
+          if (ws?.size) for (const conexao of ws) conexao.enviar(estado);
+        }
       }
-    }
+      const ms = performance.now() - t0; tickSomaMs += ms; tickN++; if (ms > tickMaxMs) tickMaxMs = ms;
+    } catch (e) { lastTick = now; telemetria.erro('tick', e); } // um tick com erro não pode matar o loop do jogo
     timer = setTimeout(tickLoop, 16);
   };
   let timer = setTimeout(tickLoop, 16);
   const saveTimer = setInterval(()=>save().catch(e=>console.error('Não foi possível salvar o progresso:',e.message)),5000);
+  // Saúde do servidor a cada 30 s: online, tempo de tick (médio/máx), memória, carga de mundo.
+  const metricasTimer = setInterval(() => {
+    telemetria.registrar('metricas_servidor', {
+      online: online(), jogadores: sessions.size, mobs: game.mobs.size,
+      tickMedioMs: tickN ? Number((tickSomaMs / tickN).toFixed(2)) : 0,
+      tickMaxMs: Number(tickMaxMs.toFixed(2)),
+      memoriaMB: Math.round(process.memoryUsage().rss / 1048576),
+    });
+    tickSomaMs = 0; tickMaxMs = 0; tickN = 0;
+  }, 30000);
+  metricasTimer.unref?.();
   await new Promise((ok, fail) => { server.once('error', fail); server.listen(port, host, ok); });
   const close = async () => {
-    closing = true; clearInterval(timer); clearInterval(saveTimer); await save();
+    closing = true; clearInterval(timer); clearInterval(saveTimer); clearInterval(metricasTimer); await save(); await telemetria.fechar();
     for (const connections of streams.values()) for (const response of connections) response.end();
     for (const conexoes of sockets.values()) for (const conexao of conexoes) conexao.fechar();
     await new Promise(ok => server.close(ok));
