@@ -128,7 +128,7 @@ export class CombateBoo {
       const id = this.game.uid('c');
       this.clones.set(id, { ...ponto, id, ownerId: p.id, grupo: carga.id,
         connected: true, autoHunt: true, forma: carga.forma, facing: carga.direction, moving: false,
-        hp: maxHp, maxHp, defesa: Math.min(CLONES.defesaMaxima, p.stats.defense * CLONES.defesa), ataque: p.stats.attack * CLONES.dano,
+        hp: maxHp, maxHp, defesa: p.stats.defense * CLONES.defesa, ataque: p.stats.attack * CLONES.dano,
         ready: carga.until, ordem: i, quantidade: pontos.length,
         revealAt: carga.started + CLONES.revela, activeAt: carga.until, expiresAt: carga.until + CLONES.duracao });
     });
