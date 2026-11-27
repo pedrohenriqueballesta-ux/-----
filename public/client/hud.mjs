@@ -161,7 +161,7 @@ export function atualizarHud(snapshot, playerId) {
     ? pendentes.filter(([, nivel]) => nivel === primeiroDesbloqueio[1]).map(([nome]) => nome) : [];
   $('nextUnlock').textContent = s.level >= CONFIG.progression.nivelMaximo ? 'Nível máximo alcançado.' : primeiroDesbloqueio
     ? `Próximo desbloqueio: ${desbloqueiosNoNivel.join(' e ')} · NV. ${primeiroDesbloqueio[1]}` : 'Todas as habilidades principais desbloqueadas.';
-  const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Ki do equipamento', (s.stats.kiEquipamento ?? 0).toLocaleString('pt-BR', {maximumFractionDigits:2}) + ' / s'], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Chance loot', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
+  const stats = [['Vida', integer(s.stats.hp)], ['Ki', integer(s.stats.ki)], ['Ataque', s.stats.attack.toFixed(1)], ['Defesa', s.stats.defense.toFixed(1)], ['Ki do equipamento', (s.stats.kiEquipamento ?? 0).toLocaleString('pt-BR', {maximumFractionDigits:2}) + ' / s'], ['Cura / comida', s.stats.healing.toFixed(2) + '×'], ['Mochila', s.stats.capacity.toFixed(1) + ' kg'], ['Sorte para Cristal Azul', Math.round(s.stats.lootChance * 100) + '%'], ['Movimento', Math.round(s.stats.mobility)]];
   $('stats').replaceChildren(...stats.map(pair => { const div = document.createElement('div'); div.className = 'stat'; const label = document.createElement('span'), value = document.createElement('b'); label.textContent = pair[0]; value.textContent = pair[1]; div.append(label, value); return div; }));
   for (const key of ['autoAttack', 'autoSkills', 'autoFood', 'autoKi', 'autoEnergyPotion', 'autoSeed']) $(key).checked = s[key];
   $('autoHeal').checked = s.autoHeal;
@@ -182,7 +182,7 @@ export function atualizarHud(snapshot, playerId) {
   $('huntButton').classList.toggle('running', s.autoHunt);
   $('huntButton').textContent = s.autoHunt ? 'Pausar caça automática  ■' : 'Iniciar caça automática  ↗';
   $('foodCount').textContent = s.inventory.food;
-  $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = s.inventory.scrap + ' sucatas · ' + (s.inventory['cristal-azul'] ?? 0) + ' cristais azuis';
+  $('zeni').textContent = integer(s.zeni) + ' Z'; $('materials').textContent = (s.inventory['cristal-azul'] ?? 0) + ' cristais azuis';
   $('bagLabel').textContent = formatoPeso.format(s.weight) + ' / ' + formatoPeso.format(s.stats.capacity) + ' kg';
   $('hudZeni').textContent = integer(s.zeni);
   atualizarMochila(s);abasHud?.atualizar(snapshot);
@@ -221,7 +221,7 @@ export function atualizarHud(snapshot, playerId) {
   $('onlineText').textContent = snapshot.players.length + (snapshot.players.length === 1 ? ' jogador conectado' : ' jogadores conectados');
   $('coordsText').textContent = 'X: ' + Math.round(p.x) + '   Y: ' + Math.round(p.y);
   $('missionKills').textContent = Math.min(10, s.kills || 0);
-  $('missionMaterials').textContent = (s.inventory.scrap || 0) + (s.inventory['cristal-azul'] || 0);
+  $('missionMaterials').textContent = (s.inventory['cristal-azul'] || 0);
   $('missionLevel').textContent = s.level;
   const target = snapshot.mobs.find(m => m.id === s.targetId) || snapshot.players.find(v => v.id === s.targetId);
   $('targetHud').classList.toggle('hidden', !target || target.hp <= 0);
@@ -319,7 +319,6 @@ const ITENS_MOCHILA = [
   { key: 'food', nome: 'Presunto', icone: '/assets/inventario/comida.png', tipo: 'consumivel', usar: { type: 'food' } },
   { key: 'ki', nome: 'Poção de Ki', icone: '/assets/inventario/pocao_ki.png', tipo: 'consumivel', usar: { type: 'potion' } },
   ...CONFIG.seedPotencies.map(n => ({ key: 'seed' + n, nome: 'Semente ' + n + '%', icone: ITENS_NEGOCIAVEIS['seed' + n].icone, marca: n + '%', tipo: 'consumivel', usar: { type: 'seed', potency: n } })),
-  { key: 'scrap', nome: 'Sucata', icone: '/assets/inventario/sucata.png', tipo: 'material' },
   ...Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => ({ ...item, key: item.id, usar: acaoConsumivel(item.id) }))
 ];
 // Espaços de equipamento: caixa de cada um na imagem do modelo (px de 853×1280), dentro da área (x, y, l, a).

@@ -1052,8 +1052,8 @@ export class Game {
           const avisoAndroides = !target.teste && registrarAbateAndroides(attacker, target); if (avisoAndroides) this.notify(attacker, avisoAndroides);
           if (!target.teste && target.type === SUPER_C17.type && target.dono === attacker.id) attacker.proximoSuperC17 = this.time + tempoAteSuperC17(this.random, this.chefeJa);
           const onde = { planet: target.planet, area: target.area };
-          if (this.random() < attacker.stats.lootChance) {
-            const item=this.random() < fracaoCristalAzul(target.type) ? 'cristal-azul' : 'scrap';
+          if (this.random() < attacker.stats.lootChance * fracaoCristalAzul(target.type)) {
+            const item = 'cristal-azul';
             this.loot.push({ id: this.uid('l'), x: target.x, y: target.y, ...onde, item, owner: attacker.id, until: this.time + 45 });
             analisar(attacker,'drops',1,item);
           }

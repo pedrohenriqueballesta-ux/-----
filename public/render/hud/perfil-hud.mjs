@@ -77,7 +77,7 @@ export function montarPerfil(container,{acao}={}){
   ['Poder de combate', 'Indicador derivado dos atributos do personagem.']
  ]);
  const exploracao = atributos([
-  ['Velocidade de movimento'], ['Capacidade da mochila'], ['Chance de drop', 'Chance de gerar o drop principal.'], ['Vitórias']
+  ['Velocidade de movimento'], ['Capacidade da mochila'], ['Sorte para Cristal Azul', 'Percentual aplicado à chance-base de Cristal Azul de cada criatura.'], ['Vitórias']
  ]);
  const recursos = el('div', null, 'perfil-recursos');
  const medidores = [

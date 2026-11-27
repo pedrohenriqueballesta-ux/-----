@@ -1,4 +1,4 @@
-// Uso: node ferramentas/simular_economia_hunts.mjs [goku|vegeta] [segundos] [semente] [area|namek|vegeta]
+// Uso: node ferramentas/simular_economia_hunts.mjs [goku|vegeta|boo] [segundos] [semente] [area|namek|vegeta]
 // Executa o Game em memória com nível fixo. Cada linha JSON é uma rodada e suas projeções.
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { CONFIG, ZONES, lugar } from '../public/shared/nucleo/config.mjs';
@@ -32,7 +32,6 @@ function projetar(r, p, segundos, pesoInicial, horas) {
   const adicionar = (id, qtd) => { esperados[id] = (esperados[id] ?? 0) + qtd * fator * recolha; };
   for (const { tipo, quantidade } of r.abates) {
     const fracaoCristal = fracaoCristalAzul(tipo);
-    adicionar('scrap', quantidade * p.stats.lootChance * (1 - fracaoCristal));
     adicionar('cristal-azul', quantidade * p.stats.lootChance * fracaoCristal);
     adicionar('seed15', quantidade * RECOMPENSAS_MOBS.chanceSemente15);
     for (const { item, chance } of dropsEspecificos(tipo)) {
@@ -59,7 +58,7 @@ function projetar(r, p, segundos, pesoInicial, horas) {
 const [vocacao = 'goku', duracao = '90', semente = '12345', filtro] = process.argv.slice(2);
 const segundos = Number(duracao);
 const zonas = ZONES.filter(z => z.nivel && (!filtro || z.id === filtro || z.planet === filtro));
-if (!['goku', 'vegeta'].includes(vocacao) || !Number.isInteger(segundos) || segundos < 1 || !Number.isSafeInteger(Number(semente)) || !zonas.length) {
+if (!['goku', 'vegeta', 'boo'].includes(vocacao) || !Number.isInteger(segundos) || segundos < 1 || !Number.isSafeInteger(Number(semente)) || !zonas.length) {
   throw Error('Informe vocação, duração em segundos, semente numérica e, opcionalmente, uma hunt ou planeta.');
 }
 for (const zona of zonas) {

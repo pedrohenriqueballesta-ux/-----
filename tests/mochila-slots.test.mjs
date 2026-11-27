@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { createPlayer, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila, slotsPadrao } from '../public/shared/nucleo/characters.mjs';
 
 const soma = (p, item) => p.slots.reduce((t, s) => t + (s && s.item === item ? s.qty : 0), 0);
-const inv = o => ({ food: 0, ki: 0, seed15: 0, seed30: 0, seed50: 0, seed100: 0, scrap: 0, ...o });
+const inv = o => ({ food: 0, ki: 0, seed15: 0, seed30: 0, seed50: 0, seed100: 0, ...o });
 function novo(o) { const p = { inventory: inv(o) }; p.slots = slotsPadrao(p.inventory); reconciliarSlots(p); return p; }
 
 test('o layout padrão empacota os totais nos primeiros espaços', () => {
-  const p = novo({ food: 10, scrap: 3 });
+  const p = novo({ food: 10, 'cristal-azul': 3 });
   assert.deepEqual(p.slots[0], { item: 'food', qty: 10 });
-  assert.deepEqual(p.slots[1], { item: 'scrap', qty: 3 });
+  assert.deepEqual(p.slots[1], { item: 'cristal-azul', qty: 3 });
   assert.equal(p.slots[2], null);
 });
 
@@ -22,9 +22,9 @@ test('mover uma pilha para um espaço vazio não altera o total', () => {
 });
 
 test('mover sobre um item diferente troca os dois de lugar', () => {
-  const p = novo({ food: 10, scrap: 3 });
+  const p = novo({ food: 10, 'cristal-azul': 3 });
   moverSlotMochila(p, 0, 1);
-  assert.deepEqual(p.slots[0], { item: 'scrap', qty: 3 });
+  assert.deepEqual(p.slots[0], { item: 'cristal-azul', qty: 3 });
   assert.deepEqual(p.slots[1], { item: 'food', qty: 10 });
 });
 

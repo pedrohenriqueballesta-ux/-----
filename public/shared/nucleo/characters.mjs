@@ -242,7 +242,7 @@ export function descartarSlotMochila(p, de, n = CONFIG.mochilaSlots) {
 }
 
 // Inventário inicial que o personagem recebe ao entrar.
-const STARTING_INVENTORY = { food: 5, ki: 4, seed15: 2, seed30: 1, seed50: 1, seed100: 1, scrap: 0 };
+const STARTING_INVENTORY = { food: 5, ki: 4, seed15: 2, seed30: 1, seed50: 1, seed100: 1 };
 // Versão da shape do save do personagem. Suba quando mudar a estrutura e adicione a migração em
 // migrarSave, para não quebrar personagens já salvos (item 4 do backlog de arquitetura).
 export const SAVE_SCHEMA = 1;

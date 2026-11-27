@@ -5,7 +5,7 @@ import { consumivelValido } from '../tecnicas/consumiveis-hotkeys.mjs';
 export function itemElegivelVendaNpc(id) {
   if (!Object.hasOwn(ITENS_NEGOCIAVEIS, id) || !Number.isFinite(ITENS_NEGOCIAVEIS[id].precoNpc) || consumivelValido(id)) return false;
   const { raridade } = ITENS_NEGOCIAVEIS[id];
-  return ['comum','incomum','raro'].includes(raridade) || id === 'scrap';
+  return ['comum','incomum','raro'].includes(raridade);
 }
 
 export function itensVendaNpc(inventario) {

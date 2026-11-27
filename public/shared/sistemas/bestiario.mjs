@@ -25,8 +25,7 @@ export function criarBestiario(inimigos) {
       agressivo:atributos.agressivo, aggro:atributos.aggro, perseguicao:atributos.perseguicao, ataques,
       renascimento:[respawn.minimo, respawn.maximo],
       zeni:faixaZeniMob(atributos.level, raro),
-      drops:[{item:'scrap',nome:'Sucata',fracaoLoot:1-fracaoCristal},
-        {item:'cristal-azul',nome:NOVOS_ITENS['cristal-azul'].nome,fracaoLoot:fracaoCristal},
+      drops:[{item:'cristal-azul',nome:NOVOS_ITENS['cristal-azul'].nome,fracaoLoot:fracaoCristal},
         {item:'seed15',nome:'Semente dos Deuses 15%',chance:RECOMPENSAS_MOBS.chanceSemente15}, ...dropsEspecificos(m.type)],
       observacoes:[...(atributos.projetil ? ['Projétil TARGET: segue o jogador e acerta enquanto o alvo estiver vivo e válido. Safe zones e troca de área cancelam o ataque.'] : []),...(raro ? ['Chefe raro: a faixa recomendada é da hunt. Pode exigir grupo, equipamento e nível superior.'] : []),
         ...(atributos.nave ? ['Ao chegar a 40% do HP, Freeza entra na nave: ataque ×1,35, defesa ×1,25 e velocidade ×0,8.'] : [])]

@@ -6,10 +6,18 @@ export function validarNovidade(n) {
     ABAS_NOVIDADES.includes(n.aba) && typeof n.titulo === 'string' && n.titulo.trim().length > 0 && n.titulo.length <= 120 &&
     typeof n.texto === 'string' && n.texto.trim().length > 0 && n.texto.length <= 2000);
 }
+function restaurarRecompensa(recompensa, resgatada) {
+  if (Object.hasOwn(recompensa?.itens ?? {}, 'scrap')) {
+    const { scrap, ...itens } = recompensa.itens;
+    recompensa = { ...recompensa, itens };
+    if (!recompensa.zeni && !Object.keys(itens).length) return {};
+  }
+  return recompensaValida(recompensa) ? { recompensa: structuredClone(recompensa), resgatada: resgatada === true } : {};
+}
 export function restaurarNovidades(lista) {
   const ids = new Set();
   return (Array.isArray(lista) ? lista : []).filter(n => validarNovidade(n) && !ids.has(n.id) && ids.add(n.id)).slice(-100)
-    .map(n => ({id:n.id,aba:n.aba,titulo:n.titulo,texto:n.texto,lida:n.lida === true,...(Number.isFinite(n.data)?{data:n.data}:{}),...(n.categoria?{categoria:['entrada','novidades','recompensas'].includes(n.categoria)?n.categoria:'entrada'}:{}),...(n.remetente?{remetente:String(n.remetente).slice(0,60)}:{}),...(n.arquivada?{arquivada:true}:{}),...(recompensaValida(n.recompensa)?{recompensa:structuredClone(n.recompensa),resgatada:n.resgatada===true}:{})}));
+    .map(n => ({id:n.id,aba:n.aba,titulo:n.titulo,texto:n.texto,lida:n.lida === true,...(Number.isFinite(n.data)?{data:n.data}:{}),...(n.categoria?{categoria:['entrada','novidades','recompensas'].includes(n.categoria)?n.categoria:'entrada'}:{}),...(n.remetente?{remetente:String(n.remetente).slice(0,60)}:{}),...(n.arquivada?{arquivada:true}:{}),...restaurarRecompensa(n.recompensa, n.resgatada)}));
 }
 export function novidadesDaAba(lista, aba) {
   return (Array.isArray(lista) ? lista : []).filter(n => validarNovidade(n) && n.aba === aba && !n.lida && !n.arquivada);

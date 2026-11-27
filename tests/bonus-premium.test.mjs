@@ -104,7 +104,7 @@ test('Store entrega sem ativar, confirma uma vez e valida efeitos apenas no uso'
   assert.ok(g.action(p.id, { type: 'godmode' }).ok);
   const salvo = g.addPlayer('salvo', 'Teste', JSON.parse(JSON.stringify(g.exportPlayer(p))));
   assert.equal(salvo.stats.capacity, p.stats.capacity);
-  assert.deepEqual(salvo.inventory, Object.fromEntries(Object.entries(p.inventory).filter(([id, qtd]) => qtd || id === 'scrap')));
+  assert.deepEqual(salvo.inventory, Object.fromEntries(Object.entries(p.inventory).filter(([id, qtd]) => qtd)));
 });
 
 test('entrega com mochila cheia sobrevive ao save e é recolhida sem cobrança adicional', () => {
@@ -189,14 +189,14 @@ test('extensor equipa, pausa fora da sessão, persiste e reduz a capacidade reti
  const salvo = g.addPlayer('salvo', p.name, JSON.parse(JSON.stringify(g.exportPlayer(p))));
  assert.equal(g.snapshot(salvo.id).self.extensorRestante, DURACAO_EXTENSOR - 5);
 
- salvo.inventory = { 'cristal-azul': 1000, scrap: 100 }; // 97 kg, acima da capacidade normal.
+ salvo.inventory = { 'cristal-azul': 1000, minerio: 32 }; // 97,04 kg, acima da capacidade normal.
  g.levar(salvo, lugar('vila'));
  Object.assign(salvo, { x: MERCHANT.x, y: MERCHANT.y });
  g.updatePlayer(salvo, DURACAO_EXTENSOR - 5);
  assert.equal(salvo.equipamentos.mochila, undefined);
- assert.equal(salvo.stats.capacity, 97);
+ assert.equal(salvo.stats.capacity, 97.04);
  assert.equal(g.addItem(salvo, 'food'), false);
- assert.ok(g.action(salvo.id, { type: 'venderItem', item: 'scrap', quantidade: 100 }).ok);
+ assert.ok(g.action(salvo.id, { type: 'venderItem', item: 'minerio', quantidade: 32 }).ok);
  assert.equal(salvo.stats.capacity, 90);
  assert.equal(g.addItem(salvo, 'food'), false);
  const volta = g.addPlayer('volta', p.name, g.exportPlayer(salvo));

@@ -55,7 +55,7 @@ export const CONFIG = Object.freeze({
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
   seedPotencies: [15, 30, 50, 100],
-  itemWeights: { ...Object.fromEntries(Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
+  itemWeights: { ...Object.fromEntries(Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08 },
   prices: { food: 12, ki: 18, 'pocao-energia': 50, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
   // VALOR PROVISÓRIO: manutenção comum a todas as formas (Pedro, 09/11/2026).
   transformacao: Object.freeze({ drenoKi: 3.5, limiteAutomatico: 0.5, gogetaDuracao: 3600 }),
