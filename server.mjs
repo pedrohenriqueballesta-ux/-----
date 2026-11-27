@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto';
 import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 import { ehUpgradeWebSocket, aceitarUpgrade } from './server/ws.mjs';
+import { Telemetria } from './server/telemetria.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
@@ -29,6 +30,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   const pularLogin = process.env.DBI_SKIP_LOGIN !== '0';
   const economiaPremium=new EconomiaPremium({ambiente});
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development' });
+  const telemetria = new Telemetria({ dir: dataDir ? resolve(dataDir, 'telemetria') : null });
   // streams = conexões SSE (reserva); sockets = conexões WebSocket (canal preferido do jogo).
   const sessions = new Map(), streams = new Map(), sockets = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
@@ -167,7 +169,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       const data = await readFile(path);
       res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff','Content-Length':data.length });
       res.end(req.method === 'HEAD' ? undefined : data);
-    } catch (e) { if (!res.headersSent) json(res,e instanceof FalhaAuth?e.status:400,{error:e instanceof FalhaAuth?e.code:'requisicaoInvalida'}); else res.end(); }
+    } catch (e) { if (!(e instanceof FalhaAuth)) telemetria.erro('http', e, { rota: req.url }); if (!res.headersSent) json(res,e instanceof FalhaAuth?e.status:400,{error:e instanceof FalhaAuth?e.code:'requisicaoInvalida'}); else res.end(); }
   });
   server.requestTimeout = 15000;
   // Canal do jogo por WebSocket: o estado desce e o input sobe pelo mesmo socket persistente.
@@ -197,33 +199,48 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
       if (!sockets.has(a.id)) sockets.set(a.id, new Set());
       sockets.get(a.id).add(conexao); p.connected = true;
       conexao.enviar(JSON.stringify(game.snapshot(p.id, economiaPremium.carteira(a.conta).saldo)));
-    } catch { try { socket.destroy(); } catch {} }
+    } catch (e) { telemetria.erro('ws-upgrade', e); try { socket.destroy(); } catch {} }
   });
   // Loop auto-corrigido: avança o jogo com o tempo real decorrido (evita a câmera lenta
   // causada pela granularidade do timer do Windows) e transmite o estado a ~20 Hz.
-  let lastTick = Date.now(), lastBroadcast = 0;
+  let lastTick = Date.now(), lastBroadcast = 0, tickSomaMs = 0, tickMaxMs = 0, tickN = 0;
   const tickLoop = () => {
     if (closing) return;
     const now = Date.now();
-    game.tick((now - lastTick) / 1000); lastTick = now;
-    if (now - lastBroadcast >= 50) {
-      lastBroadcast = now;
-      for (const token of new Set([...streams.keys(), ...sockets.keys()])) {
-        const sse = streams.get(token), ws = sockets.get(token);
-        if (!sse?.size && !ws?.size) continue;
-        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}
-        const estado = JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo));
-        if (sse?.size) { const payload = 'data: ' + estado + '\n\n'; for (const response of sse) if (!response.destroyed) response.write(payload); }
-        if (ws?.size) for (const conexao of ws) conexao.enviar(estado);
+    try {
+      const t0 = performance.now();
+      game.tick((now - lastTick) / 1000); lastTick = now;
+      if (now - lastBroadcast >= 50) {
+        lastBroadcast = now;
+        for (const token of new Set([...streams.keys(), ...sockets.keys()])) {
+          const sse = streams.get(token), ws = sockets.get(token);
+          if (!sse?.size && !ws?.size) continue;
+          const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}
+          const estado = JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo));
+          if (sse?.size) { const payload = 'data: ' + estado + '\n\n'; for (const response of sse) if (!response.destroyed) response.write(payload); }
+          if (ws?.size) for (const conexao of ws) conexao.enviar(estado);
+        }
       }
-    }
+      const ms = performance.now() - t0; tickSomaMs += ms; tickN++; if (ms > tickMaxMs) tickMaxMs = ms;
+    } catch (e) { lastTick = now; telemetria.erro('tick', e); } // um tick com erro não pode matar o loop do jogo
     timer = setTimeout(tickLoop, 16);
   };
   let timer = setTimeout(tickLoop, 16);
   const saveTimer = setInterval(()=>save().catch(e=>console.error('Não foi possível salvar o progresso:',e.message)),5000);
+  // Saúde do servidor a cada 30 s: online, tempo de tick (médio/máx), memória, carga de mundo.
+  const metricasTimer = setInterval(() => {
+    telemetria.registrar('metricas_servidor', {
+      online: online(), jogadores: sessions.size, mobs: game.mobs.size,
+      tickMedioMs: tickN ? Number((tickSomaMs / tickN).toFixed(2)) : 0,
+      tickMaxMs: Number(tickMaxMs.toFixed(2)),
+      memoriaMB: Math.round(process.memoryUsage().rss / 1048576),
+    });
+    tickSomaMs = 0; tickMaxMs = 0; tickN = 0;
+  }, 30000);
+  metricasTimer.unref?.();
   await new Promise((ok, fail) => { server.once('error', fail); server.listen(port, host, ok); });
   const close = async () => {
-    closing = true; clearInterval(timer); clearInterval(saveTimer); await save();
+    closing = true; clearInterval(timer); clearInterval(saveTimer); clearInterval(metricasTimer); await save(); await telemetria.fechar();
     for (const connections of streams.values()) for (const response of connections) response.end();
     for (const conexoes of sockets.values()) for (const conexao of conexoes) conexao.fechar();
     await new Promise(ok => server.close(ok));
