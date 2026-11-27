@@ -3,24 +3,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
 import { CURA } from '../public/shared/tecnicas/cura.mjs';
-import { GALICK, estagioGalick } from '../public/shared/tecnicas/galick-gun.mjs';
-
-test('Vegeta continua avançando durante a carga e depois do Galick Gun', () => {
-  const { g, p } = cena({ level: CONFIG.skills.galick, vocacao: 'vegeta' }); p.autoAttack = true; p.autoSkills = true;
-  p.autoHeal = false; p.autoKi = false; p.autoSeed = false;
-  const alvo = g.addMob('saibaman', p.x + estagioGalick(p.level).alcance - 20, p.y, p.area);
-  alvo.hp = alvo.maxHp = 10000;
-  const inicio = p.x;
-  g.tick(.1);
-  assert.ok(p.charge?.galick, 'inicia a carga ainda em movimento');
-  g.tick(.1);
-  assert.ok(p.x > inicio, 'aproxima-se durante a carga');
-  const duranteCarga = p.x;
-  for (let i = 0; i < 6; i++) g.tick(.1);
-  assert.ok(g.kamehamehas.some(k => k.galick), 'dispara o Galick Gun');
-  g.tick(.1);
-  assert.ok(p.x > duranteCarga, 'continua avançando com o feixe ativo');
-});
+import { GALICK } from '../public/shared/tecnicas/galick-gun.mjs';
 
 test('Galick Gun completa a canalização e preserva o instante inicial da pose', () => {
   const { g, p } = cena({ level: CONFIG.skills.galick, vocacao: 'vegeta' }); p.autoHunt = false;
@@ -36,6 +19,43 @@ test('Galick Gun completa a canalização e preserva o instante inicial da pose'
   assert.equal(disparo.castStarted, inicio);
   assert.ok(disparo.started - inicio >= GALICK.carga);
 });
+
+for (const [skill, vocacao, forma] of [
+  ['chocolateBeam', 'boo', 'base'], ['supernova', 'boo', 'base'],
+  ['finalFlash', 'vegeta', 'ssj'], ['bigBangAttack', 'vegeta', 'ssj'],
+  ['ryuken', 'goku', 'ssj3'], ['genki', 'goku', 'base']
+]) {
+  test(skill + ': Auto Hunt fica parado até o lançamento e volta a avançar', () => {
+    const { g, p } = cena({ level: 500, vocacao });
+    Object.assign(p, { forma, x: 3100, y: 2200, autoAttack: false, autoSkills: true });
+    const alvo = g.addMob('saibaman', p.x + 160, p.y, p.area);
+    alvo.hp = alvo.maxHp = 1e9;
+    g.updateMob = () => {};
+    g.steer = (e, m, dt, velocidade) => { e.x += Math.min(m.x-e.x, velocidade * dt); e.moving = true; return true; };
+    assert.ok(g.action(p.id, { type: 'configurarComboAutoHunt', combo: {
+      ordem: [{ id: skill, ki: 0, minMobs: 1 }], reserva: 0, buff: null
+    } }).ok);
+    g.tick(.01);
+    const canalizando = () => p.charge || p.ryuken || g.genkiCharges[0];
+    assert.ok(canalizando());
+    const ponto = { x: p.x, y: p.y };
+    for (let i = 0; i < 300 && canalizando(); i++) {
+      g.tick(.01);
+      assert.deepEqual({ x: p.x, y: p.y }, ponto);
+      assert.equal(p.moving, false);
+    }
+    assert.ok(!canalizando(), 'completa a canalização');
+    const saiu = g.kamehamehas.length || g.projectiles.some(s => s.kind === skill)
+      || p.ryukenLancado || p.genkiLancado || (p.booLancado?.tipo === 'supernova');
+    assert.ok(saiu, 'a técnica foi lançada');
+    g.tick(.01);
+    assert.ok(p.x > ponto.x && p.moving, 'retoma a aproximação no próximo passo');
+    if (skill === 'finalFlash') {
+      assert.deepEqual(g.kamehamehas[0].emissor, ponto);
+      assert.ok(!g.kamehamehas[0].impacto, 'não espera o feixe atingir o alvo');
+    }
+  });
+}
 
 function cena(save) {
   const g = new Game({ now: 1000, populate: false }), p = g.addPlayer('p', 'Guerreiro', save);

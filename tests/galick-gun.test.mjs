@@ -254,7 +254,7 @@ test('cada evolução usa o alcance do Kamehameha e rejeita um alvo além da bor
   }
 });
 
-test('Auto Hunt antecipa a carga para disparar perto do limite de cada versão e segue avançando', () => {
+test('Auto Hunt para perto do limite de cada Galick Gun e avança só depois do disparo', () => {
   for (const { nivel, versao, alcance } of ESTAGIOS_GALICK) {
     const { game, player, mob } = cena({ level: nivel });
     player.autoHunt = true;
@@ -271,13 +271,21 @@ test('Auto Hunt antecipa a carga para disparar perto do limite de cada versão e
       p.moving = true;
       return true;
     };
-    let iniciouFora = false, disparo;
+    let ponto, disparo;
     for (let i = 0; i < 100 && !disparo; i++) {
       game.tick(passo);
-      if (player.charge?.galick && mob.x - player.x > limite) iniciouFora = true;
+      if (player.charge?.galick && ponto === undefined) {
+        ponto = player.x;
+        assert.ok(mob.x - ponto <= limite);
+        assert.ok(mob.x - ponto > limite - player.stats.mobility * passo);
+      }
+      if (ponto !== undefined) {
+        assert.equal(player.x, ponto);
+        assert.equal(player.moving, false);
+      }
       disparo = game.kamehamehas.find(k => k.galick);
     }
-    assert.ok(iniciouFora, 'prepara fora do alcance efetivo');
+    assert.equal(disparo?.emissor.x, ponto);
     assert.equal(disparo?.versao, versao);
     assert.ok(disparo.distanciaContato <= alcance);
     assert.ok(disparo.distanciaContato > alcance - 3 * passo * player.stats.mobility);
