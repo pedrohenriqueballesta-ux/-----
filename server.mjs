@@ -6,7 +6,7 @@ import {conteudoEntrada} from './server/entrada-conteudo.mjs';
 import {preferenciasValidas} from './public/shared/sistemas/preferencias.mjs';
 import {contasDoServidor,rankingServidor} from './public/shared/nucleo/hud-servidor.mjs';
 import http from 'node:http';
-import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +15,7 @@ import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 import { ehUpgradeWebSocket, aceitarUpgrade } from './server/ws.mjs';
 import { Telemetria } from './server/telemetria.mjs';
+import { Armazenamento, migrarSaveJson } from './server/armazenamento.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
@@ -34,10 +35,12 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development', telemetria: (tipo, dados) => telemetria.registrar(tipo, dados) });
   // streams = conexões SSE (reserva); sockets = conexões WebSocket (canal preferido do jogo).
   const sessions = new Map(), streams = new Map(), sockets = new Map(), rates = new Map();
-  let stored = {}, closing = false, filaSave = Promise.resolve();
+  let stored = {}, closing = false, filaSave = Promise.resolve(), armazenamento = null;
   if (dataDir) {
     await mkdir(dataDir, { recursive: true });
-    try { stored = JSON.parse(await readFile(resolve(dataDir, 'save.json'), 'utf8')); } catch {}
+    armazenamento = new Armazenamento(dataDir);
+    await migrarSaveJson(armazenamento, dataDir); // traz o save.json antigo pro banco na 1ª vez
+    stored = armazenamento.carregar();
   }
   const autenticacao=new Autenticacao();autenticacao.restaurar(stored.__auth);
   if(dataDir&&!stored.__auth&&Object.keys(stored).some(k=>!k.startsWith('__')))await writeFile(resolve(dataDir,'save-antes-auth-'+Date.now()+'.json'),JSON.stringify(stored),'utf8');
@@ -69,8 +72,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     const tarefa=filaSave.catch(()=>{}).then(async()=>{
       for(const p of sessions.values())guardar(p);stored.__auth=autenticacao.exportar();
       stored.__mercado=game.mercado.exportar();stored.__guildas=game.guildas.exportar();
-      await writeFile(resolve(dataDir,'save.tmp'),JSON.stringify(stored),'utf8');
-      await rename(resolve(dataDir,'save.tmp'),resolve(dataDir,'save.json'));
+      armazenamento.salvar(stored);
     });
     filaSave=tarefa;return tarefa;
   };
@@ -253,6 +255,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     for (const connections of streams.values()) for (const response of connections) response.end();
     for (const conexoes of sockets.values()) for (const conexao of conexoes) conexao.fechar();
     await new Promise(ok => server.close(ok));
+    armazenamento?.fechar();
   };
   return { server, game, sessions, autenticacao, economiaPremium, close, port: server.address().port };
 }

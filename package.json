@@ -5,7 +5,7 @@
   "type": "module",
   "description": "ProtÃƒÂ³tipo local de RPG idle com HUD integrada e animaÃƒÂ§ÃƒÂµes multidirecionais.",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "start": "node server.mjs",
