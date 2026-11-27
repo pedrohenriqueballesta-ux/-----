@@ -319,7 +319,7 @@ progress { accent-color: #05bfed; }
   border-color: #ffe1a1;
   color: #221806;
 }
-:is(.hud-funcional, #shopDialog, .premium-janela, .godmode-dialog, .bestiario, .mochila, .auto-hunt-panel, .hud-topo, .hud-inferior, .hud-jogador, .hud-chat, .hud-mapa, .hud-tecnicas, .hunt-analyzer-mini) {
+:is(.hud-funcional, #shopDialog, .premium-janela, .godmode-dialog, .bestiario, .mochila, .auto-hunt-panel, .hud-topo, .hud-inferior, .hud-jogador, .hud-chat, .hud-mapa, .hud-tecnicas, .hunt-analyzer-mini, .hunt-loot-window) {
   opacity: var(--hud-opacidade, 1);
 }
 .config-campos label:has(input[type="range"]) {

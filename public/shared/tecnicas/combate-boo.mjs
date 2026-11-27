@@ -73,7 +73,12 @@ export class CombateBoo {
       return falha('Já existe uma Supernova ativa.');
     const estagio = estagioTecnicasBoo(p.forma);
     const raio = tecnica === NOVA ? estagio.raioNova : tecnica === ANGRY ? estagio.raioAngry : 0;
-    if (automated && tecnica.minimoCombo && this.mobsNaArea(alvo ? { ...lugarDe(alvo), ownerId: p.id } : p, raio).length < tecnica.minimoCombo) return { ok: false };
+    if (automated && tecnica.minimoCombo) {
+      const configuracao = p.comboAutoHunt?.ordem.find(linha => linha.id === tecnica.id);
+      const minimo = configuracao?.minMobs ?? tecnica.minimoCombo;
+      const centro = alvo ? { ...lugarDe(alvo), ownerId: p.id } : p;
+      if (this.mobsNaArea(centro, raio).length < minimo) return { ok: false };
+    }
     const direction = alvo ? g.aimDirection(p, alvo) : p.facing;
     if (tecnica === CLONES) {
       if (automated && p.tentarClonesEm > g.time) return { ok: false };
@@ -111,7 +116,7 @@ export class CombateBoo {
         if (tecnica === NOVA) { efeito.pulsos = 0; efeito.dano = p.stats.attack * estagio.danoNova; efeito.atracao = estagio.atracao; }
         else for (const m of this.mobsNaArea(efeito, efeito.raio)) g.hit(p, m, p.stats.attack * estagio.danoAngry);
         this.efeitos.set(efeito.id, efeito);
-        p.booLancado = { tipo: tecnica.id, started: g.time, direction: carga.direction };
+        p.booLancado = { tipo: tecnica.id, started: g.time, direction: carga.direction, automated: carga.automated };
       }
     }
     if (g.time + EPSILON >= carga.until) p.charge = null;
@@ -123,7 +128,7 @@ export class CombateBoo {
       const id = this.game.uid('c');
       this.clones.set(id, { ...ponto, id, ownerId: p.id, grupo: carga.id,
         connected: true, autoHunt: true, forma: carga.forma, facing: carga.direction, moving: false,
-        hp: maxHp, maxHp, defesa: Math.min(CLONES.defesaMaxima, p.stats.defense * CLONES.defesa), ataque: p.stats.attack * CLONES.dano,
+        hp: maxHp, maxHp, defesa: p.stats.defense * CLONES.defesa, ataque: p.stats.attack * CLONES.dano,
         ready: carga.until, ordem: i, quantidade: pontos.length,
         revealAt: carga.started + CLONES.revela, activeAt: carga.until, expiresAt: carga.until + CLONES.duracao });
     });

@@ -3,7 +3,7 @@ import { FINAL_FLASH } from '../shared/tecnicas/final-flash.mjs';
 export function poseCombate(jogador, snapshot, tempo, eventos = snapshot.events || []) {
   const inicio = tipo => eventos.find(e => e.playerId === jogador.id && e.type === tipo && tempo >= e.at && tempo - e.at < .36)?.at;
   const kamehamehas = snapshot.kamehamehas || [];
-  const peloJogador = k => k.owner === jogador.id;
+  const peloJogador = k => k.owner === jogador.id && !(k.emissor && jogador.moving);
   const kame = kamehamehas.find(k => peloJogador(k) && !k.galick && !k.finalFlash && (!k.impacto || tempo - k.impacto.started < .25));
   const galick = jogador.charge?.galick ? jogador.charge : kamehamehas.find(k => peloJogador(k) && k.galick);
   const finalFlash = jogador.charge?.finalFlash ? { ...jogador.charge, carga: true }

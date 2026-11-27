@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { lugar } from '../public/shared/nucleo/config.mjs';
+import { spawnPoints } from '../public/shared/nucleo/enemies.mjs';
 import { CHOCOLATE_BEAM } from '../public/shared/tecnicas/chocolate-beam.mjs';
 import { tecnicasDoPerfil } from '../public/shared/tecnicas/barra-tecnicas.mjs';
 import { estagioTecnicasBoo } from '../public/shared/tecnicas/majin-boo.mjs';
@@ -218,8 +219,8 @@ test('Clones materializam juntos, recebem aggro e dano reais e creditam o abate 
   const clone=g.alvoDoMob(m);
   assert.ok(grupo.includes(clone));
   assert.equal(g.hit(m,clone,50),true);
-  assert.ok(clone.defesa <= 1);
-  assert.ok(clone.maxHp-clone.hp >= 48);
+  assert.ok(clone.defesa > 1 && clone.defesa < p.stats.defense);
+  assert.ok(clone.hp > 0 && clone.hp < clone.maxHp);
   assert.equal(p.hp,p.stats.hp);
   p.cloneSummoningReady=0;
   assert.equal(g.cast(p,'cloneSummoning').ok,false);
@@ -432,6 +433,38 @@ test('clones trocam para o alvo marcado e seguem o Boo quando perde a marca', ()
   const antes=clones.map(dist);
   ticks(g,1.25);
   assert.ok(clones.every((c,i)=>dist(c)<antes[i]-40));
+});
+
+test('clones aguentam golpes comuns em hunts do seu nível e continuam mais frágeis que o Boo', () => {
+  const spawns = spawnPoints(() => .51);
+  for (const [area, type] of [
+    ['terra-deserto', 'cellImperfeito'], ['norte', 'piccoloDaimaoh'],
+    ['terra-neve', 'androide16'], ['vegeta-cratera', 'broly']
+  ]) {
+    const g = new Game({ now: 100, populate: false, randomCombat: () => 1 });
+    const zona = lugar(area);
+    const p = g.addPlayer('boo', 'Boo', { vocacao: 'boo', level: zona.nivel[0] });
+    const ponto = spawns.find(s => s.area === area && s.type === type);
+    assert.ok(ponto, type);
+    g.levar(p, zona);
+    Object.assign(p, { x: ponto.x, y: ponto.y });
+    const inimigo = g.addMob(type, ponto.x, ponto.y, area);
+    g.combateBoo.materializar(p, {
+      id: 'grupo', forma: p.forma, direction: p.facing, started: g.time - 1.2, until: g.time
+    }, [{ planet: p.planet, area, x: ponto.x, y: ponto.y }]);
+
+    const [clone] = g.combateBoo.clones.values();
+    let golpes = 0;
+    while (clone.hp > 0 && golpes < 8) {
+      assert.ok(g.hit(inimigo, clone, inimigo.attack));
+      golpes++;
+    }
+    assert.ok(golpes >= 2, type + ': sobrevive ao primeiro golpe comum, mesmo no máximo da variação');
+    assert.equal(clone.hp, 0, type + ': golpes sucessivos ainda derrubam o clone');
+    assert.ok(clone.maxHp < p.stats.hp && clone.defesa < p.stats.defense);
+    assert.equal(clone.ataque, p.stats.attack * .12);
+    assert.equal(p.hp, p.stats.hp);
+  }
 });
 
 test('Kamehameha do Cell Perfeito persegue o clone marcado e preserva dano e efeito próprios', () => {

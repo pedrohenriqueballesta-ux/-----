@@ -4,6 +4,7 @@ import { Game } from '../public/shared/nucleo/game.mjs';
 import { CONFIG, lugar } from '../public/shared/nucleo/config.mjs';
 import { FINAL_FLASH } from '../public/shared/tecnicas/final-flash.mjs';
 import { BIG_BANG_ATTACK } from '../public/shared/tecnicas/big-bang-attack.mjs';
+import { estagioTecnicasBoo } from '../public/shared/tecnicas/majin-boo.mjs';
 
 function luta(level = 500, vocacao = 'vegeta') {
   const game = new Game({ now: 10, populate: false });
@@ -38,6 +39,91 @@ test('o combo usa a primeira técnica pronta e ignora prioridades em recarga ou 
   mob.x = p.x + 465;
   game.updatePlayer(p, 0);
   assert.ok(p.charge?.bigBangAttack);
+});
+
+for (const modo of ['normal', 'God Mode com recarga normal', 'God Mode com recarga rápida']) {
+  test('dispara o combo configurado com as conjurações reais: ' + modo, () => {
+    const { game, p, mob, configurar } = luta();
+    p.autoAttack = p.autoFood = p.autoHeal = false;
+    mob.hp = mob.maxHp = 1e9;
+    game.updateMob = () => {};
+    const rapido = modo === 'God Mode com recarga rápida';
+    if (modo !== 'normal') {
+      assert.ok(game.action(p.id, { type: 'godmodeConfig', options: {
+        ...p.godmodeOptions, level: p.level, cooldownNormal: !rapido
+      } }).ok);
+      assert.ok(game.action(p.id, { type: 'godmode' }).ok);
+    }
+    assert.ok(configurar(['finalFlash', 'bigBangAttack', 'galick']).ok);
+
+    const disparos = [];
+    const nomes = ['Final Flash!', 'Big Bang Attack!', 'Galick Gun!'];
+    for (let passo = 0; passo < 300 && disparos.length < 4; passo++) {
+      const anterior = game.time;
+      game.tick(.05);
+      disparos.push(...game.events.filter(e => e.at > anterior && e.type === 'skillShout' && nomes.includes(e.text)).map(e => e.text));
+    }
+    assert.deepEqual(disparos.slice(0, 3), nomes);
+    assert.equal(disparos[3], rapido ? 'Final Flash!' : 'Galick Gun!');
+    assert.ok(mob.hp < mob.maxHp, 'o combo aplica dano ao alvo');
+  });
+}
+
+test('Angry Explosion exige o grupo no raio da forma atual, com mínimo configurável de 1 a 4', () => {
+  const { game, p, mob, configurar } = luta(500, 'boo');
+  p.forma = 'base';
+  p.autoAttack = false;
+  const raio = estagioTecnicasBoo(p.forma).raioAngry;
+  mob.x = p.x + raio - 8;
+  const longe = game.addMob('saibaman', p.x + raio + 1, p.y, p.area);
+  const deOutroJogador = game.addMob('saibaman', p.x + 40, p.y, p.area);
+  deOutroJogador.dono = 'outro';
+  const morto = game.addMob('saibaman', p.x + 65, p.y, p.area);
+  morto.hp = 0;
+  game.addMob('saibaman', p.x + 50, p.y, 'media');
+
+  assert.ok(configurar([{ id: 'angryExplosion', ki: 0, minMobs: 2 }, 'chocolateBeam']).ok);
+  game.updatePlayer(p, 0);
+  assert.ok(p.charge?.chocolateBeam, 'o grupo insuficiente deixa passar a técnica seguinte');
+  p.charge = null;
+  p.forma = 'evilBoo';
+  game.updatePlayer(p, 0);
+  assert.equal(p.charge?.booTecnica, 'angryExplosion', 'a forma maior inclui o segundo inimigo');
+  p.charge = null;
+  longe.hp = 0;
+  assert.ok(configurar([{ id: 'angryExplosion', ki: 0, minMobs: 1 }]).ok);
+  game.updatePlayer(p, 0);
+  assert.equal(p.charge?.booTecnica, 'angryExplosion');
+
+  for (const invalido of [0, 5, 2.5, '2', null])
+    assert.equal(configurar([{ id: 'angryExplosion', ki: 0, minMobs: invalido }]).ok, false);
+  assert.ok(configurar([{ id: 'angryExplosion', ki: 0, minMobs: 4 }]).ok);
+  const voltou = game.addPlayer('volta', 'Teste', game.exportPlayer(p));
+  assert.equal(voltou.comboAutoHunt.ordem[0].minMobs, 4);
+});
+
+test('Supernova conta mobs ao redor do alvo marcado', () => {
+  const { game, p, mob, configurar } = luta(500, 'boo');
+  p.forma = 'base';
+  const pertoDoBoo = game.addMob('saibaman', p.x - 50, p.y, p.area);
+  assert.ok(configurar([{ id: 'supernova', ki: 0, minMobs: 2 }]).ok);
+  game.updatePlayer(p, 0);
+  assert.equal(p.charge, null);
+  pertoDoBoo.x = mob.x + 55;
+  game.updatePlayer(p, 0);
+  assert.equal(p.charge?.booTecnica, 'supernova');
+});
+
+test('outras técnicas usam o mínimo de mobs perto do personagem', () => {
+  const { game, p, mob, configurar } = luta();
+  mob.x = p.x + 75;
+  const segundo = game.addMob('saibaman', p.x + 190, p.y, p.area);
+  assert.ok(configurar([{ id: 'finalFlash', ki: 0, minMobs: 2 }]).ok);
+  game.updatePlayer(p, 0);
+  assert.equal(p.charge, null);
+  segundo.x = p.x + 100;
+  game.updatePlayer(p, 0);
+  assert.ok(p.charge?.finalFlash);
 });
 
 test('mínimo individual e reserva depois do custo escolhem uma técnica mais barata ou nenhum ataque de Ki', () => {

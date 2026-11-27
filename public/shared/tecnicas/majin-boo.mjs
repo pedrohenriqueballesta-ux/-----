@@ -6,7 +6,7 @@ const tecnica = (id, nome, icone, parametros) => Object.freeze({
 
 export const CLONES_BOO = tecnica('cloneSummoning', 'Invocação de Clones', 'clone_summoning', {
   nivel: 60, ki: 25, recarga: 45, carga: 1.2, materializa: .6, revela: .9, duracao: 20,
-  vida: .12, dano: .12, defesa: .02, defesaMaxima: 1, alcanceSoco: 70, cadencia: .45,
+  vida: .24, dano: .12, defesa: .22, alcanceSoco: 70, cadencia: .45,
   distanciaMaxima: 5 * KAME.tile, raioProtecao: 4 * KAME.tile,
   descricao: 'Os clones seguem o Boo e atacam o inimigo marcado por até 20 s.'
 });

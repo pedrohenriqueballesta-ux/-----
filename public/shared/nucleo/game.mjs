@@ -1,7 +1,7 @@
 import { aceitarTask, registrarAbateTask } from '../sistemas/tasks-hunt.mjs';
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
-import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
+import {consumivelValido,acaoConsumivel,escolherComidaAutomatica} from '../tecnicas/consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
@@ -19,7 +19,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, atualizarCapacidade, reterCapacidadeDoExtensor, encerrarExtensor, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
+import { kiPermiteCombo, validarCombo, RAIO_MOBS_COMBO } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
@@ -336,6 +336,7 @@ export class Game {
       const combo = validarCombo(data.combo, p.vocacao);
       if (!combo) return this.reject(p, 'Configuração de combo inválida.');
       p.comboAutoHunt = combo;
+      p.proximoIndiceCombo = 0;
       const buffAplicado = this.aplicarBuffDoCombo(p);
       return { ok: true, combo, buffAplicado };
     }
@@ -345,6 +346,7 @@ export class Game {
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
+      p.proximoIndiceCombo = 0;
       this.revalidarFormaAposGodmode(p);
       this.notify(p, p.godmode ? 'God Mode de teste ligado no nível ' + p.level + '.' : 'God Mode desligado: status reais restaurados.');
       return { ok: true };
@@ -355,6 +357,8 @@ export class Game {
         ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean') ||
         ['cooldownNormal','velocidadeMaxima'].some(k => options[k] !== undefined && typeof options[k] !== 'boolean'))
         return { ok: false, reason: 'Configuração de God Mode inválida.' };
+      if (options.cooldownNormal !== undefined && options.cooldownNormal !== p.godmodeOptions.cooldownNormal)
+        p.proximoIndiceCombo = 0;
       configurarGodmode(p, opcoesGodmodeValidas({ ...p.godmodeOptions, ...options }));
       if (p.godmode) this.revalidarFormaAposGodmode(p);
       return { ok: true };
@@ -403,7 +407,10 @@ export class Game {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
       p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.alvosRecentes = []; p.abatesRecentes = []; p.rota = null;
-      if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
+      if (p.autoHunt) {
+        p.proximoIndiceCombo = 0;
+        p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name);
+      }
       return { ok: true };
     }
     if (kind === 'moveTo' && Number.isFinite(data.x) && Number.isFinite(data.y)) {
@@ -667,8 +674,7 @@ export class Game {
       if (p.charge || this.time < p.galickReady || p.ki < GALICK.custo)
         return automated ? { ok: false } : this.reject(p, 'Galick Gun em recarga ou Ki insuficiente.');
       const alvo = this.mobs.get(p.targetId);
-      const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * GALICK.carga : 0;
-      if (!this.alvoValidoGalick(p, alvo) || this.distanciaAoCorpo(p, alvo) > estagio.alcance + GALICK.mao + antecipacao)
+      if (!this.alvoValidoFeixe(p, alvo) || this.distanciaAoCorpo(p, alvo) > estagio.alcance + GALICK.mao)
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Galick Gun.');
       p.facing = norm(alvo.x - p.x, alvo.y - p.y);
       p.ki -= GALICK.custo;
@@ -685,14 +691,13 @@ export class Game {
       if (p.charge || p.ryuken || this.time < pronto || p.ki < custo) return automated ? { ok: false } : this.reject(p, nome + ' em recarga ou Ki insuficiente.');
       const alvoKame = this.mobs.get(p.targetId);
       const nivel = superKame ? ESTAGIOS_KAME.at(-1).nivel : estagioKame(p.level).nivel, alcance = estagioKame(nivel).alcance + KAME.mao;
-      const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * KAME.carga : 0;
-      if (!alvoKame || alvoKame.hp <= 0 || !this.mesmoLugar(p, alvoKame) || naZonaSegura(alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance + antecipacao)
+      if (!this.alvoValidoFeixe(p, alvoKame) || this.distanciaAoCorpo(p, alvoKame) > alcance)
         return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do ' + nome + '.');
       const dir = norm(alvoKame.x - p.x, alvoKame.y - p.y);p.facing = dir;
       p.ki -= custo;
       if (superKame) p.superKameReady = this.time + this.recarga(p, SUPER_KAME.recarga);
       else p.kameReady = this.time + this.recarga(p, CONFIG.skillCooldowns.kame);
-      p.charge = { targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
+      p.charge = { kame: true, targetId: alvoKame.id, automated, until: this.time + KAME.carga, started: this.time + KAME.carga - KAME.primeiroFeixe * KAME.quadro, direction: dir, nivel,
         ...(superKame ? { cor: SUPER_KAME.cor, superKame: true } : {}) };
       return { ok: true };
     }
@@ -758,7 +763,7 @@ export class Game {
     p.facing = carga.direction = norm(alvo.x - p.x, alvo.y - p.y);
     if (this.time + 1e-9 < carga.until) return;
     p.charge = null;
-    p.chocolateLancado = { started: this.time, direction: carga.direction };
+    p.chocolateLancado = { started: this.time, direction: carga.direction, automated: carga.automated };
     this.projectiles.push({id:this.uid('s'),kind:'chocolateBeam',owner:p.id,targetId:alvo.id,
       damage: p.stats.attack * estagioTecnicasBoo(carga.forma).danoChocolate,
       planet:p.planet,area:p.area,x:p.x,y:p.y,origem:{x:p.x,y:p.y},direction:carga.direction,
@@ -815,6 +820,32 @@ export class Game {
     if (p.charge?.superKame) p.charge = null;
     if (p.autoHunt) this.aplicarBuffDoCombo(p);
   }
+  haGrupoParaCombo(p, minimo) {
+    let encontrados = 0;
+    for (const mob of this.mobs.values()) {
+      if (mob.hp <= 0 || distance(p, mob) > RAIO_MOBS_COMBO || !this.mesmoLugar(p, mob)
+        || !this.podeEnfrentarMob(p, mob) || naZonaSegura(mob)) continue;
+      if (++encontrados >= minimo) return true;
+    }
+    return false;
+  }
+  dispararComboAutoHunt(p) {
+    const { ordem } = p.comboAutoHunt;
+    const recargaRapida = p.godmode && !p.godmodeOptions?.cooldownNormal;
+    // No modo de teste, uma técnica pode ficar pronta antes de terminar a própria animação.
+    const inicio = recargaRapida ? (p.proximoIndiceCombo ?? 0) : 0;
+    for (let passo = 0; passo < ordem.length; passo++) {
+      const indice = (inicio + passo) % ordem.length;
+      const { id, ki, minMobs = 1 } = ordem[indice];
+      // Supernova e Angry Explosion conferem o seu próprio raio ao iniciar a conjuração.
+      if (minMobs > 1 && !TECNICAS_BOO[id]?.minimoCombo && !this.haGrupoParaCombo(p, minMobs)) continue;
+      if (kiPermiteCombo(p, id, ki) && this.cast(p, id, true).ok) {
+        if (recargaRapida) p.proximoIndiceCombo = (indice + 1) % ordem.length;
+        return true;
+      }
+    }
+    return false;
+  }
   aplicarBuffDoCombo(p) {
     const combo = p.comboAutoHunt;
     if (!combo) return false;
@@ -833,8 +864,7 @@ export class Game {
       return automated ? { ok: false } : this.reject(p, 'Ryuken em recarga ou Ki insuficiente.');
     const alvo = this.mobs.get(p.targetId);
     const alcance = estagioKame(p.level).alcance + KAME.mao;
-    const antecipacao = automated && p.autoHunt && p.moving ? velocidadeMovimento(p,this.agora()) * RYUKEN.lancamento : 0;
-    if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || this.distanciaAoCorpo(p, alvo) > alcance + antecipacao)
+    if (!this.alvoValidoFeixe(p, alvo) || this.distanciaAoCorpo(p, alvo) > alcance)
       return automated ? { ok: false } : this.reject(p, 'Selecione um mob vivo dentro do alcance do Ryuken.');
     const dir = norm(alvo.x - p.x, alvo.y - p.y); p.facing = dir;
     p.ki -= RYUKEN.custo; p.ryukenReady = this.time + this.recarga(p, RYUKEN.recarga);
@@ -854,6 +884,10 @@ export class Game {
       if (!ativo(p) || (p.ryuken.automated && !p.autoHunt) || !usaRyuken(p) || !alvoValido(alvo, p)) { p.ryuken = null; continue; }
       p.ryuken.direction = norm(alvo.x - p.x, alvo.y - p.y); p.facing = p.ryuken.direction;
       if (this.time + 1e-9 < p.ryuken.until) continue;
+      if (p.ryuken.automated && this.distanciaAoCorpo(p, alvo) > estagioKame(p.level).alcance + KAME.mao) {
+        p.ryuken = null;
+        continue;
+      }
       const d = p.ryuken.direction, origem = { ...origemKame(p, d) };
       origem.y -= KAME.alturaMao;
       // Continua de onde o lançamento terminou (sem passar do alvo, se ele estiver mais perto que isso).
@@ -861,6 +895,7 @@ export class Game {
       origem.x += d.x * avanco; origem.y += d.y * avanco;
       this.projectiles.push({ id: this.uid('s'), kind: 'ryuken', owner: p.id, ownerType: 'player', ...origem, planet: p.planet, area: p.area,
         dx: d.x, dy: d.y, speed: RYUKEN.velocidade, targetId: alvo.id, damage: p.ryuken.damage, started: this.time, ttl: 1 });
+      p.ryukenAutomatizado = p.ryuken.automated;
       p.ryukenLancado = this.time; p.ryuken = null;
     }
     for (const s of this.projectiles) {
@@ -897,6 +932,7 @@ export class Game {
       if (this.time + 1e-9 < g.until) return true;
       const origem = { x: p.x, y: p.y - (g.targetId || g.aim ? GENKI.alturaOrigem : GENKI.alturaAlvo) };
       const direcao = !g.targetId && g.aim ? norm(g.aim.x - origem.x, g.aim.y - origem.y) : g.direction;
+      p.genkiAutomatizado = g.automated;
       p.genkiLancado = this.time;p.genkiDirecao = { ...direcao };
       this.projectiles.push({ id: this.uid('s'), kind: 'genki', owner: p.id, ownerType: 'player',
         ...origem, planet: g.planet, area: g.area,
@@ -1246,14 +1282,21 @@ export class Game {
       return;
     }
     if (p.charge?.bigBangAttack) {
+      const automatica = p.charge.automated;
       this.atualizarCargaBigBangAttack(p);
-      if (p.charge?.bigBangAttack) return;
+      if (automatica || p.charge?.bigBangAttack) return;
     }
     if (p.charge?.finalFlash) {
+      const automatica = p.charge.automated;
       this.atualizarCargaFinalFlash(p);
-      if (p.charge?.finalFlash) return;
+      if (automatica || p.charge?.finalFlash) return;
     }
-    if (p.finalFlashAtivo) {
+    if (p.charge?.automated && (p.charge.kame || p.charge.galick)) {
+      this.atualizarCargaFeixe(p);
+      return;
+    }
+    if (p.autoHunt && (p.ryuken?.automated || this.genkiCharges.some(g => g.owner === p.id && g.automated))) return;
+    if (p.finalFlashAtivo && !p.finalFlashAtivo.automated) {
       p.facing = p.finalFlashAtivo.direction;
       return;
     }
@@ -1275,8 +1318,7 @@ export class Game {
       p.saidaSegura = null;
       // Reavalia a cada passo para reagir ao aparecimento de chefes e a inimigos mais próximos.
       const alcanceKame = p.vocacao === 'goku' && p.level >= CONFIG.skills.kame ? estagioKame(p.level).alcance + KAME.mao : 0;
-      const raioCaca = p.autoSkills && alcanceKame
-        ? Math.max(CONFIG.autoHuntRaio, alcanceKame + velocidade * KAME.carga) : CONFIG.autoHuntRaio;
+      const raioCaca = p.autoSkills ? Math.max(CONFIG.autoHuntRaio, alcanceKame) : CONFIG.autoHuntRaio;
       const target = this.alvoMaisProximo(p, raioCaca);
       if (target) {
         if (target.id !== p.caca?.alvo) { p.caca = { alvo: target.id, melhor: Infinity, desde: this.time }; p.rota = null; }
@@ -1326,7 +1368,7 @@ export class Game {
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
-    if (p.autoFood && p.autoHunt && p.hp / p.stats.hp <= CONFIG.autoFoodLimiteHp && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
+    if (p.finalFlashAtivo) return;
     if (p.autoHunt && this.time >= p.kiReady) {
       const fracaoHp = p.hp / p.stats.hp;
       const fracaoKi = p.ki / p.stats.ki;
@@ -1336,6 +1378,10 @@ export class Game {
       else if (usarKi) this.usePotion(p);
     }
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.autoHunt && p.autoFood && p.foodUntil <= this.time) {
+      const comida = escolherComidaAutomatica(p);
+      if (comida) this.useFood(p, comida);
+    }
     if (p.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
     const combo = p.comboAutoHunt;
     const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
@@ -1360,13 +1406,12 @@ export class Game {
       const prefereBasico = p.autoAttack && pertoParaBasico && (target.hp <= danoBasico || (basicoPronto && target.hp <= danoKi));
       const vegeta = p.vocacao === 'vegeta';
       const podeKame = p.vocacao === 'goku' && p.level >= 3
-        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao + (p.moving ? velocidade * KAME.carga : 0);
+        && this.distanciaAoCorpo(p, target) <= estagioKame(p.level).alcance + KAME.mao;
       const podeRajada = p.autoAttack && !pertoParaBasico && p.ki > p.stats.ki * 0.15 && distance(p, target) < 390;
       const tentar = skill => this.cast(p, skill, true).ok;
       let usouTecnica = false;
       if (p.autoSkills && combo) {
-        // Uma técnica indisponível deixa a próxima prioridade disputar o mesmo turno.
-        usouTecnica = combo.ordem.some(({ id, ki }) => kiPermiteCombo(p, id, ki) && tentar(id));
+        usouTecnica = this.dispararComboAutoHunt(p);
       } else if (p.autoSkills && p.vocacao === 'boo' && !morreriaNoBasico) {
         usouTecnica = [...Object.keys(TECNICAS_BOO).reverse(), CHOCOLATE_BEAM.id].some(tentar);
       } else if (p.autoSkills && vegeta) {
@@ -1375,45 +1420,48 @@ export class Game {
         usouTecnica = (usaSuperKame(p) && tentar('superKamehameha'))
           || (usaRyuken(p) && tentar('ryuken')) || tentar('kame');
       }
+      if (usouTecnica && (p.charge || p.ryuken || this.genkiCharges.some(g => g.owner === p.id))) p.moving = false;
       if (!usouTecnica && podeRajada && (!combo || kiPermiteCombo(p, 'ki'))) tentar('ki');
     }
     if (p.vocacao === 'boo' && p.autoHunt && p.autoAttack && !p.charge && target && this.distanciaAoCorpo(p, target) < 70)
       this.cast(p, 'basic', true);
-    if (p.charge?.galick) this.atualizarCargaGalick(p);
-    if (p.charge && p.vocacao !== 'boo' && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack) {
-      let alvo = this.mobs.get(p.charge.targetId);
-      if (p.charge.automated && (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo) || p.targetId !== alvo.id)) {
-        alvo = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
-        if (alvo) { p.charge.targetId = alvo.id; p.targetId = alvo.id; }
-      }
-      if (!alvo || alvo.hp <= 0 || !this.mesmoLugar(p, alvo) || naZonaSegura(alvo)) p.charge = null;
-      else p.facing = p.charge.direction = norm(alvo.x - p.x, alvo.y - p.y);
-    }
-    // Auto Hunt prepara durante a aproximação, mas o feixe só sai no alcance real.
-    const cargaKame = p.charge && p.vocacao !== 'boo' && !p.charge.galick && !p.charge.finalFlash && !p.charge.bigBangAttack ? p.charge : null;
-    const alvoCarga = cargaKame && this.mobs.get(cargaKame.targetId);
-    const cargaNoAlcance = cargaKame && (!cargaKame.automated || this.distanciaAoCorpo(p, alvoCarga) <= estagioKame(cargaKame.nivel).alcance + KAME.mao);
-    if (cargaNoAlcance && this.time >= cargaKame.until) {
-      this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, cargaKame.direction),
-        targetId: cargaKame.targetId, direction: cargaKame.direction, nivel: cargaKame.nivel, cor: cargaKame.cor,
-        started: this.time - KAME.primeiroFeixe * KAME.quadro, galick: false, distancia: null,
-        damage: p.stats.attack * (cargaKame.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')),
-        automated: cargaKame.automated, atingidos: new Set() });
-      p.charge = null;
-    }
+    if (p.charge?.galick || p.charge?.kame) this.atualizarCargaFeixe(p);
     for (const l of this.loot) if (!l.taken && this.mesmoLugar(p, l) && (l.owner === p.id || this.time > l.until - 30) && distance(p, l) < CONFIG.pickupRadius) {
       if (this.addItem(p, l.item)) { l.taken = true;analisar(p,'loot',1,l.item);registrarMissao(p,'coleta',1,this.agora()); this.emit('pickup', { x: l.x, y: l.y, playerId: p.id, item: l.item }); }
       else if (this.time - p.lastBagNotice > 8) { p.lastBagNotice = this.time; this.notify(p, 'Mochila cheia: XP continua, novos itens ficam no chão.'); }
     }
   }
-  alvoValidoGalick(p, alvo) {
-    return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && !naZonaSegura(alvo);
+  alvoValidoFeixe(p, alvo) {
+    return alvo?.hp > 0 && this.mesmoLugar(p, alvo) && this.podeEnfrentarMob(p, alvo) && !naZonaSegura(alvo);
+  }
+  atualizarCargaFeixe(p) {
+    const carga = p.charge;
+    if (carga.galick) return this.atualizarCargaGalick(p);
+    const alcance = estagioKame(carga.nivel).alcance + KAME.mao;
+    let alvo = this.mobs.get(carga.targetId);
+    if (carga.automated && !this.alvoValidoFeixe(p, alvo)) {
+      alvo = this.alvoMaisProximo(p, alcance);
+      if (alvo) carga.targetId = p.targetId = alvo.id;
+    }
+    if (naZonaSegura(p) || !this.alvoValidoFeixe(p, alvo)) {
+      p.charge = null;
+      return;
+    }
+    p.facing = carga.direction = norm(alvo.x - p.x, alvo.y - p.y);
+    if (this.time < carga.until) return;
+    p.charge = null;
+    if (carga.automated && this.distanciaAoCorpo(p, alvo) > alcance) return;
+    this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origemKame(p, carga.direction, alvo),
+      targetId: alvo.id, direction: carga.direction, nivel: carga.nivel, cor: carga.cor,
+      started: this.time - KAME.primeiroFeixe * KAME.quadro, galick: false, distancia: null,
+      damage: p.stats.attack * (carga.superKame ? SUPER_KAME.dano : multiplicadorDaForma(p.forma, 'kame')),
+      automated: carga.automated, ...(carga.automated ? { emissor: { x: p.x, y: p.y } } : {}), atingidos: new Set() });
   }
   atualizarCargaGalick(p) {
     const carga = p.charge, alvo = this.mobs.get(carga.targetId);
-    if (!this.alvoValidoGalick(p, alvo)) { p.charge = null; return; }
+    if (naZonaSegura(p) || !this.alvoValidoFeixe(p, alvo)) { p.charge = null; return; }
     const foraDoAlcance = this.distanciaAoCorpo(p, alvo) > carga.alcance + GALICK.mao;
-    if (foraDoAlcance && (!carga.automated || p.targetId !== alvo.id || this.time >= carga.until + GALICK.carga)) {
+    if (foraDoAlcance && (!carga.automated || this.time >= carga.until)) {
       p.charge = null;
       return;
     }
@@ -1421,7 +1469,8 @@ export class Game {
     if (this.time < carga.until || foraDoAlcance) return;
     this.kamehamehas.push({ id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area,
       galick: true, versao: carga.versao, alcance: carga.alcance, targetId: alvo.id, castStarted: carga.started, started: this.time,
-      direction: carga.direction, distancia: 0, damage: p.stats.attack * GALICK.dano });
+      direction: carga.direction, distancia: 0, damage: p.stats.attack * GALICK.dano,
+      ...(carga.automated ? { emissor: { x: p.x, y: p.y } } : {}) });
     p.charge = null;
   }
   atualizarGalick(k, p) {
@@ -1429,11 +1478,13 @@ export class Game {
     if (k.impacto) return this.time - k.impacto.started < GALICK.impactoQuadros * GALICK.impactoQuadro;
     if (naZonaSegura(p) || this.time - k.started >= GALICK.duracao) return false;
     const alvo = this.mobs.get(k.targetId);
-    if (!this.alvoValidoGalick(p, alvo)) return false;
-    const contato = this.distanciaAoCorpo(p, alvo);
+    if (!this.alvoValidoFeixe(p, alvo)) return false;
+    const emissor = k.emissor ?? p;
+    const contato = this.distanciaAoCorpo(emissor, alvo);
     if (contato > k.alcance + GALICK.mao) return false;
-    k.direction = p.facing = norm(alvo.x - p.x, alvo.y - p.y);
-    Object.assign(k, origemGalick(p, k.direction, contato));
+    k.direction = norm(alvo.x - emissor.x, alvo.y - emissor.y);
+    if (!k.emissor) p.facing = k.direction;
+    Object.assign(k, origemGalick(emissor, k.direction, contato));
     const distancia = Math.max(0, contato - GALICK.mao);
     k.pesAlvoPrevisto = { x: alvo.x, y: alvo.y };
     k.distanciaContato = distancia;
@@ -1485,7 +1536,7 @@ export class Game {
     }
     p.facing = carga.direction = direction;
     if (this.time + 1e-9 < carga.until) return;
-    p.bigBangLancado = { started: this.time, direction };
+    p.bigBangLancado = { started: this.time, direction, automated: carga.automated };
     this.projectiles.push({ id: this.uid('s'), kind: 'bigBangAttack', ownerType: 'player', owner: p.id,
       planet: p.planet, area: p.area, targetId: alvo.id, ...origem, dx: direction.x, dy: direction.y, direcaoLancamento: direction,
       started: this.time, speed: BIG_BANG_ATTACK.velocidade, restante: BIG_BANG_ATTACK.alcance,
@@ -1559,7 +1610,7 @@ export class Game {
     const origem = origemFinalFlash(p, carga.direction, ateContato);
     const efeito = { id: this.uid('k'), owner: p.id, planet: p.planet, area: p.area, ...origem,
       finalFlash: true, targetId: alvo.id, direction: carga.direction, started: this.time,
-      emissor: { x: p.x, y: p.y },
+      emissor: { x: p.x, y: p.y }, automated: carga.automated,
       distanciaPrevista: FINAL_FLASH.alcance, damage: p.stats.attack * FINAL_FLASH.dano };
     this.kamehamehas.push(efeito);
     p.finalFlashAtivo = efeito;
@@ -1569,10 +1620,12 @@ export class Game {
     if (!p?.connected || p.hp <= 0 || !this.mesmoLugar(p, efeito) || naZonaSegura(p)) return false;
     if (efeito.impacto) return this.time - efeito.impacto.started < FINAL_FLASH.impactoQuadros * FINAL_FLASH.impactoQuadro;
     const alvo = this.mobs.get(efeito.targetId);
-    if (!formaFinalFlash(p.forma) || !this.alvoValidoFinalFlash(p, alvo)) return false;
+    if (!formaFinalFlash(p.forma) || !this.alvoValidoFeixe(p, alvo)) return false;
     const raio = this.raioMob(alvo);
+    if (distance(efeito.emissor, alvo) - raio > FINAL_FLASH.alcance + FINAL_FLASH.mao) return false;
     const ateContato = Math.max(0, distance(efeito.emissor, alvo) - raio);
-    efeito.direction = p.facing = this.direcaoFinalFlash(p, alvo);
+    efeito.direction = this.direcaoFinalFlash({ ...efeito.emissor, facing: efeito.direction }, alvo);
+    if (!efeito.automated) p.facing = efeito.direction;
     Object.assign(efeito, origemFinalFlash(efeito.emissor, efeito.direction, ateContato));
     const distancia = contatoFinalFlash(efeito, efeito.direction, alvo, raio);
     const alcanceAtual = Math.max(0, this.time - efeito.started) * FINAL_FLASH.velocidade;
@@ -1603,12 +1656,14 @@ export class Game {
       let principal = this.mobs.get(k.targetId);
       if (!principal || principal.hp <= 0 || !this.mesmoLugar(k, principal) || naZonaSegura(principal)) {
         if (!k.automated) return false;
-        principal = this.alvoMaisProximo(p, CONFIG.autoHuntRaio);
+        principal = this.alvoMaisProximo({ ...p, ...k.emissor }, CONFIG.autoHuntRaio);
         if (!principal) return true;
         k.targetId = principal.id;
       }
-      k.direction = norm(principal.x - p.x, principal.y - p.y);p.facing = k.direction;
-      Object.assign(k, origemKame(p, k.direction, principal));
+      const emissor = k.emissor ?? p;
+      k.direction = norm(principal.x - emissor.x, principal.y - emissor.y);
+      if (!k.emissor) p.facing = k.direction;
+      Object.assign(k, origemKame(emissor, k.direction, principal));
       if (atingidoPeloKame(principal, k, k.direction, g)) {
         const distancia = Math.min(g.alcance, distanciaContatoKame(principal, k, k.direction));
         k.impacto = { x: principal.x, y: principal.y, started: this.time, distancia,
@@ -1954,15 +2009,15 @@ export class Game {
         montaria:p.montaria,montariaPreferida:p.montariaPreferida,skin:p.skin,level: p.level, moving: p.moving, facing: p.facing, forma: p.forma, transformed: p.transformed,
         barrier: Number.isFinite(p.barrierStarted) ? { started: p.barrierStarted, until: p.barrierUntil } : null,
         heal: Number.isFinite(p.healStarted) ? { started: p.healStarted } : null,
-        genkiLancado: Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
+        genkiLancado: !(p.genkiAutomatizado && p.moving) && Number.isFinite(p.genkiLancado) && p.hp > 0 && !naZonaSegura(p) && this.time-p.genkiLancado < .35 ? p.genkiLancado : null,
         ryuken: p.ryuken ? { started: p.ryuken.started, until: p.ryuken.until, direction: p.ryuken.direction } : null,
-        ryukenLancado: Number.isFinite(p.ryukenLancado) ? p.ryukenLancado : null,
-        // Enquanto o dragão voa, o Goku segura o soco (a pose não volta antes do impacto).
-        ryukenVoando: this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
+        ryukenLancado: !(p.ryukenAutomatizado && p.moving) && Number.isFinite(p.ryukenLancado) ? p.ryukenLancado : null,
+        // O Goku segura o soco até o impacto, ou até retomar a caminhada na caça automática.
+        ryukenVoando: !(p.ryukenAutomatizado && p.moving) && this.projectiles.some(s => s.kind === 'ryuken' && s.ttl > 0 && s.owner === p.id),
         genkiDirecao: p.genkiDirecao || null,
-        bigBangLancado: p.bigBangLancado && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
-        chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
-        booLancado: p.hp > 0 && p.booLancado && this.time - p.booLancado.started < .32 ? p.booLancado : null,
+        bigBangLancado: p.bigBangLancado && !(p.bigBangLancado.automated && p.moving) && this.time - p.bigBangLancado.started < BIG_BANG_ATTACK.poseDisparo ? p.bigBangLancado : null,
+        chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && !(p.chocolateLancado.automated && p.moving) && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
+        booLancado: p.hp > 0 && p.booLancado && !(p.booLancado.automated && p.moving && p.booLancado.tipo === 'supernova') && this.time - p.booLancado.started < .32 ? p.booLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
       self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,velocidadeMovimento:velocidadeMovimento(self,this.agora()),vipMontaria:vipMontariaAtiva(self,this.agora()),huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,

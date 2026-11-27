@@ -971,17 +971,19 @@ function frame(now) {
       continue;
     }
     if (k.galick) {
+      const emissor = k.emissor ?? pos;
       const mao = k.impacto ? posicaoMaoGalick(dono, k, k.direction, 0, k.impacto.started)
-        : pos && dono ? posicaoMaoGalick(dono, pos, k.direction, Math.hypot(k.x - dono.x, k.y - dono.y)) : k;
+        : emissor && dono ? posicaoMaoGalick(dono, emissor, k.direction,
+          Math.hypot(k.x - (k.emissor ?? dono).x, k.y - (k.emissor ?? dono).y), k.emissor ? k.started : time) : k;
       const posAlvo = renderPositions.get(k.targetId);
       const pesAlvo = k.impacto?.pesAlvo || posAlvo || k.pesAlvoPrevisto;
-      adicionarEfeito(k.impacto ? pesAlvo || k : pos || k, () => desenharGalick(ctx, k, time, mao, pesAlvo), camadaGalick(k.direction));
+      adicionarEfeito(k.impacto ? pesAlvo || k : emissor || k, () => desenharGalick(ctx, k, time, mao, pesAlvo), camadaGalick(k.direction));
       if (k.impacto) adicionarEfeito(posAlvo || pesAlvo || k.impacto, () => desenharImpactoGalick(ctx, k.impacto, time, k.versao, pesAlvo), .03);
       continue;
     }
-    adicionarEfeito(pos || k, () => {
+    adicionarEfeito(k.emissor ?? pos ?? k, () => {
       const alvo = snapshot.mobs.find(m => m.id === k.targetId);
-      const origem = pos && !k.impacto ? origemKame(pos, k.direction, alvo) : null;
+      const origem = pos && !k.emissor && !k.impacto ? origemKame(pos, k.direction, alvo) : null;
       desenharKameSobreInimigos(origem ? { ...k, ...origem } : k, time, dono, pos);
     });
   }
