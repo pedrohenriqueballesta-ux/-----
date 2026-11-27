@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --import ./server/desenvolvimento.mjs server.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --import ./tests/_setup.mjs --test tests/*.test.mjs",
     "check": "node ferramentas/verificar_sintaxe.mjs"
   }
 }
