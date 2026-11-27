@@ -242,9 +242,22 @@ export function descartarSlotMochila(p, de, n = CONFIG.mochilaSlots) {
 
 // Inventário inicial que o personagem recebe ao entrar.
 const STARTING_INVENTORY = { food: 5, ki: 4, seed15: 2, seed30: 1, seed50: 1, seed100: 1, scrap: 0 };
+// Versão da shape do save do personagem. Suba quando mudar a estrutura e adicione a migração em
+// migrarSave, para não quebrar personagens já salvos (item 4 do backlog de arquitetura).
+export const SAVE_SCHEMA = 1;
+// Migra um save antigo para a shape atual. Cada bloco sobe UMA versão, em ordem. Saves sem `schema`
+// são a versão 0 (o formato atual já é a 1, então por ora só carimba). Muta e devolve o próprio objeto.
+export function migrarSave(saved) {
+  if (!saved || typeof saved !== 'object') return saved;
+  let versao = Number.isInteger(saved.schema) ? saved.schema : 0;
+  // Exemplo para o futuro:  if (versao < 2) { /* transforma v1 → v2 */ versao = 2; }
+  saved.schema = Math.max(versao, SAVE_SCHEMA);
+  return saved;
+}
 
 // Cria o estado completo de um jogador, aplicando o progresso salvo quando houver.
 export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
+  if (saved) saved = migrarSave(saved); // sobe saves antigos para a shape atual antes de usar
   const level = clamp(Math.floor(Number(saved?.level) || 1), 1, CONFIG.progression.nivelMaximo);
   const vocacao = vocacaoDoPersonagem(saved);
   const equipamentos = Object.fromEntries(Object.entries(saved?.equipamentos ?? {}).filter(([slot, id]) =>
@@ -375,7 +388,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
 
 // Campos persistidos no save do servidor.
 export function exportPlayer(p) {
-  return { skin:p.skin, montaria:montariaValida(p.montaria), montariaPreferida:montariaValida(p.montariaPreferida)||'nimbus', battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.godmode && p.xpReal != null ? p.xpReal : p.xp, x: p.x, y: p.y,
+  return { schema: SAVE_SCHEMA, skin:p.skin, montaria:montariaValida(p.montaria), montariaPreferida:montariaValida(p.montariaPreferida)||'nimbus', battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.godmode && p.xpReal != null ? p.xpReal : p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),sagaCell:structuredClone(p.sagaCell),sagaAndroides:structuredClone(p.sagaAndroides),
