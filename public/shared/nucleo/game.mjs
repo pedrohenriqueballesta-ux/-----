@@ -1,3 +1,4 @@
+import { registrarAbateBestiario } from '../sistemas/progresso-bestiario.mjs';
 import { aceitarTask, registrarAbateTask } from '../sistemas/tasks-hunt.mjs';
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
@@ -1039,6 +1040,7 @@ export class Game {
           const experiencia=attacker.level>=CONFIG.progression.nivelMaximo?0:xpAjustadoPorNivel(xpBase,attacker.level,nivelMob);
           this.awardXp(attacker, experiencia, true); attacker.kills++; registrarMissao(attacker,'kills',1,this.agora());
           registrarAbateTask(attacker,target);
+          registrarAbateBestiario(attacker, target);
           const zeniAntes = attacker.zeni;
           const [zeniMin, zeniMax] = faixaZeniMob(target.level, target.raro);
           attacker.zeni += target.raro ? zeniMin : zeniMin + Math.floor(this.random() * (zeniMax - zeniMin + 1));
@@ -2044,6 +2046,7 @@ export class Game {
         genkiRemaining: Math.max(0, self.genkiReady - this.time), transformRemaining: self.forma === 'gogeta' ? Math.max(0, self.formaAte - this.time) : 0,
         ryukenRemaining: Math.max(0, (self.ryukenReady || 0) - this.time),
         novidades: self.novidades.map(n => ({...n})), mercado:{...this.mercado.resumo(self),saldoPremium,pertoDoMercador:Boolean(mercadorPerto(self)),entregasPremium:{...self.entregasPremium},extensores:{...self.bonusPremium.extensores}},
+        bestiarioRevisao: self.bestiarioRevisao,
         transformed: self.transformed, kills: self.kills, bossKills: self.bossKills, godmode: !!self.godmode,
         beneficiosDeTeste:this.beneficiosDeTeste, godmodeOptions:{...self.godmodeOptions}, godmodeLevelMax:CONFIG.progression.nivelMaximo,
         penalidadeMorte: self.hp <= 0 ? self.penalidadeMorte ?? null : null,

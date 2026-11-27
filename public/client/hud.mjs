@@ -30,6 +30,7 @@ import { instalarPainelMovel, instalarArrasto } from '../render/hud/painel-movel
 let atualizarDetalhes = () => {};
 let atualizarComboAutoHunt;
 let novidadesHud = null;
+let bestiarioHud = null;
 let lojaHud = null;let abasHud=null;let godmodeHud=null;
 const avisados = new Set();
 const VAZIO = new Proxy(function () {}, {
@@ -139,6 +140,7 @@ ajustarEscala(); addEventListener('resize', ajustarEscala);
 export function atualizarHud(snapshot, playerId) {
   const s = snapshot?.self, p = snapshot?.players.find(v => v.id === playerId); if (!s || !p) return;
   atualizarHuntAnalyzer(s.huntAnalyzer,playerId);
+  bestiarioHud?.atualizar();
   const retrato = document.getElementById('playerPortrait');
   if (retrato) atualizarRetratoVocacao(retrato, s.vocacao);
   $('playerName').textContent = p.name; $('levelBadge').textContent = 'Nv. ' + s.level;
@@ -615,8 +617,8 @@ export function ligarHud(contexto) {
   novidadesHud = instalarNovidadesHud(action);
   lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify,tele:tipo=>ctx?.tele?.(tipo)});
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
-  const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
-  const telas = {store:instalarStore(ctx),battlepass:instalarBattlePass(ctx), bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
+  bestiarioHud = instalarBestiario(() => ctx?.snapshot());
+  const telas = {store:instalarStore(ctx),battlepass:instalarBattlePass(ctx), bestiario:bestiarioHud.alternar, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
   montarMochila();
   const mochila=$('mochilaDialog'),minimizar=$('mochilaMinimizar');
   const exibirMochilaCompacta=compacta=>{

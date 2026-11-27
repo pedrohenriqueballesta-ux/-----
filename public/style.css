@@ -416,6 +416,11 @@ dialog small{display:block;margin-top:8px;color:var(--suave)}
 .bestiario-lista{display:flex;flex-direction:column;gap:7px;padding-right:5px}
 .bestiario-lista button{text-align:left;display:grid;gap:3px;padding:10px;border:1px solid #365677;border-radius:8px;background:#13283c}
 .bestiario-lista button[aria-pressed=true]{border-color:var(--ouro);background:#27405b}
+.bestiario-lista button[data-inimigo]{grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px}
+.bestiario-lista-nomes{grid-column:2;display:grid;gap:3px;overflow-wrap:anywhere}
+.bestiario-lista button .bestiario-retrato{grid-column:1;grid-row:1;width:44px;height:44px}
+.bestiario-retrato.bestiario-silhueta{background:none;filter:brightness(0) drop-shadow(0 0 3px #8ab0c4)}
+.bestiario-desbloqueio{margin:10px 0;color:#b8c7d6}
 .bestiario-lista small{color:#b8c7d6}
 .bestiario-detalhe{padding-right:7px}
 .bestiario-apresentacao{display:flex;align-items:center;gap:12px}
