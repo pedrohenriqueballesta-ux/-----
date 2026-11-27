@@ -613,7 +613,7 @@ export function ligarHud(contexto) {
   abasHud=instalarAbasHud(ctx,{autoHunt:alternarAutoHunt,avisar:notify});
   atualizarDetalhes = instalarDetalhesHabilidades();
   novidadesHud = instalarNovidadesHud(action);
-  lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify});
+  lojaHud = instalarLoja({janela:document.getElementById('shopDialog'),obterEstado:()=>ctx?.snapshot()?.self,comprar:dados=>ctx.api('action',dados),avisar:notify,tele:tipo=>ctx?.tele?.(tipo)});
   // Menus do topo: Loja, Mapa e Mochila abrem janelas; os outros ainda não têm tela.
   const abrirBestiario = instalarBestiario(() => ctx?.snapshot()?.self);
   const telas = {store:instalarStore(ctx),battlepass:instalarBattlePass(ctx), bestiario:abrirBestiario, loja: () => lojaHud.abrir(), mapa: abrirMapa, mochila: alternarMochila };
