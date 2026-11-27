@@ -1,7 +1,7 @@
 import { drawSheet } from '../../art/atlas.mjs';
 import { alturaBoo, folhasBoo } from '../../art/personagens/majin-boo/boo.mjs';
 import { FORMAS_BOO } from '../../shared/tecnicas/formas.mjs';
-import { carregarVaporBoo, desenharVaporBoo } from '../vfx/boo-vapor.mjs';
+import { carregarVaporBoo, desenharVaporBoo, quadrosPreviaVaporBoo } from '../vfx/boo-vapor.mjs';
 import { desenharRaiosTransformacao } from '../vfx/raios-transformacao.mjs';
 import { RAIOS_POR_FORMA } from '../../art/raios-transformacoes.mjs';
 import { POSES_MAJIN_BOO, RETRATO_MAJIN_BOO } from '../../art/personagens/majin-boo/folhas.mjs';
@@ -48,7 +48,8 @@ function pintar() {
   const folha = folhasBoo(forma.value)[acao.value];
   const imagem = folhas.get(folha.file);
   const altura = alturaBoo(forma.value) * 100 / alturaBoo('base');
-  vapor.disabled = acao.value !== 'supernova' || !['base', 'superBoo'].includes(forma.value);
+  const idades = quadrosPreviaVaporBoo(acao.value);
+  vapor.disabled = !idades;
   const marco = pose.quadroAcao === frame + 1;
   const marcoNorte = pose.quadroNorte === frame + 1;
 
@@ -60,7 +61,7 @@ function pintar() {
 
   DIRECTIONS.forEach((direcao, i) => {
     const x = (i + 0.5) * 132;
-    const y = 151;
+    const y = 181;
     const ativo = direcao.id === 'n' && pose.quadroNorte ? marcoNorte : marco;
     ctx.fillStyle = ativo ? (escuro ? '#ffdc8c' : '#624425') : escuro ? '#ecf3ff' : '#122947';
     ctx.fillText(direcao.label, x, 24);
@@ -68,8 +69,8 @@ function pintar() {
     if (!imagem?.naturalWidth) return;
     const pos = { x, y };
     const opcaoVapor = !vapor.disabled && vapor.value !== 'nenhum';
-    const estadoVapor = { forma: forma.value, folha, pos, altura, direcao, coluna: frame,
-      idade: [.12, .42, .65, .93][frame], marcadores: vapor.value === 'poros' };
+    const estadoVapor = { acao: acao.value, forma: forma.value, folha, pos, altura, direcao, coluna: frame,
+      idade: idades?.[frame], marcadores: vapor.value === 'poros' };
     if (forma.value === 'kidBoo')
       desenharRaiosTransformacao(ctx, { id: 'previa-' + i, vocacao: 'boo', forma: forma.value }, pos, performance.now() / 1000, altura, RAIOS_POR_FORMA);
     if (opcaoVapor) desenharVaporBoo(ctx, { ...estadoVapor, camada: 'atras' });

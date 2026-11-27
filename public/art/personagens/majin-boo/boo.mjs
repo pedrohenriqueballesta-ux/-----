@@ -23,7 +23,7 @@ function imagemDaFolha(folha) {
 
 export function carregarBoo(forma = 'base') {
   for (const folha of Object.values(folhasBoo(forma))) imagemDaFolha(folha);
-  if (forma === 'base' || forma === 'superBoo') carregarVaporBoo();
+  carregarVaporBoo();
 }
 
 export function colunaChocolate(carga, time) {
@@ -48,6 +48,11 @@ export function pontaAntenaChocolate(pos, direcao, forma, tempoLancado = 0) {
   const ponto = (quartoKid ? antenaKidDisparo : antenas[forma] || antenas.base)[row];
   return pontoDaPoseBoo(folhasBoo(forma).chocolate, pos, alturaBoo(forma), direcao, quartoKid ? 3 : 2, ponto);
 }
+
+const tecnicasComVapor = {
+  [SUPERNOVA_BOO.id]: { acao: 'supernova', carga: SUPERNOVA_BOO.carga },
+  [ANGRY_BOO.id]: { acao: 'angry', carga: ANGRY_BOO.carga }
+};
 
 const palmas = {
   superBoo: [[37, 113], [143, 129], [182, 109], [186, 88]],
@@ -100,16 +105,25 @@ export function drawBoo(ctx, player, pos, time, strikeProgress = null) {
       acao = 'angry';
       coluna = Math.min(2, Math.floor(t / .32));
     }
-  } else if (disparo && time - disparo.started < .32) {
+  } else if (disparo && time - disparo.started < .32 && !(disparo.tipo === SUPERNOVA_BOO.id && disparo.automated && player.moving)) {
     direcao = disparo.direction;
     acao = disparo.tipo === ANGRY_BOO.id ? 'angry' : 'supernova';
     coluna = acao === 'angry' || time - disparo.started >= .18 ? 3 : 2;
   }
   const folhas = folhasBoo(player.forma), altura = alturaBoo(player.forma);
   const folha = folhas[acao], imagem = imagemDaFolha(folha);
-  const vapor = acao === 'supernova' && carga?.booTecnica === SUPERNOVA_BOO.id && imagem.complete && imagem.naturalWidth
-    ? { forma: player.forma, folha, pos, altura, direcao, coluna, idade: time - carga.started,
-      origemFixa: !player.montaria ? carga.origem : undefined } : null;
+  const vaporDaCarga = tecnicasComVapor[carga?.booTecnica];
+  const vaporDoDisparo = tecnicasComVapor[disparo?.tipo];
+  const formaDoDisparo = disparo?.forma ?? player.forma;
+  const vapor = vaporDaCarga
+    ? { acao, forma: player.forma, folha, pos, altura, direcao, coluna, idade: time - carga.started }
+    : vaporDoDisparo ? {
+      acao: vaporDoDisparo.acao, forma: formaDoDisparo, folha: folhasBoo(formaDoDisparo)[vaporDoDisparo.acao],
+      altura: alturaBoo(formaDoDisparo), direcao: disparo.direction, coluna: 3,
+      pos: disparo.origem && Number.isFinite(player.x)
+        ? { x: disparo.origem.x + (player.montaria ? pos.x - player.x : 0), y: disparo.origem.y + (player.montaria ? pos.y - player.y : 0) } : pos,
+      idade: vaporDoDisparo.carga + time - disparo.started
+    } : null;
   if (vapor) desenharVaporBoo(ctx, { ...vapor, camada: 'atras' });
   const desenhou = drawSheet(ctx, folha, imagem, pos, altura, direcao, coluna)
     || drawSheet(ctx, folhas.parado, imagemDaFolha(folhas.parado), pos, altura, direcao, 0)
