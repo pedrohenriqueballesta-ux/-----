@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
+import { ehUpgradeWebSocket, aceitarUpgrade } from './server/ws.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicRoot = resolve(root, 'public');
@@ -28,7 +29,8 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   const pularLogin = process.env.DBI_SKIP_LOGIN !== '0';
   const economiaPremium=new EconomiaPremium({ambiente});
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development' });
-  const sessions = new Map(), streams = new Map(), rates = new Map();
+  // streams = conexões SSE (reserva); sockets = conexões WebSocket (canal preferido do jogo).
+  const sessions = new Map(), streams = new Map(), sockets = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve();
   if (dataDir) {
     await mkdir(dataDir, { recursive: true });
@@ -50,11 +52,12 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   };
   const cookie=(req,token,limpar=false)=>'dbi_session='+token+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+(limpar?0:Math.floor(AUTH_CONFIG.sessaoMs/1000))+((req.socket.encrypted||req.headers['x-forwarded-proto']==='https'||process.env.COOKIE_SECURE==='true')?'; Secure':'');
   const guardar=p=>{const a=autenticacao.contas.get(p.contaId),c=a?.personagens.find(c=>c.id===p.personagemId);if(c)c.save=game.exportPlayer(p);};
-  const congelar=id=>{const p=sessions.get(id);if(p){guardar(p);p.forma='base';p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
+  const congelar=id=>{const p=sessions.get(id);if(p){guardar(p);p.forma='base';p.connected=false;p.autoHunt=false;p.input={x:0,y:0};p.moveTo=null;p.targetId=null;sessions.delete(id);}const respostas=streams.get(id);streams.delete(id);for(const r of respostas||[])r.end();const conexoes=sockets.get(id);sockets.delete(id);for(const c of conexoes||[])c.fechar();const sessao=autenticacao.sessoes.get(id);if(sessao){sessao.ativo=null;sessao.selecionado=null;}};
   const congelarConta=id=>{for(const[h,p]of sessions)if(p.contaId===id)congelar(h);};
   const exigir=req=>{const a=autenticacao.sessao(auth(req));if(!a)throw new FalhaAuth('sessaoExpirada',401);return a;};
   const mundo=req=>{const a=exigir(req),p=sessions.get(a.id);if(!p||!a.ativo||a.ativo!==a.selecionado||p.personagemId!==a.ativo||p.contaId!==a.conta.id)throw new FalhaAuth('selecionePersonagem',403);return{...a,p};};
-  const online=()=>new Set([...streams].filter(([id,r])=>r.size&&sessions.get(id)?.connected).map(([id])=>sessions.get(id).id)).size;
+  const temConexao=id=>(streams.get(id)?.size||0)+(sockets.get(id)?.size||0)>0;
+  const online=()=>new Set([...new Set([...streams.keys(),...sockets.keys()])].filter(id=>temConexao(id)&&sessions.get(id)?.connected).map(id=>sessions.get(id).id)).size;
   const contasPublicas=()=>{const personagens={};for(const a of autenticacao.contas.values())for(const c of a.personagens)personagens[c.id]=c.save;return contasDoServidor({...stored,...personagens},sessions);};
   const importarLegado=(a,token)=>{if(typeof token!=='string'||!/^[a-f0-9]{40}$/.test(token)||!stored[token]?.name||a.personagens.length>=autenticacao.maxPersonagens)return false;const salvo=stored[token];if(salvo.mercadoId&&[...autenticacao.contas.values()].some(a=>a.personagens.some(c=>c.save.mercadoId===salvo.mercadoId)))return false;a.personagens.push({id:randomBytes(16).toString('hex'),criadoEm:Date.now(),save:{...structuredClone(salvo),mercadoId:salvo.mercadoId||'c'+randomBytes(12).toString('hex')}});delete stored[token];return true;};
   // Um único arquivo guarda contas, itens reservados e créditos: não há meia negociação salva.
@@ -167,6 +170,35 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     } catch (e) { if (!res.headersSent) json(res,e instanceof FalhaAuth?e.status:400,{error:e instanceof FalhaAuth?e.code:'requisicaoInvalida'}); else res.end(); }
   });
   server.requestTimeout = 15000;
+  // Canal do jogo por WebSocket: o estado desce e o input sobe pelo mesmo socket persistente.
+  // O SSE (/api/events) e o POST /api/input seguem funcionando como reserva. A autenticação
+  // reaproveita o cookie de sessão (SameSite=Strict já barra uso cross-site).
+  server.on('upgrade', (req, socket, head) => {
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      if (url.pathname !== '/ws' || !ehUpgradeWebSocket(req)) return socket.destroy();
+      const origin = req.headers.origin, protocolo = req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https' ? 'https:' : 'http:';
+      if (origin && origin !== protocolo + '//' + req.headers.host) return socket.destroy();
+      const token = auth(req), a = autenticacao.sessao(token), p = a && sessions.get(a.id);
+      if (!a || !p || !a.ativo || a.ativo !== a.selecionado || p.personagemId !== a.ativo || p.contaId !== a.conta.id) return socket.destroy();
+      const janela = { desde: Date.now(), conta: 0 };
+      const conexao = aceitarUpgrade(req, socket, {
+        aoMensagem: texto => {
+          const agora = Date.now(); if (agora - janela.desde > 1000) { janela.desde = agora; janela.conta = 0; }
+          if (++janela.conta > 120) return; // o cliente manda input a ~15 Hz; 120/s é folga contra flood
+          let msg; try { msg = JSON.parse(texto); } catch { return; }
+          if (msg && msg.t === 'input') game.setInput(p.id, msg);
+        },
+        aoFechar: () => {
+          sockets.get(a.id)?.delete(conexao);
+          if (!sockets.get(a.id)?.size && !streams.get(a.id)?.size && sessions.get(a.id) === p) congelar(a.id);
+        },
+      });
+      if (!sockets.has(a.id)) sockets.set(a.id, new Set());
+      sockets.get(a.id).add(conexao); p.connected = true;
+      conexao.enviar(JSON.stringify(game.snapshot(p.id, economiaPremium.carteira(a.conta).saldo)));
+    } catch { try { socket.destroy(); } catch {} }
+  });
   // Loop auto-corrigido: avança o jogo com o tempo real decorrido (evita a câmera lenta
   // causada pela granularidade do timer do Windows) e transmite o estado a ~20 Hz.
   let lastTick = Date.now(), lastBroadcast = 0;
@@ -176,10 +208,13 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
     game.tick((now - lastTick) / 1000); lastTick = now;
     if (now - lastBroadcast >= 50) {
       lastBroadcast = now;
-      for (const [token, connections] of streams) {
-        if (!connections.size) continue;
-        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}const payload = 'data: ' + JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo)) + '\n\n';
-        for (const response of connections) if (!response.destroyed) response.write(payload);
+      for (const token of new Set([...streams.keys(), ...sockets.keys()])) {
+        const sse = streams.get(token), ws = sockets.get(token);
+        if (!sse?.size && !ws?.size) continue;
+        const p = sessions.get(token);if(!p||!autenticacao.sessoes.has(token)||autenticacao.sessoes.get(token).expira<=Date.now()){congelar(token);continue;}
+        const estado = JSON.stringify(game.snapshot(p.id,economiaPremium.carteira(autenticacao.contas.get(p.contaId)).saldo));
+        if (sse?.size) { const payload = 'data: ' + estado + '\n\n'; for (const response of sse) if (!response.destroyed) response.write(payload); }
+        if (ws?.size) for (const conexao of ws) conexao.enviar(estado);
       }
     }
     timer = setTimeout(tickLoop, 16);
@@ -190,6 +225,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   const close = async () => {
     closing = true; clearInterval(timer); clearInterval(saveTimer); await save();
     for (const connections of streams.values()) for (const response of connections) response.end();
+    for (const conexoes of sockets.values()) for (const conexao of conexoes) conexao.fechar();
     await new Promise(ok => server.close(ok));
   };
   return { server, game, sessions, autenticacao, economiaPremium, close, port: server.address().port };
