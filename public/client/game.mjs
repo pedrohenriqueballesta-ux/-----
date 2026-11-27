@@ -188,6 +188,13 @@ function aplicarSnapshot(texto){
     }
     if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
     snapshot = proximo; receivedAt = performance.now();tutorial?.atualizar(snapshot);statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
+    // "Enquanto você esteve fora": o servidor manda o resumo do ganho offline uma única vez.
+    if (proximo.self?.offlineResumo) {
+      const o = proximo.self.offlineResumo, partes = [];
+      if (o.xp > 0) partes.push('+' + o.xp.toLocaleString('pt-BR') + ' XP');
+      if (o.zeni > 0) partes.push('+' + o.zeni.toLocaleString('pt-BR') + ' Zeni');
+      if (partes.length) notify('Enquanto você esteve fora (~' + o.horas + 'h): ' + partes.join(' e ') + '.' + (o.teto ? ' (teto de ganho atingido)' : ''));
+    }
     // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
     carregarKame(snapshot.self?.level || 1);
     carregarGalick(snapshot.self?.galickVersao);
