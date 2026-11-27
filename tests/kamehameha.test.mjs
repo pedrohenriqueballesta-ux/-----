@@ -84,11 +84,11 @@ test('dano preserva os multiplicadores de SSJ e Kaioken sem acumular formas (Ped
   }
 });
 
-test('auto técnicas limita a carga ao alcance acrescido da aproximação prevista', () => {
+test('auto técnicas só inicia a carga dentro do alcance', () => {
   for (const dentro of [true, false]) {
     const { g, p, mob } = cena(CONFIG.skills.kame), m = mob(dentro ? 100 : 450); p.targetId = m.id; p.autoSkills = true; p.autoHunt = true;
     g.tick(.01); assert.equal(Boolean(p.charge), dentro);
-    if (!dentro) assert.equal(p.charge,null,'não prepara contra alvo além da margem de aproximação');
+    if (!dentro) assert.equal(p.charge,null,'não prepara fora do alcance');
   }
 });
 test('Kamehameha mira o selecionado mesmo com Auto Hunt OFF, mouse e corpo em outras direções', () => {
@@ -138,13 +138,15 @@ test('auto caça parada vira para o inimigo e acerta Kamehameha nas oito direç�
   }
 });
 test('auto caça acompanha durante carga e mantém impacto após colisão', () => {
-  const { g, p, mob } = cena(50), m = mob(130);
+  const { g, p, mob } = cena(50), m = mob(110);
   g.action(p.id, { type: 'hunt' }); p.autoAttack = false; g.tick(.01);
   assert.ok(p.charge);
   m.y += 50; g.tick(.01);
   mesmaDirecao(p.charge.direction, norm(m.x - p.x, m.y - p.y));
   passar(g, .7);
-  mesmaDirecao(g.kamehamehas[0].direction, p.facing);
+  const feixe = g.kamehamehas[0];
+  mesmaDirecao(feixe.direction, norm(m.x - feixe.emissor.x, m.y - feixe.emissor.y));
+  for (let i = 0; i < 90 && !feixe.impacto; i++) g.tick(.01);
   const impacto = structuredClone(g.kamehamehas[0].impacto);
   assert.ok(impacto);
   m.y -= 80; g.tick(.01);
@@ -238,39 +240,48 @@ test('alvo selecionado colado ou sobreposto ao jogador também é atingido',()=>
   }
 });
 
-for(const nivel of [40,80,120,160,200])test('Auto Hunt nível '+nivel+': antecipa a carga e solta ao entrar no alcance',()=>{
+for(const nivel of [40,80,120,160,200])test('Auto Hunt nível '+nivel+': Kamehameha para no limite e avança após soltar',()=>{
   const {g,p,mob}=cena(nivel),alcance=estagioKame(nivel).alcance+KAME.mao;
-  const alvo=mob(alcance+p.stats.mobility*KAME.carga-KAME.mao-3);
+  const alvo=mob(alcance+70-KAME.mao);
   p.autoHunt=true;p.autoSkills=true;p.autoAttack=false;
-  g.tick(.01);assert.ok(p.charge);assert.ok(g.distanciaAoCorpo(p,alvo)>alcance,'carga começa fora do alcance');
-  assert.equal(g.kamehamehas.length,0);
-  let soltou=false;
-  for(let i=0;i<200;i++){
+  g.steer=(e,m,dt,v)=>{e.x+=Math.min(m.x-e.x,dt*v);e.moving=true;return true;};
+  g.tick(.01);
+  assert.equal(p.charge,null);
+  let disparo, ponto;
+  for(let i=0;i<200&&!disparo;i++){
     g.tick(.01);
-    if(g.kamehamehas.length){
+    if(p.charge && !ponto){
       const distancia=g.distanciaAoCorpo(p,alvo);
-      assert.ok(distancia<=alcance,'não solta fora do alcance');
-      assert.ok(distancia>alcance-p.stats.mobility*.05,'solta perto da borda, sem esperar corpo a corpo');
-      soltou=true;break;
+      assert.ok(distancia<=alcance&&distancia>alcance-p.stats.mobility*.02);
+      ponto={x:p.x,y:p.y};
     }
+    if(ponto){assert.equal(p.x,ponto.x);assert.equal(p.y,ponto.y);assert.equal(p.moving,false);}
+    disparo=g.kamehamehas[0];
   }
-  assert.ok(soltou);
+  assert.ok(disparo);
+  assert.deepEqual(disparo.emissor,ponto);
+  g.tick(.01);
+  assert.ok(p.x>ponto.x);
+  assert.deepEqual(disparo.emissor,ponto);
+  passar(g, .5);
+  assert.ok(alvo.hp<alvo.maxHp,'atinge o alvo mesmo com o lançador em movimento');
 });
-test('carga automática pronta aguarda alcance; desligar a caça cancela a espera',()=>{
-  for(const cancelar of [false,true]){
-    const {g,p,mob}=cena(CONFIG.skills.kame),alcance=estagioKame(CONFIG.skills.kame).alcance+KAME.mao;
-    const alvo=mob(alcance+40-KAME.mao);p.autoHunt=true;p.autoSkills=true;
-    // Simula aproximação interrompida por terreno sem tornar o alvo inválido.
-    g.steer=ent=>{ent.moving=true;return true;};
+test('Kamehameha cancela a carga automática ao perder alcance ou pausar a caça',()=>{
+  for(const pausar of [false,true]){
+    const {g,p,mob}=cena(CONFIG.skills.kame);
+    const alvo=mob(100);
+    p.autoHunt=true;p.autoSkills=true;
     g.tick(.01);assert.ok(p.charge);
-    passar(g,.9);assert.ok(p.charge);assert.equal(g.kamehamehas.length,0);
-    if(cancelar){g.action(p.id,{type:'hunt',enabled:false});g.tick(.01);assert.equal(p.charge,null);}
-    else{alvo.x=p.x+alcance-1;g.tick(.01);assert.equal(p.charge,null);assert.equal(g.kamehamehas.length,1);assert.ok(geometriaKame(CONFIG.skills.kame,g.time-g.kamehamehas[0].started));}
+    if(pausar)g.action(p.id,{type:'hunt',enabled:false});
+    else alvo.x+=400;
+    passar(g,.9);
+    assert.equal(p.charge,null);
+    assert.equal(g.kamehamehas.length,0);
   }
 });
 
 test('Auto Hunt transfere a carga de Kamehameha para outro mob sem cobrar Ki novamente',()=>{
-  const {g,p,mob}=cena(CONFIG.skills.kame),primeiro=mob(120),seguinte=mob(220);
+  const {g,p,mob}=cena(CONFIG.skills.kame),primeiro=mob(80),seguinte=mob(110);
   p.autoHunt=true;p.autoSkills=true;
   g.tick(.01);
   assert.ok(p.charge);assert.equal(p.charge.targetId,primeiro.id);

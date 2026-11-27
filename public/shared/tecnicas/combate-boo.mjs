@@ -116,7 +116,7 @@ export class CombateBoo {
         if (tecnica === NOVA) { efeito.pulsos = 0; efeito.dano = p.stats.attack * estagio.danoNova; efeito.atracao = estagio.atracao; }
         else for (const m of this.mobsNaArea(efeito, efeito.raio)) g.hit(p, m, p.stats.attack * estagio.danoAngry);
         this.efeitos.set(efeito.id, efeito);
-        p.booLancado = { tipo: tecnica.id, started: g.time, direction: carga.direction };
+        p.booLancado = { tipo: tecnica.id, started: g.time, direction: carga.direction, automated: carga.automated };
       }
     }
     if (g.time + EPSILON >= carga.until) p.charge = null;
