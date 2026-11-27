@@ -81,35 +81,9 @@ export class Game {
   }
   addPlayer(id, name = 'Guerreiro', saved = null) {
     const p = createPlayer(id, name, saved, this.time);
-    p.taxaOffline = saved?.taxaOffline || null; // taxa da última caça, p/ render offline e reexportar
-    this.aplicarGanhoOffline(p, saved);
     this.players.set(id, p); return p;
   }
-  // Ao entrar, credita uma fração da taxa da caça ativa pelo tempo ausente (com teto). Só rende se o
-  // jogador estava realmente caçando (taxa > 0) e não está em God Mode. Deixa um resumo p/ a tela.
-  aplicarGanhoOffline(p, saved) {
-    const visto = saved?.ultimoVisto, taxa = saved?.taxaOffline;
-    if (!visto || !taxa || p.godmode) return;
-    const ausenteS = Math.max(0, (this.agora() - visto) / 1000);
-    if (ausenteS < CONFIG.offline.minimoSegundos) return;
-    const horas = Math.min(ausenteS, CONFIG.offline.tetoHoras * 3600) / 3600;
-    const xpGanho = Math.floor((taxa.xpHora || 0) * horas * CONFIG.offline.fracao);
-    const zeniGanho = Math.floor((taxa.receitaHora || 0) * horas * CONFIG.offline.fracao);
-    if (xpGanho <= 0 && zeniGanho <= 0) return;
-    if (zeniGanho > 0) p.zeni += zeniGanho;
-    if (xpGanho > 0) this.awardXp(p, xpGanho);
-    p.offlineResumo = { horas: Math.round(horas * 10) / 10, xp: xpGanho, zeni: zeniGanho, teto: ausenteS > CONFIG.offline.tetoHoras * 3600 };
-  }
-  exportPlayer(p) {
-    const s = serializePlayer(p);
-    s.ultimoVisto = Math.round(this.agora());
-    const r = resumoHunt(p);
-    // Taxa da sessão atual se caçou tempo suficiente; senão mantém a última taxa conhecida.
-    s.taxaOffline = r.segundos > CONFIG.offline.minimoSegundos
-      ? { xpHora: r.xpHora, receitaHora: r.segundos > 0 ? r.receita * 3600 / r.segundos : 0 }
-      : (p.taxaOffline || null);
-    return s;
-  }
+  exportPlayer(p) { return serializePlayer(p); }
   addMob(type, x, y, area = 'inicial') {
     ({ x, y } = pontoDeSpawnForaDaSafeZone(area, { x, y }));
     const info = mobStats(type, area);
@@ -2029,8 +2003,6 @@ export class Game {
   }
   snapshot(id, saldoPremium = 0) {
     const self = this.players.get(id);
-    // Resumo do ganho offline vai UMA vez para a tela de "enquanto você esteve fora"; limpa ao enviar.
-    const resumoOffline = self?.offlineResumo || null; if (self?.offlineResumo) self.offlineResumo = null;
     // Mantém o layout dos espaços da mochila coerente com os totais (loot/uso/compra mudam o estoque por fora).
     if (self) reconciliarSlots(self);
     // Cada jogador só recebe o lugar onde está (planeta + área): os outros lugares não existem para ele.
@@ -2052,7 +2024,7 @@ export class Game {
         chocolateLancado: p.hp > 0 && !naZonaSegura(p) && p.chocolateLancado && !(p.chocolateLancado.automated && p.moving) && this.time - p.chocolateLancado.started < .24 ? p.chocolateLancado : null,
         booLancado: p.hp > 0 && p.booLancado && this.time - p.booLancado.started < .32 ? p.booLancado : null,
         charge: p.charge, dashing: this.time < p.dashUntil, dead: p.hp <= 0 })),
-      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,velocidadeMovimento:velocidadeMovimento(self,this.agora()),vipMontaria:vipMontariaAtiva(self,this.agora()),huntAnalyzer:resumoHunt(self),offlineResumo:resumoOffline, perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
+      self: self ? { name:self.name,character:self.character,vocacao:self.vocacao,montaria:self.montaria,montariaPreferida:self.montariaPreferida,velocidadeMovimento:velocidadeMovimento(self,this.agora()),vipMontaria:vipMontariaAtiva(self,this.agora()),huntAnalyzer:resumoHunt(self), perfil:perfilPersonagem(self,this.time,this.agora()),preferencias:self.preferencias,missoes:listarMissoes(self,this.agora()),missaoAcompanhada:self.missoes.acompanhada,guildasRevisao:this.guildas.revisao,guildasPendentes:[...this.guildas.lista.values()].reduce((n,g)=>n+(g.convites.includes(self.mercadoId)?1:0)+(g.membros.some(m=>m.id===self.mercadoId&&m.cargo!=='membro')?g.solicitacoes.length:0),0),
         naZonaSegura: naZonaSegura(self), planet: self.planet, area: self.area || null, seguroRemaining: Math.max(0, self.seguroAte - this.time), level: self.level,
         xp: self.level >= CONFIG.progression.nivelMaximo ? 0 : self.xp,
         xpNext: self.level >= CONFIG.progression.nivelMaximo ? 0 : xpForLevel(self.level), stats: self.stats,

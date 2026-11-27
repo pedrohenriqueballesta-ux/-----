@@ -54,9 +54,6 @@ export const CONFIG = Object.freeze({
   seedCooldown: 20, kiCooldown: CURA.cooldown, pickupRadius: 60, respawnDelay: 4,
   // Segundos protegido ao chegar por portal ou renascer ("seguro por uns segundos"; valor provisório).
   chegadaSegura: 3,
-  // Ganho offline (P0): ao voltar, rende uma FRAÇÃO da taxa da caça ativa pelo tempo ausente, com teto.
-  // VALORES PROVISÓRIOS — balanceamento a definir (Pedro, 27/11/2026: modelo "fração da caça ativa").
-  offline: Object.freeze({ fracao: 0.5, tetoHoras: 8, minimoSegundos: 60 }),
   seedPotencies: [15, 30, 50, 100],
   itemWeights: { ...Object.fromEntries(Object.values({ ...NOVOS_ITENS, ...ITENS_PREMIUM }).map(item => [item.id, item.peso])), food: 0.35, ki: 0.2, seed15: 0.08, seed30: 0.08, seed50: 0.08, seed100: 0.08, scrap: 0.07 },
   prices: { food: 12, ki: 18, 'pocao-energia': 50, seed15: 90, seed30: 210, seed50: 480, seed100: 1400 },
