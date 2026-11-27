@@ -55,6 +55,13 @@ const keys = new Set(), renderPositions = new Map(), seenEvents = new Set(), mon
 const fadeObjetos = new Map();
 let entrada=null,tutorial=null;
 let snapshot = null, session = '', playerId = '', eventSource = null, receivedAt = 0, width = 900, height = 600, ratio = 1;
+// Transporte do jogo: WebSocket é o canal preferido (estado desce e input sobe por ele);
+// o SSE (eventSource) + POST ficam como reserva se o socket não abrir.
+let socketJogo = null, usandoWS = false, reconexaoTimer = null, primeiroResolve = null, primeiroReject = null, prazoConexao = null;
+// Predição do próprio jogador (Fase 1): posição prevista persistente que integra o input a cada
+// quadro com a MESMA regra de passo do servidor (deslocar) e reconcilia suave com o estado dele.
+// Null = não estamos prevendo (parado, caça automática, clique-para-andar): aí seguimos o servidor.
+let preditoSelf = null;
 let camera = { x: 0, y: 0, scale: 1 }, zoom = CAMERA.zoomPadrao, pointerAim = null, touchVector = { x: 0, y: 0 }, lastUI = 0, sendingInput = false;
 let floating = [], lastFrame = performance.now(), connectionError = false, miniTick = 0;
 let zoomMini = 1, vistaMini = null, destinoMini = null;
@@ -160,58 +167,92 @@ function connected(ok) {
   $('connection').classList.toggle('hidden', ok);
   $('connection').classList.toggle('offline', !ok);
 }
-function sairDoMundo(){if(eventSource){eventSource.close();eventSource=null;}session='';snapshot=null;playerId='';statusPopout.atualizar(null);keys.clear();touchVector={x:0,y:0};pointerAim=null;floating=[];renderPositions.clear();seenEvents.clear();tutorial?.fechar();for(const d of document.querySelectorAll('dialog[open]'))if(d.id!=='welcomeDialog')d.close();trilhaSonora.atualizar();}
+function fecharTransporte(){
+  if(reconexaoTimer){clearTimeout(reconexaoTimer);reconexaoTimer=null;}
+  if(socketJogo){socketJogo.onopen=socketJogo.onmessage=socketJogo.onerror=socketJogo.onclose=null;try{socketJogo.close();}catch{}socketJogo=null;}
+  if(eventSource){eventSource.close();eventSource=null;}
+  usandoWS=false;
+}
+function sairDoMundo(){fecharTransporte();session='';snapshot=null;playerId='';statusPopout.atualizar(null);keys.clear();touchVector={x:0,y:0};pointerAim=null;floating=[];renderPositions.clear();preditoSelf=null;seenEvents.clear();tutorial?.fechar();for(const d of document.querySelectorAll('dialog[open]'))if(d.id!=='welcomeDialog')d.close();trilhaSonora.atualizar();}
+// Processa um snapshot recebido (texto JSON), venha do WebSocket ou do SSE.
+function aplicarSnapshot(texto){
+  try {
+    const proximo = JSON.parse(texto);
+    if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
+      renderPositions.clear(); preditoSelf = null; floating = []; pointerAim = null;
+    }
+    const anteriorSnapshot=snapshot;
+    if (anteriorSnapshot?.clonesBoo?.length) {
+      const ativos = new Set((proximo.clonesBoo || []).map(c => c.id));
+      for (const c of anteriorSnapshot.clonesBoo) if (!ativos.has(c.id)) renderPositions.delete(c.id);
+    }
+    if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
+    snapshot = proximo; receivedAt = performance.now();tutorial?.atualizar(snapshot);statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
+    // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
+    carregarKame(snapshot.self?.level || 1);
+    carregarGalick(snapshot.self?.galickVersao);
+    if (snapshot.players.some(p => p.vocacao === 'boo')) {
+      const formas = new Set(['base', ...snapshot.players.filter(p => p.vocacao === 'boo').map(p => p.forma),
+        ...(snapshot.clonesBoo || []).map(c => c.forma)]);
+      for (const forma of formas) carregarBoo(forma);
+      carregarRaioChocolate();
+      carregarEfeitosBoo();
+    }
+    if (snapshot.players.some(p => p.vocacao === 'vegeta')) {
+      carregarFinalFlash();
+      carregarBigBangAttack();
+    }
+    // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
+    if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
+    carregarBarreira(); carregarRaiosSsj2('frente');
+    carregarCura();
+    carregarGenki(); carregarRyuken();
+    for (const effect of snapshot.events) {
+      if (seenEvents.has(effect.id)) continue;
+      seenEvents.add(effect.id);
+      if (effect.type === 'message') notify(effect.text);
+      else if (effect.type === 'chat') mensagemChat(effect.nome, effect.texto, effect.canal);
+      else floating.push(effect);
+    }
+    if (seenEvents.size > 2000) { const items = [...seenEvents]; items.slice(0, 1000).forEach(id => seenEvents.delete(id)); }
+    if(primeiroResolve){const r=primeiroResolve;primeiroResolve=null;primeiroReject=null;clearTimeout(prazoConexao);r();}
+    if (performance.now() - lastUI > 90) { atualizarHud(snapshot, playerId); lastUI = performance.now(); }
+  } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
+}
 function conectarMundo(data){
- if(eventSource)eventSource.close();session='autenticado';playerId=data.playerId;snapshot=null;statusPopout.atualizar(null);
- return new Promise((resolve,reject)=>{let primeiro=true;const prazo=setTimeout(()=>{eventSource?.close();session='';reject(new Error('conexao'));},12000);
- eventSource=new EventSource('/api/events');eventSource.onopen=()=>connected(true);
- eventSource.onerror=()=>{connected(false);if(primeiro){clearTimeout(prazo);eventSource?.close();session='';reject(new Error('conexao'));}else entrada?.sessaoExpirada();};
-  eventSource.onmessage = event => {
-    try {
-      const proximo = JSON.parse(event.data);
-      if (transicaoTeleport.ativa && snapshot && (snapshot.planet !== proximo.planet || snapshot.area !== proximo.area)) {
-        renderPositions.clear(); floating = []; pointerAim = null;
-      }
-      const anteriorSnapshot=snapshot;
-      if (anteriorSnapshot?.clonesBoo?.length) {
-        const ativos = new Set((proximo.clonesBoo || []).map(c => c.id));
-        for (const c of anteriorSnapshot.clonesBoo) if (!ativos.has(c.id)) renderPositions.delete(c.id);
-      }
-      if(anteriorSnapshot){for(const novo of proximo.players||[]){const antigo=anteriorSnapshot.players?.find(p=>p.id===novo.id);if(antigo&&antigo.montaria!==novo.montaria&&(antigo.montaria==='rena_natalina'||novo.montaria==='rena_natalina'))montariaTransicoes.set(novo.id,{inicio:proximo.time||0,tipo:novo.montaria==='rena_natalina'?'invocar':'desinvocar'});}}
-      snapshot = proximo; receivedAt = performance.now();tutorial?.atualizar(snapshot);statusPopout.atualizar(snapshot);trilhaSonora.atualizar();
-      // Pré-carrega a folha do Kamehameha que o jogador vai soltar (no SSJ4, a carmesim).
-      carregarKame(snapshot.self?.level || 1);
-      carregarGalick(snapshot.self?.galickVersao);
-      if (snapshot.players.some(p => p.vocacao === 'boo')) {
-        const formas = new Set(['base', ...snapshot.players.filter(p => p.vocacao === 'boo').map(p => p.forma),
-          ...(snapshot.clonesBoo || []).map(c => c.forma)]);
-        for (const forma of formas) carregarBoo(forma);
-        carregarRaioChocolate();
-        carregarEfeitosBoo();
-      }
-      if (snapshot.players.some(p => p.vocacao === 'vegeta')) {
-        carregarFinalFlash();
-        carregarBigBangAttack();
-      }
-      // No SSJ4 pré-carrega também o Super Kamehameha (folhas carmesim).
-      if (usaSuperKame(snapshot.players?.find(j => j.id === snapshot.selfId))) { carregarKame(ESTAGIOS_KAME.at(-1).nivel, SUPER_KAME.cor); carregarImpactoKame(SUPER_KAME.cor); }
-      carregarBarreira(); carregarRaiosSsj2('frente');
-      carregarCura();
-      carregarGenki(); carregarRyuken();
-      for (const effect of snapshot.events) {
-        if (seenEvents.has(effect.id)) continue;
-        seenEvents.add(effect.id);
-        if (effect.type === 'message') notify(effect.text);
-        else if (effect.type === 'chat') mensagemChat(effect.nome, effect.texto, effect.canal);
-        else floating.push(effect);
-      }
-      if (seenEvents.size > 2000) { const items = [...seenEvents]; items.slice(0, 1000).forEach(id => seenEvents.delete(id)); }
-      if(primeiro){primeiro=false;clearTimeout(prazo);resolve();}
-      if (performance.now() - lastUI > 90) { atualizarHud(snapshot, playerId); lastUI = performance.now(); }
-    } catch (e) { console.error('Falha ao ler estado do jogo:', e.message); }
-  };
-
+ fecharTransporte();session='autenticado';playerId=data.playerId;snapshot=null;statusPopout.atualizar(null);
+ return new Promise((resolve,reject)=>{
+   primeiroResolve=resolve;primeiroReject=reject;
+   prazoConexao=setTimeout(()=>{if(primeiroResolve){primeiroResolve=primeiroReject=null;fecharTransporte();session='';reject(new Error('conexao'));}},12000);
+   iniciarTransporte();
  });
+}
+// Abre o WebSocket; se ele não abrir (navegador sem suporte ou falha na conexão), cai no SSE.
+function iniciarTransporte(){
+  if(typeof WebSocket==='undefined'){usarSSE();return;}
+  let ws;
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  try{ws=new WebSocket(proto+'//'+location.host+'/ws');}catch{usarSSE();return;}
+  socketJogo=ws;usandoWS=true;
+  ws.onopen=()=>connected(true);
+  ws.onmessage=ev=>aplicarSnapshot(ev.data);
+  ws.onerror=()=>{};// o onclose cuida da reação
+  ws.onclose=()=>{
+    if(socketJogo!==ws)return;// já substituído por uma reconexão
+    socketJogo=null;usandoWS=false;
+    if(primeiroResolve){usarSSE();return;}// nunca chegou a receber estado: tenta a reserva
+    if(session!=='autenticado')return;
+    connected(false);
+    reconexaoTimer=setTimeout(()=>{if(session==='autenticado')iniciarTransporte();},1200);
+  };
+}
+// Reserva: SSE com a reconexão automática do próprio navegador (comportamento antigo).
+function usarSSE(){
+  if(eventSource)eventSource.close();
+  eventSource=new EventSource('/api/events');usandoWS=false;
+  eventSource.onopen=()=>connected(true);
+  eventSource.onerror=()=>{connected(false);if(primeiroResolve){const j=primeiroReject;primeiroResolve=primeiroReject=null;clearTimeout(prazoConexao);eventSource?.close();session='';j?.(new Error('conexao'));}else entrada?.sessaoExpirada();};
+  eventSource.onmessage=ev=>aplicarSnapshot(ev.data);
 }
 async function entrarNoMundo(){
  let pronto=false,carregado=false;
@@ -226,10 +267,18 @@ function inputVector() {
   const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
   return { x, y, ...(pointerAim ? { aimX: pointerAim.x, aimY: pointerAim.y } : {}) };
 }
-async function sendInput() {
-  if (!session || !snapshot || sendingInput || connectionError) return;
+function sendInput() {
+  if (!session || !snapshot) return;
+  const payload = inputVector();
+  // Canal preferido: manda pelo WebSocket (instantâneo, sem round-trip de requisição).
+  if (usandoWS && socketJogo && socketJogo.readyState === 1) {
+    try { socketJogo.send(JSON.stringify({ t: 'input', ...payload })); } catch {}
+    return;
+  }
+  // Reserva (SSE): input por POST. A trava evita empilhar requisições quando a rede atrasa.
+  if (sendingInput || connectionError) return;
   sendingInput = true;
-  try { await api('input', inputVector()); } catch {} finally { sendingInput = false; }
+  api('input', payload).catch(() => {}).finally(() => { sendingInput = false; });
 }
 setInterval(sendInput, 70);
 instalarAtalhosInterface({
@@ -792,10 +841,28 @@ function frame(now) {
   const self = snapshot.players.find(p => p.id === playerId);
   const clonesBoo = snapshot.clonesBoo || [], efeitosBoo = snapshot.efeitosBoo || [];
   for (const entity of [...snapshot.players, ...snapshot.mobs, ...clonesBoo]) {
-    if (entity.id === playerId && !entity.dead && !entity.dashing && !entity.charge) {
-      const iv = inputVector(); let px = entity.x, py = entity.y;
-      if (iv.x || iv.y) { const el = Math.min(0.2, (now - receivedAt) / 1000); [px, py] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, (snapshot.self?.velocidadeMovimento || 175) * el, 15, snapshot.self?.area); }
-      screenPosition({ ...entity, x: px, y: py }, dt);
+    if (entity.id === playerId) {
+      const iv = inputVector();
+      // Só prevemos quando o movimento é do próprio input (WASD/toque) e o servidor não está no
+      // comando (dash, carga de ki, morte, clique-para-andar e caça automática mandam iv = 0).
+      const prevendo = !entity.dead && !entity.dashing && !entity.charge && (iv.x || iv.y);
+      if (prevendo) {
+        const vel = snapshot.self?.velocidadeMovimento || 175;
+        if (!preditoSelf) preditoSelf = { x: entity.x, y: entity.y };
+        // Integra a predição a partir dela mesma (contínua) com a regra de passo do servidor.
+        [preditoSelf.x, preditoSelf.y] = deslocar(snapshot.planet, preditoSelf.x, preditoSelf.y, iv.x, iv.y, vel * dt, 15, snapshot.self?.area);
+        // Reconcilia com o servidor extrapolado para "agora" (a posição dele é de alguns ms atrás).
+        const el = Math.min(0.2, (now - receivedAt) / 1000);
+        const [sx, sy] = deslocar(snapshot.planet, entity.x, entity.y, iv.x, iv.y, vel * el, 15, snapshot.self?.area);
+        if (Math.hypot(sx - preditoSelf.x, sy - preditoSelf.y) > 150) { preditoSelf.x = sx; preditoSelf.y = sy; } // correção dura: teleporte, empurrão, portal
+        else { const k = Math.min(1, dt * 8); preditoSelf.x += (sx - preditoSelf.x) * k; preditoSelf.y += (sy - preditoSelf.y) * k; }
+        screenPosition({ ...entity, x: preditoSelf.x, y: preditoSelf.y }, dt);
+      } else {
+        // Parou de prever: deixa a posição do servidor voltar a mandar (sem salto, pois com o input
+        // chegando rápido a posição dele fica coladinha de onde a predição parou).
+        preditoSelf = null;
+        screenPosition(entity, dt);
+      }
     } else screenPosition(entity, dt);
   }
   const position = self ? renderPositions.get(self.id) : { x: world.w / 2, y: world.h / 2 };

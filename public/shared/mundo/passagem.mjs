@@ -97,9 +97,15 @@ export function deslocar(planet, x, y, dx, dy, dist, radius = 15, area = null, e
     && !(evitarZonaSegura && pontoNaZonaSegura(planet, area, nx, ny))
     && !OBSTACLES.some(o => o.planet === planet && Math.hypot(o.x - nx, o.y - ny) < o.r + radius)
     && (preso || pesLivres(planet, nx, ny, radius, area));
-  const nx = x + dx * dist, ny = y + dy * dist;
-  if (livre(nx, y)) x = nx;
-  if (livre(x, ny)) y = ny;
+  // Avança em sub-passos de no máximo um raio. Um passo grande (a nuvem, ou a extrapolação do
+  // cliente) checava só o ponto final: perto de uma parede o eixo inteiro era rejeitado, o corpo
+  // parava longe e tremia. Em pedaços pequenos ele desliza e encosta de fato na parede, e o
+  // cliente para no mesmo ponto que o servidor (relato do Pedro: rollback/travada ao andar).
+  const passos = Math.max(1, Math.ceil(dist / radius)), passo = dist / passos;
+  for (let i = 0; i < passos; i++) {
+    const nx = x + dx * passo; if (livre(nx, y)) x = nx;
+    const ny = y + dy * passo; if (livre(x, ny)) y = ny;
+  }
   return [x, y];
 }
 
