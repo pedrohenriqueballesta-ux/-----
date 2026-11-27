@@ -1,4 +1,4 @@
-import { comboPadrao, tecnicasDoCombo } from '../../shared/tecnicas/combo-auto-hunt.mjs';
+import { comboPadrao, tecnicasDoCombo, minimoMobsPadrao, MAX_MINIMO_MOBS_COMBO } from '../../shared/tecnicas/combo-auto-hunt.mjs';
 import { nivelDaTecnica, tecnicaPorId } from '../../shared/tecnicas/barra-tecnicas.mjs';
 import { formasDaVocacao } from '../../shared/tecnicas/formas.mjs';
 
@@ -34,7 +34,7 @@ export function instalarComboAutoHunt(painel, enviar) {
   }
 
   function desenharOrdem() {
-    lista.replaceChildren(...rascunho.ordem.map(({ id, ki }, i) => {
+    lista.replaceChildren(...rascunho.ordem.map(({ id, ki, minMobs }, i) => {
       const li = document.createElement('li');
       const nome = tecnicaPorId('skill:' + id).nome;
       const titulo = document.createElement('strong');
@@ -49,6 +49,16 @@ export function instalarComboAutoHunt(painel, enviar) {
       percentual.className = 'auto-combo-percentual';
       percentual.append(input, '%');
       minimo.append('Ki mínimo', percentual);
+
+      const minimoMobs = document.createElement('label');
+      minimoMobs.className = 'auto-hunt-threshold';
+      const seletorMobs = document.createElement('select');
+      seletorMobs.setAttribute('aria-label', 'Mínimo de mobs para ' + nome);
+      for (let quantidade = 1; quantidade <= MAX_MINIMO_MOBS_COMBO; quantidade++)
+        seletorMobs.add(new Option(quantidade === 1 ? '1' : quantidade + '+', String(quantidade)));
+      seletorMobs.value = String(minMobs ?? minimoMobsPadrao(id));
+      seletorMobs.onchange = () => { rascunho.ordem[i].minMobs = Number(seletorMobs.value); editado(); };
+      minimoMobs.append('Mobs próximos', seletorMobs);
       const mudarOrdem = destino => {
         const [linha] = rascunho.ordem.splice(i, 1);
         rascunho.ordem.splice(destino, 0, linha);
@@ -69,7 +79,7 @@ export function instalarComboAutoHunt(painel, enviar) {
       const controles = document.createElement('div');
       controles.className = 'auto-combo-controles';
       controles.append(subir, descer, remover);
-      li.append(titulo, controles, minimo);
+      li.append(titulo, controles, minimo, minimoMobs);
       return li;
     }));
     const livres = tecnicasDoCombo(personagem.vocacao).filter(id => !rascunho.ordem.some(item => item.id === id));
