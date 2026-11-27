@@ -8,7 +8,7 @@ import { zoomFromWheel } from '../public/render/mapa/camera.mjs';
 test('tamanho fica entre o atual e o dobro; zoom do minimapa tem limites independentes da câmera', () => {
   assert.equal(tamanhoMinimapa(.5), 1); assert.equal(tamanhoMinimapa(3), 2);
   for (const tamanho of [1,1.25,1.5,1.75,2]) assert.equal(tamanhoMinimapa(tamanho), tamanho);
-  assert.equal(zoomMinimapa(1, -1e6), 4); assert.equal(zoomMinimapa(1, 1e6), 1);
+  assert.equal(zoomMinimapa(1, -1e6), 4); assert.equal(zoomMinimapa(1, 1e6), 0.33);
   assert.equal(zoomFromWheel(1, -10000), 2, 'câmera preserva os próprios limites');
   assert.ok(Math.abs(zoomMinimapa(1, -16) - zoomMinimapa(1, -1, 1)) < 1e-9);
   assert.ok(Math.abs(zoomMinimapa(1, -600) - zoomMinimapa(1, -1, 2)) < 1e-9);

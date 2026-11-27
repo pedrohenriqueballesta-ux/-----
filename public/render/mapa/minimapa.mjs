@@ -1,4 +1,5 @@
-export const MINIMAPA = Object.freeze({ vista: 2400, tamanhoMinimo: 1, tamanhoMaximo: 2, passoTamanho: 0.25, zoomMinimo: 1, zoomMaximo: 4 });
+// zoomMinimo 0.33 = dá para afastar e ver ~3× a área (pedido do Pedro, 27/11/2026).
+export const MINIMAPA = Object.freeze({ vista: 2400, tamanhoMinimo: 1, tamanhoMaximo: 2, passoTamanho: 0.25, zoomMinimo: 0.33, zoomMaximo: 4 });
 export const tamanhoMinimapa = valor => Math.max(1, Math.min(2, Number.isFinite(valor) ? valor : 1));
 export function zoomMinimapa(zoom, delta, modo = 0) {
   const pixels = delta * (modo === 1 ? 16 : modo === 2 ? 600 : 1);
