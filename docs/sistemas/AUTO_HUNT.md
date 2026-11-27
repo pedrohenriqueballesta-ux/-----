@@ -36,6 +36,23 @@ e recarregar a página. Depois do primeiro arrasto, o encaixe automático respei
 essa preferência; redimensionar limita a janela à tela sem apagar a posição salva.
 Testes específicos conferem captura do ponteiro, persistência, restauração e limites.
 
+## Combo de técnicas
+
+Com recarga normal, inclusive no God Mode, o Auto Hunt verifica a lista a partir
+da primeira posição e usa a técnica disponível de maior prioridade. Com a recarga
+rápida do God Mode, continua a lista a partir da posição seguinte ao último uso
+bem-sucedido e volta ao início ao completar a volta. Nos dois modos, técnicas
+indisponíveis por recarga, alcance, forma ou Ki são puladas naquela tentativa.
+Salvar o combo, iniciar a caça ou mudar o modo de recarga reinicia a sequência.
+
+O seletor Mobs próximos define o mínimo para cada técnica (1, 2+, 3+ ou 4+).
+Na Angry Explosion, a contagem usa o raio real em torno do Boo. Na Supernova,
+usa o raio real em torno do alvo marcado. Para as outras técnicas, 2+ ou mais
+exige o grupo a até quatro tiles do personagem. Só entram na conta inimigos
+vivos que o personagem pode enfrentar na mesma área, fora da zona segura.
+Configurações anteriores mantêm os padrões de 3 para Angry Explosion, 2 para
+Supernova e 1 para as demais técnicas.
+
 ## Servidor e persistência
 
 `automationThreshold` valida chave e valor no servidor. A ação anterior

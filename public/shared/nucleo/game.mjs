@@ -19,7 +19,7 @@ import { CONFIG, OBSTACLES, PLANETS, PORTAIS, RAIO_PORTAL, areaPorId, lugar, mer
 import { clamp, distance, norm, segmentDistance } from './math.mjs';
 import { statsFor, xpForLevel, bagWeight, createPlayer, exportPlayer as serializePlayer, aplicarGodmode, configurarGodmode, opcoesGodmodeValidas, mochilaComporta, atualizarAtributosEquipamento, atualizarCapacidade, reterCapacidadeDoExtensor, encerrarExtensor, reconciliarSlots, moverSlotMochila, dividirSlotMochila, descartarSlotMochila } from './characters.mjs';
 import { FORMAS, formaDisponivel, formasDaVocacao, multiplicadorDaForma } from '../tecnicas/formas.mjs';
-import { kiPermiteCombo, validarCombo } from '../tecnicas/combo-auto-hunt.mjs';
+import { kiPermiteCombo, validarCombo, RAIO_MOBS_COMBO } from '../tecnicas/combo-auto-hunt.mjs';
 import {barraPadrao,barraValida,atualizarBarraPadrao,tecnicaDaVocacao} from '../tecnicas/barra-tecnicas.mjs';
 import { mobStats, renasceEm, spawnPoints, pontoNoCirculo, CHEFES_RAROS, CHEFES_TESTE, pontoDeSpawnForaDaSafeZone, TIPOS_CHEFE } from './enemies.mjs';
 import { deslocar, caminhoPorTerra, temMascara, pesLivres, planejarClique } from '../mundo/passagem.mjs';
@@ -336,6 +336,7 @@ export class Game {
       const combo = validarCombo(data.combo, p.vocacao);
       if (!combo) return this.reject(p, 'Configuração de combo inválida.');
       p.comboAutoHunt = combo;
+      p.proximoIndiceCombo = 0;
       const buffAplicado = this.aplicarBuffDoCombo(p);
       return { ok: true, combo, buffAplicado };
     }
@@ -345,6 +346,7 @@ export class Game {
     }
     if (kind === 'godmode') {
       aplicarGodmode(p, !p.godmode);
+      p.proximoIndiceCombo = 0;
       this.revalidarFormaAposGodmode(p);
       this.notify(p, p.godmode ? 'God Mode de teste ligado no nível ' + p.level + '.' : 'God Mode desligado: status reais restaurados.');
       return { ok: true };
@@ -355,6 +357,8 @@ export class Game {
         ['hpInfinite','kiInfinite','zeniInfinite','capacityInfinite'].some(key => typeof options[key] !== 'boolean') ||
         ['cooldownNormal','velocidadeMaxima'].some(k => options[k] !== undefined && typeof options[k] !== 'boolean'))
         return { ok: false, reason: 'Configuração de God Mode inválida.' };
+      if (options.cooldownNormal !== undefined && options.cooldownNormal !== p.godmodeOptions.cooldownNormal)
+        p.proximoIndiceCombo = 0;
       configurarGodmode(p, opcoesGodmodeValidas({ ...p.godmodeOptions, ...options }));
       if (p.godmode) this.revalidarFormaAposGodmode(p);
       return { ok: true };
@@ -403,7 +407,10 @@ export class Game {
       const z = areaPorId(p.area);
       if (data.enabled !== false && (!z || z.segura)) return this.reject(p, 'A caça automática funciona dentro das hunts. Entre por um portal da Vila.');
       p.saidaSegura = null; p.autoHunt = data.enabled !== false; p.moveTo = null; p.targetId = null; p.caca = null; p.patrulha = null; p.patrulhasRecentes = []; p.alvosRecentes = []; p.abatesRecentes = []; p.rota = null;
-      if (p.autoHunt) { p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name); }
+      if (p.autoHunt) {
+        p.proximoIndiceCombo = 0;
+        p.autoAttack = true; p.autoSkills = true; p.aim = null; this.notify(p, 'Caça automática: ' + z.name);
+      }
       return { ok: true };
     }
     if (kind === 'moveTo' && Number.isFinite(data.x) && Number.isFinite(data.y)) {
@@ -814,6 +821,32 @@ export class Game {
     this.alternarForma(p, 'transform');
     if (p.charge?.superKame) p.charge = null;
     if (p.autoHunt) this.aplicarBuffDoCombo(p);
+  }
+  haGrupoParaCombo(p, minimo) {
+    let encontrados = 0;
+    for (const mob of this.mobs.values()) {
+      if (mob.hp <= 0 || distance(p, mob) > RAIO_MOBS_COMBO || !this.mesmoLugar(p, mob)
+        || !this.podeEnfrentarMob(p, mob) || naZonaSegura(mob)) continue;
+      if (++encontrados >= minimo) return true;
+    }
+    return false;
+  }
+  dispararComboAutoHunt(p) {
+    const { ordem } = p.comboAutoHunt;
+    const recargaRapida = p.godmode && !p.godmodeOptions?.cooldownNormal;
+    // No modo de teste, uma técnica pode ficar pronta antes de terminar a própria animação.
+    const inicio = recargaRapida ? (p.proximoIndiceCombo ?? 0) : 0;
+    for (let passo = 0; passo < ordem.length; passo++) {
+      const indice = (inicio + passo) % ordem.length;
+      const { id, ki, minMobs = 1 } = ordem[indice];
+      // Supernova e Angry Explosion conferem o seu próprio raio ao iniciar a conjuração.
+      if (minMobs > 1 && !TECNICAS_BOO[id]?.minimoCombo && !this.haGrupoParaCombo(p, minMobs)) continue;
+      if (kiPermiteCombo(p, id, ki) && this.cast(p, id, true).ok) {
+        if (recargaRapida) p.proximoIndiceCombo = (indice + 1) % ordem.length;
+        return true;
+      }
+    }
+    return false;
   }
   aplicarBuffDoCombo(p) {
     const combo = p.comboAutoHunt;
@@ -1368,8 +1401,7 @@ export class Game {
       const tentar = skill => this.cast(p, skill, true).ok;
       let usouTecnica = false;
       if (p.autoSkills && combo) {
-        // Uma técnica indisponível deixa a próxima prioridade disputar o mesmo turno.
-        usouTecnica = combo.ordem.some(({ id, ki }) => kiPermiteCombo(p, id, ki) && tentar(id));
+        usouTecnica = this.dispararComboAutoHunt(p);
       } else if (p.autoSkills && p.vocacao === 'boo' && !morreriaNoBasico) {
         usouTecnica = [...Object.keys(TECNICAS_BOO).reverse(), CHOCOLATE_BEAM.id].some(tentar);
       } else if (p.autoSkills && vegeta) {
