@@ -37,7 +37,8 @@ export function resumirStatusPopout(snapshot) {
       genkiLancado: jogador.genkiLancado, genkiCarga: dadosPose(jogador.genkiCarga),
       ryuken: dadosPose(jogador.ryuken), ryukenLancado: jogador.ryukenLancado, ryukenVoando: jogador.ryukenVoando,
       chocolateLancado: dadosPose(jogador.chocolateLancado), booLancado: jogador.booLancado ? {
-        tipo: jogador.booLancado.tipo, started: jogador.booLancado.started, direction: jogador.booLancado.direction
+        tipo: jogador.booLancado.tipo, started: jogador.booLancado.started, direction: jogador.booLancado.direction,
+        forma: jogador.booLancado.forma, automated: jogador.booLancado.automated
       } : null,
       ...combate, galick: dadosPose(combate.galick), finalFlash: dadosPose(combate.finalFlash), bigBang: dadosPose(combate.bigBang),
       movementSpeed: Number(self.velocidadeMovimento ?? self.stats?.mobility) || 0, serverTime: time
