@@ -43,7 +43,7 @@ import { carregarRyuken, desenharAuraRyuken, desenharLancamentoRyuken, desenharV
 import { art, soloDe, objetoVegeta, VEGETA_OBJETOS, VEGETA_OBJETOS_ESCALA, CLEARINGS, drawGroundImage, drawMarket, drawHouse, drawHouseGround, drawTree, drawRock, drawVendor, drawDecoracao, drawSombraDecoracao, drawAlien, drawSaibaman, drawGoku, drawVegeta, drawFreeza, drawPortal, drawVoador, VOADORES, ALTURA_DE_VOO, ALTURA_GOKU, drawGuerreiro, drawVeterano, ALTURA_GUERREIRO, drawLutador, LUTADORES, drawFreezaBoss, FREEZA_ALTURA } from '../art/index.mjs';
 import { $, notify, mensagemChat, atualizarHud, ligarHud, alternarCaca, alternarAutoHunt, abrirPortal, abrirLojaNpc, COR_DESTINO, encaixarAutoHunt } from './hud.mjs';
 import { instalarStatusPopout } from './stats-popout.mjs';
-import { zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/mapa/minimapa.mjs';
+import { MINIMAPA, zoomMinimapa, vistaMinimapa, caixaConteudoMinimapa, pontoDoMinimapa, arrastarMinimapa } from '../render/mapa/minimapa.mjs';
 import { desenharCabecaMinimapa } from '../render/mapa/minimapa-cabecas.mjs';
 import { CAMERA, clampZoom, zoomFromWheel, cameraView, worldFromPointer, advancePose, mobStrikeProgress } from '../render/mapa/camera.mjs';
 
@@ -334,7 +334,13 @@ mini?.closest('.hud-mapa')?.addEventListener('keydown', e => { if (e.key === ' '
 function alterarZoomMini(delta, modo = 0) {
   if (arrastoMini) return;
   zoomMini = zoomMinimapa(zoomMini, delta, modo);
-  $('minimapZoomLabel').textContent = 'Zoom ' + Math.round(zoomMini * 100) + '%';
+  // Rótulo cosmético: 0% no mais afastado, 50% no zoom padrão (1) e 100% no máximo. As duas metades
+  // são mapeadas em separado para o padrão cair sempre em 50%, sem refletir a proporção real do zoom
+  // (pedido do Pedro, 27/11: "o padrão tem que ser algo tipo 50% pra não ficar estranho").
+  const pctZoom = zoomMini <= 1
+    ? (zoomMini - MINIMAPA.zoomMinimo) / (1 - MINIMAPA.zoomMinimo) * 50
+    : 50 + (zoomMini - 1) / (MINIMAPA.zoomMaximo - 1) * 50;
+  $('minimapZoomLabel').textContent = 'Zoom ' + Math.round(pctZoom) + '%';
   redesenharMini();
 }
 mini?.addEventListener('wheel', e => {
