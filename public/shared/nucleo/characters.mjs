@@ -1,3 +1,4 @@
+import { restaurarAbatesBestiario } from '../sistemas/progresso-bestiario.mjs';
 import { FORMAS_BOO } from '../tecnicas/formas.mjs';
 import { DURACAO_EXTENSOR, ITENS_PREMIUM } from '../sistemas/itens-premium.mjs';
 import { restaurarBonusPremium } from '../sistemas/bonus-premium.mjs';
@@ -352,6 +353,7 @@ export function createPlayer(id, name = 'Guerreiro', saved = null, now = 0) {
     ki: clamp(saved?.ki == null ? stats.ki : Number(saved.ki), 0, stats.ki),
     zeni: clamp(Number(saved?.zeni ?? 200), 0, 9999999), inventory, equipamentos, kills: Number(saved?.kills) || 0,
     input: { x: 0, y: 0 }, facing: { x: 1, y: 0 }, aim: null, inputAt: now,
+    bestiarioAbates: restaurarAbatesBestiario(saved?.bestiarioAbates), bestiarioRevisao: 0,
     autoAttack: false, autoSkills: false, autoHunt: false, targetId: null,
     comboAutoHunt: validarCombo(saved?.comboAutoHunt, vocacao.id),
     hotkeysConsumiveis:hotkeys,barraPersonalizada,barraKameManual,barraTecnicas:barraSalva,
@@ -391,6 +393,7 @@ export function exportPlayer(p) {
   return { schema: SAVE_SCHEMA, skin:p.skin, montaria:montariaValida(p.montaria), montariaPreferida:montariaValida(p.montariaPreferida)||'nimbus', battlePass:restaurarBattlePass(p.battlePass), mercadoId:p.mercadoId,character:p.character,vocacao:p.vocacao, name: p.name, level: p.godmode && p.levelReal != null ? p.levelReal : p.level, xp: p.godmode && p.xpReal != null ? p.xpReal : p.xp, x: p.x, y: p.y,
     hp: p.godmode && p.hpReal != null ? p.hpReal : p.hp, ki: p.godmode && p.kiReal != null ? p.kiReal : p.ki,
     zeni: p.godmode && p.zeniReal != null ? p.zeniReal : p.zeni, godmode: p.godmode, godmodeOptions:opcoesGodmodeValidas(p.godmodeOptions),
+    bestiarioAbates: { ...p.bestiarioAbates },
     correioResgatadas:[...p.correioResgatadas],preferencias:preferenciasValidas(p.preferencias),missoes:structuredClone(p.missoes),sagaCell:structuredClone(p.sagaCell),sagaAndroides:structuredClone(p.sagaAndroides),
     novidades: restaurarNovidades(p.novidades),
     bonusPremium: restaurarBonusPremium(p.bonusPremium), entregasPremium: { ...p.entregasPremium },

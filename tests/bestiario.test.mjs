@@ -1,9 +1,10 @@
-import {criarSessaoTeste,reentrarSessaoTeste} from './auth-helper.mjs';
+import {criarSessaoTeste} from './auth-helper.mjs';
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../public/shared/nucleo/game.mjs';
 import { dropsEspecificos } from '../public/shared/sistemas/catalogo-itens.mjs';
-import { criarBestiario } from '../public/shared/sistemas/bestiario.mjs';
+import { CHEFES_PESSOAIS_BESTIARIO } from '../public/shared/sistemas/progresso-bestiario.mjs';
+import { bestiarioDoPersonagem, criarBestiario } from '../public/shared/sistemas/bestiario.mjs';
 import { mobStats, janelaRenascimento } from '../public/shared/nucleo/enemies.mjs';
 import { areaPorId, lugar } from '../public/shared/nucleo/config.mjs';
 import { RECOMPENSAS_MOBS, faixaZeniMob, fracaoCristalAzul } from '../public/shared/sistemas/recompensas-mobs.mjs';
@@ -59,8 +60,10 @@ test('Porunga BOSS e Oozaru Dourado pagam a recompensa exibida e garantem materi
     assert.ok(ficha.zeni[0] > faixaZeniMob(chefe.level)[1]);
     assert.ok(ficha.drops.some(d => d.chance < 1 && d.chance > .1 &&
       ['capa-piccolo','armadura-vegeta'].includes(d.item)));
+    assert.equal(ficha.abatesParaDrops, 1);
     const saldo = p.zeni;
     assert.equal(game.hit(p, chefe, 1e7), true);
+    assert.deepEqual(bestiarioDoPersonagem([ficha], p)[0].drops, ficha.drops);
     assert.equal(p.zeni - saldo, ficha.zeni[0]);
     assert.ok(game.events.some(e => e.type === 'message' && e.text.includes(ficha.zeni[0].toLocaleString('pt-BR') + ' Zeni')));
     for (const item of materiais) {
@@ -70,13 +73,103 @@ test('Porunga BOSS e Oozaru Dourado pagam a recompensa exibida e garantem materi
   }
 });
 
-test('API de bestiário é somente leitura e não expõe posições, jogadores ou saves', async () => {
-  const app=await createGameServer({port:0,dataDir:null});
-  try{
-    const mobs=JSON.stringify([...app.game.mobs.values()]);
-    const sessao=await criarSessaoTeste('http://127.0.0.1:'+app.port,'Bestiario');const r=await fetch('http://127.0.0.1:'+app.port+'/api/bestiario',{headers:{Authorization:'Bearer '+sessao.token}});assert.equal(r.status,200);
-    const {inimigos}=await r.json();assert.equal(inimigos.length,44);
-    for(const m of inimigos){assert.equal(m.x,undefined);assert.equal(m.y,undefined);assert.equal(m.inventory,undefined);}
-    assert.equal(JSON.stringify([...app.game.mobs.values()]),mobs);
-  }finally{await app.close();}
+test('API oculta atributos e chances até os abates exigidos e separa personagens e hunts', async () => {
+  const app = await createGameServer({ port: 0, dataDir: null });
+  try {
+    const base = 'http://127.0.0.1:' + app.port;
+    const catalogo = criarBestiario([...app.game.mobs.values(), ...CHEFES_PESSOAIS_BESTIARIO]);
+    const r = await fetch(base + '/api/bestiario');
+    assert.equal(r.status, 401);
+    const sessao = await criarSessaoTeste(base, 'Bestiario');
+    const outraSessao = await criarSessaoTeste(base, 'Outra Ficha');
+    const p = app.game.players.get(sessao.playerId);
+    const chave = 'inicial:inseto';
+    const headers = token => ({ Authorization: 'Bearer ' + token });
+    async function carregar(token = sessao.token) {
+      const resposta = await fetch(base + '/api/bestiario', { headers: headers(token) });
+      assert.equal(resposta.status, 200);
+      assert.equal(resposta.headers.get('cache-control'), 'no-store');
+      const { inimigos, revisao } = await resposta.json();
+      assert.equal(inimigos.length, catalogo.length);
+      for (const m of inimigos) {
+        assert.ok(!('x' in m) && !('y' in m) && !('inventory' in m));
+      }
+      return { inimigos, ficha: inimigos.find(m => m.id === chave), revisao };
+    }
+    const { ficha: bloqueada } = await carregar();
+    assert.deepEqual(Object.keys(bloqueada).sort(), [
+      'abates', 'abatesParaDrops', 'id', 'local', 'nome', 'nomePlaneta', 'planeta', 'recomendado', 'tipo'
+    ]);
+    assert.equal(bloqueada.abates, 0);
+    assert.equal(bloqueada.abatesParaDrops, 50);
+
+    app.game.levar(p, lugar('inicial'));
+    p.x += 180;
+    const mob = app.game.addMob('inseto', p.x + 50, p.y, p.area);
+    function abater(atacante = p) {
+      mob.hp = mob.maxHp;
+      assert.equal(app.game.hit(atacante, mob, 1e7, { credito: p }), true);
+      assert.equal(mob.hp, 0);
+    }
+    p.godmode = true;
+    abater();
+    p.godmode = false;
+    mob.teste = true;
+    abater();
+    mob.teste = false;
+    assert.equal((await carregar()).ficha.abates, 0);
+
+    abater({ ...p, id: 'clone-de-teste' });
+    const { ficha: revelada, revisao } = await carregar();
+    assert.equal(revelada.abates, 1);
+    assert.equal(revisao, 1);
+    assert.equal(revelada.hp, mob.maxHp);
+    assert.equal(revelada.ataque, mob.attack);
+    assert.ok(!('drops' in revelada));
+    assert.equal((await carregar(outraSessao.token)).ficha.abates, 0);
+    assert.ok((await carregar()).inimigos.filter(m => m.tipo === mob.type && m.id !== chave).every(m => !m.abates));
+
+    for (let i = 1; i < 49; i++) abater();
+    const { ficha: quase } = await carregar();
+    assert.equal(quase.abates, 49);
+    assert.ok(!('drops' in quase));
+
+    abater();
+    const { ficha: completa } = await carregar();
+    assert.equal(completa.abates, 50);
+    assert.deepEqual(completa.drops, catalogo.find(m => m.id === chave).drops);
+
+    const salvo = JSON.parse(JSON.stringify(app.game.exportPlayer(p)));
+    const restaurado = new Game({ populate: false }).addPlayer('restaurado', p.name, salvo);
+    assert.deepEqual(bestiarioDoPersonagem(catalogo, restaurado).find(m => m.id === chave), completa);
+  } finally {
+    await app.close();
+  }
+});
+
+test('chefes de saga com vitória antiga ficam completos mesmo em saves sem contagem', () => {
+  const g = new Game({ populate: false });
+  const p = g.addPlayer('antigo', 'Antigo', { sagaCell: { etapa: 4 }, sagaAndroides: { venceuInfernal: true } });
+  const catalogo = criarBestiario(CHEFES_PESSOAIS_BESTIARIO);
+  const fichas = bestiarioDoPersonagem(catalogo, p);
+  assert.equal(fichas.filter(m => m.tipo === 'cellSemiperfeito' && m.drops).length, 2);
+  assert.ok(fichas.find(m => m.tipo === 'c17Infernal').drops);
+  assert.equal(fichas.find(m => m.tipo === 'cellPerfeito').abates, 0);
+  assert.equal(fichas.find(m => m.tipo === 'superC17').abatesParaDrops, 1);
+});
+
+test('subchefes revelam a ficha completa no primeiro abate', () => {
+  const game = new Game({ populate: false });
+  const p = game.addPlayer('teste', 'Teste');
+  game.levar(p, lugar('media'));
+  p.x += 180;
+  const mob = game.addMob('subboss', p.x + 50, p.y, p.area);
+  const catalogo = criarBestiario([mob]);
+  const [bloqueada] = bestiarioDoPersonagem(catalogo, p);
+  assert.ok(!('hp' in bloqueada) && !('drops' in bloqueada));
+  assert.equal(game.hit(p, mob, 1e7), true);
+  const [revelada] = bestiarioDoPersonagem(catalogo, p);
+  assert.equal(revelada.abates, 1);
+  assert.equal(revelada.hp, mob.maxHp);
+  assert.deepEqual(revelada.drops, catalogo[0].drops);
 });

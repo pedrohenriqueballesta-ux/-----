@@ -11,7 +11,8 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
-import { criarBestiario } from './public/shared/sistemas/bestiario.mjs';
+import { bestiarioDoPersonagem, criarBestiario } from './public/shared/sistemas/bestiario.mjs';
+import { CHEFES_PESSOAIS_BESTIARIO } from './public/shared/sistemas/progresso-bestiario.mjs';
 import { Game } from './public/shared/index.mjs';
 import { ehUpgradeWebSocket, aceitarUpgrade } from './server/ws.mjs';
 import { Telemetria } from './server/telemetria.mjs';
@@ -33,6 +34,7 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
   const telemetria = new Telemetria({ dir: dataDir ? resolve(dataDir, 'telemetria') : null });
   const TELE_UI = new Set(['loja_aberta']); // eventos de UI que o cliente pode enviar (whitelist)
   const game = new Game({ chefeJa: process.env.DBI_CHEFE_JA === '1', randomCombat: Math.random, beneficiosDeTeste: ambiente === 'development', telemetria: (tipo, dados) => telemetria.registrar(tipo, dados) });
+  const catalogoBestiario = criarBestiario([...game.mobs.values(), ...CHEFES_PESSOAIS_BESTIARIO]);
   // streams = conexões SSE (reserva); sockets = conexões WebSocket (canal preferido do jogo).
   const sessions = new Map(), streams = new Map(), sockets = new Map(), rates = new Map();
   let stored = {}, closing = false, filaSave = Promise.resolve(), armazenamento = null;
@@ -117,7 +119,10 @@ export async function createGameServer({ port = 3000, host = '127.0.0.1', dataDi
         return json(res,404,{error:'rotaInvalida'});
       }
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, version: '0.6.0', players: online() });
-      if (req.method === 'GET' && url.pathname === '/api/bestiario') {mundo(req);return json(res, 200, { inimigos:criarBestiario(game.mobs.values()) });}
+      if (req.method === 'GET' && url.pathname === '/api/bestiario') {
+        const { p } = mundo(req);
+        return json(res, 200, { revisao:p.bestiarioRevisao, inimigos:bestiarioDoPersonagem(catalogoBestiario, p) });
+      }
       if (req.method === 'GET' && url.pathname === '/api/mercado') {mundo(req);return json(res,200,game.mercado.publico());}
       if(url.pathname==='/api/join')return json(res,401,{error:'autenticacaoObrigatoria'});
       if (req.method === 'GET' && url.pathname === '/api/events') {
