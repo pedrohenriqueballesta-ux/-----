@@ -1,3 +1,4 @@
+import { lugar } from '../public/shared/nucleo/config.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../public/shared/nucleo/game.mjs';
@@ -68,11 +69,46 @@ test('comidas de loot usam efeitos próprios, compartilham o efeito de comida e 
   assert.ok(comer('carne-porunga').ok);
   g.updatePlayer(p, 1);
   assert.equal(p.hp, 56);
+  assert.equal(p.ki, 23);
   g.time += 61;
   assert.ok(comer('carne-oozaru').ok);
   g.updatePlayer(p, 1);
   assert.equal(p.hp, 61);
-  assert.equal(p.ki, 24);
+  assert.equal(p.ki, 26);
+});
+
+test('Auto Food seleciona presunto, frutas e carnes conforme a necessidade e o estoque', () => {
+  const casos = [
+    { hp: .91, ki: .71, esperado: null },
+    { hp: .5, ki: 1, esperado: 'food' },
+    { hp: 1, ki: .7, esperado: 'fruta-namek' },
+    { hp: .4, ki: .6, esperado: 'carne-porunga' },
+    { hp: .6, ki: .4, esperado: 'carne-oozaru' },
+    { hp: .5, ki: 1, estoque: { 'carne-dinossauro': 2 }, esperado: 'carne-dinossauro' },
+    { hp: 1, ki: .5, estoque: { 'carne-porunga': 2 }, esperado: 'carne-porunga' },
+    { hp: 1, ki: .5, estoque: { food: 2, 'carne-dinossauro': 2 }, esperado: null }
+  ];
+  for (const { hp, ki, esperado, estoque } of casos) {
+    const g = new Game({ now: 1000, populate: false });
+    const inventory = estoque ?? { food: 2, 'fruta-namek': 2, 'carne-dinossauro': 2, 'carne-porunga': 2, 'carne-oozaru': 2 };
+    const p = g.addPlayer('p', 'Teste', { level: 100, inventory, autoHeal: false });
+    g.levar(p, lugar('inicial'));
+    Object.assign(p, { x: 3300, y: 2150, hp: hp * p.stats.hp, ki: ki * p.stats.ki });
+    g.updatePlayer(p, 0);
+    assert.equal(p.foodUntil, 0, 'com o Auto Hunt desligado, não come');
+    p.autoHunt = true;
+    g.updatePlayer(p, 0);
+    g.updatePlayer(p, 0);
+    assert.equal(p.foodUntil > g.time ? p.foodId : null, esperado);
+    for (const [id, qtd] of Object.entries(inventory))
+      assert.equal(p.inventory[id], qtd - Number(id === esperado), id);
+    assert.deepEqual(p.huntAnalyzer?.supplies ?? {}, esperado ? { [esperado]: 1 } : {});
+    if (esperado === 'carne-dinossauro') {
+      const vida = p.hp;
+      g.updatePlayer(p, 1);
+      assert.equal(p.hp, vida + 4);
+    }
+  }
 });
 
 test('Poção de Energia pelo atalho recupera só HP e compartilha a recarga da Poção de Ki', () => {

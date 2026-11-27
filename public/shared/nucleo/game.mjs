@@ -1,7 +1,7 @@
 import { aceitarTask, registrarAbateTask } from '../sistemas/tasks-hunt.mjs';
 import {registrarAtividadePasse} from '../sistemas/battle-pass.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
-import {consumivelValido,acaoConsumivel} from '../tecnicas/consumiveis-hotkeys.mjs';
+import {consumivelValido,acaoConsumivel,escolherComidaAutomatica} from '../tecnicas/consumiveis-hotkeys.mjs';
 import {registrar as analisar, resumo as resumoHunt, novaSessao, registrarEncontro} from '../sistemas/hunt-analyzer.mjs';
 import {preferenciasValidas} from '../sistemas/preferencias.mjs';
 import {perfilPersonagem} from '../sistemas/perfil.mjs';
@@ -1326,7 +1326,6 @@ export class Game {
       }
     }
     if (naZonaSegura(p)) { p.charge = null; return; }
-    if (p.autoFood && p.autoHunt && p.hp / p.stats.hp <= CONFIG.autoFoodLimiteHp && p.foodUntil <= this.time && p.inventory.food > 0) this.useFood(p);
     if (p.autoHunt && this.time >= p.kiReady) {
       const fracaoHp = p.hp / p.stats.hp;
       const fracaoKi = p.ki / p.stats.ki;
@@ -1336,6 +1335,10 @@ export class Game {
       else if (usarKi) this.usePotion(p);
     }
     if (p.autoHunt && p.autoSeed && p.hp / p.stats.hp < p.seedThreshold / 100 && p.inventory['seed' + p.seedSelected] > 0 && this.time >= p.seedReady) this.useSeed(p, p.seedSelected);
+    if (p.autoHunt && p.autoFood && p.foodUntil <= this.time) {
+      const comida = escolherComidaAutomatica(p);
+      if (comida) this.useFood(p, comida);
+    }
     if (p.bonusPremium.capacidadeRetida) atualizarCapacidade(p);
     const combo = p.comboAutoHunt;
     const conjurandoCombo = combo && (p.ryuken || this.genkiCharges.some(g => g.owner === p.id));
