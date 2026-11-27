@@ -1,21 +1,24 @@
-﻿// Valores usados tanto na entrega das recompensas quanto na consulta do bestiário.
-export const RECOMPENSAS_MOBS = Object.freeze({ zeniMinimo:5, zeniVariacao:5, fracaoCristal:.16, chanceSemente15:.008 });
+// Valores compartilhados pela simulação, pelo Bestiário e pela projeção das hunts.
+export const TIPOS_CHEFE = new Set([
+  'neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss',
+  'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito', 'c17Infernal', 'superC17'
+]);
 
-// Frações do sorteio de materiais, calibradas pelo valor de venda com 80% de chance de loot.
+export const RECOMPENSAS_MOBS = Object.freeze({
+  zeniMinimo: 3, zeniVariacao: 4, fracaoCristal: .16, chanceSemente15: .008
+});
+
 const fracaoCristalPorMob = new Map([
   ['ranged', .36], ['subboss', .65], ['nail', .44], ['porunga', .38],
   ['oozaru', .28], ['oozaruGuerreiro', .36], ['reiVegeta', .38], ['broly', .42]
 ]);
 export const fracaoCristalAzul = tipo => fracaoCristalPorMob.get(tipo) ?? RECOMPENSAS_MOBS.fracaoCristal;
 
-// A renda direta cresce nas hunts avançadas, onde cada abate ocupa mais tempo.
 export function faixaZeniMob(nivel, raro = false) {
   if (raro) {
-    const recompensa = Math.max(100, nivel * 5);
+    const recompensa = Math.round(60 + nivel * 1.45);
     return [recompensa, recompensa];
   }
-  // A progressão de renda vem de Zeni e da venda de materiais, mesmo nos níveis altos.
-  const bonus = nivel >= 30 ? 8 + Math.floor((nivel - 25) * 0.33) : 0;
-  const minimo = RECOMPENSAS_MOBS.zeniMinimo + bonus;
+  const minimo = RECOMPENSAS_MOBS.zeniMinimo + Math.floor((nivel - 1) * .075);
   return [minimo, minimo + RECOMPENSAS_MOBS.zeniVariacao - 1];
 }

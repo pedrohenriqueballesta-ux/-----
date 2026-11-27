@@ -29,19 +29,18 @@ test('catálogo cobre todas as espécies/locais do mundo, inclusive chefes ainda
 });
 
 test('drops e Zeni do catálogo mostram recompensas e chances do servidor', () => {
-  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:5,zeniVariacao:5,fracaoCristal:.16,chanceSemente15:.008});
-  assert.deepEqual(faixaZeniMob(25),[5,9]);
-  assert.deepEqual(faixaZeniMob(100),[37,41]);
-  assert.deepEqual(faixaZeniMob(150,true),[750,750]);
+  assert.deepEqual(RECOMPENSAS_MOBS,{zeniMinimo:3,zeniVariacao:4,fracaoCristal:.16,chanceSemente15:.008});
+  assert.deepEqual(faixaZeniMob(25),[4,7]);
+  assert.deepEqual(faixaZeniMob(100),[10,13]);
+  assert.deepEqual(faixaZeniMob(150,true),[278,278]);
   const g=new Game(),catalogo=criarBestiario(g.mobs.values());
   for(const m of catalogo){
     assert.deepEqual(m.zeni,faixaZeniMob(m.nivel,m.raro));
-    assert.deepEqual(m.drops.slice(0,3).map(d=>d.item),['scrap','cristal-azul','seed15']);
-    assert.deepEqual(m.drops.slice(3),dropsEspecificos(m.tipo));
-    assert.equal(m.drops[0].fracaoLoot+m.drops[1].fracaoLoot,1);
-    assert.equal(m.drops[1].fracaoLoot,fracaoCristalAzul(m.tipo));
+    assert.deepEqual(m.drops.slice(0,2).map(d=>d.item),['cristal-azul','seed15']);
+    assert.deepEqual(m.drops.slice(2),dropsEspecificos(m.tipo));
+    assert.equal(m.drops[0].fracaoLoot,fracaoCristalAzul(m.tipo));
     assert.equal(m.drops.filter(d => d.item === 'cristal-azul').length,1);
-    assert.equal(m.drops[2].chance,.008);
+    assert.equal(m.drops[1].chance,.008);
   }
 });
 
@@ -58,7 +57,7 @@ test('Porunga BOSS e Oozaru Dourado pagam a recompensa exibida e garantem materi
     chefe.raro = true;
     const [ficha] = criarBestiario([chefe]);
     assert.ok(ficha.zeni[0] > faixaZeniMob(chefe.level)[1]);
-    assert.ok(ficha.drops.some(d => d.chance < 1 && d.chance > .1 &&
+    assert.ok(ficha.drops.some(d => d.chance < 1 && d.chance > .05 &&
       ['capa-piccolo','armadura-vegeta'].includes(d.item)));
     assert.equal(ficha.abatesParaDrops, 1);
     const saldo = p.zeni;

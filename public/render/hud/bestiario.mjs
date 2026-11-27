@@ -5,6 +5,7 @@ import { ITENS_NEGOCIAVEIS } from '../../shared/sistemas/itens-negociaveis.mjs';
 
 const criar = (tag,texto,classe) => { const el=document.createElement(tag); if(texto!=null)el.textContent=texto;if(classe)el.className=classe;return el; };
 const numero = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+const porcentagem = n => (n * 100).toLocaleString('pt-BR', { maximumFractionDigits: 4 }) + '%';
 const tempo = segundos => segundos>=3600 ? numero(segundos/3600)+' h' : segundos>=60 ? numero(segundos/60)+' min' : numero(segundos)+' s';
 const intervalo = (valores,formatar=numero) => valores[0]===valores[1] ? formatar(valores[0]) : formatar(valores[0])+'–'+formatar(valores[1]);
 const limpar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -118,8 +119,8 @@ export function instalarBestiario(obterSnapshot) {
     } else {
       const drops=criar('ul',null,'bestiario-drops');
       const sorte=obterSnapshot()?.self?.stats?.lootChance;
-      for(const drop of m.drops){const chance=drop.chance ?? (sorte!=null?drop.fracaoLoot*sorte:null);const texto=chance!=null?numero(chance*100)+'% por abate':numero(drop.fracaoLoot*100)+'% da chance de loot do personagem';const li=marcarItemInspecionavel(criar('li'),drop.item);const img=criar('img');img.dataset.ancoraInspecao='';img.src=ITENS_NEGOCIAVEIS[drop.item].icone;img.alt='';li.append(img,nomeComRaridade(criar('span',drop.nome),drop.item),criar('b',texto));drops.append(li);}
-      detalhe.append(drops,criar('p','O XP base é reduzido gradualmente quando a criatura está abaixo do seu nível. Sucata e Cristal Azul dependem da chance de loot do seu personagem e são alternativas do mesmo sorteio. A semente tem sorteio independente. O peso disponível limita a coleta.','bestiario-nota'));
+      for(const drop of m.drops){const chance=drop.chance ?? (sorte!=null?drop.fracaoLoot*sorte:null);const texto=chance!=null?porcentagem(chance)+' por abate':porcentagem(drop.fracaoLoot)+' da chance de loot do personagem';const li=marcarItemInspecionavel(criar('li'),drop.item);const img=criar('img');img.dataset.ancoraInspecao='';img.src=ITENS_NEGOCIAVEIS[drop.item].icone;img.alt='';li.append(img,nomeComRaridade(criar('span',drop.nome),drop.item),criar('b',texto));drops.append(li);}
+      detalhe.append(drops,criar('p','O XP base é reduzido gradualmente quando a criatura está abaixo do seu nível. O Cristal Azul depende da chance de loot do seu personagem. A semente e os drops da criatura têm sorteios independentes. O peso disponível limita a coleta.','bestiario-nota'));
     }
     for(const nota of m.observacoes)detalhe.append(criar('p',nota,'bestiario-aviso'));
   };

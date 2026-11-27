@@ -30,7 +30,7 @@ export function tasksHunt() {
       id: 'task-' + area, categoria: 'task', area, tipo, meta, nivel: zona.nivel[0], nome: zona.name,
       descricao: 'Derrote ' + meta + ' inimigos do tipo ' + mob.name + ' nesta hunt.',
       recompensa: Object.freeze({
-        zeni: Math.round(meta * (10 + zona.nivel[0] * .13)),
+        zeni: Math.round(meta * (5 + zona.nivel[0] * .045)),
         xp: Math.round(meta * mob.xp * .15),
         itens: Object.freeze({ [item]: 1 })
       })

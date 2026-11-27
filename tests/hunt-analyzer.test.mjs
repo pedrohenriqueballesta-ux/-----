@@ -16,31 +16,31 @@ test('sessão conta tempo ativo, pausa, não acumula offline e calcula XP/h',()=
 test('supplies contam uma vez por uso confirmado e lucro usa os preços do NPC',()=>{
  const {g,p}=cena();p.inventory.ki=2;p.ki=0;assert.equal(g.usePotion(p).ok,true);g.usePotion(p);
  let a=resumo(p);assert.equal(a.supplies[0].quantidade,1);assert.equal(a.gastos,CONFIG.prices.ki);
- registrar(p,'loot',2,'scrap');registrar(p,'zeni',30);a=resumo(p);assert.equal(a.valorLoot,16);assert.equal(a.saldo,46-CONFIG.prices.ki);
- assert.equal(p.inventory.ki,1);assert.equal(a.loot[0].raridade,'Não definida');
+ registrar(p,'loot',2,'cristal-azul');registrar(p,'zeni',30);a=resumo(p);assert.equal(a.valorLoot,28);assert.equal(a.saldo,58-CONFIG.prices.ki);
+ assert.equal(p.inventory.ki,1);assert.equal(a.loot[0].raridade,'comum');
 });
 test('saldo estimado no NPC só soma loot elegível recolhido e desconta o custo de reposição',()=>{
  const {p}=cena();
  registrar(p,'zeni',50);
- registrar(p,'loot',2,'scrap');
+ registrar(p,'loot',2,'cristal-azul');
  registrar(p,'loot',3,'pocao-energia');
  registrar(p,'loot',1,'armadura-vegeta');
  registrar(p,'drops',1,'presa-oozaru');
  registrar(p,'supplies',1,'pocao-energia');
  const a=resumo(p);
- assert.equal(a.valorVendaNpc,16);
- assert.equal(a.saldoNpc,50 + 16 - CONFIG.prices['pocao-energia']);
+ assert.equal(a.valorVendaNpc,28);
+ assert.equal(a.saldoNpc,50 + 28 - CONFIG.prices['pocao-energia']);
  assert.ok(a.saldo>a.saldoNpc);
 });
 test('Loot Tracker agrupa itens por raridade e sinaliza os itens sem classificação',()=>{
  const grupos=agruparLootPorRaridade([
-  {id:'sucata',nome:'Sucata',raridade:'Comum'},
+  {id:'minerio',nome:'Aglomerado de Minério',raridade:'Comum'},
   {id:'cristal',nome:'Cristal',raridade:'Raro'},
   {id:'semente',nome:'Semente',raridade:''},
   {id:'outro',nome:'Outro'}
  ]);
  assert.deepEqual(Object.keys(grupos).sort(),['Comum','Não definida','Raro']);
- assert.equal(grupos.Comum[0].id,'sucata');assert.equal(grupos['Não definida'].length,2);assert.equal(grupos.Raro[0].id,'cristal');
+ assert.equal(grupos.Comum[0].id,'minerio');assert.equal(grupos['Não definida'].length,2);assert.equal(grupos.Raro[0].id,'cristal');
  assert.deepEqual(Object.keys(agruparLootPorRaridade([])),[]);
 });
 test('Loot Tracker registra o item assim que cai do mob, antes de ser recolhido',()=>{
@@ -50,8 +50,8 @@ test('Loot Tracker registra o item assim que cai do mob, antes de ser recolhido'
  const coletado=resumo(p);
  assert.equal(p.inventory['cristal-azul'],1);
  const valorSemente=Math.floor(CONFIG.prices.seed15/2);
- assert.equal(coletado.valorMateriais,21+valorSemente);
- assert.equal(coletado.saldo,coletado.zeni+21+valorSemente);
+ assert.equal(coletado.valorMateriais,14+valorSemente);
+ assert.equal(coletado.saldo,coletado.zeni+14+valorSemente);
 });
 test('Loot Tracker não conta drops de abates feitos fora da Auto Hunt',()=>{
  const {g,p}=cena();p.autoHunt=false;g.random=()=>0;const mob=g.addMob('saibaman',p.x,p.y,'inicial');mob.hp=1;g.hit(p,mob,100000);

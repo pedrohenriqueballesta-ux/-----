@@ -198,7 +198,7 @@ test('drop é sorteado no abate e chances por espécie coincidem com o Bestiári
   assert.ok(game.loot.some(l => l.item === 'asas-namek' && l.owner === p.id));
   assert.ok(game.loot.some(l => l.item === 'ferrao-namek'));
   assert.equal(game.loot.some(l => l.item === 'armadura-cell'), false);
-  assert.equal(criarBestiario([mob])[0].drops.find(i => i.item === 'asas-namek').chance, .36);
+  assert.equal(criarBestiario([mob])[0].drops.find(i => i.item === 'asas-namek').chance, .288);
   const chance = mob => dropsEspecificos(mob).find(i => i.item === 'armadura-saiyajin').chance;
   assert.notEqual(chance('nappa'), chance('raditz'));
   assert.notEqual(chance('raditz'), chance('bardock'));
@@ -228,7 +228,7 @@ test('materiais sustentam o loot das espécies ativas e as peças fortes de Free
   for (const tipo of ['dodoria', 'zarbon']) {
     assert.ok(dropsEspecificos(tipo).some(drop => drop.item === 'saia-freeza'));
   }
-  assert.deepEqual(NOVOS_ITENS['manto-rasgado'].origem.drops, { piccoloDaimaoh: .07, nail: .03, neva: .72 });
+  assert.deepEqual(NOVOS_ITENS['manto-rasgado'].origem.drops, { piccoloDaimaoh: .056, nail: .024, neva: .72 });
 });
 
 test('comida automática só consome com HP abaixo do limite e cobra um único uso', () => {
@@ -270,7 +270,8 @@ test('Vender Tudo liquida só itens comuns, incomuns e raros da mochila pelo pre
     inventory:{ scrap:2, crystal:1, 'asas-namek':3, 'cristal-azul':2, 'manto-rasgado':4,
       'armadura-bardock':1, 'bastao-magico':1, 'armadura-freeza':1, 'brincos-potara':1, food:2, 'fruta-namek':5 } });
   Object.assign(p, MERCHANT);
-  const selecionados = { scrap:2, 'asas-namek':3, 'cristal-azul':3, 'manto-rasgado':4,
+  assert.equal(p.inventory.scrap, undefined);
+  const selecionados = { 'asas-namek':3, 'cristal-azul':3, 'manto-rasgado':4,
     'armadura-bardock':1, 'bastao-magico':1 };
   const total = Object.entries(selecionados).reduce((s,[id,qtd]) => s + ITENS_NEGOCIAVEIS[id].precoNpc * qtd, 0);
   assert.equal(game.action(p.id,{ type:'sell' }).total, total);
@@ -286,22 +287,22 @@ test('Vender Tudo liquida só itens comuns, incomuns e raros da mochila pelo pre
 
 test('a seleção recusa lotes inválidos inteiros e vende exatamente a quantidade selecionada', () => {
   const game = new Game({ populate: false });
-  const p = game.addPlayer('selecao','Goku',{ zeni: 9999990, inventory:{ crystal:4,scrap:5,'fruta-namek':3,'armadura-freeza':1 } });
+  const p = game.addPlayer('selecao','Goku',{ zeni: 9999990, inventory:{ crystal:4,minerio:5,'fruta-namek':3,'armadura-freeza':1 } });
   const vender = itens => game.action(p.id,{ type:'venderSelecionados',itens });
-  assert.equal(vender({scrap:1}).ok,false);
+  assert.equal(vender({minerio:1}).ok,false);
   Object.assign(p, MERCHANT);
-  for (const itens of [{'cristal-azul':1},{scrap:1,'fruta-namek':1},{scrap:1,'armadura-freeza':1},{scrap:6},{scrap:-2},{'cristal-azul':1.5},['cristal-azul'],null]) {
+  for (const itens of [{'cristal-azul':1},{minerio:1,'fruta-namek':1},{minerio:1,'armadura-freeza':1},{minerio:6},{minerio:-2},{scrap:1},{'cristal-azul':1.5},['cristal-azul'],null]) {
     assert.equal(vender(itens).ok,false);
     assert.equal(p.zeni,9999990);
-    assert.equal(p.inventory.scrap,5);
+    assert.equal(p.inventory.minerio,5);
     assert.equal(p.inventory['cristal-azul'],4);
   }
   p.zeni=100;
-  const r=vender({'cristal-azul':2,scrap:1});
-  assert.deepEqual(r,{ok:true,quantidade:3,total:50});
-  assert.equal(p.zeni,150);
+  const r=vender({'cristal-azul':2,minerio:1});
+  assert.deepEqual(r,{ok:true,quantidade:3,total:46});
+  assert.equal(p.zeni,146);
   assert.equal(p.inventory['cristal-azul'],2);
-  assert.equal(p.inventory.scrap,4);
+  assert.equal(p.inventory.minerio,4);
 });
 
 
@@ -354,4 +355,44 @@ test('faixa permanece em cinto e proteção de Freeza migra sem substituir as ca
  assert.equal(b.equipamentos.calca, SET_INICIAL.calca);
  assert.equal(b.equipamentos.cinto, undefined);
  assert.equal(b.inventory['saia-freeza'], 1);
+});
+
+test('set raro de Hatchiyack exige sorte maior que os materiais comuns', () => {
+  const chances = tipo => Object.fromEntries(dropsEspecificos(tipo).map(d => [d.item, d.chance]));
+  const hatchiyack = chances('hatchiyack');
+  assert.equal(hatchiyack['armadura-hatchiyack'], .00095);
+  assert.equal(hatchiyack['luvas-hatchiyack'], .00135);
+  assert.equal(hatchiyack['capacete-hatchiyack'], .0012);
+  assert.equal(chances('tsufuruGeneral')['capacete-hatchiyack'], .00032);
+  assert.ok(hatchiyack['circuito-tsufu'] > .3);
+
+  const game = new Game({ populate: false, random: () => .005 });
+  const p = game.addPlayer('p');
+  game.levar(p, lugar('vegeta-planicies'));
+  p.x += 180;
+  const mob = game.addMob('hatchiyack', p.x + 50, p.y, p.area);
+  assert.ok(game.hit(p, mob, 1e7));
+  assert.ok(game.loot.some(l => l.item === 'circuito-tsufu'));
+  assert.ok(game.loot.every(l => l.item !== 'scrap' && !ITENS_NEGOCIAVEIS[l.item].slot));
+});
+
+test('Sucata legada some dos saves e anúncios, preservando recompensas válidas e créditos', () => {
+  const g = new Game({ populate: false });
+  const p = g.addPlayer('legado', 'Legado', {
+    zeni: 1234,
+    inventory: { scrap: 10, 'cristal-azul': 2 },
+    slots: [{ item: 'scrap', qty: 10 }, { item: 'cristal-azul', qty: 2 }],
+    novidades: [{ id: 'brinde', aba: 'correio', titulo: 'Brinde antigo', texto: 'Itens da hunt',
+      recompensa: { zeni: 15, itens: { scrap: 2, 'cristal-azul': 3 } } }]
+  });
+  g.mercado.restaurar({ ofertas: [
+    { id: 'oferta-1', vendedorId: 'legado', item: 'scrap', quantidade: 2, preco: 10, criadoEm: 1 },
+    { id: 'oferta-2', vendedorId: 'legado', item: 'cristal-azul', quantidade: 2, preco: 10, criadoEm: 1 }
+  ], creditos: [['legado', 30]] });
+  assert.equal(p.zeni, 1234);
+  assert.equal(p.inventory.scrap, undefined);
+  assert.ok(p.slots.every(slot => slot?.item !== 'scrap'));
+  assert.deepEqual(p.novidades[0].recompensa, { zeni: 15, itens: { 'cristal-azul': 3 } });
+  assert.deepEqual(g.mercado.exportar().ofertas.map(o => o.item), ['cristal-azul']);
+  assert.deepEqual(g.mercado.exportar().creditos, [['legado', 30]]);
 });

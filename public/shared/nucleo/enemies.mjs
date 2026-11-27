@@ -1,11 +1,15 @@
 // Inimigos do protótipo e onde eles aparecem no mapa.
 // Para ajustar atributos ou adicionar um inimigo, mexa só neste arquivo.
 
+import { TIPOS_CHEFE } from '../sistemas/recompensas-mobs.mjs';
 import { configurarProjetilMob } from '../mundo/projetil-mob.mjs';
 import { PLANETS, areaPorId, naEscala, pontoNaZonaSegura } from './config.mjs';
 import { statsFor } from './characters.mjs';
 import { xpForLevel } from '../sistemas/progressao.mjs';
 import { podeAndar, pesLivres, pontoAlcancavelDesde } from '../mundo/passagem.mjs';
+
+// A lista compartilhada define os inimigos que recebem "BOSS" no nome e a tabela de drops de chefe.
+export { TIPOS_CHEFE };
 
 // Quem aparece em cada hunt (decisão do Pedro, 03/11/2026): na inicial só os mobs básicos (Pássaro e
 // Inseto de Namek, metade de cada, os dois atacando de perto); na média (decisão de 03/11), metade Guerreiros
@@ -145,9 +149,6 @@ const ATRIBUTOS = {
 // - perseguicao: quanto ele se afasta do ponto de origem antes de desistir e voltar (curando-se ao chegar).
 // O raio antigo (300, fixo) era curto para os mapas do Vegeta: mobs a 400–500 do jogador não reagiam.
 export const AGGRO_PADRAO = { agressivo: true, aggro: 380, perseguicao: 650 };
-// Chefes (subchefe e chefes raros). Pedido do Pedro (10/11/2026): todo chefe leva "BOSS" no nome, para se
-// diferenciar dos mobs comuns na placa, no alvo, no Bestiário e nos avisos. Chefe novo: basta entrar nesta lista.
-export const TIPOS_CHEFE = new Set(['neva', 'boss', 'subboss', 'oozaruSuper', 'oozaruDourado', 'freezaBoss', 'maquinaPilaf', 'c20', 'cellSemiperfeito', 'cellPerfeito', 'c17Infernal', 'superC17']);
 // Chefes que o God Mode invoca; compartilhado pelo painel e pela validação no servidor.
 // Do mundo: o chefe que já existe na hunt renasce no local habitual. `pessoal`: chefe das sagas (só nasce na etapa
 // certa); no teste nasce só para quem invocou, no ponto de sempre (`distancia` da chegada), sem mexer no progresso da

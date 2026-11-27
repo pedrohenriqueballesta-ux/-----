@@ -1,6 +1,7 @@
+import { TIPOS_CHEFE } from './recompensas-mobs.mjs';
 import { CONSUMIVEIS_LOOT } from '../tecnicas/consumiveis-loot.mjs';
 
-// Percentuais independentes por abate. Fontes futuras têm chance proposta e não são sorteadas.
+// Chances-base independentes por abate. O catálogo aplica os multiplicadores globais antes de expor as chances ao jogo.
 const recursos = [
   // Materiais temáticos e recompensas de chefes usam os itens e ícones do catálogo.
   ["minerio","Aglomerado de Minério",0.22,27,"comum",{"guerreiro":0.22,"veterano":0.26,"ranged":0.22,"subboss":0.4,"broly":0.35,"tsufuruGuerreiro":0.27,"tsufuruGeneral":0.32,"roboMai":0.3,"roboShu":0.34,"roboPilaf":0.42,"maquinaPilaf":1,"androide18":0.43,"androide17":0.5,"androide16":0.6,"cellJr":0.3,"cellImperfeito":0.38,"c20":1,"cellSemiperfeito":0.6,"cellPerfeito":0.8,"androide17Pos":0.38,"androide18Pos":0.32}],
@@ -118,18 +119,38 @@ const equipamentos = [
   ["armadura-missao","Armadura de Patrulha Saiyajin",2.4,85,"incomum","peito",5,4,0.32,0,"#patrulha-inicial"],
 ];
 
+// Chefes preservam a vantagem como fonte de equipamento. As vitórias pessoais da saga
+// são únicas por personagem e mantêm suas recompensas originais.
+const chefesUnicos = new Set(['cellSemiperfeito', 'cellPerfeito', 'c17Infernal']);
+const escalaDropEquipamento = { comum: .35, incomum: .22, raro: .10, epico: .08, lendario: .06 };
+const escalaVendaMaterial = { comum: .68, incomum: .56, raro: .50 };
+
+function calibrarDrops(id, tipo, raridade, fonte) {
+  return Object.fromEntries(Object.entries(fonte).map(([mob, chance]) => {
+    let multiplicador = 1;
+    if (tipo === 'equipamento') {
+      multiplicador = chefesUnicos.has(mob) ? 1 : TIPOS_CHEFE.has(mob) ? .45 : escalaDropEquipamento[raridade];
+    } else if (chance < 1 && id !== 'bilhete-laboratorio' && !CONSUMIVEIS_LOOT[id] && !TIPOS_CHEFE.has(mob)) {
+      multiplicador = .8;
+    }
+    return [mob, Number((chance * multiplicador).toFixed(6))];
+  }));
+}
+
 const chanceFutura = { comum: 0.045, incomum: 0.026, raro: 0.012, epico: 0.006, lendario: 0.0025 };
 function registrar([id, nome, peso, precoBase, raridade, ...resto], tipo) {
   const [slot, nivel, defesa, kiPorSegundo, ataque, fonte, arte = id] = tipo === 'equipamento'
     ? resto : [null, 1, 0, 0, 0, resto[0]];
-  const origem = typeof fonte !== 'string' ? { drops: Object.freeze(fonte) }
+  const origem = typeof fonte !== 'string' ? { drops: Object.freeze(calibrarDrops(id, tipo, raridade, fonte)) }
     : fonte.startsWith('@') ? { futura: fonte.slice(1), chanceProposta: chanceFutura[raridade] }
       : { recompensa: fonte.slice(1) };
   const consumo = CONSUMIVEIS_LOOT[id];
+  // Equipamento é uma recompensa de progressão. O NPC paga a liquidação, e o market parte da referência.
+  const valorLiquidacao = slot ? (origem.recompensa ? precoBase : precoBase * .125)
+    : consumo || id === 'bilhete-laboratorio' ? precoBase : precoBase * escalaVendaMaterial[raridade];
   return Object.freeze({
-    // Equipamento é uma recompensa de progressão. O NPC paga a liquidação, e o market parte da referência.
     id, nome, peso,
-    precoNpc: ['epico', 'lendario'].includes(raridade) ? null : slot && !origem.recompensa ? Math.max(1, Math.round(precoBase / 4)) : precoBase,
+    precoNpc: ['epico', 'lendario'].includes(raridade) ? null : Math.max(1, Math.round(valorLiquidacao)),
     precoReferencia: precoBase * (slot ? 3 : 2),
     raridade, tipo: consumo ? 'consumivel' : tipo, consumo, slot, nivel, defesa, kiPorSegundo, ataque, origem: Object.freeze(origem),
     icone: '/assets/inventario/novos/' + arte + '.png', negociavel: true
